@@ -8,7 +8,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { type SearchParamPrimitive, toSearchParamValue } from './params';
+import { type SearchParamMappings, toSearchParams } from './params';
 
 const MarketsRequestSchema = z.object({
   active: z.boolean().optional(),
@@ -51,6 +51,37 @@ const FetchMarketRequestSchema = z.union([
 export type FetchMarketRequest = z.input<typeof FetchMarketRequestSchema>;
 
 type MarketsParams = z.output<typeof MarketsRequestSchema>;
+
+const MARKETS_SEARCH_PARAM_MAPPINGS = {
+  active: 'active',
+  ascending: 'ascending',
+  closed: 'closed',
+  clobTokenIds: 'clob_token_ids',
+  conditionIds: 'condition_ids',
+  cyom: 'cyom',
+  endDateMax: 'end_date_max',
+  endDateMin: 'end_date_min',
+  gameId: 'game_id',
+  ids: 'id',
+  includeTag: 'include_tag',
+  limit: 'limit',
+  liquidityNumMax: 'liquidity_num_max',
+  liquidityNumMin: 'liquidity_num_min',
+  marketMakerAddresses: 'market_maker_address',
+  offset: 'offset',
+  order: 'order',
+  questionIds: 'question_ids',
+  relatedTags: 'related_tags',
+  rewardsMinSize: 'rewards_min_size',
+  slug: 'slug',
+  sportsMarketTypes: 'sports_market_types',
+  startDateMax: 'start_date_max',
+  startDateMin: 'start_date_min',
+  tagId: 'tag_id',
+  umaResolutionStatus: 'uma_resolution_status',
+  volumeNumMax: 'volume_num_max',
+  volumeNumMin: 'volume_num_min',
+} satisfies SearchParamMappings<MarketsParams>;
 
 /**
  * Lists markets.
@@ -133,61 +164,7 @@ export async function fetchMarket(
 }
 
 function toMarketsSearchParams(params: MarketsParams): URLSearchParams {
-  const searchParams = new URLSearchParams();
-
-  const entries = [
-    ['active', params.active],
-    ['ascending', params.ascending],
-    ['closed', params.closed],
-    ['clob_token_ids', params.clobTokenIds],
-    ['condition_ids', params.conditionIds],
-    ['cyom', params.cyom],
-    ['end_date_max', params.endDateMax],
-    ['end_date_min', params.endDateMin],
-    ['game_id', params.gameId],
-    ['id', params.ids],
-    ['include_tag', params.includeTag],
-    ['limit', params.limit],
-    ['liquidity_num_max', params.liquidityNumMax],
-    ['liquidity_num_min', params.liquidityNumMin],
-    ['market_maker_address', params.marketMakerAddresses],
-    ['offset', params.offset],
-    ['order', params.order],
-    ['question_ids', params.questionIds],
-    ['related_tags', params.relatedTags],
-    ['rewards_min_size', params.rewardsMinSize],
-    ['slug', params.slug],
-    ['sports_market_types', params.sportsMarketTypes],
-    ['start_date_max', params.startDateMax],
-    ['start_date_min', params.startDateMin],
-    ['tag_id', params.tagId],
-    ['uma_resolution_status', params.umaResolutionStatus],
-    ['volume_num_max', params.volumeNumMax],
-    ['volume_num_min', params.volumeNumMin],
-  ] as const satisfies ReadonlyArray<
-    readonly [
-      string,
-      SearchParamPrimitive | readonly SearchParamPrimitive[] | undefined,
-    ]
-  >;
-
-  for (const [key, value] of entries) {
-    if (value === undefined) {
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        searchParams.append(key, toSearchParamValue(item));
-      }
-
-      continue;
-    }
-
-    searchParams.append(key, toSearchParamValue(value));
-  }
-
-  return searchParams;
+  return toSearchParams(params, MARKETS_SEARCH_PARAM_MAPPINGS);
 }
 
 async function getMarketById(

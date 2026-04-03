@@ -8,7 +8,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { type SearchParamPrimitive, toSearchParamValue } from './params';
+import { type SearchParamMappings, toSearchParams } from './params';
 
 const EventsRequestSchema = z.object({
   ascending: z.boolean().optional(),
@@ -54,6 +54,46 @@ export type EventsRequest = z.input<typeof EventsRequestSchema>;
 
 type EventsParams = z.output<typeof EventsRequestSchema>;
 
+const EVENTS_SEARCH_PARAM_MAPPINGS = {
+  ascending: 'ascending',
+  closed: 'closed',
+  cyom: 'cyom',
+  endDateMax: 'end_date_max',
+  endDateMin: 'end_date_min',
+  eventDate: 'event_date',
+  eventWeek: 'event_week',
+  excludeTagIds: 'exclude_tag_id',
+  featured: 'featured',
+  featuredOrder: 'featured_order',
+  gameIds: 'game_id',
+  ids: 'id',
+  includeBestLines: 'include_best_lines',
+  includeChat: 'include_chat',
+  includeChildren: 'include_children',
+  includeTemplate: 'include_template',
+  limit: 'limit',
+  liquidityMax: 'liquidity_max',
+  liquidityMin: 'liquidity_min',
+  live: 'live',
+  locale: 'locale',
+  offset: 'offset',
+  order: 'order',
+  parentEventId: 'parent_event_id',
+  recurrence: 'recurrence',
+  relatedTags: 'related_tags',
+  seriesIds: 'series_id',
+  slug: 'slug',
+  startDateMax: 'start_date_max',
+  startDateMin: 'start_date_min',
+  startTimeMax: 'start_time_max',
+  startTimeMin: 'start_time_min',
+  tagIds: 'tag_id',
+  tagMatch: 'tag_match',
+  tagSlug: 'tag_slug',
+  volumeMax: 'volume_max',
+  volumeMin: 'volume_min',
+} satisfies SearchParamMappings<EventsParams>;
+
 /**
  * Lists events.
  *
@@ -94,68 +134,5 @@ export async function listEvents(
 }
 
 function toEventsSearchParams(params: EventsParams): URLSearchParams {
-  const searchParams = new URLSearchParams();
-
-  const entries = [
-    ['ascending', params.ascending],
-    ['closed', params.closed],
-    ['cyom', params.cyom],
-    ['end_date_max', params.endDateMax],
-    ['end_date_min', params.endDateMin],
-    ['event_date', params.eventDate],
-    ['event_week', params.eventWeek],
-    ['exclude_tag_id', params.excludeTagIds],
-    ['featured', params.featured],
-    ['featured_order', params.featuredOrder],
-    ['game_id', params.gameIds],
-    ['id', params.ids],
-    ['include_best_lines', params.includeBestLines],
-    ['include_chat', params.includeChat],
-    ['include_children', params.includeChildren],
-    ['include_template', params.includeTemplate],
-    ['limit', params.limit],
-    ['liquidity_max', params.liquidityMax],
-    ['liquidity_min', params.liquidityMin],
-    ['live', params.live],
-    ['locale', params.locale],
-    ['offset', params.offset],
-    ['order', params.order],
-    ['parent_event_id', params.parentEventId],
-    ['recurrence', params.recurrence],
-    ['related_tags', params.relatedTags],
-    ['series_id', params.seriesIds],
-    ['slug', params.slug],
-    ['start_date_max', params.startDateMax],
-    ['start_date_min', params.startDateMin],
-    ['start_time_max', params.startTimeMax],
-    ['start_time_min', params.startTimeMin],
-    ['tag_id', params.tagIds],
-    ['tag_match', params.tagMatch],
-    ['tag_slug', params.tagSlug],
-    ['volume_max', params.volumeMax],
-    ['volume_min', params.volumeMin],
-  ] as const satisfies ReadonlyArray<
-    readonly [
-      string,
-      SearchParamPrimitive | readonly SearchParamPrimitive[] | undefined,
-    ]
-  >;
-
-  for (const [key, value] of entries) {
-    if (value === undefined) {
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        searchParams.append(key, toSearchParamValue(item));
-      }
-
-      continue;
-    }
-
-    searchParams.append(key, toSearchParamValue(value));
-  }
-
-  return searchParams;
+  return toSearchParams(params, EVENTS_SEARCH_PARAM_MAPPINGS);
 }
