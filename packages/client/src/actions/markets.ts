@@ -8,7 +8,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { type SearchParamMappings, toSearchParams } from './params';
+import { snakeCase, toSearchParams } from './params';
 
 const MarketsRequestSchema = z.object({
   active: z.boolean().optional(),
@@ -51,37 +51,6 @@ const FetchMarketRequestSchema = z.union([
 export type FetchMarketRequest = z.input<typeof FetchMarketRequestSchema>;
 
 type MarketsParams = z.output<typeof MarketsRequestSchema>;
-
-const MARKETS_SEARCH_PARAM_MAPPINGS = {
-  active: 'active',
-  ascending: 'ascending',
-  closed: 'closed',
-  clobTokenIds: 'clob_token_ids',
-  conditionIds: 'condition_ids',
-  cyom: 'cyom',
-  endDateMax: 'end_date_max',
-  endDateMin: 'end_date_min',
-  gameId: 'game_id',
-  ids: 'id',
-  includeTag: 'include_tag',
-  limit: 'limit',
-  liquidityNumMax: 'liquidity_num_max',
-  liquidityNumMin: 'liquidity_num_min',
-  marketMakerAddresses: 'market_maker_address',
-  offset: 'offset',
-  order: 'order',
-  questionIds: 'question_ids',
-  relatedTags: 'related_tags',
-  rewardsMinSize: 'rewards_min_size',
-  slug: 'slug',
-  sportsMarketTypes: 'sports_market_types',
-  startDateMax: 'start_date_max',
-  startDateMin: 'start_date_min',
-  tagId: 'tag_id',
-  umaResolutionStatus: 'uma_resolution_status',
-  volumeNumMax: 'volume_num_max',
-  volumeNumMin: 'volume_num_min',
-} satisfies SearchParamMappings<MarketsParams>;
 
 /**
  * Lists markets.
@@ -153,21 +122,34 @@ export async function fetchMarket(
   const params = parseUserInput(request, FetchMarketRequestSchema);
 
   if ('id' in params) {
-    return getMarketById(client, params.id);
+    return fetchMarketById(client, params.id);
   }
 
+  return fetchMarketBySlug(client, params.slug);
+}
+
+function toMarketsSearchParams(params: MarketsParams): URLSearchParams {
+  return toSearchParams(
+    params,
+    snakeCase<MarketsParams>({
+      ids: 'id',
+      marketMakerAddresses: 'market_maker_address',
+    }),
+  );
+}
+
+async function fetchMarketBySlug(
+  client: PolymarketClient,
+  slug: string,
+): Promise<Market> {
   return unwrap(
-    client.gamma.get(`markets/slug/${params.slug}`, {
+    client.gamma.get(`markets/slug/${slug}`, {
       schema: MarketSchema,
     }),
   );
 }
 
-function toMarketsSearchParams(params: MarketsParams): URLSearchParams {
-  return toSearchParams(params, MARKETS_SEARCH_PARAM_MAPPINGS);
-}
-
-async function getMarketById(
+async function fetchMarketById(
   client: PolymarketClient,
   id: string,
 ): Promise<Market> {

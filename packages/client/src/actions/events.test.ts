@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
-import { listEvents } from './events';
+import { fetchEvent, listEvents } from './events';
 
 describe('Events', () => {
   describe('listEvents', () => {
@@ -17,6 +17,34 @@ describe('Events', () => {
           markets: expect.any(Array),
         }),
       );
+    });
+  });
+
+  describe('fetchEvent', () => {
+    it('fetches an event by id and slug', async () => {
+      const [event] = await listEvents(testClient, {
+        closed: false,
+        limit: 1,
+      });
+
+      if (!event) {
+        throw new Error('Expected at least one event');
+      }
+
+      if (!event.slug) {
+        throw new Error('Expected the event to have a slug');
+      }
+
+      const eventById = await fetchEvent(testClient, {
+        id: event.id,
+      });
+
+      const eventBySlug = await fetchEvent(testClient, {
+        slug: event.slug,
+      });
+
+      expect(eventById.id).toBe(event.id);
+      expect(eventBySlug.id).toBe(event.id);
     });
   });
 });

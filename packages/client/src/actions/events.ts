@@ -1,5 +1,6 @@
 import {
   type Event,
+  EventSchema,
   ISOCalendarDateSchema,
   ISODateStringSchema,
   ListEventsResponseSchema,
@@ -8,7 +9,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { type SearchParamMappings, toSearchParams } from './params';
+import { snakeCase, toSearchParams } from './params';
 
 const EventsRequestSchema = z.object({
   ascending: z.boolean().optional(),
@@ -52,47 +53,25 @@ const EventsRequestSchema = z.object({
 
 export type EventsRequest = z.input<typeof EventsRequestSchema>;
 
-type EventsParams = z.output<typeof EventsRequestSchema>;
+const FetchEventRequestSchema = z.union([
+  z.object({
+    id: z.string(),
+    includeChat: z.boolean().optional(),
+    includeTemplate: z.boolean().optional(),
+    locale: z.string().optional(),
+    partnerSlug: z.string().optional(),
+  }),
+  z.object({
+    slug: z.string(),
+    includeBestLines: z.boolean().optional(),
+    includeChat: z.boolean().optional(),
+    locale: z.string().optional(),
+  }),
+]);
 
-const EVENTS_SEARCH_PARAM_MAPPINGS = {
-  ascending: 'ascending',
-  closed: 'closed',
-  cyom: 'cyom',
-  endDateMax: 'end_date_max',
-  endDateMin: 'end_date_min',
-  eventDate: 'event_date',
-  eventWeek: 'event_week',
-  excludeTagIds: 'exclude_tag_id',
-  featured: 'featured',
-  featuredOrder: 'featured_order',
-  gameIds: 'game_id',
-  ids: 'id',
-  includeBestLines: 'include_best_lines',
-  includeChat: 'include_chat',
-  includeChildren: 'include_children',
-  includeTemplate: 'include_template',
-  limit: 'limit',
-  liquidityMax: 'liquidity_max',
-  liquidityMin: 'liquidity_min',
-  live: 'live',
-  locale: 'locale',
-  offset: 'offset',
-  order: 'order',
-  parentEventId: 'parent_event_id',
-  recurrence: 'recurrence',
-  relatedTags: 'related_tags',
-  seriesIds: 'series_id',
-  slug: 'slug',
-  startDateMax: 'start_date_max',
-  startDateMin: 'start_date_min',
-  startTimeMax: 'start_time_max',
-  startTimeMin: 'start_time_min',
-  tagIds: 'tag_id',
-  tagMatch: 'tag_match',
-  tagSlug: 'tag_slug',
-  volumeMax: 'volume_max',
-  volumeMin: 'volume_min',
-} satisfies SearchParamMappings<EventsParams>;
+export type FetchEventRequest = z.input<typeof FetchEventRequestSchema>;
+
+type EventsParams = z.output<typeof EventsRequestSchema>;
 
 /**
  * Lists events.
@@ -133,6 +112,89 @@ export async function listEvents(
   );
 }
 
+/**
+ * Fetches an event.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const event = await fetchEvent(client, {
+ *   id: '12345',
+ * });
+ *
+ * // event === Event
+ * ```
+ */
+export async function fetchEvent(
+  client: PolymarketClient,
+  request: FetchEventRequest,
+): Promise<Event> {
+  const params = parseUserInput(request, FetchEventRequestSchema);
+
+  if ('id' in params) {
+    return unwrap(
+      client.gamma.get(`events/${params.id}`, {
+        schema: EventSchema,
+        searchParams: toFetchEventByIdSearchParams(params),
+      }),
+    );
+  }
+
+  return unwrap(
+    client.gamma.get(`events/slug/${params.slug}`, {
+      schema: EventSchema,
+      searchParams: toFetchEventBySlugSearchParams(params),
+    }),
+  );
+}
+
 function toEventsSearchParams(params: EventsParams): URLSearchParams {
-  return toSearchParams(params, EVENTS_SEARCH_PARAM_MAPPINGS);
+  return toSearchParams(
+    params,
+    snakeCase<EventsParams>({
+      excludeTagIds: 'exclude_tag_id',
+      gameIds: 'game_id',
+      ids: 'id',
+      seriesIds: 'series_id',
+      tagIds: 'tag_id',
+    }),
+  );
+}
+
+function toFetchEventByIdSearchParams(
+  params: Extract<z.output<typeof FetchEventRequestSchema>, { id: string }>,
+): URLSearchParams {
+  return toSearchParams(
+    {
+      includeChat: params.includeChat,
+      includeTemplate: params.includeTemplate,
+      locale: params.locale,
+      partnerSlug: params.partnerSlug,
+    },
+    snakeCase(),
+  );
+}
+
+function toFetchEventBySlugSearchParams(
+  params: Extract<z.output<typeof FetchEventRequestSchema>, { slug: string }>,
+): URLSearchParams {
+  return toSearchParams(
+    {
+      includeBestLines: params.includeBestLines,
+      includeChat: params.includeChat,
+      locale: params.locale,
+    },
+    snakeCase(),
+  );
 }

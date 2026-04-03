@@ -10,10 +10,19 @@ export type SearchParamMappings<TParams extends SearchParamsInput> = {
   [TKey in keyof TParams]: string;
 };
 
+type SnakeCaseSearchParamMappings = {
+  format: 'snake_case';
+  exceptions: Record<string, string | undefined>;
+};
+
 export function toSearchParams<TParams extends SearchParamsInput>(
   params: TParams,
-  mappings: SearchParamMappings<TParams>,
+  mappings: SearchParamMappings<TParams> | SnakeCaseSearchParamMappings,
 ): URLSearchParams {
+  if (isSnakeCaseSearchParamMappings(mappings)) {
+    return toSnakeCaseSearchParams(params, mappings.exceptions);
+  }
+
   const searchParams = new URLSearchParams();
 
   for (const [paramKey, searchParamKey] of Object.entries(mappings) as Array<
@@ -39,10 +48,60 @@ export function toSearchParams<TParams extends SearchParamsInput>(
   return searchParams;
 }
 
+export function snakeCase<TParams extends SearchParamsInput>(
+  exceptions: Partial<SearchParamMappings<TParams>> = {},
+): SnakeCaseSearchParamMappings {
+  return {
+    format: 'snake_case',
+    exceptions,
+  };
+}
+
+function isSnakeCaseSearchParamMappings(
+  mappings:
+    | SearchParamMappings<SearchParamsInput>
+    | SnakeCaseSearchParamMappings,
+): mappings is SnakeCaseSearchParamMappings {
+  return 'format' in mappings;
+}
+
+function toSnakeCaseSearchParams<TParams extends SearchParamsInput>(
+  params: TParams,
+  exceptions: Record<string, string | undefined>,
+): URLSearchParams {
+  const searchParams = new URLSearchParams();
+
+  for (const [paramKey, value] of Object.entries(params) as Array<
+    readonly [string, SearchParamValue]
+  >) {
+    if (value === undefined) {
+      continue;
+    }
+
+    const searchParamKey = exceptions[paramKey] ?? toSnakeCase(paramKey);
+
+    if (isSearchParamArray(value)) {
+      for (const item of value) {
+        searchParams.append(searchParamKey, toSearchParamValue(item));
+      }
+
+      continue;
+    }
+
+    searchParams.append(searchParamKey, toSearchParamValue(value));
+  }
+
+  return searchParams;
+}
+
 function isSearchParamArray(
   value: SearchParamValue,
 ): value is readonly SearchParamPrimitive[] {
   return Array.isArray(value);
+}
+
+function toSnakeCase(value: string): string {
+  return value.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`);
 }
 
 export function toSearchParamValue(value: SearchParamPrimitive): string {
