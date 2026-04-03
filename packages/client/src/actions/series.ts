@@ -9,7 +9,7 @@ import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
-const SeriesRequestSchema = z.object({
+const ListSeriesRequestSchema = z.object({
   ascending: z.boolean().optional(),
   categoriesIds: z.array(z.number().int()).optional(),
   categoriesLabels: z.array(z.string()).optional(),
@@ -30,22 +30,47 @@ const FetchSeriesRequestSchema = z.object({
   locale: z.string().optional(),
 });
 
-export type SeriesRequest = z.input<typeof SeriesRequestSchema>;
+export type ListSeriesRequest = z.input<typeof ListSeriesRequestSchema>;
 export type FetchSeriesRequest = z.input<typeof FetchSeriesRequestSchema>;
-type SeriesParams = z.output<typeof SeriesRequestSchema>;
+type ListSeriesParams = z.output<typeof ListSeriesRequestSchema>;
 
+/**
+ * Lists series.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const series = await listSeries(client, {
+ *   limit: 10,
+ *   closed: false,
+ * });
+ *
+ * // series === Series[]
+ * ```
+ */
 export async function listSeries(
   client: PolymarketClient,
-  request: SeriesRequest = {},
+  request: ListSeriesRequest = {},
 ): Promise<Series[]> {
-  const params = parseUserInput(request, SeriesRequestSchema);
+  const params = parseUserInput(request, ListSeriesRequestSchema);
 
   return unwrap(
     client.gamma.get('series', {
       schema: ListSeriesResponseSchema,
       searchParams: toSearchParams(
         params,
-        snakeCase<SeriesParams>({
+        snakeCase<ListSeriesParams>({
           categoriesIds: 'categories_ids',
           categoriesLabels: 'categories_labels',
         }),
@@ -54,6 +79,31 @@ export async function listSeries(
   );
 }
 
+/**
+ * Fetches a series.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const series = await fetchSeries(client, {
+ *   id: 'fed-daily-series',
+ *   includeChat: true,
+ * });
+ *
+ * // series === Series
+ * ```
+ */
 export async function fetchSeries(
   client: PolymarketClient,
   request: FetchSeriesRequest,

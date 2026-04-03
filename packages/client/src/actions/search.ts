@@ -12,26 +12,18 @@ const SearchRequestSchema = z.object({
   q: z.string().min(1),
   ascending: z.boolean().optional(),
   cache: z.boolean().optional(),
-  eventsStatus: z.enum(['active', 'resolved']).optional(),
+  eventsStatus: z.string().min(1).optional(),
   eventsTag: z.array(z.string()).optional(),
   excludeTagIds: z.array(z.number().int()).optional(),
   keepClosedMarkets: z.number().int().optional(),
-  limitPerType: z.number().int().max(15).optional(),
+  limitPerType: z.number().int().optional(),
+  optimized: z.boolean().optional(),
   page: z.number().int().optional(),
   presets: z.array(z.string()).optional(),
   recurrence: z.enum(['daily', 'weekly', 'monthly']).optional(),
+  searchProfiles: z.boolean().optional(),
   searchTags: z.boolean().optional(),
-  sort: z
-    .enum([
-      'volume',
-      'volume_24hr',
-      'liquidity',
-      'competitive',
-      'closed_time',
-      'start_date',
-      'end_date',
-    ])
-    .optional(),
+  sort: z.string().min(1).optional(),
 });
 
 export type SearchRequest = z.input<typeof SearchRequestSchema>;

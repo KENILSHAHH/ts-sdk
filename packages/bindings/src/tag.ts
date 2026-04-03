@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { TagIdSchema, TagReferenceSchema } from './common';
+import { ChatSchema, TemplateReferenceSchema } from './event';
 
-export const TagSchema = TagReferenceSchema;
+export const TagSchema = TagReferenceSchema.extend({
+  chats: z.array(ChatSchema).nullish(),
+  templates: z.array(TemplateReferenceSchema).nullish(),
+});
 
 export const RelatedTagSchema = z.looseObject({
   id: z.string(),

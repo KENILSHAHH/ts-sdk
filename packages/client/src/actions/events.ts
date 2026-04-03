@@ -13,12 +13,13 @@ import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
-const EventsRequestSchema = z.object({
+const ListEventsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   closed: z.boolean().optional(),
   cyom: z.boolean().optional(),
   endDateMax: ISODateStringSchema.optional(),
   endDateMin: ISODateStringSchema.optional(),
+  ended: z.boolean().optional(),
   eventDate: ISOCalendarDateSchema.optional(),
   eventWeek: z.number().int().optional(),
   excludeTagIds: z.array(z.number().int()).optional(),
@@ -38,9 +39,10 @@ const EventsRequestSchema = z.object({
   offset: z.number().int().optional(),
   order: z.string().optional(),
   parentEventId: z.number().int().optional(),
+  partnerSlug: z.string().optional(),
   recurrence: z.enum(['daily', 'weekly', 'monthly']).optional(),
   relatedTags: z.boolean().optional(),
-  seriesIds: z.array(z.string()).optional(),
+  seriesIds: z.array(z.number().int()).optional(),
   slug: z.array(z.string()).optional(),
   startDateMax: ISODateStringSchema.optional(),
   startDateMin: ISODateStringSchema.optional(),
@@ -49,24 +51,26 @@ const EventsRequestSchema = z.object({
   tagIds: z.array(z.number().int()).optional(),
   tagMatch: z.enum(['any', 'all']).optional(),
   tagSlug: z.string().optional(),
+  titleSearch: z.string().optional(),
   volumeMax: z.number().optional(),
   volumeMin: z.number().optional(),
 });
 
-export type EventsRequest = z.input<typeof EventsRequestSchema>;
+export type ListEventsRequest = z.input<typeof ListEventsRequestSchema>;
 
 const FetchEventRequestSchema = z.union([
   z.object({
     id: z.string(),
+    includeBestLines: z.boolean().optional(),
     includeChat: z.boolean().optional(),
     includeTemplate: z.boolean().optional(),
     locale: z.string().optional(),
-    partnerSlug: z.string().optional(),
   }),
   z.object({
     slug: z.string(),
     includeBestLines: z.boolean().optional(),
     includeChat: z.boolean().optional(),
+    includeTemplate: z.boolean().optional(),
     locale: z.string().optional(),
   }),
 ]);
@@ -79,7 +83,7 @@ const FetchEventTagsRequestSchema = z.object({
 
 export type FetchEventTagsRequest = z.input<typeof FetchEventTagsRequestSchema>;
 
-type EventsParams = z.output<typeof EventsRequestSchema>;
+type ListEventsParams = z.output<typeof ListEventsRequestSchema>;
 
 /**
  * Lists events.
@@ -108,9 +112,9 @@ type EventsParams = z.output<typeof EventsRequestSchema>;
  */
 export async function listEvents(
   client: PolymarketClient,
-  request: EventsRequest = {},
+  request: ListEventsRequest = {},
 ): Promise<Event[]> {
-  const params = parseUserInput(request, EventsRequestSchema);
+  const params = parseUserInput(request, ListEventsRequestSchema);
 
   return unwrap(
     client.gamma.get('events', {
@@ -204,10 +208,10 @@ export async function fetchEventTags(
   );
 }
 
-function toEventsSearchParams(params: EventsParams): URLSearchParams {
+function toEventsSearchParams(params: ListEventsParams): URLSearchParams {
   return toSearchParams(
     params,
-    snakeCase<EventsParams>({
+    snakeCase<ListEventsParams>({
       excludeTagIds: 'exclude_tag_id',
       gameIds: 'game_id',
       ids: 'id',
@@ -222,10 +226,10 @@ function toFetchEventByIdSearchParams(
 ): URLSearchParams {
   return toSearchParams(
     {
+      includeBestLines: params.includeBestLines,
       includeChat: params.includeChat,
       includeTemplate: params.includeTemplate,
       locale: params.locale,
-      partnerSlug: params.partnerSlug,
     },
     snakeCase(),
   );
@@ -238,6 +242,7 @@ function toFetchEventBySlugSearchParams(
     {
       includeBestLines: params.includeBestLines,
       includeChat: params.includeChat,
+      includeTemplate: params.includeTemplate,
       locale: params.locale,
     },
     snakeCase(),

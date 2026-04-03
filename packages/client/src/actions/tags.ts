@@ -12,7 +12,7 @@ import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
-const TagsRequestSchema = z.object({
+const ListTagsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   includeChat: z.boolean().optional(),
   includeTemplate: z.boolean().optional(),
@@ -48,17 +48,19 @@ const RelatedTagsBySlugRequestSchema = z.object({
 
 const RelatedTagResourcesByIdRequestSchema = z.object({
   id: z.string(),
+  locale: z.string().optional(),
   omitEmpty: z.boolean().optional(),
   status: z.enum(['active', 'closed', 'all']).optional(),
 });
 
 const RelatedTagResourcesBySlugRequestSchema = z.object({
+  locale: z.string().optional(),
   slug: z.string(),
   omitEmpty: z.boolean().optional(),
   status: z.enum(['active', 'closed', 'all']).optional(),
 });
 
-export type TagsRequest = z.input<typeof TagsRequestSchema>;
+export type ListTagsRequest = z.input<typeof ListTagsRequestSchema>;
 export type FetchTagRequest = z.input<typeof FetchTagRequestSchema>;
 export type FetchRelatedTagsRequest =
   | z.input<typeof RelatedTagsByIdRequestSchema>
@@ -67,12 +69,36 @@ export type FetchRelatedTagResourcesRequest =
   | z.input<typeof RelatedTagResourcesByIdRequestSchema>
   | z.input<typeof RelatedTagResourcesBySlugRequestSchema>;
 
-/** Lists tags. */
+/**
+ * Lists tags.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const tags = await listTags(client, {
+ *   limit: 12,
+ *   includeTemplate: true,
+ * });
+ *
+ * // tags === Tag[]
+ * ```
+ */
 export async function listTags(
   client: PolymarketClient,
-  request: TagsRequest = {},
+  request: ListTagsRequest = {},
 ): Promise<Tag[]> {
-  const params = parseUserInput(request, TagsRequestSchema);
+  const params = parseUserInput(request, ListTagsRequestSchema);
 
   return unwrap(
     client.gamma.get('tags', {
@@ -82,7 +108,31 @@ export async function listTags(
   );
 }
 
-/** Fetches a tag by id or slug. */
+/**
+ * Fetches a tag by id or slug.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const tag = await fetchTag(client, {
+ *   slug: 'politics',
+ *   locale: 'en',
+ * });
+ *
+ * // tag === Tag
+ * ```
+ */
 export async function fetchTag(
   client: PolymarketClient,
   request: FetchTagRequest,
@@ -118,7 +168,32 @@ export async function fetchTag(
   );
 }
 
-/** Fetches related tag relationships by id or slug. */
+/**
+ * Fetches related tag relationships by id or slug.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const relatedTags = await fetchRelatedTags(client, {
+ *   id: '42',
+ *   status: 'active',
+ *   omitEmpty: true,
+ * });
+ *
+ * // relatedTags === RelatedTag[]
+ * ```
+ */
 export async function fetchRelatedTags(
   client: PolymarketClient,
   request: FetchRelatedTagsRequest,
@@ -149,7 +224,32 @@ export async function fetchRelatedTags(
   );
 }
 
-/** Fetches related tag resources by id or slug. */
+/**
+ * Fetches resources linked from related tag relationships by id or slug.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const relatedResources = await fetchRelatedTagResources(client, {
+ *   slug: 'election',
+ *   status: 'active',
+ *   omitEmpty: true,
+ * });
+ *
+ * // relatedResources === Tag[]
+ * ```
+ */
 export async function fetchRelatedTagResources(
   client: PolymarketClient,
   request: FetchRelatedTagResourcesRequest,
@@ -165,6 +265,7 @@ export async function fetchRelatedTagResources(
         schema: ListRelatedTagResourcesResponseSchema,
         searchParams: toSearchParams(
           {
+            locale: params.locale,
             omitEmpty: params.omitEmpty,
             status: params.status,
           },
@@ -184,6 +285,7 @@ export async function fetchRelatedTagResources(
       schema: ListRelatedTagResourcesResponseSchema,
       searchParams: toSearchParams(
         {
+          locale: params.locale,
           omitEmpty: params.omitEmpty,
           status: params.status,
         },

@@ -6,7 +6,6 @@ describe('Markets', () => {
   describe('listMarkets', () => {
     it('fetches markets from Gamma', async () => {
       const result = await listMarkets(testClient, {
-        active: true,
         closed: false,
         limit: 1,
       });
@@ -25,7 +24,6 @@ describe('Markets', () => {
   describe('fetchMarket', () => {
     it('fetches a market by id and slug', async () => {
       const [market] = await listMarkets(testClient, {
-        active: true,
         closed: false,
         limit: 1,
       });
@@ -54,7 +52,6 @@ describe('Markets', () => {
   describe('fetchMarketTags', () => {
     it("fetches a market's tags by id", async () => {
       const [market] = await listMarkets(testClient, {
-        active: true,
         closed: false,
         limit: 1,
       });

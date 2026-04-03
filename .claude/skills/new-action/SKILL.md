@@ -11,6 +11,7 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 
 ```
 /new-action <action>
+/new-action <repo> <action>
 ```
 
 ## Inputs
@@ -20,6 +21,7 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 
 ## Workflow
 
+- When provided, investigate the target API implementation in the source repo before modeling request and response shapes
 - Create or update `packages/client/src/actions/<module>.ts`
 - Prefer colocating related actions in the same module, such as market read actions in `markets.ts` and event read actions in `events.ts`
 - Create a new module only when the action does not have a natural existing home
@@ -35,15 +37,16 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 - Keep the public action API Polymarket-shaped and do not leak `ky` types, instances, hooks, or option shapes
 - Accept `PolymarketClient` as the first parameter
 - Prefer verb-led names for action functions; use `list<Resource>` for collection reads unless the user asks otherwise
+- Use published docs or OpenAPI only to locate paths or cross-reference coverage; the implementation is the source of truth
 - Avoid composing response schemas inside action code; parse responses with schemas exported from `@polymarket/bindings`
 - Use the exported resource schema directly for 1:1 responses, and add a dedicated `...ResponseSchema` in `@polymarket/bindings` only when the transport shape differs from the resource shape, such as wrappers, pagination envelopes, or extra metadata
 - Do not hand-roll missing response models in the client package; add them to `@polymarket/bindings` first
 - Reuse types re-exported by `@polymarket/client` instead of creating redundant local type aliases for bindings types
 - If request input benefits from runtime validation or normalization, use Zod in the action module
 - Prefer inline Zod transforms with well-named helpers such as `.transform(toISODateString)`
-- Keep helpers small and local; avoid extra abstractions that do not materially improve reuse or safety
-- Document every public action with `@throws` blocks for each distinct error type it can throw
-- When documenting action errors, trace the full call path instead of only the top-level function body: inspect local `throw` statements, helpers invoked before the request, and anything unwrapped from `Result`/`ResultAsync`
+- Keep helpers small and local; do not add a new helper or abstraction unless it is really necessary and materially improves reuse, safety, or readability
+- Document every public action with full TSDoc in the richer style used by established actions such as `fetchMarket`: include a short summary sentence, one `@throws` block per distinct public error type, and a practical `@example` block showing a realistic call and returned shape; keep examples usage-focused and omit import statements
+- When documenting `@throws`, trace the full call path instead of only the top-level function body: inspect local `throw` statements, helpers invoked before the request, and anything unwrapped from `Result`/`ResultAsync`
 - `parseUserInput(...)` throws `UserInputError`
 - `unwrap(Result<T, E> | ResultAsync<T, E>)` throws `E`
 - In current client actions, `unwrap(client.<service>.get(...))` throws `RateLimitError`, `ServerError`, or `InvalidResponseError`

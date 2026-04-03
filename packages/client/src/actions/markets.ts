@@ -12,42 +12,58 @@ import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
-const MarketsRequestSchema = z.object({
-  active: z.boolean().optional(),
+// The public markets endpoint forces active=true and archived=false server-side.
+const ListMarketsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   closed: z.boolean().optional(),
   clobTokenIds: z.array(z.string()).optional(),
   conditionIds: z.array(z.string()).optional(),
   cyom: z.boolean().optional(),
+  decimalized: z.boolean().optional(),
   endDateMax: ISODateStringSchema.optional(),
   endDateMin: ISODateStringSchema.optional(),
   gameId: z.string().optional(),
-  ids: z.array(z.number()).optional(),
+  ids: z.array(z.number().int()).optional(),
   includeTag: z.boolean().optional(),
-  limit: z.number().optional(),
+  limit: z.number().int().optional(),
   liquidityNumMax: z.number().optional(),
   liquidityNumMin: z.number().optional(),
+  locale: z.string().optional(),
   marketMakerAddresses: z.array(z.string()).optional(),
-  offset: z.number().optional(),
+  offset: z.number().int().optional(),
   order: z.string().optional(),
   questionIds: z.array(z.string()).optional(),
   relatedTags: z.boolean().optional(),
+  rfqEnabled: z.boolean().optional(),
   rewardsMinSize: z.number().optional(),
   slug: z.array(z.string()).optional(),
   sportsMarketTypes: z.array(z.string()).optional(),
   startDateMax: ISODateStringSchema.optional(),
   startDateMin: ISODateStringSchema.optional(),
-  tagId: z.number().optional(),
+  tagId: z.number().int().optional(),
+  tagMatch: z.enum(['any', 'all']).optional(),
   umaResolutionStatus: z.string().optional(),
   volumeNumMax: z.number().optional(),
   volumeNumMin: z.number().optional(),
 });
 
-export type MarketsRequest = z.input<typeof MarketsRequestSchema>;
+export type ListMarketsRequest = z.input<typeof ListMarketsRequestSchema>;
+
+const FetchMarketByIdRequestSchema = z.object({
+  id: z.string(),
+  includeTag: z.boolean().optional(),
+  locale: z.string().optional(),
+});
+
+const FetchMarketBySlugRequestSchema = z.object({
+  slug: z.string(),
+  includeTag: z.boolean().optional(),
+  locale: z.string().optional(),
+});
 
 const FetchMarketRequestSchema = z.union([
-  z.object({ id: z.string() }),
-  z.object({ slug: z.string() }),
+  FetchMarketByIdRequestSchema,
+  FetchMarketBySlugRequestSchema,
 ]);
 
 export type FetchMarketRequest = z.input<typeof FetchMarketRequestSchema>;
@@ -60,7 +76,7 @@ export type FetchMarketTagsRequest = z.input<
   typeof FetchMarketTagsRequestSchema
 >;
 
-type MarketsParams = z.output<typeof MarketsRequestSchema>;
+type ListMarketsParams = z.output<typeof ListMarketsRequestSchema>;
 
 /**
  * Lists markets.
@@ -89,9 +105,9 @@ type MarketsParams = z.output<typeof MarketsRequestSchema>;
  */
 export async function listMarkets(
   client: PolymarketClient,
-  request: MarketsRequest = {},
+  request: ListMarketsRequest = {},
 ): Promise<Market[]> {
-  const params = parseUserInput(request, MarketsRequestSchema);
+  const params = parseUserInput(request, ListMarketsRequestSchema);
 
   return unwrap(
     client.gamma.get('markets', {
@@ -132,10 +148,10 @@ export async function fetchMarket(
   const params = parseUserInput(request, FetchMarketRequestSchema);
 
   if ('id' in params) {
-    return fetchMarketById(client, params.id);
+    return fetchMarketById(client, params);
   }
 
-  return fetchMarketBySlug(client, params.slug);
+  return fetchMarketBySlug(client, params);
 }
 
 /**
@@ -175,10 +191,10 @@ export async function fetchMarketTags(
   );
 }
 
-function toMarketsSearchParams(params: MarketsParams): URLSearchParams {
+function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {
   return toSearchParams(
     params,
-    snakeCase<MarketsParams>({
+    snakeCase<ListMarketsParams>({
       ids: 'id',
       marketMakerAddresses: 'market_maker_address',
     }),
@@ -187,22 +203,36 @@ function toMarketsSearchParams(params: MarketsParams): URLSearchParams {
 
 async function fetchMarketBySlug(
   client: PolymarketClient,
-  slug: string,
+  params: z.output<typeof FetchMarketBySlugRequestSchema>,
 ): Promise<Market> {
   return unwrap(
-    client.gamma.get(`markets/slug/${slug}`, {
+    client.gamma.get(`markets/slug/${params.slug}`, {
       schema: MarketSchema,
+      searchParams: toSearchParams(
+        {
+          includeTag: params.includeTag,
+          locale: params.locale,
+        },
+        snakeCase(),
+      ),
     }),
   );
 }
 
 async function fetchMarketById(
   client: PolymarketClient,
-  id: string,
+  params: z.output<typeof FetchMarketByIdRequestSchema>,
 ): Promise<Market> {
   return unwrap(
-    client.gamma.get(`markets/${id}`, {
+    client.gamma.get(`markets/${params.id}`, {
       schema: MarketSchema,
+      searchParams: toSearchParams(
+        {
+          includeTag: params.includeTag,
+          locale: params.locale,
+        },
+        snakeCase(),
+      ),
     }),
   );
 }
