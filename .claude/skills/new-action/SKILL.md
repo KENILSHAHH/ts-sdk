@@ -61,6 +61,7 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 
 ## Validation
 
+- If action work changes a workspace dependency used by `@polymarket/client`, build that dependency first. If multiple workspace packages changed or the dependency chain is unclear, prefer `pnpm build` from the repo root before the steps below.
 - Run `pnpm --filter @polymarket/client build`
 - Run `pnpm --filter @polymarket/client typecheck`
 - Run `pnpm test:client`

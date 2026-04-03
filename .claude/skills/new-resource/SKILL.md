@@ -53,3 +53,4 @@ Creates a resource module in `packages/bindings` by investigating a source repo 
 - Run `pnpm --filter @polymarket/types build` if `packages/types` changed
 - Run `pnpm --filter @polymarket/bindings build`
 - Run `pnpm --filter @polymarket/bindings typecheck`
+- If the resource is consumed by another workspace package in the same task, build `@polymarket/bindings` before validating that dependent package. If multiple workspace packages changed or the dependency chain is unclear, prefer `pnpm build` from the repo root first.

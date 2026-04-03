@@ -39,3 +39,4 @@ Creates a new package in `packages/<name>`.
 
 - Run `pnpm --filter @polymarket/<name> build`
 - Run `pnpm --filter @polymarket/<name> typecheck`
+- If the new package is wired into another workspace package in the same task, build it before validating the dependent package. If multiple workspace packages changed or the dependency chain is unclear, prefer `pnpm build` from the repo root first.

@@ -2,7 +2,7 @@
 
 ## Quick orientation
 
-- Primary design doc: docs/sdk-direction.md
+- Primary design doc: `docs/sdk-direction.md`
 - SDK packages: `packages/`
 - Main client package: `packages/client`
 - Shared primitives: `packages/types`
@@ -14,7 +14,10 @@
 - Before finishing, run:
   - `pnpm lint`
   - `pnpm typecheck`
-- If `pnpm lint` reports fixable issues, run `pnpm lint:fix`, review the resulting edits, and rerun `pnpm lint` before finishing.
+- If `pnpm lint` reports fixable issues, run `pnpm lint:fix`, review the resulting edits, and rerun `pnpm lint`.
+- For cross-package changes, build changed dependencies before targeted verification because workspace packages are often consumed through built `dist` outputs.
+- Example: if `packages/bindings` changes and you are validating `packages/client`, run `pnpm --filter @polymarket/bindings build` before `pnpm test:client`.
+- If multiple packages changed or the dependency chain is unclear, prefer root-level verification such as `pnpm build` and `pnpm test`.
 
 ## Guardrails
 
