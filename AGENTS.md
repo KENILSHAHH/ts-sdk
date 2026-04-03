@@ -15,6 +15,10 @@ Instructions for the `polymarket-sdk` repository.
 
 ## Required workflow
 
+- Before finishing, run:
+  - `pnpm lint:fix`
+  - `pnpm typecheck`
+
 ## Guardrails
 
 - This repo is the home for Polymarket's TypeScript SDKs.
@@ -31,6 +35,7 @@ Instructions for the `polymarket-sdk` repository.
 - `tsconfig.build.json` files are the configs used by package build and typecheck commands.
 - When changing build behavior, prefer updating `tsconfig.build.json`.
 - Prefer `type` over `interface` unless an interface is clearly needed, such as when a class implements it or declaration extensibility is a deliberate requirement.
+- Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
 - Avoid small helper abstractions that do not meaningfully improve reuse or safety.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 
