@@ -1,5 +1,5 @@
-import ky, { type KyInstance } from 'ky';
 import { type EnvironmentConfig, production } from './environments';
+import { ServiceClient } from './ServiceClient';
 
 export type PolymarketClientConfig = {
   /**
@@ -12,11 +12,11 @@ export type PolymarketClientConfig = {
 
 export class PolymarketClient {
   /** @internal */
-  readonly gamma: KyInstance;
+  readonly gamma: ServiceClient;
 
   constructor({ environment = production }: PolymarketClientConfig = {}) {
-    this.gamma = ky.create({
-      prefixUrl: environment.gamma,
+    this.gamma = new ServiceClient({
+      root: environment.gamma,
     });
   }
 }

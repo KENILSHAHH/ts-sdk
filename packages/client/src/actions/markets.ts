@@ -1,4 +1,5 @@
 import { type Market, MarketSchema } from '@polymarket/bindings';
+import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { PolymarketClient } from '../PolymarketClient';
 
@@ -57,6 +58,8 @@ type ParsedMarketsRequest = z.output<typeof MarketsRequestSchema>;
  *   limit: 10,
  *   closed: false,
  * });
+ * 
+ * // result === Market[]
  * ```
  */
 export async function listMarkets(
@@ -65,13 +68,11 @@ export async function listMarkets(
 ): Promise<Market[]> {
   const parsedRequest = MarketsRequestSchema.parse(request);
 
-  const response = await client.gamma
-    .get('markets', {
-      searchParams: toMarketsSearchParams(parsedRequest),
-    })
-    .json<unknown>();
-
-  return MarketSchema.array().parse(response);
+  return unwrap(
+    client.gamma
+      .get('markets', toMarketsSearchParams(parsedRequest))
+      .map((response) => MarketSchema.array().parse(response)),
+  );
 }
 
 /**
@@ -82,6 +83,8 @@ export async function listMarkets(
  * const market = await fetchMarket(client, {
  *   id: '12345',
  * });
+ * 
+ * // market === Market
  * ```
  */
 export async function fetchMarket(
@@ -94,61 +97,67 @@ export async function fetchMarket(
     return getMarketById(client, parsedParameters.id);
   }
 
-  const response = await client.gamma
-    .get(`markets/slug/${parsedParameters.slug}`)
-    .json<unknown>();
-
-  return MarketSchema.parse(response);
+  return unwrap(
+    client.gamma
+      .get(`markets/slug/${parsedParameters.slug}`)
+      .map((response) => MarketSchema.parse(response)),
+  );
 }
 
 function toMarketsSearchParams(request: ParsedMarketsRequest): URLSearchParams {
   const searchParams = new URLSearchParams();
 
-  function append(
-    key: string,
-    value: SearchParamPrimitive | readonly SearchParamPrimitive[] | undefined,
-  ): void {
+  const entries = [
+    ['active', request.active],
+    ['ascending', request.ascending],
+    ['closed', request.closed],
+    ['clob_token_ids', request.clobTokenIds],
+    ['condition_ids', request.conditionIds],
+    ['cyom', request.cyom],
+    ['end_date_max', request.endDateMax],
+    ['end_date_min', request.endDateMin],
+    ['game_id', request.gameId],
+    ['id', request.ids],
+    ['include_tag', request.includeTag],
+    ['limit', request.limit],
+    ['liquidity_num_max', request.liquidityNumMax],
+    ['liquidity_num_min', request.liquidityNumMin],
+    ['market_maker_address', request.marketMakerAddresses],
+    ['offset', request.offset],
+    ['order', request.order],
+    ['question_ids', request.questionIds],
+    ['related_tags', request.relatedTags],
+    ['rewards_min_size', request.rewardsMinSize],
+    ['slug', request.slug],
+    ['sports_market_types', request.sportsMarketTypes],
+    ['start_date_max', request.startDateMax],
+    ['start_date_min', request.startDateMin],
+    ['tag_id', request.tagId],
+    ['uma_resolution_status', request.umaResolutionStatus],
+    ['volume_num_max', request.volumeNumMax],
+    ['volume_num_min', request.volumeNumMin],
+  ] as const satisfies ReadonlyArray<
+    readonly [
+      string,
+      SearchParamPrimitive | readonly SearchParamPrimitive[] | undefined,
+    ]
+  >;
+
+  for (const [key, value] of entries) {
     if (value === undefined) {
-      return;
+      continue;
     }
 
-    const values: readonly SearchParamPrimitive[] = Array.isArray(value)
-      ? value
-      : [value];
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        searchParams.append(key, toSearchParamValue(item));
+      }
 
-    for (const item of values) {
-      searchParams.append(key, toSearchParamValue(item));
+      continue;
     }
+
+    searchParams.append(key, toSearchParamValue(value));
   }
-
-  append('active', request.active);
-  append('ascending', request.ascending);
-  append('closed', request.closed);
-  append('clob_token_ids', request.clobTokenIds);
-  append('condition_ids', request.conditionIds);
-  append('cyom', request.cyom);
-  append('end_date_max', request.endDateMax);
-  append('end_date_min', request.endDateMin);
-  append('game_id', request.gameId);
-  append('id', request.ids);
-  append('include_tag', request.includeTag);
-  append('limit', request.limit);
-  append('liquidity_num_max', request.liquidityNumMax);
-  append('liquidity_num_min', request.liquidityNumMin);
-  append('market_maker_address', request.marketMakerAddresses);
-  append('offset', request.offset);
-  append('order', request.order);
-  append('question_ids', request.questionIds);
-  append('related_tags', request.relatedTags);
-  append('rewards_min_size', request.rewardsMinSize);
-  append('slug', request.slug);
-  append('sports_market_types', request.sportsMarketTypes);
-  append('start_date_max', request.startDateMax);
-  append('start_date_min', request.startDateMin);
-  append('tag_id', request.tagId);
-  append('uma_resolution_status', request.umaResolutionStatus);
-  append('volume_num_max', request.volumeNumMax);
-  append('volume_num_min', request.volumeNumMin);
 
   return searchParams;
 }
@@ -165,7 +174,9 @@ async function getMarketById(
   client: PolymarketClient,
   id: string,
 ): Promise<Market> {
-  const response = await client.gamma.get(`markets/${id}`).json<unknown>();
-
-  return MarketSchema.parse(response);
+  return unwrap(
+    client.gamma
+      .get(`markets/${id}`)
+      .map((response) => MarketSchema.parse(response)),
+  );
 }

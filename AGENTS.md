@@ -16,8 +16,9 @@ Instructions for the `polymarket-sdk` repository.
 ## Required workflow
 
 - Before finishing, run:
-  - `pnpm lint:fix`
+  - `pnpm lint`
   - `pnpm typecheck`
+- If `pnpm lint` reports fixable issues, run `pnpm lint:fix`, review the resulting edits, and rerun `pnpm lint` before finishing.
 
 ## Guardrails
 
@@ -27,7 +28,7 @@ Instructions for the `polymarket-sdk` repository.
 - The SDK should present one cohesive consumer interface and hide service boundaries where possible.
 - Public package design should follow developer workflows rather than today's internal API split.
 - Future work includes `@polymarket/react`, which should build on the same core model with a higher-level frontend-oriented surface.
-- Do not leak `ky` details outside of `@polymarket/client`. Keep `ky` instances, types, and option shapes internal to the client package, and expose Polymarket-specific abstractions instead.
+- Do not leak `ky` details outside of `ServiceClient`. If this is challenging, give 2-3 options to the user and wait for their reply.
 
 ## TypeScript config
 
@@ -41,6 +42,7 @@ Instructions for the `polymarket-sdk` repository.
 - Prefer `type` over `interface` unless an interface is clearly needed, such as when a class implements it or declaration extensibility is a deliberate requirement.
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
 - Avoid small helper abstractions that do not meaningfully improve reuse or safety.
+- Shape abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 - Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.
 
