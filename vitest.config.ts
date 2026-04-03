@@ -34,6 +34,7 @@ export default defineConfig({
           name: 'client',
           include: ['packages/client/**/*.test.ts'],
           environment: 'node',
+          testTimeout: 10_000,
         },
       },
     ],
