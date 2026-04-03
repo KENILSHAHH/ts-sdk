@@ -191,6 +191,12 @@ export const SportsMetadataSchema = z.looseObject({
   updatedAt: z.string().nullish(),
 });
 
+export const ListTeamsResponseSchema = z.array(TeamSchema);
+export const ListSportsMetadataResponseSchema = z.array(SportsMetadataSchema);
+export const SportsMarketTypesResponseSchema = z.looseObject({
+  marketTypes: z.array(z.string()).nullish(),
+});
+
 export const EventSchema = z.looseObject({
   id: EventIdSchema,
   ticker: z.string().nullish(),
@@ -314,6 +320,13 @@ export type Event = z.infer<typeof EventSchema>;
 export type ListEventsResponse = z.infer<typeof ListEventsResponseSchema>;
 export type FetchEventTagsResponse = z.infer<
   typeof FetchEventTagsResponseSchema
+>;
+export type ListTeamsResponse = z.infer<typeof ListTeamsResponseSchema>;
+export type ListSportsMetadataResponse = z.infer<
+  typeof ListSportsMetadataResponseSchema
+>;
+export type SportsMarketTypesResponse = z.infer<
+  typeof SportsMarketTypesResponseSchema
 >;
 export type CollectionReference = z.infer<typeof CollectionReferenceSchema>;
 export type SeriesReference = z.infer<typeof SeriesReferenceSchema>;
