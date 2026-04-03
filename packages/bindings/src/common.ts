@@ -12,7 +12,9 @@ import { z } from 'zod';
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
 export const EventIdSchema = z.string().transform(toEventId);
-export const ImageOptimizationIdSchema = z.string().transform(toImageOptimizationId);
+export const ImageOptimizationIdSchema = z
+  .string()
+  .transform(toImageOptimizationId);
 export const InternalUserIdSchema = z.string().transform(toInternalUserId);
 export const MarketIdSchema = z.string().transform(toMarketId);
 export const TagIdSchema = z.string().transform(toTagId);

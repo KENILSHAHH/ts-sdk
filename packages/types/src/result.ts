@@ -19,8 +19,5 @@ function throwError(error: unknown): never {
  * ```
  */
 export function unwrap<T, E>(result: Result<T, E>): T {
-  return result.match(
-    (value) => value,
-    throwError,
-  );
+  return result.match((value) => value, throwError);
 }
