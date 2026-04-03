@@ -1,9 +1,11 @@
 import {
   type Event,
   EventSchema,
+  FetchEventTagsResponseSchema,
   ISOCalendarDateSchema,
   ISODateStringSchema,
   ListEventsResponseSchema,
+  type TagReference,
 } from '@polymarket/bindings';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
@@ -70,6 +72,12 @@ const FetchEventRequestSchema = z.union([
 ]);
 
 export type FetchEventRequest = z.input<typeof FetchEventRequestSchema>;
+
+const FetchEventTagsRequestSchema = z.object({
+  id: z.string(),
+});
+
+export type FetchEventTagsRequest = z.input<typeof FetchEventTagsRequestSchema>;
 
 type EventsParams = z.output<typeof EventsRequestSchema>;
 
@@ -155,6 +163,43 @@ export async function fetchEvent(
     client.gamma.get(`events/slug/${params.slug}`, {
       schema: EventSchema,
       searchParams: toFetchEventBySlugSearchParams(params),
+    }),
+  );
+}
+
+/**
+ * Fetches an event's tags.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const tags = await fetchEventTags(client, {
+ *   id: '12345',
+ * });
+ *
+ * // tags === TagReference[]
+ * ```
+ */
+export async function fetchEventTags(
+  client: PolymarketClient,
+  request: FetchEventTagsRequest,
+): Promise<TagReference[]> {
+  const params = parseUserInput(request, FetchEventTagsRequestSchema);
+
+  return unwrap(
+    client.gamma.get(`events/${params.id}/tags`, {
+      schema: FetchEventTagsResponseSchema,
     }),
   );
 }

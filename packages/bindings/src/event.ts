@@ -308,9 +308,13 @@ export const EventSchema = z.looseObject({
 });
 
 export const ListEventsResponseSchema = z.array(EventSchema);
+export const FetchEventTagsResponseSchema = z.array(TagReferenceSchema);
 
 export type Event = z.infer<typeof EventSchema>;
 export type ListEventsResponse = z.infer<typeof ListEventsResponseSchema>;
+export type FetchEventTagsResponse = z.infer<
+  typeof FetchEventTagsResponseSchema
+>;
 export type CollectionReference = z.infer<typeof CollectionReferenceSchema>;
 export type SeriesReference = z.infer<typeof SeriesReferenceSchema>;
 export type TemplateReference = z.infer<typeof TemplateReferenceSchema>;
