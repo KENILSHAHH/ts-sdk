@@ -14,9 +14,15 @@ export class PolymarketClient {
   /** @internal */
   readonly gamma: ServiceClient;
 
+  /** @internal */
+  readonly data: ServiceClient;
+
   constructor({ environment = production }: PolymarketClientConfig = {}) {
     this.gamma = new ServiceClient({
       root: environment.gamma,
+    });
+    this.data = new ServiceClient({
+      root: environment.data,
     });
   }
 }
