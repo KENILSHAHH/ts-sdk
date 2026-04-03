@@ -35,8 +35,8 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 - Keep the public action API Polymarket-shaped and do not leak `ky` types, instances, hooks, or option shapes
 - Accept `PolymarketClient` as the first parameter
 - Prefer verb-led names for action functions; use `list<Resource>` for collection reads unless the user asks otherwise
-- Parse action responses with schemas from `@polymarket/bindings`
-- Prefer named response schemas in bindings such as `ListMarketsResponseSchema` over on-the-fly compositions like `MarketSchema.array()` inside actions
+- Avoid composing response schemas inside action code; parse responses with schemas exported from `@polymarket/bindings`
+- Use the exported resource schema directly for 1:1 responses, and add a dedicated `...ResponseSchema` in `@polymarket/bindings` only when the transport shape differs from the resource shape, such as wrappers, pagination envelopes, or extra metadata
 - Do not hand-roll missing response models in the client package; add them to `@polymarket/bindings` first
 - Reuse types re-exported by `@polymarket/client` instead of creating redundant local type aliases for bindings types
 - If request input benefits from runtime validation or normalization, use Zod in the action module
