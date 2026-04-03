@@ -17,6 +17,7 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {
+    "neverthrow": "^8.2.0",
     "type-fest": "^5.5.0"
   },
   "devDependencies": {
