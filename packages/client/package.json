@@ -14,9 +14,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsup",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "devDependencies": {
     "tsup": "^8.5.1",
