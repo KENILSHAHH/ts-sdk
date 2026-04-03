@@ -1,6 +1,7 @@
 export * from './activity';
 export * from './comments';
 export * from './events';
+export * from './leaderboards';
 export * from './markets';
 export * from './portfolio';
 export * from './profiles';
