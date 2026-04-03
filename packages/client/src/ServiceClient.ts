@@ -1,19 +1,20 @@
-import { never, ResultAsync } from '@polymarket/types';
+import { err, never, ok, type Result, ResultAsync } from '@polymarket/types';
 import ky, { HTTPError, type KyInstance } from 'ky';
-import { RateLimitError, ServerError } from './errors';
+import type { z } from 'zod';
+import { InvalidResponseError, RateLimitError, ServerError } from './errors';
 
 export type ServiceClientConfig = {
   root: string;
 };
 
+export type ServiceClientGetOptions<TReturnType> = {
+  schema: z.ZodType<TReturnType>;
+  searchParams?: URLSearchParams;
+};
+
 export type ServiceClientPostOptions = {
   json?: unknown;
 };
-
-export type ServiceClientGetResult = ResultAsync<
-  unknown,
-  RateLimitError | ServerError
->;
 
 /**
  * Internal wrapper around a service-scoped `ky` instance.
@@ -25,10 +26,26 @@ export class ServiceClient {
     this.#client = ky.create({ prefixUrl: root });
   }
 
-  get(path: string, searchParams?: URLSearchParams): ServiceClientGetResult {
+  get<TReturnType>(
+    path: string,
+    options: ServiceClientGetOptions<TReturnType>,
+  ): ResultAsync<
+    TReturnType,
+    RateLimitError | ServerError | InvalidResponseError
+  > {
     return ResultAsync.fromPromise(
-      this.#client.get(path, { searchParams }).json<unknown>(),
-      toServiceClientError,
+      this.#client.get(path, { searchParams: options.searchParams }),
+      (e) => this.#toServiceClientError(e),
+    ).andThen((response) =>
+      ResultAsync.fromPromise(
+        response.json<unknown>(),
+        () =>
+          new InvalidResponseError(
+            `Received non-JSON response from ${response.url}`,
+          ),
+      ).andThen((payload) =>
+        this.#validateResponse(response.url, options.schema, payload),
+      ),
     );
   }
 
@@ -39,22 +56,36 @@ export class ServiceClient {
   del(_path: string): never {
     return never('ServiceClient.del is not implemented yet');
   }
-}
 
-function toServiceClientError(error: unknown): RateLimitError | ServerError {
-  if (error instanceof HTTPError) {
-    if (error.response.status === 429) {
-      return new RateLimitError('Request was rate limited');
+  #toServiceClientError(error: unknown): RateLimitError | ServerError {
+    if (error instanceof HTTPError) {
+      const { url } = error.response;
+
+      if (error.response.status === 429) {
+        return new RateLimitError(`Request to ${url} was rate limited`);
+      }
+
+      return new ServerError(
+        `Request to ${url} failed with status ${error.response.status}`,
+      );
     }
 
     return new ServerError(
-      `Request failed with status ${error.response.status}`,
+      error instanceof Error ? error.message : 'Request failed',
     );
   }
 
-  if (error instanceof Error) {
-    return new ServerError(error.message);
-  }
+  #validateResponse<TReturnType>(
+    endpoint: string,
+    schema: z.ZodType<TReturnType>,
+    response: unknown,
+  ): Result<TReturnType, InvalidResponseError> {
+    const result = schema.safeParse(response);
 
-  return new ServerError('Request failed');
+    if (result.success) {
+      return ok(result.data);
+    }
+
+    return err(InvalidResponseError.fromZodError(result.error, { endpoint }));
+  }
 }

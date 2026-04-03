@@ -307,7 +307,10 @@ export const EventSchema = z.looseObject({
   externalPartners: z.array(EventExternalPartnerMappingSchema).nullish(),
 });
 
+export const ListEventsResponseSchema = z.array(EventSchema);
+
 export type Event = z.infer<typeof EventSchema>;
+export type ListEventsResponse = z.infer<typeof ListEventsResponseSchema>;
 export type CollectionReference = z.infer<typeof CollectionReferenceSchema>;
 export type SeriesReference = z.infer<typeof SeriesReferenceSchema>;
 export type TemplateReference = z.infer<typeof TemplateReferenceSchema>;

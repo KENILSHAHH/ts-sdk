@@ -176,4 +176,7 @@ export const MarketSchema = z.looseObject({
   feeSchedule: FeeScheduleSchema.nullish(),
 });
 
+export const ListMarketsResponseSchema = z.array(MarketSchema);
+
 export type Market = z.infer<typeof MarketSchema>;
+export type ListMarketsResponse = z.infer<typeof ListMarketsResponseSchema>;

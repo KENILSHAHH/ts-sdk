@@ -1,11 +1,14 @@
-import { type Market, MarketSchema } from '@polymarket/bindings';
+import {
+  ISODateStringSchema,
+  ListMarketsResponseSchema,
+  type Market,
+  MarketSchema,
+} from '@polymarket/bindings';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-
-type SearchParamPrimitive = boolean | number | string;
-
-const ISODateStringSchema = z.string().or(z.date().transform(toISODateString));
+import { type SearchParamPrimitive, toSearchParamValue } from './params';
 
 const MarketsRequestSchema = z.object({
   active: z.boolean().optional(),
@@ -40,17 +43,29 @@ const MarketsRequestSchema = z.object({
 
 export type MarketsRequest = z.input<typeof MarketsRequestSchema>;
 
-const FetchMarketParametersSchema = z.union([
+const FetchMarketRequestSchema = z.union([
   z.object({ id: z.string() }),
   z.object({ slug: z.string() }),
 ]);
 
-export type FetchMarketParameters = z.input<typeof FetchMarketParametersSchema>;
+export type FetchMarketRequest = z.input<typeof FetchMarketRequestSchema>;
 
-type ParsedMarketsRequest = z.output<typeof MarketsRequestSchema>;
+type MarketsParams = z.output<typeof MarketsRequestSchema>;
 
 /**
  * Lists markets.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
  *
  * @example
  * ```ts
@@ -58,7 +73,7 @@ type ParsedMarketsRequest = z.output<typeof MarketsRequestSchema>;
  *   limit: 10,
  *   closed: false,
  * });
- * 
+ *
  * // result === Market[]
  * ```
  */
@@ -66,76 +81,89 @@ export async function listMarkets(
   client: PolymarketClient,
   request: MarketsRequest = {},
 ): Promise<Market[]> {
-  const parsedRequest = MarketsRequestSchema.parse(request);
+  const params = parseUserInput(request, MarketsRequestSchema);
 
   return unwrap(
-    client.gamma
-      .get('markets', toMarketsSearchParams(parsedRequest))
-      .map((response) => MarketSchema.array().parse(response)),
+    client.gamma.get('markets', {
+      schema: ListMarketsResponseSchema,
+      searchParams: toMarketsSearchParams(params),
+    }),
   );
 }
 
 /**
  * Fetches a market.
  *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
  * @example
  * ```ts
  * const market = await fetchMarket(client, {
  *   id: '12345',
  * });
- * 
+ *
  * // market === Market
  * ```
  */
 export async function fetchMarket(
   client: PolymarketClient,
-  parameters: FetchMarketParameters,
+  request: FetchMarketRequest,
 ): Promise<Market> {
-  const parsedParameters = FetchMarketParametersSchema.parse(parameters);
+  const params = parseUserInput(request, FetchMarketRequestSchema);
 
-  if ('id' in parsedParameters) {
-    return getMarketById(client, parsedParameters.id);
+  if ('id' in params) {
+    return getMarketById(client, params.id);
   }
 
   return unwrap(
-    client.gamma
-      .get(`markets/slug/${parsedParameters.slug}`)
-      .map((response) => MarketSchema.parse(response)),
+    client.gamma.get(`markets/slug/${params.slug}`, {
+      schema: MarketSchema,
+    }),
   );
 }
 
-function toMarketsSearchParams(request: ParsedMarketsRequest): URLSearchParams {
+function toMarketsSearchParams(params: MarketsParams): URLSearchParams {
   const searchParams = new URLSearchParams();
 
   const entries = [
-    ['active', request.active],
-    ['ascending', request.ascending],
-    ['closed', request.closed],
-    ['clob_token_ids', request.clobTokenIds],
-    ['condition_ids', request.conditionIds],
-    ['cyom', request.cyom],
-    ['end_date_max', request.endDateMax],
-    ['end_date_min', request.endDateMin],
-    ['game_id', request.gameId],
-    ['id', request.ids],
-    ['include_tag', request.includeTag],
-    ['limit', request.limit],
-    ['liquidity_num_max', request.liquidityNumMax],
-    ['liquidity_num_min', request.liquidityNumMin],
-    ['market_maker_address', request.marketMakerAddresses],
-    ['offset', request.offset],
-    ['order', request.order],
-    ['question_ids', request.questionIds],
-    ['related_tags', request.relatedTags],
-    ['rewards_min_size', request.rewardsMinSize],
-    ['slug', request.slug],
-    ['sports_market_types', request.sportsMarketTypes],
-    ['start_date_max', request.startDateMax],
-    ['start_date_min', request.startDateMin],
-    ['tag_id', request.tagId],
-    ['uma_resolution_status', request.umaResolutionStatus],
-    ['volume_num_max', request.volumeNumMax],
-    ['volume_num_min', request.volumeNumMin],
+    ['active', params.active],
+    ['ascending', params.ascending],
+    ['closed', params.closed],
+    ['clob_token_ids', params.clobTokenIds],
+    ['condition_ids', params.conditionIds],
+    ['cyom', params.cyom],
+    ['end_date_max', params.endDateMax],
+    ['end_date_min', params.endDateMin],
+    ['game_id', params.gameId],
+    ['id', params.ids],
+    ['include_tag', params.includeTag],
+    ['limit', params.limit],
+    ['liquidity_num_max', params.liquidityNumMax],
+    ['liquidity_num_min', params.liquidityNumMin],
+    ['market_maker_address', params.marketMakerAddresses],
+    ['offset', params.offset],
+    ['order', params.order],
+    ['question_ids', params.questionIds],
+    ['related_tags', params.relatedTags],
+    ['rewards_min_size', params.rewardsMinSize],
+    ['slug', params.slug],
+    ['sports_market_types', params.sportsMarketTypes],
+    ['start_date_max', params.startDateMax],
+    ['start_date_min', params.startDateMin],
+    ['tag_id', params.tagId],
+    ['uma_resolution_status', params.umaResolutionStatus],
+    ['volume_num_max', params.volumeNumMax],
+    ['volume_num_min', params.volumeNumMin],
   ] as const satisfies ReadonlyArray<
     readonly [
       string,
@@ -162,21 +190,13 @@ function toMarketsSearchParams(request: ParsedMarketsRequest): URLSearchParams {
   return searchParams;
 }
 
-function toSearchParamValue(value: SearchParamPrimitive): string {
-  return String(value);
-}
-
-function toISODateString(value: Date): string {
-  return value.toISOString();
-}
-
 async function getMarketById(
   client: PolymarketClient,
   id: string,
 ): Promise<Market> {
   return unwrap(
-    client.gamma
-      .get(`markets/${id}`)
-      .map((response) => MarketSchema.parse(response)),
+    client.gamma.get(`markets/${id}`, {
+      schema: MarketSchema,
+    }),
   );
 }

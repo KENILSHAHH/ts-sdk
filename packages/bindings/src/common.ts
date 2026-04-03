@@ -12,6 +12,12 @@ import { z } from 'zod';
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
 export const EventIdSchema = z.string().transform(toEventId);
+export const ISODateStringSchema = z
+  .string()
+  .or(z.date().transform(toISODateString));
+export const ISOCalendarDateSchema = z
+  .string()
+  .or(z.date().transform(toISOCalendarDateString));
 export const ImageOptimizationIdSchema = z
   .string()
   .transform(toImageOptimizationId);
@@ -105,3 +111,11 @@ export type TagReference = z.infer<typeof TagReferenceSchema>;
 export type RelatedMarket = z.infer<typeof RelatedMarketSchema>;
 export type ClobRewards = z.infer<typeof ClobRewardsSchema>;
 export type InternalUser = z.infer<typeof InternalUserSchema>;
+
+function toISODateString(value: Date): string {
+  return value.toISOString();
+}
+
+function toISOCalendarDateString(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
