@@ -1,12 +1,8 @@
 # AGENTS.md
 
-## Scope
-
-Instructions for the `polymarket-sdk` repository.
-
 ## Quick orientation
 
-- Docs and design notes: `docs/`
+- Primary design doc: docs/sdk-direction.md
 - SDK packages: `packages/`
 - Main client package: `packages/client`
 - Shared primitives: `packages/types`
@@ -22,26 +18,23 @@ Instructions for the `polymarket-sdk` repository.
 
 ## Guardrails
 
-- This repo is the home for Polymarket's TypeScript SDKs.
-- The first shipping target is `@polymarket/client`.
+- This repo is the home for Polymarket's TypeScript SDKs. The first shipping target is `@polymarket/client`.
 - `@polymarket/client` unifies Polymarket's 4 current API surfaces: CLOB, Gamma, data, and relayer.
-- The SDK should present one cohesive consumer interface and hide service boundaries where possible.
-- Public package design should follow developer workflows rather than today's internal API split.
+- The SDK should present one cohesive consumer interface, follow developer workflows, and hide service boundaries where possible.
 - Future work includes `@polymarket/react`, which should build on the same core model with a higher-level frontend-oriented surface.
-- Do not leak `ky` details outside of `ServiceClient`. If this is challenging, give 2-3 options to the user and wait for their reply.
+- Do not leak `ky` details outside of `ServiceClient`. Keep `ky` instances, types, and option shapes internal, and expose Polymarket-specific abstractions instead.
 
 ## TypeScript config
 
-- Root `tsconfig.json` and packages-level `tsconfig.json` files are for editor tooling and source navigation.
-- `tsconfig.build.json` files are the configs used by package build and typecheck commands.
-- When changing build behavior, prefer updating `tsconfig.build.json`.
-- Do not use root `tsconfig.json` or package `tsconfig.json` to fix build issues. Those configs are for IDE tooling and source navigation only.
+- Root `tsconfig.json` and package-level `tsconfig.json` files are for editor tooling and source navigation only.
+- `tsconfig.build.json` files drive build and typecheck behavior. When changing build behavior or fixing build issues, update `tsconfig.build.json`, not the root or package `tsconfig.json`.
 
 ## Code conventions
 
 - Prefer `type` over `interface` unless an interface is clearly needed, such as when a class implements it or declaration extensibility is a deliberate requirement.
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
-- Avoid small helper abstractions that do not meaningfully improve reuse or safety.
+- Prefer simple, local code. Accept small duplication when it keeps logic easier to read.
+- Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
 - Shape abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 - Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.
@@ -54,7 +47,3 @@ Instructions for the `polymarket-sdk` repository.
 ## Response contract
 
 Be concise.
-
-## Directory-specific notes
-
-- For fuller package direction and design context, see `docs/sdk-direction.md`.

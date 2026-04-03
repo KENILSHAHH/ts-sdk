@@ -36,11 +36,19 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 - Accept `PolymarketClient` as the first parameter
 - Prefer verb-led names for action functions; use `list<Resource>` for collection reads unless the user asks otherwise
 - Parse action responses with schemas from `@polymarket/bindings`
+- Prefer named response schemas in bindings such as `ListMarketsResponseSchema` over on-the-fly compositions like `MarketSchema.array()` inside actions
 - Do not hand-roll missing response models in the client package; add them to `@polymarket/bindings` first
 - Reuse types re-exported by `@polymarket/client` instead of creating redundant local type aliases for bindings types
 - If request input benefits from runtime validation or normalization, use Zod in the action module
 - Prefer inline Zod transforms with well-named helpers such as `.transform(toISODateString)`
 - Keep helpers small and local; avoid extra abstractions that do not materially improve reuse or safety
+- Document every public action with `@throws` blocks for each distinct error type it can throw
+- When documenting action errors, trace the full call path instead of only the top-level function body: inspect local `throw` statements, helpers invoked before the request, and anything unwrapped from `Result`/`ResultAsync`
+- `parseUserInput(...)` throws `UserInputError`
+- `unwrap(Result<T, E> | ResultAsync<T, E>)` throws `E`
+- In current client actions, `unwrap(client.<service>.get(...))` throws `RateLimitError`, `ServerError`, or `InvalidResponseError`
+- Use one `@throws` block per error type and explain the condition that causes it; do not collapse multiple error types into a single union-style `@throws` line
+- If a helper catches and remaps errors, document the remapped public errors rather than the helper's internal implementation details
 
 ## Testing Rules
 
