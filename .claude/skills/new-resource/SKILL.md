@@ -34,6 +34,8 @@ Creates a resource module in `packages/bindings` by investigating a source repo 
 - For every implemented schema with an `id` field, including the top-level resource and named nested resource/reference schemas, use the corresponding branded type from `@polymarket/types`
 - If a branded ID type does not exist, add it to `packages/types/src/ids.ts`, export a matching `to<TypeName>` constructor there, ensure it is re-exported from `packages/types/src/index.ts`, then use that constructor from the Zod schema transform
 - Follow the `to<TypeName>` naming pattern for branded constructors so they are easy to discover and consistent across the SDK
+- Do not inline `value as SomeId` casts inside bindings schemas; always route branding through the `to<TypeName>` constructor from `@polymarket/types`
+- When a branded type is string-backed or integer-backed and has no extra invariant yet, follow the existing constructor helpers in `packages/types/src/ids.ts` so future tightening happens in one place
 - Move overlapping shared schemas to `packages/bindings/src/common.ts`
 - Use `common.ts` for shared primitives, shared nested objects, shared reference schemas, and shared branded ID schemas
 - If a resource uses another resource or shared schema, import it instead of redefining it
