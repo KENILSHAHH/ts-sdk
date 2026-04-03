@@ -48,6 +48,10 @@ The root scripts are:
 - `pnpm build` - build all workspace packages that expose a build script
 - `pnpm clean` - remove package build output from `packages/*/dist`
 
+## Design Notes
+
+- [`docs/sdk-direction.md`](./docs/sdk-direction.md) - current direction for `@polymarket/client`, package scope, and how the SDK should relate to Polymarket's existing API surfaces
+
 ## TypeScript Config
 
 - Root `tsconfig.json` and package-level `tsconfig.json` files are for editor tooling and source navigation.
