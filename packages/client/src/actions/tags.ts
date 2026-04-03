@@ -5,7 +5,7 @@ import {
   type RelatedTag,
   type Tag,
   TagSchema,
-} from '@polymarket/bindings';
+} from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';

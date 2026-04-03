@@ -1,12 +1,14 @@
 import {
+  ISOCalendarDateSchema,
+  ISODateStringSchema,
+} from '@polymarket/bindings';
+import {
   type Event,
   EventSchema,
   FetchEventTagsResponseSchema,
-  ISOCalendarDateSchema,
-  ISODateStringSchema,
   ListEventsResponseSchema,
   type TagReference,
-} from '@polymarket/bindings';
+} from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';

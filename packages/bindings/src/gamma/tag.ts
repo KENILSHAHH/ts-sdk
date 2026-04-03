@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { TagIdSchema, TagReferenceSchema } from './common';
+import { TagIdSchema } from '../shared';
+import { TagReferenceSchema } from './common';
 import { ChatSchema, TemplateReferenceSchema } from './event';
 
 export const TagSchema = TagReferenceSchema.extend({

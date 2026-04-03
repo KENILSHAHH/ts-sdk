@@ -11,10 +11,9 @@ import {
   toTemplateId,
 } from '@polymarket/types';
 import { z } from 'zod';
-
+import { EventIdSchema } from '../shared';
 import {
   CategoryReferenceSchema,
-  EventIdSchema,
   ImageOptimizationSchema,
   InternalUserSchema,
   RelatedMarketSchema,

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MarketIdSchema } from '../shared';
 import {
   CategoryReferenceSchema,
   ClobRewardsSchema,
@@ -6,7 +7,6 @@ import {
   FeeScheduleSchema,
   ImageOptimizationSchema,
   InternalUserSchema,
-  MarketIdSchema,
   RelatedMarketSchema,
   TagReferenceSchema,
 } from './common';

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TagIdSchema } from './common';
+import { TagIdSchema } from '../shared';
 import { EventSchema } from './event';
 import { ProfileSchema } from './profile';
 

@@ -3,7 +3,7 @@ import {
   type SportsMarketTypesResponse,
   SportsMarketTypesResponseSchema,
   type SportsMetadata,
-} from '@polymarket/bindings';
+} from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import type { PolymarketClient } from '../PolymarketClient';
 
