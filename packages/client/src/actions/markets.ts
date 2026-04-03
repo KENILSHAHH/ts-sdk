@@ -18,8 +18,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { toDataSearchParams } from './dataParams';
-import { snakeCase, toSearchParams } from './params';
+import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 // The public markets endpoint forces active=true and archived=false server-side.
 const ListMarketsRequestSchema = z.object({

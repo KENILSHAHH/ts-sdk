@@ -17,8 +17,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { toDataSearchParams } from './dataParams';
-import { snakeCase, toSearchParams } from './params';
+import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 const ListEventsRequestSchema = z.object({
   ascending: z.boolean().optional(),

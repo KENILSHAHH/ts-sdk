@@ -10,7 +10,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { toDataSearchParams } from './dataParams';
+import { toDataSearchParams } from './params';
 
 const ActivitySortBySchema = z.enum(['TIMESTAMP', 'TOKENS', 'CASH']);
 const SortDirectionSchema = z.enum(['ASC', 'DESC']);

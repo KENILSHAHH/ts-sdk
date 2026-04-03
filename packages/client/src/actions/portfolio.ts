@@ -12,7 +12,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { toDataSearchParams } from './dataParams';
+import { toDataSearchParams } from './params';
 
 const PositionSortBySchema = z.enum([
   'CURRENT',
