@@ -80,6 +80,10 @@ const FetchTradedMarketCountRequestSchema = z.object({
   user: z.string(),
 });
 
+const DownloadAccountingSnapshotRequestSchema = z.object({
+  user: z.string(),
+});
+
 export type ListPositionsRequest = z.input<typeof ListPositionsRequestSchema>;
 export type ListClosedPositionsRequest = z.input<
   typeof ListClosedPositionsRequestSchema
@@ -89,6 +93,9 @@ export type FetchPortfolioValueRequest = z.input<
 >;
 export type FetchTradedMarketCountRequest = z.input<
   typeof FetchTradedMarketCountRequestSchema
+>;
+export type DownloadAccountingSnapshotRequest = z.input<
+  typeof DownloadAccountingSnapshotRequestSchema
 >;
 
 /**
@@ -240,6 +247,46 @@ export async function fetchTradedMarketCount(
   return unwrap(
     client.data.get('traded', {
       schema: TradedSchema,
+      searchParams: toDataSearchParams(params),
+    }),
+  );
+}
+
+/**
+ * Downloads an accounting snapshot archive for a wallet.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const snapshot = await downloadAccountingSnapshot(client, {
+ *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+ * });
+ *
+ * // snapshot === Blob
+ * ```
+ */
+export async function downloadAccountingSnapshot(
+  client: PolymarketClient,
+  request: DownloadAccountingSnapshotRequest,
+): Promise<Blob> {
+  const params = parseUserInput(
+    request,
+    DownloadAccountingSnapshotRequestSchema,
+  );
+
+  return unwrap(
+    client.data.getBlob('v1/accounting/snapshot', {
       searchParams: toDataSearchParams(params),
     }),
   );

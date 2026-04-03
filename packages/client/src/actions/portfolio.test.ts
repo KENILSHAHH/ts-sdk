@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
 import {
+  downloadAccountingSnapshot,
   fetchPortfolioValue,
   fetchTradedMarketCount,
   listClosedPositions,
@@ -71,6 +72,18 @@ describe('Portfolio', () => {
           user: TEST_USER,
         }),
       );
+    });
+  });
+
+  describe('downloadAccountingSnapshot', () => {
+    it('downloads the accounting snapshot archive', async () => {
+      const result = await downloadAccountingSnapshot(testClient, {
+        user: TEST_USER,
+      });
+
+      expect(result).toBeInstanceOf(Blob);
+      expect(result.size).toBeGreaterThan(0);
+      expect(result.type).toBe('application/zip');
     });
   });
 });

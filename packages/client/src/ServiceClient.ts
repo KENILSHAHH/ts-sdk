@@ -12,6 +12,10 @@ export type ServiceClientGetOptions<TReturnType> = {
   searchParams?: URLSearchParams;
 };
 
+export type ServiceClientGetBlobOptions = {
+  searchParams?: URLSearchParams;
+};
+
 export type ServiceClientPostOptions = {
   json?: unknown;
 };
@@ -45,6 +49,24 @@ export class ServiceClient {
           ),
       ).andThen((payload) =>
         this.#validateResponse(response.url, options.schema, payload),
+      ),
+    );
+  }
+
+  getBlob(
+    path: string,
+    options: ServiceClientGetBlobOptions = {},
+  ): ResultAsync<Blob, RateLimitError | ServerError | InvalidResponseError> {
+    return ResultAsync.fromPromise(
+      this.#client.get(path, { searchParams: options.searchParams }),
+      (e) => this.#toServiceClientError(e),
+    ).andThen((response) =>
+      ResultAsync.fromPromise(
+        response.blob(),
+        () =>
+          new InvalidResponseError(
+            `Received unreadable binary response from ${response.url}`,
+          ),
       ),
     );
   }
