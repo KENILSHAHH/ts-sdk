@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
-import { fetchMarket, listMarkets } from './markets';
+import { fetchMarket, fetchMarketTags, listMarkets } from './markets';
 
 describe('Markets', () => {
   describe('listMarkets', () => {
@@ -48,6 +48,34 @@ describe('Markets', () => {
 
       expect(marketById.id).toBe(market.id);
       expect(marketBySlug.id).toBe(market.id);
+    });
+  });
+
+  describe('fetchMarketTags', () => {
+    it("fetches a market's tags by id", async () => {
+      const [market] = await listMarkets(testClient, {
+        active: true,
+        closed: false,
+        limit: 1,
+      });
+
+      if (!market) {
+        throw new Error('Expected at least one market');
+      }
+
+      const result = await fetchMarketTags(testClient, {
+        id: market.id,
+      });
+
+      expect(result).toEqual(expect.any(Array));
+
+      for (const tag of result) {
+        expect(tag).toEqual(
+          expect.objectContaining({
+            id: expect.any(String),
+          }),
+        );
+      }
     });
   });
 });

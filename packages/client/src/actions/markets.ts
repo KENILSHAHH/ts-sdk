@@ -1,8 +1,10 @@
 import {
+  FetchMarketTagsResponseSchema,
   ISODateStringSchema,
   ListMarketsResponseSchema,
   type Market,
   MarketSchema,
+  type TagReference,
 } from '@polymarket/bindings';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
@@ -49,6 +51,14 @@ const FetchMarketRequestSchema = z.union([
 ]);
 
 export type FetchMarketRequest = z.input<typeof FetchMarketRequestSchema>;
+
+const FetchMarketTagsRequestSchema = z.object({
+  id: z.string(),
+});
+
+export type FetchMarketTagsRequest = z.input<
+  typeof FetchMarketTagsRequestSchema
+>;
 
 type MarketsParams = z.output<typeof MarketsRequestSchema>;
 
@@ -126,6 +136,43 @@ export async function fetchMarket(
   }
 
   return fetchMarketBySlug(client, params.slug);
+}
+
+/**
+ * Fetches a market's tags.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const tags = await fetchMarketTags(client, {
+ *   id: '12345',
+ * });
+ *
+ * // tags === TagReference[]
+ * ```
+ */
+export async function fetchMarketTags(
+  client: PolymarketClient,
+  request: FetchMarketTagsRequest,
+): Promise<TagReference[]> {
+  const params = parseUserInput(request, FetchMarketTagsRequestSchema);
+
+  return unwrap(
+    client.gamma.get(`markets/${params.id}/tags`, {
+      schema: FetchMarketTagsResponseSchema,
+    }),
+  );
 }
 
 function toMarketsSearchParams(params: MarketsParams): URLSearchParams {

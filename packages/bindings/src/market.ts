@@ -177,6 +177,10 @@ export const MarketSchema = z.looseObject({
 });
 
 export const ListMarketsResponseSchema = z.array(MarketSchema);
+export const FetchMarketTagsResponseSchema = z.array(TagReferenceSchema);
 
 export type Market = z.infer<typeof MarketSchema>;
 export type ListMarketsResponse = z.infer<typeof ListMarketsResponseSchema>;
+export type FetchMarketTagsResponse = z.infer<
+  typeof FetchMarketTagsResponseSchema
+>;
