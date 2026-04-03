@@ -42,6 +42,12 @@ Instructions for the `polymarket-sdk` repository.
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
 - Avoid small helper abstractions that do not meaningfully improve reuse or safety.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
+- Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.
+
+## Testing
+
+- Default client tests to integration-style coverage.
+- Do not mock API responses unless explicitly requested or unless mocking is necessary to isolate a boundary under test.
 
 ## Response contract
 

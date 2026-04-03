@@ -76,9 +76,15 @@ importers:
 
   packages/client:
     dependencies:
+      '@polymarket/bindings':
+        specifier: workspace:*
+        version: link:../bindings
       ky:
         specifier: ^1.14.3
         version: 1.14.3
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       tsup:
         specifier: ^8.5.1

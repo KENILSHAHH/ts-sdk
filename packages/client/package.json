@@ -6,7 +6,21 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./actions": {
+      "types": "./dist/actions/index.d.ts",
+      "default": "./dist/actions/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "actions": [
+        "./dist/actions/index.d.ts"
+      ]
+    }
   },
   "files": [
     "dist"
@@ -25,6 +39,8 @@
     "access": "public"
   },
   "dependencies": {
-    "ky": "^1.14.3"
+    "@polymarket/bindings": "workspace:*",
+    "ky": "^1.14.3",
+    "zod": "^4.3.6"
   }
 }
