@@ -1,9 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "baseUrl": ".",
     "skipLibCheck": true,
     "types": ["node"],
     "paths": {
+      "@polymarket/bindings": ["./packages/bindings/src"],
       "@polymarket/client": ["./packages/client/src"],
       "@polymarket/types": ["./packages/types/src"]
     }
