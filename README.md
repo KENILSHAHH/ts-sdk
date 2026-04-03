@@ -10,6 +10,7 @@ This repository is organized as a pnpm workspace with packages for the SDK itsel
 | ------------------------------------------ | ----------------------------------------------------- |
 | [`packages/bindings`](./packages/bindings) | Placeholder package for future OpenAPI bindings       |
 | [`packages/client`](./packages/client)     | Core TypeScript client package for the Polymarket SDK |
+| [`packages/types`](./packages/types)       | Shared TypeScript types for the Polymarket SDK        |
 | [`examples/react`](./examples/react)       | React + Ladle example app for exploring the SDK       |
 
 ## Requirements

@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "baseUrl": ".",
     "skipLibCheck": true,
     "types": ["node"],
     "paths": {
-      "@polymarket/client": ["./packages/client/src"]
+      "@polymarket/client": ["./packages/client/src"],
+      "@polymarket/types": ["./packages/types/src"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

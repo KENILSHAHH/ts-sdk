@@ -1,6 +1,6 @@
-# `@polymarket/bindings`
+# `@polymarket/types`
 
-The `@polymarket/bindings` contains generated bindings for the Polymarket API.
+The `@polymarket/types` package is shared TypeScript types for the Polymarket SDK.
 
 ---
 
@@ -9,13 +9,13 @@ The `@polymarket/bindings` contains generated bindings for the Polymarket API.
 ## Installation
 
 ```bash
-pnpm add @polymarket/bindings
+pnpm add @polymarket/types
 ```
 
 ## Usage
 
 ```ts
-import {} from '@polymarket/bindings';
+import type { MarketId } from '@polymarket/types';
 ```
 
 ## Development
@@ -23,7 +23,7 @@ import {} from '@polymarket/bindings';
 From the monorepo root:
 
 ```bash
-pnpm --filter @polymarket/bindings build
+pnpm --filter @polymarket/types build
 ```
 
 ## License
