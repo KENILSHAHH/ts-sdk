@@ -28,6 +28,7 @@
 
 - Root `tsconfig.json` and package-level `tsconfig.json` files are for editor tooling and source navigation only.
 - `tsconfig.build.json` files drive build and typecheck behavior. When changing build behavior or fixing build issues, update `tsconfig.build.json`, not the root or package `tsconfig.json`.
+- When adding a new entry point to a low-level package in the monorepo, add the corresponding alias to `compilerOptions.paths` in the root `tsconfig.json` so IDE resolution keeps working.
 
 ## Code conventions
 
