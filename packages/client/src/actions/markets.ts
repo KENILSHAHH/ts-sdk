@@ -1,5 +1,13 @@
 import { ISODateStringSchema } from '@polymarket/bindings';
 import {
+  ListMarketHoldersResponseSchema,
+  ListMarketPositionsResponseSchema,
+  ListOpenInterestResponseSchema,
+  type MetaHolder,
+  type MetaMarketPositionV1,
+  type OpenInterest,
+} from '@polymarket/bindings/data';
+import {
   FetchMarketTagsResponseSchema,
   ListMarketsResponseSchema,
   type Market,
@@ -10,6 +18,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
+import { toDataSearchParams } from './dataParams';
 import { snakeCase, toSearchParams } from './params';
 
 // The public markets endpoint forces active=true and archived=false server-side.
@@ -74,6 +83,45 @@ const FetchMarketTagsRequestSchema = z.object({
 
 export type FetchMarketTagsRequest = z.input<
   typeof FetchMarketTagsRequestSchema
+>;
+
+const ListMarketHoldersRequestSchema = z.object({
+  limit: z.number().int().optional(),
+  market: z.array(z.string()),
+  minBalance: z.number().int().optional(),
+});
+
+const ListOpenInterestRequestSchema = z.object({
+  market: z.array(z.string()).optional(),
+});
+
+const MarketPositionStatusSchema = z.enum(['OPEN', 'CLOSED', 'ALL']);
+const MarketPositionSortBySchema = z.enum([
+  'TOKENS',
+  'CASH_PNL',
+  'REALIZED_PNL',
+  'TOTAL_PNL',
+]);
+const MarketPositionSortDirectionSchema = z.enum(['ASC', 'DESC']);
+
+const ListMarketPositionsRequestSchema = z.object({
+  market: z.string(),
+  user: z.string().optional(),
+  status: MarketPositionStatusSchema.optional(),
+  sortBy: MarketPositionSortBySchema.optional(),
+  sortDirection: MarketPositionSortDirectionSchema.optional(),
+  limit: z.number().int().optional(),
+  offset: z.number().int().optional(),
+});
+
+export type ListMarketHoldersRequest = z.input<
+  typeof ListMarketHoldersRequestSchema
+>;
+export type ListOpenInterestRequest = z.input<
+  typeof ListOpenInterestRequestSchema
+>;
+export type ListMarketPositionsRequest = z.input<
+  typeof ListMarketPositionsRequestSchema
 >;
 
 type ListMarketsParams = z.output<typeof ListMarketsRequestSchema>;
@@ -187,6 +235,122 @@ export async function fetchMarketTags(
   return unwrap(
     client.gamma.get(`markets/${params.id}/tags`, {
       schema: FetchMarketTagsResponseSchema,
+    }),
+  );
+}
+
+/**
+ * Lists the top holders for one or more markets.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const holders = await listMarketHolders(client, {
+ *   market: ['0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093'],
+ *   limit: 5,
+ * });
+ *
+ * // holders === MetaHolder[]
+ * ```
+ */
+export async function listMarketHolders(
+  client: PolymarketClient,
+  request: ListMarketHoldersRequest,
+): Promise<MetaHolder[]> {
+  const params = parseUserInput(request, ListMarketHoldersRequestSchema);
+
+  return unwrap(
+    client.data.get('holders', {
+      schema: ListMarketHoldersResponseSchema,
+      searchParams: toDataSearchParams(params),
+    }),
+  );
+}
+
+/**
+ * Lists open interest for one or more markets.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const openInterest = await listOpenInterest(client, {
+ *   market: ['0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093'],
+ * });
+ *
+ * // openInterest === OpenInterest[]
+ * ```
+ */
+export async function listOpenInterest(
+  client: PolymarketClient,
+  request: ListOpenInterestRequest = {},
+): Promise<OpenInterest[]> {
+  const params = parseUserInput(request, ListOpenInterestRequestSchema);
+
+  return unwrap(
+    client.data.get('oi', {
+      schema: ListOpenInterestResponseSchema,
+      searchParams: toDataSearchParams(params),
+    }),
+  );
+}
+
+/**
+ * Lists positions for a market.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const positions = await listMarketPositions(client, {
+ *   market: '0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093',
+ *   limit: 10,
+ * });
+ *
+ * // positions === MetaMarketPositionV1[]
+ * ```
+ */
+export async function listMarketPositions(
+  client: PolymarketClient,
+  request: ListMarketPositionsRequest,
+): Promise<MetaMarketPositionV1[]> {
+  const params = parseUserInput(request, ListMarketPositionsRequestSchema);
+
+  return unwrap(
+    client.data.get('v1/market-positions', {
+      schema: ListMarketPositionsResponseSchema,
+      searchParams: toDataSearchParams(params),
     }),
   );
 }

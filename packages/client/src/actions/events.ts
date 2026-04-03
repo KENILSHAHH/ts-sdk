@@ -3,6 +3,10 @@ import {
   ISODateStringSchema,
 } from '@polymarket/bindings';
 import {
+  FetchEventLiveVolumeResponseSchema,
+  type LiveVolume,
+} from '@polymarket/bindings/data';
+import {
   type Event,
   EventSchema,
   FetchEventTagsResponseSchema,
@@ -13,6 +17,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
+import { toDataSearchParams } from './dataParams';
 import { snakeCase, toSearchParams } from './params';
 
 const ListEventsRequestSchema = z.object({
@@ -84,6 +89,14 @@ const FetchEventTagsRequestSchema = z.object({
 });
 
 export type FetchEventTagsRequest = z.input<typeof FetchEventTagsRequestSchema>;
+
+const FetchEventLiveVolumeRequestSchema = z.object({
+  id: z.number().int(),
+});
+
+export type FetchEventLiveVolumeRequest = z.input<
+  typeof FetchEventLiveVolumeRequestSchema
+>;
 
 type ListEventsParams = z.output<typeof ListEventsRequestSchema>;
 
@@ -206,6 +219,44 @@ export async function fetchEventTags(
   return unwrap(
     client.gamma.get(`events/${params.id}/tags`, {
       schema: FetchEventTagsResponseSchema,
+    }),
+  );
+}
+
+/**
+ * Fetches live volume for an event.
+ *
+ * @throws {@link UserInputError}
+ * Thrown if the request is not correct for this action.
+ *
+ * @throws {@link RateLimitError}
+ * Thrown if the request is rejected because the API rate limit has been exceeded.
+ *
+ * @throws {@link ServerError}
+ * Thrown if the request cannot be completed because of a network or server failure.
+ *
+ * @throws {@link InvalidResponseError}
+ * Thrown if the server returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const volume = await fetchEventLiveVolume(client, {
+ *   id: 160707,
+ * });
+ *
+ * // volume === LiveVolume[]
+ * ```
+ */
+export async function fetchEventLiveVolume(
+  client: PolymarketClient,
+  request: FetchEventLiveVolumeRequest,
+): Promise<LiveVolume[]> {
+  const params = parseUserInput(request, FetchEventLiveVolumeRequestSchema);
+
+  return unwrap(
+    client.data.get('live-volume', {
+      schema: FetchEventLiveVolumeResponseSchema,
+      searchParams: toDataSearchParams(params),
     }),
   );
 }

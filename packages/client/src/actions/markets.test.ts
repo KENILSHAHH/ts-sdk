@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
-import { fetchMarket, fetchMarketTags, listMarkets } from './markets';
+import {
+  fetchMarket,
+  fetchMarketTags,
+  listMarketHolders,
+  listMarketPositions,
+  listMarkets,
+  listOpenInterest,
+} from './markets';
+import { listPositions } from './portfolio';
+
+const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 describe('Markets', () => {
   describe('listMarkets', () => {
@@ -75,4 +85,72 @@ describe('Markets', () => {
       }
     });
   });
+
+  describe('listMarketHolders', () => {
+    it('lists top holders for a market', async () => {
+      const market = await getPositionMarket();
+
+      const result = await listMarketHolders(testClient, {
+        market: [market],
+        limit: 1,
+      });
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          holders: expect.any(Array),
+          token: expect.any(String),
+        }),
+      );
+    });
+  });
+
+  describe('listOpenInterest', () => {
+    it('lists open interest for a market', async () => {
+      const market = await getPositionMarket();
+
+      const result = await listOpenInterest(testClient, {
+        market: [market],
+      });
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          market,
+          value: expect.any(Number),
+        }),
+      ]);
+    });
+  });
+
+  describe('listMarketPositions', () => {
+    it('lists positions for a market', async () => {
+      const market = await getPositionMarket();
+
+      const result = await listMarketPositions(testClient, {
+        market,
+        limit: 1,
+      });
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          positions: expect.any(Array),
+          token: expect.any(String),
+        }),
+      );
+    });
+  });
 });
+
+async function getPositionMarket(): Promise<string> {
+  const [position] = await listPositions(testClient, {
+    user: TEST_USER,
+    limit: 1,
+  });
+
+  if (!position?.conditionId) {
+    throw new Error('Expected at least one position with a condition id');
+  }
+
+  return position.conditionId;
+}

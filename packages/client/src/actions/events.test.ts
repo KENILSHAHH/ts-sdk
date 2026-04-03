@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
-import { fetchEvent, fetchEventTags, listEvents } from './events';
+import {
+  fetchEvent,
+  fetchEventLiveVolume,
+  fetchEventTags,
+  listEvents,
+} from './events';
 
 describe('Events', () => {
   describe('listEvents', () => {
@@ -72,6 +77,37 @@ describe('Events', () => {
           }),
         );
       }
+    });
+  });
+
+  describe('fetchEventLiveVolume', () => {
+    it('fetches live volume for an event', async () => {
+      const [event] = await listEvents(testClient, {
+        closed: false,
+        limit: 1,
+      });
+
+      if (!event) {
+        throw new Error('Expected at least one event');
+      }
+
+      const eventId = Number(event.id);
+
+      if (Number.isNaN(eventId)) {
+        throw new Error('Expected the event id to be numeric');
+      }
+
+      const result = await fetchEventLiveVolume(testClient, {
+        id: eventId,
+      });
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          markets: expect.any(Array),
+          total: expect.any(Number),
+        }),
+      );
     });
   });
 });
