@@ -1,3 +1,4 @@
+import { nonEmptyArray, nonNullable } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
 import {
@@ -36,22 +37,14 @@ describe('Markets', () => {
       const [market] = await listMarkets(testClient, {
         closed: false,
         limit: 1,
-      });
-
-      if (!market) {
-        throw new Error('Expected at least one market');
-      }
-
-      if (!market.slug) {
-        throw new Error('Expected the market to have a slug');
-      }
+      }).then(nonEmptyArray);
 
       const marketById = await fetchMarket(testClient, {
         id: market.id,
       });
 
       const marketBySlug = await fetchMarket(testClient, {
-        slug: market.slug,
+        slug: nonNullable(market.slug),
       });
 
       expect(marketById.id).toBe(market.id);
@@ -64,11 +57,7 @@ describe('Markets', () => {
       const [market] = await listMarkets(testClient, {
         closed: false,
         limit: 1,
-      });
-
-      if (!market) {
-        throw new Error('Expected at least one market');
-      }
+      }).then(nonEmptyArray);
 
       const result = await fetchMarketTags(testClient, {
         id: market.id,
@@ -146,11 +135,7 @@ async function getPositionMarket(): Promise<string> {
   const [position] = await listPositions(testClient, {
     user: TEST_USER,
     limit: 1,
-  });
+  }).then(nonEmptyArray);
 
-  if (!position?.conditionId) {
-    throw new Error('Expected at least one position with a condition id');
-  }
-
-  return position.conditionId;
+  return nonNullable(position.conditionId);
 }

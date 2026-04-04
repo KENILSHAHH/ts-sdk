@@ -1,3 +1,4 @@
+import { nonEmptyArray } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
 import { fetchSeries, listSeries } from './series';
@@ -22,11 +23,7 @@ describe('Series', () => {
     it('fetches a series by id', async () => {
       const [series] = await listSeries(testClient, {
         limit: 1,
-      });
-
-      if (!series) {
-        throw new Error('Expected at least one series');
-      }
+      }).then(nonEmptyArray);
 
       const result = await fetchSeries(testClient, {
         id: series.id,

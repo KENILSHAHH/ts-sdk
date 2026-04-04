@@ -1,3 +1,4 @@
+import { nonEmptyArray, nonNullable } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
 import {
@@ -27,18 +28,12 @@ describe('Tags', () => {
     it('fetches a tag by id and slug', async () => {
       const [tag] = await listTags(testClient, {
         limit: 1,
-      });
-
-      if (!tag) {
-        throw new Error('Expected at least one tag');
-      }
-
-      if (!tag.slug) {
-        throw new Error('Expected the tag to have a slug');
-      }
+      }).then(nonEmptyArray);
 
       const tagById = await fetchTag(testClient, { id: tag.id });
-      const tagBySlug = await fetchTag(testClient, { slug: tag.slug });
+      const tagBySlug = await fetchTag(testClient, {
+        slug: nonNullable(tag.slug),
+      });
 
       expect(tagById.id).toBe(tag.id);
       expect(tagBySlug.id).toBe(tag.id);
@@ -49,21 +44,13 @@ describe('Tags', () => {
     it('fetches related tag relationships by id and slug', async () => {
       const [tag] = await listTags(testClient, {
         limit: 1,
-      });
-
-      if (!tag) {
-        throw new Error('Expected at least one tag');
-      }
-
-      if (!tag.slug) {
-        throw new Error('Expected the tag to have a slug');
-      }
+      }).then(nonEmptyArray);
 
       const relatedById = await fetchRelatedTags(testClient, {
         id: tag.id,
       });
       const relatedBySlug = await fetchRelatedTags(testClient, {
-        slug: tag.slug,
+        slug: nonNullable(tag.slug),
       });
 
       expect(relatedById).toEqual(expect.any(Array));
@@ -75,21 +62,13 @@ describe('Tags', () => {
     it('fetches related tags by id and slug', async () => {
       const [tag] = await listTags(testClient, {
         limit: 1,
-      });
-
-      if (!tag) {
-        throw new Error('Expected at least one tag');
-      }
-
-      if (!tag.slug) {
-        throw new Error('Expected the tag to have a slug');
-      }
+      }).then(nonEmptyArray);
 
       const relatedTagsById = await fetchRelatedTagResources(testClient, {
         id: tag.id,
       });
       const relatedTagsBySlug = await fetchRelatedTagResources(testClient, {
-        slug: tag.slug,
+        slug: nonNullable(tag.slug),
       });
 
       expect(relatedTagsById).toEqual(expect.any(Array));

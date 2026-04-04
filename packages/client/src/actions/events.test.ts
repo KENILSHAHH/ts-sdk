@@ -1,3 +1,4 @@
+import { nonEmptyArray, nonNullable } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { testClient } from '../testing';
 import {
@@ -30,22 +31,14 @@ describe('Events', () => {
       const [event] = await listEvents(testClient, {
         closed: false,
         limit: 1,
-      });
-
-      if (!event) {
-        throw new Error('Expected at least one event');
-      }
-
-      if (!event.slug) {
-        throw new Error('Expected the event to have a slug');
-      }
+      }).then(nonEmptyArray);
 
       const eventById = await fetchEvent(testClient, {
         id: event.id,
       });
 
       const eventBySlug = await fetchEvent(testClient, {
-        slug: event.slug,
+        slug: nonNullable(event.slug),
       });
 
       expect(eventById.id).toBe(event.id);
@@ -58,11 +51,7 @@ describe('Events', () => {
       const [event] = await listEvents(testClient, {
         closed: false,
         limit: 1,
-      });
-
-      if (!event) {
-        throw new Error('Expected at least one event');
-      }
+      }).then(nonEmptyArray);
 
       const result = await fetchEventTags(testClient, {
         id: event.id,
@@ -85,20 +74,10 @@ describe('Events', () => {
       const [event] = await listEvents(testClient, {
         closed: false,
         limit: 1,
-      });
-
-      if (!event) {
-        throw new Error('Expected at least one event');
-      }
-
-      const eventId = Number(event.id);
-
-      if (Number.isNaN(eventId)) {
-        throw new Error('Expected the event id to be numeric');
-      }
+      }).then(nonEmptyArray);
 
       const result = await fetchEventLiveVolume(testClient, {
-        id: eventId,
+        id: event.id,
       });
 
       expect(result.length).toBeGreaterThan(0);
