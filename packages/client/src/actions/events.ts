@@ -90,7 +90,7 @@ const FetchEventTagsRequestSchema = z.object({
 export type FetchEventTagsRequest = z.input<typeof FetchEventTagsRequestSchema>;
 
 const FetchEventLiveVolumeRequestSchema = z.object({
-  id: z.number().int(),
+  id: z.string(),
 });
 
 export type FetchEventLiveVolumeRequest = z.input<
@@ -240,7 +240,7 @@ export async function fetchEventTags(
  * @example
  * ```ts
  * const volume = await fetchEventLiveVolume(client, {
- *   id: 160707,
+ *   id: '160707',
  * });
  *
  * // volume === LiveVolume[]

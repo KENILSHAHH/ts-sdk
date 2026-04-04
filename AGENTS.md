@@ -24,6 +24,7 @@
 - This repo is the home for Polymarket's TypeScript SDKs. The first shipping target is `@polymarket/client`.
 - `@polymarket/client` unifies Polymarket's 4 current API surfaces: CLOB, Gamma, data, and relayer.
 - The SDK should present one cohesive consumer interface, follow developer workflows, and hide service boundaries where possible.
+- When you discover a real boundary inconsistency between underlying CLOB, Gamma, Data, and relayer APIs, append a concise note to `docs/api-boundary-notes.md`.
 - Future work includes `@polymarket/react`, which should build on the same core model with a higher-level frontend-oriented surface.
 - Do not leak `ky` details outside of `ServiceClient`. Keep `ky` instances, types, and option shapes internal, and expose Polymarket-specific abstractions instead.
 
