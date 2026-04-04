@@ -159,7 +159,7 @@ export async function listMarkets(
   return unwrap(
     client.gamma.get('markets', {
       schema: ListMarketsResponseSchema,
-      searchParams: toMarketsSearchParams(params),
+      params: toMarketsSearchParams(params),
     }),
   );
 }
@@ -272,7 +272,7 @@ export async function listMarketHolders(
   return unwrap(
     client.data.get('holders', {
       schema: ListMarketHoldersResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -310,7 +310,7 @@ export async function listOpenInterest(
   return unwrap(
     client.data.get('oi', {
       schema: ListOpenInterestResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -349,7 +349,7 @@ export async function listMarketPositions(
   return unwrap(
     client.data.get('v1/market-positions', {
       schema: ListMarketPositionsResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -371,7 +371,7 @@ async function fetchMarketBySlug(
   return unwrap(
     client.gamma.get(`markets/slug/${params.slug}`, {
       schema: MarketSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           includeTag: params.includeTag,
           locale: params.locale,
@@ -389,7 +389,7 @@ async function fetchMarketById(
   return unwrap(
     client.gamma.get(`markets/${params.id}`, {
       schema: MarketSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           includeTag: params.includeTag,
           locale: params.locale,

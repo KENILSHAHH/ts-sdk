@@ -49,7 +49,7 @@ export async function fetchPublicProfile(
   return unwrap(
     client.gamma.get('public-profile', {
       schema: PublicProfileSchema,
-      searchParams: toSearchParams(params, snakeCase()),
+      params: toSearchParams(params, snakeCase()),
     }),
   );
 }

@@ -9,11 +9,11 @@ export type ServiceClientConfig = {
 
 export type ServiceClientGetOptions<TReturnType> = {
   schema: z.ZodType<TReturnType>;
-  searchParams?: URLSearchParams;
+  params?: URLSearchParams;
 };
 
 export type ServiceClientGetBlobOptions = {
-  searchParams?: URLSearchParams;
+  params?: URLSearchParams;
 };
 
 export type ServiceClientPostOptions = {
@@ -38,7 +38,7 @@ export class ServiceClient {
     RateLimitError | ServerError | InvalidResponseError
   > {
     return ResultAsync.fromPromise(
-      this.#client.get(path, { searchParams: options.searchParams }),
+      this.#client.get(path, { searchParams: options.params }),
       (e) => this.#toServiceClientError(e),
     ).andThen((response) =>
       ResultAsync.fromPromise(
@@ -58,7 +58,7 @@ export class ServiceClient {
     options: ServiceClientGetBlobOptions = {},
   ): ResultAsync<Blob, RateLimitError | ServerError | InvalidResponseError> {
     return ResultAsync.fromPromise(
-      this.#client.get(path, { searchParams: options.searchParams }),
+      this.#client.get(path, { searchParams: options.params }),
       (e) => this.#toServiceClientError(e),
     ).andThen((response) =>
       ResultAsync.fromPromise(

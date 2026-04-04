@@ -75,7 +75,7 @@ export async function listComments(
   return unwrap(
     client.gamma.get('comments', {
       schema: ListCommentsResponseSchema,
-      searchParams: toSearchParams(params, snakeCase()),
+      params: toSearchParams(params, snakeCase()),
     }),
   );
 }
@@ -114,7 +114,7 @@ export async function fetchCommentsById(
   return unwrap(
     client.gamma.get(`comments/${params.id}`, {
       schema: ListCommentsResponseSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           getPositions: params.getPositions,
         },
@@ -162,7 +162,7 @@ export async function fetchCommentsByUserAddress(
   return unwrap(
     client.gamma.get(`comments/user_address/${params.address}`, {
       schema: ListCommentsResponseSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           ascending: params.ascending,
           limit: params.limit,

@@ -52,10 +52,7 @@ export async function listTeams(
   return unwrap(
     client.gamma.get('teams', {
       schema: ListTeamsResponseSchema,
-      searchParams: toSearchParams(
-        params,
-        snakeCase({ providerId: 'provider_id' }),
-      ),
+      params: toSearchParams(params, snakeCase({ providerId: 'provider_id' })),
     }),
   );
 }

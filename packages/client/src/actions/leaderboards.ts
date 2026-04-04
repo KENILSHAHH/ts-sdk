@@ -79,7 +79,7 @@ export async function listBuilderLeaderboard(
   return unwrap(
     client.data.get('v1/builders/leaderboard', {
       schema: ListBuilderLeaderboardResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -117,7 +117,7 @@ export async function listBuilderVolume(
   return unwrap(
     client.data.get('v1/builders/volume', {
       schema: ListBuilderVolumeResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -157,7 +157,7 @@ export async function listTraderLeaderboard(
   return unwrap(
     client.data.get('v1/leaderboard', {
       schema: ListTraderLeaderboardResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }

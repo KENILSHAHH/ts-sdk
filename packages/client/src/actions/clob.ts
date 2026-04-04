@@ -50,7 +50,7 @@ export async function fetchTickSize(
   const response = await unwrap(
     client.clob.get('tick-size', {
       schema: FetchTickSizeResponseSchema,
-      searchParams: toSearchParams(params, {
+      params: toSearchParams(params, {
         tokenId: 'token_id',
       }),
     }),
@@ -92,7 +92,7 @@ export async function fetchNegRisk(
   const response = await unwrap(
     client.clob.get('neg-risk', {
       schema: FetchNegRiskResponseSchema,
-      searchParams: toSearchParams(params, {
+      params: toSearchParams(params, {
         tokenId: 'token_id',
       }),
     }),
@@ -134,7 +134,7 @@ export async function fetchFeeRate(
   const response = await unwrap(
     client.clob.get('fee-rate', {
       schema: FetchFeeRateResponseSchema,
-      searchParams: toSearchParams(params, {
+      params: toSearchParams(params, {
         tokenId: 'token_id',
       }),
     }),

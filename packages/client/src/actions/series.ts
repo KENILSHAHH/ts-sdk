@@ -68,7 +68,7 @@ export async function listSeries(
   return unwrap(
     client.gamma.get('series', {
       schema: ListSeriesResponseSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         params,
         snakeCase<ListSeriesParams>({
           categoriesIds: 'categories_ids',
@@ -113,7 +113,7 @@ export async function fetchSeries(
   return unwrap(
     client.gamma.get(`series/${params.id}`, {
       schema: SeriesSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           includeChat: params.includeChat,
           locale: params.locale,

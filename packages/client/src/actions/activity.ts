@@ -97,7 +97,7 @@ export async function listTrades(
   return unwrap(
     client.data.get('trades', {
       schema: ListTradesResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -136,7 +136,7 @@ export async function listActivity(
   return unwrap(
     client.data.get('activity', {
       schema: ListActivityResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }

@@ -64,7 +64,7 @@ export async function search(
   return unwrap(
     client.gamma.get('public-search', {
       schema: PublicSearchResponseSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         params,
         snakeCase<SearchParams>({
           excludeTagIds: 'exclude_tag_id',

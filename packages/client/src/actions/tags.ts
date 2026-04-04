@@ -103,7 +103,7 @@ export async function listTags(
   return unwrap(
     client.gamma.get('tags', {
       schema: ListTagsResponseSchema,
-      searchParams: toSearchParams(params, snakeCase()),
+      params: toSearchParams(params, snakeCase()),
     }),
   );
 }
@@ -143,7 +143,7 @@ export async function fetchTag(
     return unwrap(
       client.gamma.get(`tags/${params.id}`, {
         schema: TagSchema,
-        searchParams: toSearchParams(
+        params: toSearchParams(
           {
             includeChat: params.includeChat,
             includeTemplate: params.includeTemplate,
@@ -158,7 +158,7 @@ export async function fetchTag(
   return unwrap(
     client.gamma.get(`tags/slug/${params.slug}`, {
       schema: TagSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           locale: params.locale,
         },
@@ -204,7 +204,7 @@ export async function fetchRelatedTags(
     return unwrap(
       client.gamma.get(`tags/${params.id}/related-tags`, {
         schema: ListRelatedTagsResponseSchema,
-        searchParams: toSearchParams(
+        params: toSearchParams(
           {
             omitEmpty: params.omitEmpty,
             status: params.status,
@@ -263,7 +263,7 @@ export async function fetchRelatedTagResources(
     return unwrap(
       client.gamma.get(`tags/${params.id}/related-tags/tags`, {
         schema: ListRelatedTagResourcesResponseSchema,
-        searchParams: toSearchParams(
+        params: toSearchParams(
           {
             locale: params.locale,
             omitEmpty: params.omitEmpty,
@@ -283,7 +283,7 @@ export async function fetchRelatedTagResources(
   return unwrap(
     client.gamma.get(`tags/slug/${params.slug}/related-tags/tags`, {
       schema: ListRelatedTagResourcesResponseSchema,
-      searchParams: toSearchParams(
+      params: toSearchParams(
         {
           locale: params.locale,
           omitEmpty: params.omitEmpty,

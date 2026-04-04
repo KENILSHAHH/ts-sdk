@@ -132,7 +132,7 @@ export async function listPositions(
   return unwrap(
     client.data.get('positions', {
       schema: ListPositionsResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -171,7 +171,7 @@ export async function listClosedPositions(
   return unwrap(
     client.data.get('closed-positions', {
       schema: ListClosedPositionsResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -209,7 +209,7 @@ export async function fetchPortfolioValue(
   return unwrap(
     client.data.get('value', {
       schema: FetchPortfolioValueResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -247,7 +247,7 @@ export async function fetchTradedMarketCount(
   return unwrap(
     client.data.get('traded', {
       schema: TradedSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
@@ -287,7 +287,7 @@ export async function downloadAccountingSnapshot(
 
   return unwrap(
     client.data.getBlob('v1/accounting/snapshot', {
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }

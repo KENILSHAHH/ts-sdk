@@ -133,7 +133,7 @@ export async function listEvents(
   return unwrap(
     client.gamma.get('events', {
       schema: ListEventsResponseSchema,
-      searchParams: toEventsSearchParams(params),
+      params: toEventsSearchParams(params),
     }),
   );
 }
@@ -172,7 +172,7 @@ export async function fetchEvent(
     return unwrap(
       client.gamma.get(`events/${params.id}`, {
         schema: EventSchema,
-        searchParams: toFetchEventByIdSearchParams(params),
+        params: toFetchEventByIdSearchParams(params),
       }),
     );
   }
@@ -180,7 +180,7 @@ export async function fetchEvent(
   return unwrap(
     client.gamma.get(`events/slug/${params.slug}`, {
       schema: EventSchema,
-      searchParams: toFetchEventBySlugSearchParams(params),
+      params: toFetchEventBySlugSearchParams(params),
     }),
   );
 }
@@ -255,7 +255,7 @@ export async function fetchEventLiveVolume(
   return unwrap(
     client.data.get('live-volume', {
       schema: FetchEventLiveVolumeResponseSchema,
-      searchParams: toDataSearchParams(params),
+      params: toDataSearchParams(params),
     }),
   );
 }
