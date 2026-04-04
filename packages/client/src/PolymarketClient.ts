@@ -12,12 +12,18 @@ export type PolymarketClientConfig = {
 
 export class PolymarketClient {
   /** @internal */
+  readonly clob: ServiceClient;
+
+  /** @internal */
   readonly gamma: ServiceClient;
 
   /** @internal */
   readonly data: ServiceClient;
 
   constructor({ environment = production }: PolymarketClientConfig = {}) {
+    this.clob = new ServiceClient({
+      root: environment.clob,
+    });
     this.gamma = new ServiceClient({
       root: environment.gamma,
     });
