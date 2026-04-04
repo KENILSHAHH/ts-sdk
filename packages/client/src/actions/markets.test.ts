@@ -13,6 +13,15 @@ import { listPositions } from './portfolio';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
+async function getPositionMarket(): Promise<string> {
+  const [position] = await listPositions(testClient, {
+    user: TEST_USER,
+    limit: 1,
+  }).then(nonEmptyArray);
+
+  return nonNullable(position.conditionId);
+}
+
 describe('Markets', () => {
   describe('listMarkets', () => {
     it('fetches markets from Gamma', async () => {
@@ -130,12 +139,3 @@ describe('Markets', () => {
     });
   });
 });
-
-async function getPositionMarket(): Promise<string> {
-  const [position] = await listPositions(testClient, {
-    user: TEST_USER,
-    limit: 1,
-  }).then(nonEmptyArray);
-
-  return nonNullable(position.conditionId);
-}
