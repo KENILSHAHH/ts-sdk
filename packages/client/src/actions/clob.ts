@@ -7,7 +7,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { parseUserInput } from '../input';
 import type { PolymarketClient } from '../PolymarketClient';
-import { toSearchParams } from './params';
+import { snakeCase, toSearchParams } from './params';
 
 const ClobTokenRequestSchema = z.object({
   tokenId: z.string(),
@@ -50,9 +50,7 @@ export async function fetchTickSize(
   const response = await unwrap(
     client.clob.get('tick-size', {
       schema: FetchTickSizeResponseSchema,
-      params: toSearchParams(params, {
-        tokenId: 'token_id',
-      }),
+      params: toSearchParams(params, snakeCase()),
     }),
   );
 
@@ -92,9 +90,7 @@ export async function fetchNegRisk(
   const response = await unwrap(
     client.clob.get('neg-risk', {
       schema: FetchNegRiskResponseSchema,
-      params: toSearchParams(params, {
-        tokenId: 'token_id',
-      }),
+      params: toSearchParams(params, snakeCase()),
     }),
   );
 
@@ -134,9 +130,7 @@ export async function fetchFeeRate(
   const response = await unwrap(
     client.clob.get('fee-rate', {
       schema: FetchFeeRateResponseSchema,
-      params: toSearchParams(params, {
-        tokenId: 'token_id',
-      }),
+      params: toSearchParams(params, snakeCase()),
     }),
   );
 
