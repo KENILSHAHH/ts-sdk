@@ -5,8 +5,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
 const ListSeriesRequestSchema = z.object({
@@ -60,7 +60,7 @@ type ListSeriesParams = z.output<typeof ListSeriesRequestSchema>;
  * ```
  */
 export async function listSeries(
-  client: PolymarketClient,
+  client: Client,
   request: ListSeriesRequest = {},
 ): Promise<Series[]> {
   const params = parseUserInput(request, ListSeriesRequestSchema);
@@ -105,7 +105,7 @@ export async function listSeries(
  * ```
  */
 export async function fetchSeries(
-  client: PolymarketClient,
+  client: Client,
   request: FetchSeriesRequest,
 ): Promise<Series> {
   const params = parseUserInput(request, FetchSeriesRequestSchema);

@@ -11,8 +11,8 @@ import {
 } from '@polymarket/bindings/data';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { toDataSearchParams } from './params';
 
 const ListBuilderLeaderboardRequestSchema = z.object({
@@ -71,7 +71,7 @@ export type ListTraderLeaderboardRequest = z.input<
  * ```
  */
 export async function listBuilderLeaderboard(
-  client: PolymarketClient,
+  client: Client,
   request: ListBuilderLeaderboardRequest = {},
 ): Promise<LeaderboardEntry[]> {
   const params = parseUserInput(request, ListBuilderLeaderboardRequestSchema);
@@ -109,7 +109,7 @@ export async function listBuilderLeaderboard(
  * ```
  */
 export async function listBuilderVolume(
-  client: PolymarketClient,
+  client: Client,
   request: ListBuilderVolumeRequest = {},
 ): Promise<BuilderVolumeEntry[]> {
   const params = parseUserInput(request, ListBuilderVolumeRequestSchema);
@@ -149,7 +149,7 @@ export async function listBuilderVolume(
  * ```
  */
 export async function listTraderLeaderboard(
-  client: PolymarketClient,
+  client: Client,
   request: ListTraderLeaderboardRequest = {},
 ): Promise<TraderLeaderboardEntry[]> {
   const params = parseUserInput(request, ListTraderLeaderboardRequestSchema);

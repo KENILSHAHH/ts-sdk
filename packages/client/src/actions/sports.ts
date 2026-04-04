@@ -5,7 +5,7 @@ import {
   type SportsMetadata,
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
-import type { PolymarketClient } from '../PolymarketClient';
+import type { Client } from '../clients';
 
 /**
  * Lists available sports metadata.
@@ -26,9 +26,7 @@ import type { PolymarketClient } from '../PolymarketClient';
  * // sports === SportsMetadata[]
  * ```
  */
-export async function listSports(
-  client: PolymarketClient,
-): Promise<SportsMetadata[]> {
+export async function listSports(client: Client): Promise<SportsMetadata[]> {
   return unwrap(
     client.gamma.get('sports', {
       schema: ListSportsMetadataResponseSchema,
@@ -56,7 +54,7 @@ export async function listSports(
  * ```
  */
 export async function fetchSportsMarketTypes(
-  client: PolymarketClient,
+  client: Client,
 ): Promise<SportsMarketTypesResponse> {
   return unwrap(
     client.gamma.get('sports/market-types', {

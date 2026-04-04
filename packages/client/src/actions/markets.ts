@@ -16,8 +16,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 // The public markets endpoint forces active=true and archived=false server-side.
@@ -151,7 +151,7 @@ type ListMarketsParams = z.output<typeof ListMarketsRequestSchema>;
  * ```
  */
 export async function listMarkets(
-  client: PolymarketClient,
+  client: Client,
   request: ListMarketsRequest = {},
 ): Promise<Market[]> {
   const params = parseUserInput(request, ListMarketsRequestSchema);
@@ -189,7 +189,7 @@ export async function listMarkets(
  * ```
  */
 export async function fetchMarket(
-  client: PolymarketClient,
+  client: Client,
   request: FetchMarketRequest,
 ): Promise<Market> {
   const params = parseUserInput(request, FetchMarketRequestSchema);
@@ -226,7 +226,7 @@ export async function fetchMarket(
  * ```
  */
 export async function fetchMarketTags(
-  client: PolymarketClient,
+  client: Client,
   request: FetchMarketTagsRequest,
 ): Promise<TagReference[]> {
   const params = parseUserInput(request, FetchMarketTagsRequestSchema);
@@ -264,7 +264,7 @@ export async function fetchMarketTags(
  * ```
  */
 export async function listMarketHolders(
-  client: PolymarketClient,
+  client: Client,
   request: ListMarketHoldersRequest,
 ): Promise<MetaHolder[]> {
   const params = parseUserInput(request, ListMarketHoldersRequestSchema);
@@ -302,7 +302,7 @@ export async function listMarketHolders(
  * ```
  */
 export async function listOpenInterest(
-  client: PolymarketClient,
+  client: Client,
   request: ListOpenInterestRequest = {},
 ): Promise<OpenInterest[]> {
   const params = parseUserInput(request, ListOpenInterestRequestSchema);
@@ -341,7 +341,7 @@ export async function listOpenInterest(
  * ```
  */
 export async function listMarketPositions(
-  client: PolymarketClient,
+  client: Client,
   request: ListMarketPositionsRequest,
 ): Promise<MetaMarketPositionV1[]> {
   const params = parseUserInput(request, ListMarketPositionsRequestSchema);
@@ -365,7 +365,7 @@ function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {
 }
 
 async function fetchMarketBySlug(
-  client: PolymarketClient,
+  client: Client,
   params: z.output<typeof FetchMarketBySlugRequestSchema>,
 ): Promise<Market> {
   return unwrap(
@@ -383,7 +383,7 @@ async function fetchMarketBySlug(
 }
 
 async function fetchMarketById(
-  client: PolymarketClient,
+  client: Client,
   params: z.output<typeof FetchMarketByIdRequestSchema>,
 ): Promise<Market> {
   return unwrap(

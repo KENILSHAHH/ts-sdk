@@ -1,7 +1,7 @@
 import { type EnvironmentConfig, production } from './environments';
 import { ServiceClient } from './ServiceClient';
 
-export type PolymarketClientConfig = {
+export type PublicClientConfig = {
   /**
    * The environment configuration used by the client.
    *
@@ -10,7 +10,7 @@ export type PolymarketClientConfig = {
   environment?: EnvironmentConfig;
 };
 
-export class PolymarketClient {
+export class PublicClient {
   /** @internal */
   readonly clob: ServiceClient;
 
@@ -20,7 +20,7 @@ export class PolymarketClient {
   /** @internal */
   readonly data: ServiceClient;
 
-  constructor({ environment = production }: PolymarketClientConfig = {}) {
+  constructor({ environment = production }: PublicClientConfig = {}) {
     this.clob = new ServiceClient({
       root: environment.clob,
     });
@@ -33,16 +33,22 @@ export class PolymarketClient {
   }
 }
 
+class IdentityClient extends PublicClient {}
+
+export type { IdentityClient };
+
+export type Client = PublicClient | IdentityClient;
+
 /**
- * Creates a new `PolymarketClient` instance.
+ * Creates a new `PublicClient` instance.
  *
  * @example
  * ```ts
- * const client = createClient();
+ * const client = createPublicClient();
  * ```
  */
-export function createClient(
-  config: PolymarketClientConfig = {},
-): PolymarketClient {
-  return new PolymarketClient(config);
+export function createPublicClient(
+  config: PublicClientConfig = {},
+): PublicClient {
+  return new PublicClient(config);
 }

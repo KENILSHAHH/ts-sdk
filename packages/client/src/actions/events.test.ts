@@ -1,6 +1,6 @@
 import { nonEmptyArray, nonNullable } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import {
   fetchEvent,
   fetchEventLiveVolume,
@@ -11,7 +11,7 @@ import {
 describe('Events', () => {
   describe('listEvents', () => {
     it('fetches events from Gamma', async () => {
-      const result = await listEvents(testClient, {
+      const result = await listEvents(publicClient, {
         closed: false,
         limit: 1,
       });
@@ -28,16 +28,16 @@ describe('Events', () => {
 
   describe('fetchEvent', () => {
     it('fetches an event by id and slug', async () => {
-      const [event] = await listEvents(testClient, {
+      const [event] = await listEvents(publicClient, {
         closed: false,
         limit: 1,
       }).then(nonEmptyArray);
 
-      const eventById = await fetchEvent(testClient, {
+      const eventById = await fetchEvent(publicClient, {
         id: event.id,
       });
 
-      const eventBySlug = await fetchEvent(testClient, {
+      const eventBySlug = await fetchEvent(publicClient, {
         slug: nonNullable(event.slug),
       });
 
@@ -48,12 +48,12 @@ describe('Events', () => {
 
   describe('fetchEventTags', () => {
     it("fetches an event's tags by id", async () => {
-      const [event] = await listEvents(testClient, {
+      const [event] = await listEvents(publicClient, {
         closed: false,
         limit: 1,
       }).then(nonEmptyArray);
 
-      const result = await fetchEventTags(testClient, {
+      const result = await fetchEventTags(publicClient, {
         id: event.id,
       });
 
@@ -71,12 +71,12 @@ describe('Events', () => {
 
   describe('fetchEventLiveVolume', () => {
     it('fetches live volume for an event', async () => {
-      const [event] = await listEvents(testClient, {
+      const [event] = await listEvents(publicClient, {
         closed: false,
         limit: 1,
       }).then(nonEmptyArray);
 
-      const result = await fetchEventLiveVolume(testClient, {
+      const result = await fetchEventLiveVolume(publicClient, {
         id: event.id,
       });
 

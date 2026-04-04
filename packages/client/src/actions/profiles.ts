@@ -4,8 +4,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
 const FetchPublicProfileRequestSchema = z.object({
@@ -41,7 +41,7 @@ export type FetchPublicProfileRequest = z.input<
  * ```
  */
 export async function fetchPublicProfile(
-  client: PolymarketClient,
+  client: Client,
   request: FetchPublicProfileRequest,
 ): Promise<PublicProfile> {
   const params = parseUserInput(request, FetchPublicProfileRequestSchema);

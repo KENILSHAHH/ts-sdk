@@ -1,6 +1,6 @@
 import { nonEmptyArray, nonNullable } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import {
   fetchRelatedTagResources,
   fetchRelatedTags,
@@ -11,7 +11,7 @@ import {
 describe('Tags', () => {
   describe('listTags', () => {
     it('fetches tags', async () => {
-      const result = await listTags(testClient, {
+      const result = await listTags(publicClient, {
         limit: 1,
       });
 
@@ -26,12 +26,12 @@ describe('Tags', () => {
 
   describe('fetchTag', () => {
     it('fetches a tag by id and slug', async () => {
-      const [tag] = await listTags(testClient, {
+      const [tag] = await listTags(publicClient, {
         limit: 1,
       }).then(nonEmptyArray);
 
-      const tagById = await fetchTag(testClient, { id: tag.id });
-      const tagBySlug = await fetchTag(testClient, {
+      const tagById = await fetchTag(publicClient, { id: tag.id });
+      const tagBySlug = await fetchTag(publicClient, {
         slug: nonNullable(tag.slug),
       });
 
@@ -42,14 +42,14 @@ describe('Tags', () => {
 
   describe('fetchRelatedTags', () => {
     it('fetches related tag relationships by id and slug', async () => {
-      const [tag] = await listTags(testClient, {
+      const [tag] = await listTags(publicClient, {
         limit: 1,
       }).then(nonEmptyArray);
 
-      const relatedById = await fetchRelatedTags(testClient, {
+      const relatedById = await fetchRelatedTags(publicClient, {
         id: tag.id,
       });
-      const relatedBySlug = await fetchRelatedTags(testClient, {
+      const relatedBySlug = await fetchRelatedTags(publicClient, {
         slug: nonNullable(tag.slug),
       });
 
@@ -60,14 +60,14 @@ describe('Tags', () => {
 
   describe('fetchRelatedTagResources', () => {
     it('fetches related tags by id and slug', async () => {
-      const [tag] = await listTags(testClient, {
+      const [tag] = await listTags(publicClient, {
         limit: 1,
       }).then(nonEmptyArray);
 
-      const relatedTagsById = await fetchRelatedTagResources(testClient, {
+      const relatedTagsById = await fetchRelatedTagResources(publicClient, {
         id: tag.id,
       });
-      const relatedTagsBySlug = await fetchRelatedTagResources(testClient, {
+      const relatedTagsBySlug = await fetchRelatedTagResources(publicClient, {
         slug: nonNullable(tag.slug),
       });
 

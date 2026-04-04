@@ -8,8 +8,8 @@ import {
 } from '@polymarket/bindings/data';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { toDataSearchParams } from './params';
 
 const ActivitySortBySchema = z.enum(['TIMESTAMP', 'TOKENS', 'CASH']);
@@ -89,7 +89,7 @@ export type ListActivityRequest = z.input<typeof ListActivityRequestSchema>;
  * ```
  */
 export async function listTrades(
-  client: PolymarketClient,
+  client: Client,
   request: ListTradesRequest = {},
 ): Promise<Trade[]> {
   const params = parseUserInput(request, ListTradesRequestSchema);
@@ -128,7 +128,7 @@ export async function listTrades(
  * ```
  */
 export async function listActivity(
-  client: PolymarketClient,
+  client: Client,
   request: ListActivityRequest,
 ): Promise<Activity[]> {
   const params = parseUserInput(request, ListActivityRequestSchema);

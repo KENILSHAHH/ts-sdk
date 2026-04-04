@@ -10,8 +10,8 @@ import {
 } from '@polymarket/bindings/data';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { toDataSearchParams } from './params';
 
 const PositionSortBySchema = z.enum([
@@ -124,7 +124,7 @@ export type DownloadAccountingSnapshotRequest = z.input<
  * ```
  */
 export async function listPositions(
-  client: PolymarketClient,
+  client: Client,
   request: ListPositionsRequest,
 ): Promise<Position[]> {
   const params = parseUserInput(request, ListPositionsRequestSchema);
@@ -163,7 +163,7 @@ export async function listPositions(
  * ```
  */
 export async function listClosedPositions(
-  client: PolymarketClient,
+  client: Client,
   request: ListClosedPositionsRequest,
 ): Promise<ClosedPosition[]> {
   const params = parseUserInput(request, ListClosedPositionsRequestSchema);
@@ -201,7 +201,7 @@ export async function listClosedPositions(
  * ```
  */
 export async function fetchPortfolioValue(
-  client: PolymarketClient,
+  client: Client,
   request: FetchPortfolioValueRequest,
 ): Promise<Value[]> {
   const params = parseUserInput(request, FetchPortfolioValueRequestSchema);
@@ -239,7 +239,7 @@ export async function fetchPortfolioValue(
  * ```
  */
 export async function fetchTradedMarketCount(
-  client: PolymarketClient,
+  client: Client,
   request: FetchTradedMarketCountRequest,
 ): Promise<Traded> {
   const params = parseUserInput(request, FetchTradedMarketCountRequestSchema);
@@ -277,7 +277,7 @@ export async function fetchTradedMarketCount(
  * ```
  */
 export async function downloadAccountingSnapshot(
-  client: PolymarketClient,
+  client: Client,
   request: DownloadAccountingSnapshotRequest,
 ): Promise<Blob> {
   const params = parseUserInput(

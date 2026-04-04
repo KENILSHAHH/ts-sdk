@@ -1,6 +1,6 @@
 import { nonEmptyArray, nonNullable } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import {
   fetchMarket,
   fetchMarketTags,
@@ -14,7 +14,7 @@ import { listPositions } from './portfolio';
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 async function getPositionMarket(): Promise<string> {
-  const [position] = await listPositions(testClient, {
+  const [position] = await listPositions(publicClient, {
     user: TEST_USER,
     limit: 1,
   }).then(nonEmptyArray);
@@ -25,7 +25,7 @@ async function getPositionMarket(): Promise<string> {
 describe('Markets', () => {
   describe('listMarkets', () => {
     it('fetches markets from Gamma', async () => {
-      const result = await listMarkets(testClient, {
+      const result = await listMarkets(publicClient, {
         closed: false,
         limit: 1,
       });
@@ -43,16 +43,16 @@ describe('Markets', () => {
 
   describe('fetchMarket', () => {
     it('fetches a market by id and slug', async () => {
-      const [market] = await listMarkets(testClient, {
+      const [market] = await listMarkets(publicClient, {
         closed: false,
         limit: 1,
       }).then(nonEmptyArray);
 
-      const marketById = await fetchMarket(testClient, {
+      const marketById = await fetchMarket(publicClient, {
         id: market.id,
       });
 
-      const marketBySlug = await fetchMarket(testClient, {
+      const marketBySlug = await fetchMarket(publicClient, {
         slug: nonNullable(market.slug),
       });
 
@@ -63,12 +63,12 @@ describe('Markets', () => {
 
   describe('fetchMarketTags', () => {
     it("fetches a market's tags by id", async () => {
-      const [market] = await listMarkets(testClient, {
+      const [market] = await listMarkets(publicClient, {
         closed: false,
         limit: 1,
       }).then(nonEmptyArray);
 
-      const result = await fetchMarketTags(testClient, {
+      const result = await fetchMarketTags(publicClient, {
         id: market.id,
       });
 
@@ -88,7 +88,7 @@ describe('Markets', () => {
     it('lists top holders for a market', async () => {
       const market = await getPositionMarket();
 
-      const result = await listMarketHolders(testClient, {
+      const result = await listMarketHolders(publicClient, {
         market: [market],
         limit: 1,
       });
@@ -107,7 +107,7 @@ describe('Markets', () => {
     it('lists open interest for a market', async () => {
       const market = await getPositionMarket();
 
-      const result = await listOpenInterest(testClient, {
+      const result = await listOpenInterest(publicClient, {
         market: [market],
       });
 
@@ -124,7 +124,7 @@ describe('Markets', () => {
     it('lists positions for a market', async () => {
       const market = await getPositionMarket();
 
-      const result = await listMarketPositions(testClient, {
+      const result = await listMarketPositions(publicClient, {
         market,
         limit: 1,
       });

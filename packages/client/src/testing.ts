@@ -1,3 +1,3 @@
-import { createClient } from './PolymarketClient';
+import { createPublicClient } from './clients';
 
-export const testClient = createClient();
+export const publicClient = createPublicClient();

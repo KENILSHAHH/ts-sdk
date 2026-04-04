@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import {
   listBuilderLeaderboard,
   listBuilderVolume,
@@ -9,7 +9,7 @@ import {
 describe('Leaderboards', () => {
   describe('listTraderLeaderboard', () => {
     it('lists trader rankings', async () => {
-      const result = await listTraderLeaderboard(testClient, {
+      const result = await listTraderLeaderboard(publicClient, {
         limit: 1,
       });
 
@@ -25,7 +25,7 @@ describe('Leaderboards', () => {
 
   describe('listBuilderLeaderboard', () => {
     it('lists builder rankings', async () => {
-      const result = await listBuilderLeaderboard(testClient, {
+      const result = await listBuilderLeaderboard(publicClient, {
         limit: 1,
       });
 
@@ -41,7 +41,7 @@ describe('Leaderboards', () => {
 
   describe('listBuilderVolume', () => {
     it('lists builder volume entries', async () => {
-      const result = await listBuilderVolume(testClient, {
+      const result = await listBuilderVolume(publicClient, {
         timePeriod: 'DAY',
       });
 

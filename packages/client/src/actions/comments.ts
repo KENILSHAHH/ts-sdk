@@ -4,8 +4,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
 const ListCommentsRequestSchema = z.object({
@@ -67,7 +67,7 @@ export type FetchCommentsByUserAddressRequest = z.input<
  * ```
  */
 export async function listComments(
-  client: PolymarketClient,
+  client: Client,
   request: ListCommentsRequest,
 ): Promise<Comment[]> {
   const params = parseUserInput(request, ListCommentsRequestSchema);
@@ -106,7 +106,7 @@ export async function listComments(
  * ```
  */
 export async function fetchCommentsById(
-  client: PolymarketClient,
+  client: Client,
   request: FetchCommentsByIdRequest,
 ): Promise<Comment[]> {
   const params = parseUserInput(request, FetchCommentsByIdRequestSchema);
@@ -151,7 +151,7 @@ export async function fetchCommentsById(
  * ```
  */
 export async function fetchCommentsByUserAddress(
-  client: PolymarketClient,
+  client: Client,
   request: FetchCommentsByUserAddressRequest,
 ): Promise<Comment[]> {
   const params = parseUserInput(

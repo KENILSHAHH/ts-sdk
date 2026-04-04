@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import { listTeams } from './teams';
 
 describe('Teams', () => {
   describe('listTeams', () => {
     it('fetches teams', async () => {
-      const result = await listTeams(testClient, {
+      const result = await listTeams(publicClient, {
         limit: 1,
       });
 

@@ -15,8 +15,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 const ListEventsRequestSchema = z.object({
@@ -125,7 +125,7 @@ type ListEventsParams = z.output<typeof ListEventsRequestSchema>;
  * ```
  */
 export async function listEvents(
-  client: PolymarketClient,
+  client: Client,
   request: ListEventsRequest = {},
 ): Promise<Event[]> {
   const params = parseUserInput(request, ListEventsRequestSchema);
@@ -163,7 +163,7 @@ export async function listEvents(
  * ```
  */
 export async function fetchEvent(
-  client: PolymarketClient,
+  client: Client,
   request: FetchEventRequest,
 ): Promise<Event> {
   const params = parseUserInput(request, FetchEventRequestSchema);
@@ -210,7 +210,7 @@ export async function fetchEvent(
  * ```
  */
 export async function fetchEventTags(
-  client: PolymarketClient,
+  client: Client,
   request: FetchEventTagsRequest,
 ): Promise<TagReference[]> {
   const params = parseUserInput(request, FetchEventTagsRequestSchema);
@@ -247,7 +247,7 @@ export async function fetchEventTags(
  * ```
  */
 export async function fetchEventLiveVolume(
-  client: PolymarketClient,
+  client: Client,
   request: FetchEventLiveVolumeRequest,
 ): Promise<LiveVolume[]> {
   const params = parseUserInput(request, FetchEventLiveVolumeRequestSchema);

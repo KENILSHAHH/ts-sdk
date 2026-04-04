@@ -5,8 +5,8 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
 const ClobTokenRequestSchema = z.object({
@@ -43,7 +43,7 @@ export type FetchFeeRateRequest = z.input<typeof ClobTokenRequestSchema>;
  * ```
  */
 export async function fetchTickSize(
-  client: PolymarketClient,
+  client: Client,
   request: FetchTickSizeRequest,
 ): Promise<number> {
   const params = parseUserInput(request, ClobTokenRequestSchema);
@@ -83,7 +83,7 @@ export async function fetchTickSize(
  * ```
  */
 export async function fetchNegRisk(
-  client: PolymarketClient,
+  client: Client,
   request: FetchNegRiskRequest,
 ): Promise<boolean> {
   const params = parseUserInput(request, ClobTokenRequestSchema);
@@ -123,7 +123,7 @@ export async function fetchNegRisk(
  * ```
  */
 export async function fetchFeeRate(
-  client: PolymarketClient,
+  client: Client,
   request: FetchFeeRateRequest,
 ): Promise<number> {
   const params = parseUserInput(request, ClobTokenRequestSchema);

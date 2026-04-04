@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import { fetchFeeRate, fetchNegRisk, fetchTickSize } from './clob';
 import { listMarkets } from './markets';
 
@@ -8,7 +8,7 @@ describe('CLOB', () => {
     it('fetches the minimum tick size for a token', async () => {
       const tokenId = await getClobTokenId();
 
-      const result = await fetchTickSize(testClient, {
+      const result = await fetchTickSize(publicClient, {
         tokenId,
       });
 
@@ -21,7 +21,7 @@ describe('CLOB', () => {
     it('fetches whether a token is negative risk', async () => {
       const tokenId = await getClobTokenId();
 
-      const result = await fetchNegRisk(testClient, {
+      const result = await fetchNegRisk(publicClient, {
         tokenId,
       });
 
@@ -33,7 +33,7 @@ describe('CLOB', () => {
     it('fetches the fee rate for a token', async () => {
       const tokenId = await getClobTokenId();
 
-      const result = await fetchFeeRate(testClient, {
+      const result = await fetchFeeRate(publicClient, {
         tokenId,
       });
 
@@ -44,7 +44,7 @@ describe('CLOB', () => {
 });
 
 async function getClobTokenId(): Promise<string> {
-  const markets = await listMarkets(testClient, {
+  const markets = await listMarkets(publicClient, {
     closed: false,
     limit: 10,
   });

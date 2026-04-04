@@ -8,8 +8,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTagsRequestSchema = z.object({
@@ -95,7 +95,7 @@ export type FetchRelatedTagResourcesRequest =
  * ```
  */
 export async function listTags(
-  client: PolymarketClient,
+  client: Client,
   request: ListTagsRequest = {},
 ): Promise<Tag[]> {
   const params = parseUserInput(request, ListTagsRequestSchema);
@@ -134,7 +134,7 @@ export async function listTags(
  * ```
  */
 export async function fetchTag(
-  client: PolymarketClient,
+  client: Client,
   request: FetchTagRequest,
 ): Promise<Tag> {
   const params = parseUserInput(request, FetchTagRequestSchema);
@@ -195,7 +195,7 @@ export async function fetchTag(
  * ```
  */
 export async function fetchRelatedTags(
-  client: PolymarketClient,
+  client: Client,
   request: FetchRelatedTagsRequest,
 ): Promise<RelatedTag[]> {
   if ('id' in request) {
@@ -251,7 +251,7 @@ export async function fetchRelatedTags(
  * ```
  */
 export async function fetchRelatedTagResources(
-  client: PolymarketClient,
+  client: Client,
   request: FetchRelatedTagResourcesRequest,
 ): Promise<Tag[]> {
   if ('id' in request) {

@@ -4,8 +4,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import type { Client } from '../clients';
 import { parseUserInput } from '../input';
-import type { PolymarketClient } from '../PolymarketClient';
 import { snakeCase, toSearchParams } from './params';
 
 const SearchRequestSchema = z.object({
@@ -56,7 +56,7 @@ type SearchParams = z.output<typeof SearchRequestSchema>;
  * ```
  */
 export async function search(
-  client: PolymarketClient,
+  client: Client,
   request: SearchRequest,
 ): Promise<PublicSearchResponse> {
   const params = parseUserInput(request, SearchRequestSchema);

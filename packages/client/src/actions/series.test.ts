@@ -1,12 +1,12 @@
 import { nonEmptyArray } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import { fetchSeries, listSeries } from './series';
 
 describe('Series', () => {
   describe('listSeries', () => {
     it('fetches series', async () => {
-      const result = await listSeries(testClient, {
+      const result = await listSeries(publicClient, {
         limit: 1,
       });
 
@@ -21,11 +21,11 @@ describe('Series', () => {
 
   describe('fetchSeries', () => {
     it('fetches a series by id', async () => {
-      const [series] = await listSeries(testClient, {
+      const [series] = await listSeries(publicClient, {
         limit: 1,
       }).then(nonEmptyArray);
 
-      const result = await fetchSeries(testClient, {
+      const result = await fetchSeries(publicClient, {
         id: series.id,
       });
 

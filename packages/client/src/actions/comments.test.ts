@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { testClient } from '../testing';
+import { publicClient } from '../testing';
 import {
   fetchCommentsById,
   fetchCommentsByUserAddress,
@@ -10,7 +10,7 @@ import { listEvents } from './events';
 describe('Comments', () => {
   describe('listComments', () => {
     it('fetches comments for an event', async () => {
-      const events = await listEvents(testClient, {
+      const events = await listEvents(publicClient, {
         closed: false,
         limit: 10,
       });
@@ -18,7 +18,7 @@ describe('Comments', () => {
       let result: Awaited<ReturnType<typeof listComments>> = [];
 
       for (const event of events) {
-        result = await listComments(testClient, {
+        result = await listComments(publicClient, {
           parentEntityId: Number(event.id),
           parentEntityType: 'Event',
         });
@@ -34,7 +34,7 @@ describe('Comments', () => {
 
   describe('fetchCommentsById and fetchCommentsByUserAddress', () => {
     it('fetches related comment threads when a comment is available', async () => {
-      const events = await listEvents(testClient, {
+      const events = await listEvents(publicClient, {
         closed: false,
         limit: 10,
       });
@@ -42,7 +42,7 @@ describe('Comments', () => {
       let comment: Awaited<ReturnType<typeof listComments>>[number] | undefined;
 
       for (const event of events) {
-        const comments = await listComments(testClient, {
+        const comments = await listComments(publicClient, {
           parentEntityId: Number(event.id),
           parentEntityType: 'Event',
         });
@@ -58,11 +58,11 @@ describe('Comments', () => {
         return;
       }
 
-      const commentsById = await fetchCommentsById(testClient, {
+      const commentsById = await fetchCommentsById(publicClient, {
         id: Number(comment.id),
       });
       const commentsByUserAddress = await fetchCommentsByUserAddress(
-        testClient,
+        publicClient,
         {
           address: comment.userAddress,
           limit: 1,
