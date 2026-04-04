@@ -7,6 +7,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ClobTokenRequestSchema = z.object({
@@ -48,10 +49,11 @@ export async function fetchTickSize(
 ): Promise<number> {
   const params = parseUserInput(request, ClobTokenRequestSchema);
   const response = await unwrap(
-    client.clob.get('tick-size', {
-      schema: FetchTickSizeResponseSchema,
-      params: toSearchParams(params, snakeCase()),
-    }),
+    client.clob
+      .get('tick-size', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(FetchTickSizeResponseSchema)),
   );
 
   return response.minimum_tick_size;
@@ -88,10 +90,11 @@ export async function fetchNegRisk(
 ): Promise<boolean> {
   const params = parseUserInput(request, ClobTokenRequestSchema);
   const response = await unwrap(
-    client.clob.get('neg-risk', {
-      schema: FetchNegRiskResponseSchema,
-      params: toSearchParams(params, snakeCase()),
-    }),
+    client.clob
+      .get('neg-risk', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(FetchNegRiskResponseSchema)),
   );
 
   return response.neg_risk;
@@ -128,10 +131,11 @@ export async function fetchFeeRate(
 ): Promise<number> {
   const params = parseUserInput(request, ClobTokenRequestSchema);
   const response = await unwrap(
-    client.clob.get('fee-rate', {
-      schema: FetchFeeRateResponseSchema,
-      params: toSearchParams(params, snakeCase()),
-    }),
+    client.clob
+      .get('fee-rate', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(FetchFeeRateResponseSchema)),
   );
 
   return response.base_fee;

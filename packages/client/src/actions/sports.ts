@@ -6,6 +6,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import type { Client } from '../clients';
+import { validateWith } from '../response';
 
 /**
  * Lists available sports metadata.
@@ -28,9 +29,9 @@ import type { Client } from '../clients';
  */
 export async function listSports(client: Client): Promise<SportsMetadata[]> {
   return unwrap(
-    client.gamma.get('sports', {
-      schema: ListSportsMetadataResponseSchema,
-    }),
+    client.gamma
+      .get('sports')
+      .andThen(validateWith(ListSportsMetadataResponseSchema)),
   );
 }
 
@@ -57,8 +58,8 @@ export async function fetchSportsMarketTypes(
   client: Client,
 ): Promise<SportsMarketTypesResponse> {
   return unwrap(
-    client.gamma.get('sports/market-types', {
-      schema: SportsMarketTypesResponseSchema,
-    }),
+    client.gamma
+      .get('sports/market-types')
+      .andThen(validateWith(SportsMarketTypesResponseSchema)),
   );
 }

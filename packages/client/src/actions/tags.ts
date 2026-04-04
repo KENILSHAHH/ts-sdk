@@ -10,6 +10,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTagsRequestSchema = z.object({
@@ -101,10 +102,11 @@ export async function listTags(
   const params = parseUserInput(request, ListTagsRequestSchema);
 
   return unwrap(
-    client.gamma.get('tags', {
-      schema: ListTagsResponseSchema,
-      params: toSearchParams(params, snakeCase()),
-    }),
+    client.gamma
+      .get('tags', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(ListTagsResponseSchema)),
   );
 }
 
@@ -141,30 +143,32 @@ export async function fetchTag(
 
   if ('id' in params) {
     return unwrap(
-      client.gamma.get(`tags/${params.id}`, {
-        schema: TagSchema,
-        params: toSearchParams(
-          {
-            includeChat: params.includeChat,
-            includeTemplate: params.includeTemplate,
-            locale: params.locale,
-          },
-          snakeCase(),
-        ),
-      }),
+      client.gamma
+        .get(`tags/${params.id}`, {
+          params: toSearchParams(
+            {
+              includeChat: params.includeChat,
+              includeTemplate: params.includeTemplate,
+              locale: params.locale,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(TagSchema)),
     );
   }
 
   return unwrap(
-    client.gamma.get(`tags/slug/${params.slug}`, {
-      schema: TagSchema,
-      params: toSearchParams(
-        {
-          locale: params.locale,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`tags/slug/${params.slug}`, {
+        params: toSearchParams(
+          {
+            locale: params.locale,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(TagSchema)),
   );
 }
 
@@ -202,25 +206,26 @@ export async function fetchRelatedTags(
     const params = parseUserInput(request, RelatedTagsByIdRequestSchema);
 
     return unwrap(
-      client.gamma.get(`tags/${params.id}/related-tags`, {
-        schema: ListRelatedTagsResponseSchema,
-        params: toSearchParams(
-          {
-            omitEmpty: params.omitEmpty,
-            status: params.status,
-          },
-          snakeCase(),
-        ),
-      }),
+      client.gamma
+        .get(`tags/${params.id}/related-tags`, {
+          params: toSearchParams(
+            {
+              omitEmpty: params.omitEmpty,
+              status: params.status,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(ListRelatedTagsResponseSchema)),
     );
   }
 
   const params = parseUserInput(request, RelatedTagsBySlugRequestSchema);
 
   return unwrap(
-    client.gamma.get(`tags/slug/${params.slug}/related-tags`, {
-      schema: ListRelatedTagsResponseSchema,
-    }),
+    client.gamma
+      .get(`tags/slug/${params.slug}/related-tags`)
+      .andThen(validateWith(ListRelatedTagsResponseSchema)),
   );
 }
 
@@ -261,17 +266,18 @@ export async function fetchRelatedTagResources(
     );
 
     return unwrap(
-      client.gamma.get(`tags/${params.id}/related-tags/tags`, {
-        schema: ListRelatedTagResourcesResponseSchema,
-        params: toSearchParams(
-          {
-            locale: params.locale,
-            omitEmpty: params.omitEmpty,
-            status: params.status,
-          },
-          snakeCase(),
-        ),
-      }),
+      client.gamma
+        .get(`tags/${params.id}/related-tags/tags`, {
+          params: toSearchParams(
+            {
+              locale: params.locale,
+              omitEmpty: params.omitEmpty,
+              status: params.status,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(ListRelatedTagResourcesResponseSchema)),
     );
   }
 
@@ -281,16 +287,17 @@ export async function fetchRelatedTagResources(
   );
 
   return unwrap(
-    client.gamma.get(`tags/slug/${params.slug}/related-tags/tags`, {
-      schema: ListRelatedTagResourcesResponseSchema,
-      params: toSearchParams(
-        {
-          locale: params.locale,
-          omitEmpty: params.omitEmpty,
-          status: params.status,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`tags/slug/${params.slug}/related-tags/tags`, {
+        params: toSearchParams(
+          {
+            locale: params.locale,
+            omitEmpty: params.omitEmpty,
+            status: params.status,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(ListRelatedTagResourcesResponseSchema)),
   );
 }

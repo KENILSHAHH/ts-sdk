@@ -12,6 +12,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { readBlob, validateWith } from '../response';
 import { toDataSearchParams } from './params';
 
 const PositionSortBySchema = z.enum([
@@ -130,10 +131,11 @@ export async function listPositions(
   const params = parseUserInput(request, ListPositionsRequestSchema);
 
   return unwrap(
-    client.data.get('positions', {
-      schema: ListPositionsResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('positions', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListPositionsResponseSchema)),
   );
 }
 
@@ -169,10 +171,11 @@ export async function listClosedPositions(
   const params = parseUserInput(request, ListClosedPositionsRequestSchema);
 
   return unwrap(
-    client.data.get('closed-positions', {
-      schema: ListClosedPositionsResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('closed-positions', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListClosedPositionsResponseSchema)),
   );
 }
 
@@ -207,10 +210,11 @@ export async function fetchPortfolioValue(
   const params = parseUserInput(request, FetchPortfolioValueRequestSchema);
 
   return unwrap(
-    client.data.get('value', {
-      schema: FetchPortfolioValueResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('value', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(FetchPortfolioValueResponseSchema)),
   );
 }
 
@@ -245,10 +249,11 @@ export async function fetchTradedMarketCount(
   const params = parseUserInput(request, FetchTradedMarketCountRequestSchema);
 
   return unwrap(
-    client.data.get('traded', {
-      schema: TradedSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('traded', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(TradedSchema)),
   );
 }
 
@@ -286,8 +291,10 @@ export async function downloadAccountingSnapshot(
   );
 
   return unwrap(
-    client.data.getBlob('v1/accounting/snapshot', {
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('v1/accounting/snapshot', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(readBlob),
   );
 }

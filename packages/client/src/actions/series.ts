@@ -7,6 +7,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListSeriesRequestSchema = z.object({
@@ -66,16 +67,17 @@ export async function listSeries(
   const params = parseUserInput(request, ListSeriesRequestSchema);
 
   return unwrap(
-    client.gamma.get('series', {
-      schema: ListSeriesResponseSchema,
-      params: toSearchParams(
-        params,
-        snakeCase<ListSeriesParams>({
-          categoriesIds: 'categories_ids',
-          categoriesLabels: 'categories_labels',
-        }),
-      ),
-    }),
+    client.gamma
+      .get('series', {
+        params: toSearchParams(
+          params,
+          snakeCase<ListSeriesParams>({
+            categoriesIds: 'categories_ids',
+            categoriesLabels: 'categories_labels',
+          }),
+        ),
+      })
+      .andThen(validateWith(ListSeriesResponseSchema)),
   );
 }
 
@@ -111,15 +113,16 @@ export async function fetchSeries(
   const params = parseUserInput(request, FetchSeriesRequestSchema);
 
   return unwrap(
-    client.gamma.get(`series/${params.id}`, {
-      schema: SeriesSchema,
-      params: toSearchParams(
-        {
-          includeChat: params.includeChat,
-          locale: params.locale,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`series/${params.id}`, {
+        params: toSearchParams(
+          {
+            includeChat: params.includeChat,
+            locale: params.locale,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(SeriesSchema)),
   );
 }

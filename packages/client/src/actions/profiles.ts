@@ -6,6 +6,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const FetchPublicProfileRequestSchema = z.object({
@@ -47,9 +48,10 @@ export async function fetchPublicProfile(
   const params = parseUserInput(request, FetchPublicProfileRequestSchema);
 
   return unwrap(
-    client.gamma.get('public-profile', {
-      schema: PublicProfileSchema,
-      params: toSearchParams(params, snakeCase()),
-    }),
+    client.gamma
+      .get('public-profile', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(PublicProfileSchema)),
   );
 }

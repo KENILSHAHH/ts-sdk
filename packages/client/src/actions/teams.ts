@@ -3,6 +3,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTeamsRequestSchema = z.object({
@@ -50,9 +51,13 @@ export async function listTeams(
   const params = parseUserInput(request, ListTeamsRequestSchema);
 
   return unwrap(
-    client.gamma.get('teams', {
-      schema: ListTeamsResponseSchema,
-      params: toSearchParams(params, snakeCase({ providerId: 'provider_id' })),
-    }),
+    client.gamma
+      .get('teams', {
+        params: toSearchParams(
+          params,
+          snakeCase({ providerId: 'provider_id' }),
+        ),
+      })
+      .andThen(validateWith(ListTeamsResponseSchema)),
   );
 }

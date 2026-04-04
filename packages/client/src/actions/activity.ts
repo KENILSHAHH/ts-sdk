@@ -10,6 +10,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { toDataSearchParams } from './params';
 
 const ActivitySortBySchema = z.enum(['TIMESTAMP', 'TOKENS', 'CASH']);
@@ -95,10 +96,11 @@ export async function listTrades(
   const params = parseUserInput(request, ListTradesRequestSchema);
 
   return unwrap(
-    client.data.get('trades', {
-      schema: ListTradesResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('trades', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListTradesResponseSchema)),
   );
 }
 
@@ -134,9 +136,10 @@ export async function listActivity(
   const params = parseUserInput(request, ListActivityRequestSchema);
 
   return unwrap(
-    client.data.get('activity', {
-      schema: ListActivityResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('activity', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListActivityResponseSchema)),
   );
 }

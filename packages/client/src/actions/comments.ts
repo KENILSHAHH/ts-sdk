@@ -6,6 +6,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListCommentsRequestSchema = z.object({
@@ -73,10 +74,11 @@ export async function listComments(
   const params = parseUserInput(request, ListCommentsRequestSchema);
 
   return unwrap(
-    client.gamma.get('comments', {
-      schema: ListCommentsResponseSchema,
-      params: toSearchParams(params, snakeCase()),
-    }),
+    client.gamma
+      .get('comments', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(ListCommentsResponseSchema)),
   );
 }
 
@@ -112,15 +114,16 @@ export async function fetchCommentsById(
   const params = parseUserInput(request, FetchCommentsByIdRequestSchema);
 
   return unwrap(
-    client.gamma.get(`comments/${params.id}`, {
-      schema: ListCommentsResponseSchema,
-      params: toSearchParams(
-        {
-          getPositions: params.getPositions,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`comments/${params.id}`, {
+        params: toSearchParams(
+          {
+            getPositions: params.getPositions,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(ListCommentsResponseSchema)),
   );
 }
 
@@ -160,17 +163,18 @@ export async function fetchCommentsByUserAddress(
   );
 
   return unwrap(
-    client.gamma.get(`comments/user_address/${params.address}`, {
-      schema: ListCommentsResponseSchema,
-      params: toSearchParams(
-        {
-          ascending: params.ascending,
-          limit: params.limit,
-          offset: params.offset,
-          order: params.order,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`comments/user_address/${params.address}`, {
+        params: toSearchParams(
+          {
+            ascending: params.ascending,
+            limit: params.limit,
+            offset: params.offset,
+            order: params.order,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(ListCommentsResponseSchema)),
   );
 }

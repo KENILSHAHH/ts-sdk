@@ -17,6 +17,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 const ListEventsRequestSchema = z.object({
@@ -131,10 +132,11 @@ export async function listEvents(
   const params = parseUserInput(request, ListEventsRequestSchema);
 
   return unwrap(
-    client.gamma.get('events', {
-      schema: ListEventsResponseSchema,
-      params: toEventsSearchParams(params),
-    }),
+    client.gamma
+      .get('events', {
+        params: toEventsSearchParams(params),
+      })
+      .andThen(validateWith(ListEventsResponseSchema)),
   );
 }
 
@@ -170,18 +172,20 @@ export async function fetchEvent(
 
   if ('id' in params) {
     return unwrap(
-      client.gamma.get(`events/${params.id}`, {
-        schema: EventSchema,
-        params: toFetchEventByIdSearchParams(params),
-      }),
+      client.gamma
+        .get(`events/${params.id}`, {
+          params: toFetchEventByIdSearchParams(params),
+        })
+        .andThen(validateWith(EventSchema)),
     );
   }
 
   return unwrap(
-    client.gamma.get(`events/slug/${params.slug}`, {
-      schema: EventSchema,
-      params: toFetchEventBySlugSearchParams(params),
-    }),
+    client.gamma
+      .get(`events/slug/${params.slug}`, {
+        params: toFetchEventBySlugSearchParams(params),
+      })
+      .andThen(validateWith(EventSchema)),
   );
 }
 
@@ -216,9 +220,9 @@ export async function fetchEventTags(
   const params = parseUserInput(request, FetchEventTagsRequestSchema);
 
   return unwrap(
-    client.gamma.get(`events/${params.id}/tags`, {
-      schema: FetchEventTagsResponseSchema,
-    }),
+    client.gamma
+      .get(`events/${params.id}/tags`)
+      .andThen(validateWith(FetchEventTagsResponseSchema)),
   );
 }
 
@@ -253,10 +257,11 @@ export async function fetchEventLiveVolume(
   const params = parseUserInput(request, FetchEventLiveVolumeRequestSchema);
 
   return unwrap(
-    client.data.get('live-volume', {
-      schema: FetchEventLiveVolumeResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('live-volume', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(FetchEventLiveVolumeResponseSchema)),
   );
 }
 

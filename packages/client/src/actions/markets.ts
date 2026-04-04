@@ -18,6 +18,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 // The public markets endpoint forces active=true and archived=false server-side.
@@ -157,10 +158,11 @@ export async function listMarkets(
   const params = parseUserInput(request, ListMarketsRequestSchema);
 
   return unwrap(
-    client.gamma.get('markets', {
-      schema: ListMarketsResponseSchema,
-      params: toMarketsSearchParams(params),
-    }),
+    client.gamma
+      .get('markets', {
+        params: toMarketsSearchParams(params),
+      })
+      .andThen(validateWith(ListMarketsResponseSchema)),
   );
 }
 
@@ -232,9 +234,9 @@ export async function fetchMarketTags(
   const params = parseUserInput(request, FetchMarketTagsRequestSchema);
 
   return unwrap(
-    client.gamma.get(`markets/${params.id}/tags`, {
-      schema: FetchMarketTagsResponseSchema,
-    }),
+    client.gamma
+      .get(`markets/${params.id}/tags`)
+      .andThen(validateWith(FetchMarketTagsResponseSchema)),
   );
 }
 
@@ -270,10 +272,11 @@ export async function listMarketHolders(
   const params = parseUserInput(request, ListMarketHoldersRequestSchema);
 
   return unwrap(
-    client.data.get('holders', {
-      schema: ListMarketHoldersResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('holders', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListMarketHoldersResponseSchema)),
   );
 }
 
@@ -308,10 +311,11 @@ export async function listOpenInterest(
   const params = parseUserInput(request, ListOpenInterestRequestSchema);
 
   return unwrap(
-    client.data.get('oi', {
-      schema: ListOpenInterestResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('oi', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListOpenInterestResponseSchema)),
   );
 }
 
@@ -347,10 +351,11 @@ export async function listMarketPositions(
   const params = parseUserInput(request, ListMarketPositionsRequestSchema);
 
   return unwrap(
-    client.data.get('v1/market-positions', {
-      schema: ListMarketPositionsResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('v1/market-positions', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListMarketPositionsResponseSchema)),
   );
 }
 
@@ -369,16 +374,17 @@ async function fetchMarketBySlug(
   params: z.output<typeof FetchMarketBySlugRequestSchema>,
 ): Promise<Market> {
   return unwrap(
-    client.gamma.get(`markets/slug/${params.slug}`, {
-      schema: MarketSchema,
-      params: toSearchParams(
-        {
-          includeTag: params.includeTag,
-          locale: params.locale,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`markets/slug/${params.slug}`, {
+        params: toSearchParams(
+          {
+            includeTag: params.includeTag,
+            locale: params.locale,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(MarketSchema)),
   );
 }
 
@@ -387,15 +393,16 @@ async function fetchMarketById(
   params: z.output<typeof FetchMarketByIdRequestSchema>,
 ): Promise<Market> {
   return unwrap(
-    client.gamma.get(`markets/${params.id}`, {
-      schema: MarketSchema,
-      params: toSearchParams(
-        {
-          includeTag: params.includeTag,
-          locale: params.locale,
-        },
-        snakeCase(),
-      ),
-    }),
+    client.gamma
+      .get(`markets/${params.id}`, {
+        params: toSearchParams(
+          {
+            includeTag: params.includeTag,
+            locale: params.locale,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(MarketSchema)),
   );
 }

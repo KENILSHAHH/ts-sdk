@@ -13,6 +13,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { toDataSearchParams } from './params';
 
 const ListBuilderLeaderboardRequestSchema = z.object({
@@ -77,10 +78,11 @@ export async function listBuilderLeaderboard(
   const params = parseUserInput(request, ListBuilderLeaderboardRequestSchema);
 
   return unwrap(
-    client.data.get('v1/builders/leaderboard', {
-      schema: ListBuilderLeaderboardResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('v1/builders/leaderboard', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListBuilderLeaderboardResponseSchema)),
   );
 }
 
@@ -115,10 +117,11 @@ export async function listBuilderVolume(
   const params = parseUserInput(request, ListBuilderVolumeRequestSchema);
 
   return unwrap(
-    client.data.get('v1/builders/volume', {
-      schema: ListBuilderVolumeResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('v1/builders/volume', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListBuilderVolumeResponseSchema)),
   );
 }
 
@@ -155,9 +158,10 @@ export async function listTraderLeaderboard(
   const params = parseUserInput(request, ListTraderLeaderboardRequestSchema);
 
   return unwrap(
-    client.data.get('v1/leaderboard', {
-      schema: ListTraderLeaderboardResponseSchema,
-      params: toDataSearchParams(params),
-    }),
+    client.data
+      .get('v1/leaderboard', {
+        params: toDataSearchParams(params),
+      })
+      .andThen(validateWith(ListTraderLeaderboardResponseSchema)),
   );
 }

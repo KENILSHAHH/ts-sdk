@@ -6,6 +6,7 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import { parseUserInput } from '../input';
+import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const SearchRequestSchema = z.object({
@@ -62,14 +63,15 @@ export async function search(
   const params = parseUserInput(request, SearchRequestSchema);
 
   return unwrap(
-    client.gamma.get('public-search', {
-      schema: PublicSearchResponseSchema,
-      params: toSearchParams(
-        params,
-        snakeCase<SearchParams>({
-          excludeTagIds: 'exclude_tag_id',
-        }),
-      ),
-    }),
+    client.gamma
+      .get('public-search', {
+        params: toSearchParams(
+          params,
+          snakeCase<SearchParams>({
+            excludeTagIds: 'exclude_tag_id',
+          }),
+        ),
+      })
+      .andThen(validateWith(PublicSearchResponseSchema)),
   );
 }
