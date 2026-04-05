@@ -28,6 +28,14 @@ corepack install
 pnpm install
 ```
 
+Set up local environment variables:
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill in the fields.
+
 Start the React examples:
 
 ```bash

@@ -4,7 +4,9 @@
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "stripInternal": true,
+    "types": ["node"]
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
