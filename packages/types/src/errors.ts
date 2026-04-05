@@ -16,20 +16,3 @@ export abstract class PolymarketError extends Error {
 export class InvariantError extends PolymarketError {
   override name = 'InvariantError' as const;
 }
-
-/**
- * Asserts that a condition is truthy.
- *
- * @internal
- *
- * @param condition - Value expected to be truthy.
- * @param message - Message used for the thrown `InvariantError`.
- */
-export function invariant(
-  condition: unknown,
-  message: string,
-): asserts condition {
-  if (!condition) {
-    throw new InvariantError(message);
-  }
-}
