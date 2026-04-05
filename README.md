@@ -59,6 +59,7 @@ The root scripts are:
 ## Design Notes
 
 - [`docs/sdk-direction.md`](./docs/sdk-direction.md) - current direction for `@polymarket/client`, package scope, and how the SDK should relate to Polymarket's existing API surfaces
+- [`docs/open-questions.md`](./docs/open-questions.md) - unresolved SDK questions to revisit later
 
 ## TypeScript Config
 
