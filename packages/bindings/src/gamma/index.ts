@@ -6,3 +6,4 @@ export * from './profile';
 export * from './search';
 export * from './series';
 export * from './tag';
+export * from './wallet';
