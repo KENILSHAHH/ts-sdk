@@ -5,7 +5,7 @@ import type { TypedDataPayload } from './types';
 export type AuthenticationWorkflowRequest =
   | { kind: 'requestAddress' }
   | {
-      kind: 'signTypedData';
+      kind: 'signAuthMessage';
       payload: TypedDataPayload;
     };
 

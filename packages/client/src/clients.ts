@@ -53,7 +53,7 @@ export class PublicClient {
         const timestamp = Math.floor(Date.now() / 1000);
         const address = expectEvmAddress(yield { kind: 'requestAddress' });
         const signature = yield {
-          kind: 'signTypedData',
+          kind: 'signAuthMessage',
           payload: createL2AuthTypedDataPayload({
             address,
             chainId: this.environment.chainId,

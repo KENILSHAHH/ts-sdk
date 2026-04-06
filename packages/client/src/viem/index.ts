@@ -1,22 +1,29 @@
-import { expectEvmAddress, expectSignature } from '@polymarket/types';
-import type { Account, WalletClient } from 'viem';
+import {
+  expectEvmAddress,
+  expectSignature,
+  invariant,
+} from '@polymarket/types';
+import type { Account, Chain, Transport, WalletClient } from 'viem';
 import type { AuthenticationWorkflow } from '../authentication';
 import type { SecureClient } from '../clients';
 
-function getAccount(walletClient: WalletClient): Account | `0x${string}` {
-  const account = walletClient.account;
-
-  if (account) {
-    return account;
-  }
-
-  throw new Error('Expected a WalletClient with a hoisted account.');
+function isWalletClientWithAccount(
+  walletClient: WalletClient,
+): walletClient is WalletClient<Transport, Chain, Account> {
+  return walletClient.account !== undefined;
 }
 
 export function authenticateWith(walletClient: WalletClient) {
-  const account = getAccount(walletClient);
+  invariant(
+    isWalletClientWithAccount(walletClient),
+    'Wallet client with account is required',
+  );
+
+  const account = walletClient.account;
   const address = expectEvmAddress(
-    typeof account === 'string' ? account : account.address,
+    typeof walletClient.account === 'string'
+      ? walletClient.account
+      : walletClient.account.address,
   );
 
   return async function authenticate(
@@ -30,15 +37,12 @@ export function authenticateWith(walletClient: WalletClient) {
           case 'requestAddress':
             result = await workflow.next(address);
             break;
-          case 'signTypedData':
+          case 'signAuthMessage':
             result = await workflow.next(
               expectSignature(
                 await walletClient.signTypedData({
                   account,
-                  ...(result.value.payload as Omit<
-                    Parameters<WalletClient['signTypedData']>[0],
-                    'account'
-                  >),
+                  ...result.value.payload,
                 }),
               ),
             );
