@@ -12,3 +12,4 @@ export * from './series';
 export * from './sports';
 export * from './tags';
 export * from './teams';
+export * from './wallets';
