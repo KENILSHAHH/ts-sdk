@@ -5,7 +5,6 @@ import {
   ApiKeysResponseSchema,
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, type Signature, unwrap } from '@polymarket/types';
-import { createL2AuthTypedDataPayload } from '../authentication';
 import type { Client, SecureClient } from '../clients';
 import {
   type RateLimitError,
@@ -15,8 +14,6 @@ import {
   type UnexpectedResponseError,
 } from '../errors';
 import { validateWith } from '../response';
-
-export { createL2AuthTypedDataPayload };
 
 export type CreateL2AuthRequest = {
   chainId: number;
