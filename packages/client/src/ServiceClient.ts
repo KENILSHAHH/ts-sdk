@@ -1,16 +1,18 @@
 import { never, ResultAsync } from '@polymarket/types';
-import ky, { HTTPError, type KyInstance } from 'ky';
-import { RateLimitError, ServerError } from './errors';
+import ky, { type KyInstance } from 'ky';
+import { RateLimitError, RequestRejectedError, TransportError } from './errors';
 
 export type ServiceClientConfig = {
   root: string;
 };
 
 export type ServiceClientGetOptions = {
+  headers?: HeadersInit;
   params?: URLSearchParams;
 };
 
 export type ServiceClientPostOptions = {
+  headers?: HeadersInit;
   json?: unknown;
 };
 
@@ -21,26 +23,36 @@ export class ServiceClient {
   readonly #client: KyInstance;
 
   constructor({ root }: ServiceClientConfig) {
-    this.#client = ky.create({ prefixUrl: root });
+    this.#client = ky.create({ prefixUrl: root, throwHttpErrors: false });
   }
 
   get(
     path: string,
     options: ServiceClientGetOptions = {},
-  ): ResultAsync<Response, RateLimitError | ServerError> {
-    return ResultAsync.fromPromise(
-      this.#client.get(path, { searchParams: options.params }),
-      (e) => this.#toServiceClientError(e),
+  ): ResultAsync<
+    Response,
+    RateLimitError | RequestRejectedError | TransportError
+  > {
+    return this.#toResult(
+      this.#client.get(path, {
+        headers: options.headers,
+        searchParams: options.params,
+      }),
     );
   }
 
   post(
     path: string,
     options: ServiceClientPostOptions = {},
-  ): ResultAsync<Response, RateLimitError | ServerError> {
-    return ResultAsync.fromPromise(
-      this.#client.post(path, { json: options.json }),
-      (e) => this.#toServiceClientError(e),
+  ): ResultAsync<
+    Response,
+    RateLimitError | RequestRejectedError | TransportError
+  > {
+    return this.#toResult(
+      this.#client.post(path, {
+        headers: options.headers,
+        json: options.json,
+      }),
     );
   }
 
@@ -48,21 +60,66 @@ export class ServiceClient {
     return never('ServiceClient.del is not implemented yet');
   }
 
-  #toServiceClientError(error: unknown): RateLimitError | ServerError {
-    if (error instanceof HTTPError) {
-      const { url } = error.response;
+  #toResult(
+    promise: Promise<Response>,
+  ): ResultAsync<
+    Response,
+    | RateLimitError
+    | RequestRejectedError
+    | RequestRejectedError
+    | TransportError
+  > {
+    return ResultAsync.fromPromise(
+      promise.then(async (response) => {
+        if (response.ok) {
+          return response;
+        }
 
-      if (error.response.status === 429) {
-        return new RateLimitError(`Request to ${url} was rate limited`);
-      }
+        if (response.status === 429) {
+          throw new RateLimitError(
+            `Request to ${response.url} was rate limited`,
+          );
+        }
 
-      return new ServerError(
-        `Request to ${url} failed with status ${error.response.status}`,
-      );
+        const message = await this.#extractResponseErrorMessage(response);
+        throw new RequestRejectedError(message, {
+          status: response.status,
+        });
+      }),
+      (error) => {
+        if (
+          error instanceof RateLimitError ||
+          error instanceof RequestRejectedError
+        ) {
+          return error;
+        }
+
+        return TransportError.fromError(error);
+      },
+    );
+  }
+
+  async #extractResponseErrorMessage(response: Response) {
+    if (response.headers.get('content-type')?.includes('application/json')) {
+      const { error } = await response
+        .clone()
+        .json()
+        .catch(() => ({}));
+      if (error) return String(error);
     }
 
-    return new ServerError(
-      error instanceof Error ? error.message : 'Request failed',
-    );
+    const text = await response
+      .clone()
+      .text()
+      .then(
+        (body) => body.trim(),
+        () => '',
+      );
+
+    if (text) {
+      return text;
+    }
+
+    return `Request to ${response.url} failed with status ${response.status} and unreadable response body`;
   }
 }

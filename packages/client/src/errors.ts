@@ -26,8 +26,8 @@ export class UserInputError extends PolymarketError {
 /**
  * Error thrown when the server returns an unexpected response.
  */
-export class InvalidResponseError extends PolymarketError {
-  override name = 'InvalidResponseError' as const;
+export class UnexpectedResponseError extends PolymarketError {
+  override name = 'UnexpectedResponseError' as const;
 
   constructor(message: string, options: ErrorOptions = {}) {
     super(message, options);
@@ -36,23 +36,59 @@ export class InvalidResponseError extends PolymarketError {
   static fromZodError(
     error: ZodError,
     context: ResponseValidationContext,
-  ): InvalidResponseError {
-    return new InvalidResponseError(formatResponseZodError(error, context), {
+  ): UnexpectedResponseError {
+    return new UnexpectedResponseError(formatResponseZodError(error, context), {
       cause: error,
     });
   }
 }
 
 /**
- * Error thrown when the API rejects a request due to rate limiting.
+ * Error thrown when the SDK cannot complete a request because of a transport
+ * failure.
  */
-export class RateLimitError extends PolymarketError {
-  override name = 'RateLimitError' as const;
+export class TransportError extends PolymarketError {
+  override name = 'TransportError' as const;
+
+  constructor(message: string, options: ErrorOptions = {}) {
+    super(message, options);
+  }
+
+  static fromError(error: unknown): TransportError {
+    return new TransportError(
+      error instanceof Error ? error.message : 'Request failed',
+      {
+        cause: error,
+      },
+    );
+  }
+}
+
+export type RequestRejectedErrorOptions = {
+  status: number;
+};
+
+/**
+ * Error thrown when the service rejects a request with a non-success status.
+ */
+export class RequestRejectedError extends PolymarketError {
+  override name = 'RequestRejectedError' as const;
+
+  readonly status: number;
+
+  constructor(
+    message: string,
+    options: ErrorOptions & RequestRejectedErrorOptions,
+  ) {
+    super(message, options);
+    this.status = options.status;
+  }
 }
 
 /**
- * Error thrown when the API fails due to a server-side problem.
+ * Error thrown when the service rejects a request because the rate limit has
+ * been exceeded.
  */
-export class ServerError extends PolymarketError {
-  override name = 'ServerError' as const;
+export class RateLimitError extends PolymarketError {
+  override name = 'RateLimitError' as const;
 }

@@ -109,10 +109,13 @@ type ListEventsParams = z.output<typeof ListEventsRequestSchema>;
  * @throws {@link RateLimitError}
  * Thrown if the request is rejected because the API rate limit has been exceeded.
  *
- * @throws {@link ServerError}
- * Thrown if the request cannot be completed because of a network or server failure.
+ * @throws {@link RequestRejectedError}
+ * Thrown if the service rejects the request with a non-success status other than rate limiting.
  *
- * @throws {@link InvalidResponseError}
+ * @throws {@link TransportError}
+ * Thrown if the SDK cannot complete the request because of a transport failure.
+ *
+ * @throws {@link UnexpectedResponseError}
  * Thrown if the server returns an unexpected response.
  *
  * @example
@@ -149,10 +152,13 @@ export async function listEvents(
  * @throws {@link RateLimitError}
  * Thrown if the request is rejected because the API rate limit has been exceeded.
  *
- * @throws {@link ServerError}
- * Thrown if the request cannot be completed because of a network or server failure.
+ * @throws {@link RequestRejectedError}
+ * Thrown if the service rejects the request with a non-success status other than rate limiting.
  *
- * @throws {@link InvalidResponseError}
+ * @throws {@link TransportError}
+ * Thrown if the SDK cannot complete the request because of a transport failure.
+ *
+ * @throws {@link UnexpectedResponseError}
  * Thrown if the server returns an unexpected response.
  *
  * @example
@@ -198,10 +204,13 @@ export async function fetchEvent(
  * @throws {@link RateLimitError}
  * Thrown if the request is rejected because the API rate limit has been exceeded.
  *
- * @throws {@link ServerError}
- * Thrown if the request cannot be completed because of a network or server failure.
+ * @throws {@link RequestRejectedError}
+ * Thrown if the service rejects the request with a non-success status other than rate limiting.
  *
- * @throws {@link InvalidResponseError}
+ * @throws {@link TransportError}
+ * Thrown if the SDK cannot complete the request because of a transport failure.
+ *
+ * @throws {@link UnexpectedResponseError}
  * Thrown if the server returns an unexpected response.
  *
  * @example
@@ -235,10 +244,13 @@ export async function fetchEventTags(
  * @throws {@link RateLimitError}
  * Thrown if the request is rejected because the API rate limit has been exceeded.
  *
- * @throws {@link ServerError}
- * Thrown if the request cannot be completed because of a network or server failure.
+ * @throws {@link RequestRejectedError}
+ * Thrown if the service rejects the request with a non-success status other than rate limiting.
  *
- * @throws {@link InvalidResponseError}
+ * @throws {@link TransportError}
+ * Thrown if the SDK cannot complete the request because of a transport failure.
+ *
+ * @throws {@link UnexpectedResponseError}
  * Thrown if the server returns an unexpected response.
  *
  * @example

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { InvalidResponseError, UserInputError } from './errors';
+import { UnexpectedResponseError, UserInputError } from './errors';
 import { formatInputZodError, formatResponseZodError } from './validation';
 
 describe('validation', () => {
@@ -114,7 +114,7 @@ describe('validation', () => {
     });
   });
 
-  describe('InvalidResponseError', () => {
+  describe('UnexpectedResponseError', () => {
     it('formats Zod failures through the factory', () => {
       const schema = z.object({
         marketMakerAddress: z.string(),
@@ -128,7 +128,7 @@ describe('validation', () => {
         return;
       }
 
-      const error = InvalidResponseError.fromZodError(result.error, {
+      const error = UnexpectedResponseError.fromZodError(result.error, {
         endpoint: 'https://gamma.polymarket.com/markets',
       });
 

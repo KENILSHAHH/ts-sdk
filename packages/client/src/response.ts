@@ -1,15 +1,15 @@
 import { err, ok, type Result, ResultAsync } from '@polymarket/types';
 import type { z } from 'zod';
-import { InvalidResponseError } from './errors';
+import { UnexpectedResponseError } from './errors';
 
 export function validateWith<TReturnType>(schema: z.ZodType<TReturnType>) {
   return function validateResponse(
     response: Response,
-  ): ResultAsync<TReturnType, InvalidResponseError> {
+  ): ResultAsync<TReturnType, UnexpectedResponseError> {
     return ResultAsync.fromPromise(
       response.json(),
       () =>
-        new InvalidResponseError(
+        new UnexpectedResponseError(
           `Received non-JSON response from ${response.url}`,
         ),
     ).andThen((payload) => parseResponse(response.url, schema, payload));
@@ -18,11 +18,11 @@ export function validateWith<TReturnType>(schema: z.ZodType<TReturnType>) {
 
 export function readBlob(
   response: Response,
-): ResultAsync<Blob, InvalidResponseError> {
+): ResultAsync<Blob, UnexpectedResponseError> {
   return ResultAsync.fromPromise(
     response.blob(),
     () =>
-      new InvalidResponseError(
+      new UnexpectedResponseError(
         `Received unreadable binary response from ${response.url}`,
       ),
   );
@@ -32,12 +32,12 @@ function parseResponse<TReturnType>(
   endpoint: string,
   schema: z.ZodType<TReturnType>,
   response: unknown,
-): Result<TReturnType, InvalidResponseError> {
+): Result<TReturnType, UnexpectedResponseError> {
   const result = schema.safeParse(response);
 
   if (result.success) {
     return ok(result.data);
   }
 
-  return err(InvalidResponseError.fromZodError(result.error, { endpoint }));
+  return err(UnexpectedResponseError.fromZodError(result.error, { endpoint }));
 }
