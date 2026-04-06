@@ -111,3 +111,5 @@ export class SigningError extends PolymarketError {
     return new SigningError(message, {
       cause: error,
     });
+  }
+}
