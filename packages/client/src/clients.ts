@@ -1,11 +1,12 @@
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
 import { expectEvmAddress, expectSignature } from '@polymarket/types';
-import { createOrDeriveApiKey } from './actions/auth';
+import { createOrDeriveApiKey, fetchApiKeys } from './actions/auth';
 import {
   type AuthenticationWorkflow,
   createL2AuthTypedDataPayload,
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
+import { RequestRejectedError } from './errors';
 import { ServiceClient } from './ServiceClient';
 
 export type PublicClientConfig = {
@@ -16,6 +17,10 @@ export type PublicClientConfig = {
    */
   environment?: EnvironmentConfig;
 };
+
+export type BeginAuthenticationOptions =
+  | { credentials: ApiKeyCreds }
+  | { nonce: number };
 
 type Context = {
   /** @internal */
@@ -29,6 +34,8 @@ type Context = {
 };
 
 type SecureContext = Context & {
+  /** @internal */
+  address: string;
   /** @internal */
   credentials: ApiKeyCreds;
 };
@@ -66,32 +73,62 @@ class PublicClient extends AbstractClient<Context> {
     throw new Error('resume is not implemented yet');
   }
 
-  beginAuthentication(): Promise<AuthenticationWorkflow> {
+  beginAuthentication(
+    options?: BeginAuthenticationOptions,
+  ): Promise<AuthenticationWorkflow> {
     return Promise.resolve(
       async function* (this: PublicClient): AuthenticationWorkflow {
         const timestamp = Math.floor(Date.now() / 1000);
+        const nonce =
+          options !== undefined && 'nonce' in options ? options.nonce : 0;
         const address = expectEvmAddress(yield { kind: 'requestAddress' });
+
+        if (options !== undefined && 'credentials' in options) {
+          const client = this.createSecureClient(options.credentials, address);
+
+          try {
+            if (
+              (await fetchApiKeys(client)).includes(options.credentials.key)
+            ) {
+              return client;
+            }
+          } catch (error) {
+            if (
+              !(error instanceof RequestRejectedError) ||
+              error.status !== 401
+            ) {
+              throw error;
+            }
+          }
+        }
+
         const signature = yield {
           kind: 'signAuthMessage',
           payload: createL2AuthTypedDataPayload({
             address,
             chainId: this.environment.chainId,
+            nonce,
             timestamp,
           }),
         };
         const credentials = await createOrDeriveApiKey(this, {
           address,
-          nonce: 0,
+          nonce,
           signature: expectSignature(signature),
           timestamp,
         });
 
-        return new SecureClient({
-          ...this.context,
-          credentials,
-        });
+        return this.createSecureClient(credentials, address);
       }.call(this),
     );
+  }
+
+  createSecureClient(credentials: ApiKeyCreds, address: string): SecureClient {
+    return new SecureClient({
+      ...this.context,
+      address,
+      credentials,
+    });
   }
 }
 
@@ -99,6 +136,11 @@ class SecureClient extends AbstractClient<SecureContext> {
   /** @internal */
   get credentials(): ApiKeyCreds {
     return this.context.credentials;
+  }
+
+  /** @internal */
+  get address(): string {
+    return this.context.address;
   }
 }
 
