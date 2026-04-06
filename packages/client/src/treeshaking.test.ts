@@ -71,9 +71,10 @@ type BundleChunk = {
 
 type BundleOutput = {
   output: Array<
-    BundleChunk | {
-      type: string;
-    }
+    | BundleChunk
+    | {
+        type: string;
+      }
   >;
 };
 
