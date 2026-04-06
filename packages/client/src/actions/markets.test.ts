@@ -1,4 +1,4 @@
-import { nonEmptyArray, nonNullable } from '@polymarket/types';
+import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
 import {
@@ -17,9 +17,9 @@ async function getPositionMarket(): Promise<string> {
   const [position] = await listPositions(publicClient, {
     user: TEST_USER,
     limit: 1,
-  }).then(nonEmptyArray);
+  }).then(expectNonEmptyArray);
 
-  return nonNullable(position.conditionId);
+  return expectPresent(position.conditionId);
 }
 
 describe('Markets', () => {
@@ -46,14 +46,14 @@ describe('Markets', () => {
       const [market] = await listMarkets(publicClient, {
         closed: false,
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const marketById = await fetchMarket(publicClient, {
         id: market.id,
       });
 
       const marketBySlug = await fetchMarket(publicClient, {
-        slug: nonNullable(market.slug),
+        slug: expectPresent(market.slug),
       });
 
       expect(marketById.id).toBe(market.id);
@@ -66,7 +66,7 @@ describe('Markets', () => {
       const [market] = await listMarkets(publicClient, {
         closed: false,
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const result = await fetchMarketTags(publicClient, {
         id: market.id,

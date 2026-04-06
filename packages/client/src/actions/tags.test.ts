@@ -1,4 +1,4 @@
-import { nonEmptyArray, nonNullable } from '@polymarket/types';
+import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
 import {
@@ -28,11 +28,11 @@ describe('Tags', () => {
     it('fetches a tag by id and slug', async () => {
       const [tag] = await listTags(publicClient, {
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const tagById = await fetchTag(publicClient, { id: tag.id });
       const tagBySlug = await fetchTag(publicClient, {
-        slug: nonNullable(tag.slug),
+        slug: expectPresent(tag.slug),
       });
 
       expect(tagById.id).toBe(tag.id);
@@ -44,13 +44,13 @@ describe('Tags', () => {
     it('fetches related tag relationships by id and slug', async () => {
       const [tag] = await listTags(publicClient, {
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const relatedById = await fetchRelatedTags(publicClient, {
         id: tag.id,
       });
       const relatedBySlug = await fetchRelatedTags(publicClient, {
-        slug: nonNullable(tag.slug),
+        slug: expectPresent(tag.slug),
       });
 
       expect(relatedById).toEqual(expect.any(Array));
@@ -62,13 +62,13 @@ describe('Tags', () => {
     it('fetches related tags by id and slug', async () => {
       const [tag] = await listTags(publicClient, {
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const relatedTagsById = await fetchRelatedTagResources(publicClient, {
         id: tag.id,
       });
       const relatedTagsBySlug = await fetchRelatedTagResources(publicClient, {
-        slug: nonNullable(tag.slug),
+        slug: expectPresent(tag.slug),
       });
 
       expect(relatedTagsById).toEqual(expect.any(Array));

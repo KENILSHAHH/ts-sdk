@@ -1,4 +1,4 @@
-import { nonEmptyArray, nonNullable } from '@polymarket/types';
+import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
 import {
@@ -31,14 +31,14 @@ describe('Events', () => {
       const [event] = await listEvents(publicClient, {
         closed: false,
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const eventById = await fetchEvent(publicClient, {
         id: event.id,
       });
 
       const eventBySlug = await fetchEvent(publicClient, {
-        slug: nonNullable(event.slug),
+        slug: expectPresent(event.slug),
       });
 
       expect(eventById.id).toBe(event.id);
@@ -51,7 +51,7 @@ describe('Events', () => {
       const [event] = await listEvents(publicClient, {
         closed: false,
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const result = await fetchEventTags(publicClient, {
         id: event.id,
@@ -74,7 +74,7 @@ describe('Events', () => {
       const [event] = await listEvents(publicClient, {
         closed: false,
         limit: 1,
-      }).then(nonEmptyArray);
+      }).then(expectNonEmptyArray);
 
       const result = await fetchEventLiveVolume(publicClient, {
         id: event.id,
