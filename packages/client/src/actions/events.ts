@@ -16,6 +16,13 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
+import type {
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
@@ -100,23 +107,18 @@ export type FetchEventLiveVolumeRequest = z.input<
 
 type ListEventsParams = z.output<typeof ListEventsRequestSchema>;
 
+export type ListEventsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Lists events.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link ListEventsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -143,23 +145,18 @@ export async function listEvents(
   );
 }
 
+export type FetchEventError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches an event.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchEventError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -195,23 +192,18 @@ export async function fetchEvent(
   );
 }
 
+export type FetchEventTagsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches an event's tags.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchEventTagsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -235,23 +227,18 @@ export async function fetchEventTags(
   );
 }
 
+export type FetchEventLiveVolumeError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches live volume for an event.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchEventLiveVolumeError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts

@@ -11,6 +11,13 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
+import type {
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from '../errors';
 import { parseUserInput } from '../input';
 import { readBlob, validateWith } from '../response';
 import { toDataSearchParams } from './params';
@@ -99,23 +106,18 @@ export type DownloadAccountingSnapshotRequest = z.input<
   typeof DownloadAccountingSnapshotRequestSchema
 >;
 
+export type ListPositionsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Lists current positions for a wallet.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link ListPositionsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -142,23 +144,18 @@ export async function listPositions(
   );
 }
 
+export type ListClosedPositionsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Lists closed positions for a wallet.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link ListClosedPositionsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -185,23 +182,18 @@ export async function listClosedPositions(
   );
 }
 
+export type FetchPortfolioValueError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches the total value for a wallet's positions.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchPortfolioValueError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -227,23 +219,18 @@ export async function fetchPortfolioValue(
   );
 }
 
+export type FetchTradedMarketCountError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches the total number of markets a wallet has traded.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchTradedMarketCountError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -269,23 +256,18 @@ export async function fetchTradedMarketCount(
   );
 }
 
+export type DownloadAccountingSnapshotError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Downloads an accounting snapshot archive for a wallet.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link DownloadAccountingSnapshotError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts

@@ -6,6 +6,13 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
+import type {
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
@@ -18,23 +25,18 @@ export type FetchTickSizeRequest = z.input<typeof ClobTokenRequestSchema>;
 export type FetchNegRiskRequest = z.input<typeof ClobTokenRequestSchema>;
 export type FetchFeeRateRequest = z.input<typeof ClobTokenRequestSchema>;
 
+export type FetchTickSizeError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches the minimum price tick size for a token's order book.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchTickSizeError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -62,23 +64,18 @@ export async function fetchTickSize(
   return response.minimum_tick_size;
 }
 
+export type FetchNegRiskError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches whether a token is in a negative-risk market.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchNegRiskError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -106,23 +103,18 @@ export async function fetchNegRisk(
   return response.neg_risk;
 }
 
+export type FetchFeeRateError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches the base fee rate, in basis points, for a token's order book.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchFeeRateError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts

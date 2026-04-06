@@ -7,7 +7,8 @@ import {
 } from './validation';
 
 /**
- * Error thrown when a request is not correct for the SDK action being called.
+ * Error thrown when an action input fails SDK validation before a request is
+ * sent.
  */
 export class UserInputError extends PolymarketError {
   override name = 'UserInputError' as const;
@@ -24,7 +25,8 @@ export class UserInputError extends PolymarketError {
 }
 
 /**
- * Error thrown when the server returns an unexpected response.
+ * Error thrown when a service response does not match the action's expected
+ * response shape.
  */
 export class UnexpectedResponseError extends PolymarketError {
   override name = 'UnexpectedResponseError' as const;
@@ -44,8 +46,8 @@ export class UnexpectedResponseError extends PolymarketError {
 }
 
 /**
- * Error thrown when the SDK cannot complete a request because of a transport
- * failure.
+ * Error thrown when the SDK cannot complete a request because of a network or
+ * runtime transport failure.
  */
 export class TransportError extends PolymarketError {
   override name = 'TransportError' as const;
@@ -69,7 +71,8 @@ export type RequestRejectedErrorOptions = {
 };
 
 /**
- * Error thrown when the service rejects a request with a non-success status.
+ * Error thrown when a service responds with a non-success status other than
+ * rate limiting.
  */
 export class RequestRejectedError extends PolymarketError {
   override name = 'RequestRejectedError' as const;

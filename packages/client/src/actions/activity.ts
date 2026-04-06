@@ -9,6 +9,13 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
+import type {
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import { toDataSearchParams } from './params';
@@ -64,23 +71,18 @@ const ListActivityRequestSchema = z
 export type ListTradesRequest = z.input<typeof ListTradesRequestSchema>;
 export type ListActivityRequest = z.input<typeof ListActivityRequestSchema>;
 
+export type ListTradesError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Lists trades for a wallet, market, or event.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link ListTradesError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -107,23 +109,18 @@ export async function listTrades(
   );
 }
 
+export type ListActivityError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Lists wallet activity.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link ListActivityError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts

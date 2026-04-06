@@ -5,6 +5,13 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
+import type {
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
@@ -41,23 +48,18 @@ export type FetchCommentsByUserAddressRequest = z.input<
   typeof FetchCommentsByUserAddressRequestSchema
 >;
 
+export type ListCommentsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Lists comments for an event or series.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link ListCommentsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -85,23 +87,18 @@ export async function listComments(
   );
 }
 
+export type FetchCommentsByIdError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches a comment thread by comment id.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchCommentsByIdError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
@@ -133,23 +130,18 @@ export async function fetchCommentsById(
   );
 }
 
+export type FetchCommentsByUserAddressError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches comments written by a wallet address.
  *
- * @throws {@link UserInputError}
- * Thrown if the request is not correct for this action.
- *
- * @throws {@link RateLimitError}
- * Thrown if the request is rejected because the API rate limit has been exceeded.
- *
- * @throws {@link RequestRejectedError}
- * Thrown if the service rejects the request with a non-success status other than rate limiting.
- *
- * @throws {@link TransportError}
- * Thrown if the SDK cannot complete the request because of a transport failure.
- *
- * @throws {@link UnexpectedResponseError}
- * Thrown if the server returns an unexpected response.
+ * @throws {@link FetchCommentsByUserAddressError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  *
  * @example
  * ```ts
