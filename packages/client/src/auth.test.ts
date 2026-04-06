@@ -4,11 +4,12 @@ import { createPublicClient } from './clients';
 import { createTestWalletClient } from './testing';
 import { authenticateWith } from './viem';
 
+const walletClient = createTestWalletClient();
+
 describe('Auth', () => {
   describe('authenticate', () => {
     it('authenticates a secure client from an authentication workflow', async () => {
       const publicClient = createPublicClient();
-      const walletClient = createTestWalletClient();
 
       const secureClient = await publicClient
         .beginAuthentication()

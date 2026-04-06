@@ -1,12 +1,12 @@
 import {
-  type ApiKeyResponse,
-  ApiKeyResponseSchema,
+  type ApiKeyCreds,
+  ApiKeyCredsSchema,
   type ApiKeysResponse,
   ApiKeysResponseSchema,
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, type Signature, unwrap } from '@polymarket/types';
 import { createL2AuthTypedDataPayload } from '../authentication';
-import type { PublicClient, SecureClient } from '../clients';
+import type { Client, SecureClient } from '../clients';
 import {
   type RateLimitError,
   RequestRejectedError,
@@ -44,22 +44,22 @@ export type CreateApiKeyError =
  *
  * @example
  * ```ts
- * const apiKey = await createApiKey(client, request);
+ * const creds = await createApiKey(client, request);
  * ```
  *
  * @throws {@link CreateApiKeyError}
  * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  */
 export async function createApiKey(
-  client: PublicClient,
+  client: Client,
   request: L2AuthRequest,
-): Promise<ApiKeyResponse> {
+): Promise<ApiKeyCreds> {
   return unwrap(
     client.clob
       .post('auth/api-key', {
         headers: toL1Headers(request),
       })
-      .andThen(validateWith(ApiKeyResponseSchema)),
+      .andThen(validateWith(ApiKeyCredsSchema)),
   );
 }
 
@@ -77,22 +77,22 @@ export type DeriveApiKeyError =
  *
  * @example
  * ```ts
- * const apiKey = await deriveApiKey(client, request);
+ * const creds = await deriveApiKey(client, request);
  * ```
  *
  * @throws {@link DeriveApiKeyError}
  * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  */
 export async function deriveApiKey(
-  client: PublicClient,
+  client: Client,
   request: L2AuthRequest,
-): Promise<ApiKeyResponse> {
+): Promise<ApiKeyCreds> {
   return unwrap(
     client.clob
       .get('auth/derive-api-key', {
         headers: toL1Headers(request),
       })
-      .andThen(validateWith(ApiKeyResponseSchema)),
+      .andThen(validateWith(ApiKeyCredsSchema)),
   );
 }
 
@@ -110,16 +110,16 @@ export type CreateOrDeriveApiKeyError =
  *
  * @example
  * ```ts
- * const apiKey = await createOrDeriveApiKey(client, request);
+ * const creds = await createOrDeriveApiKey(client, request);
  * ```
  *
  * @throws {@link CreateOrDeriveApiKeyError}
  * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  */
 export async function createOrDeriveApiKey(
-  client: PublicClient,
+  client: Client,
   request: L2AuthRequest,
-): Promise<ApiKeyResponse> {
+): Promise<ApiKeyCreds> {
   try {
     return await deriveApiKey(client, request);
   } catch (error) {
@@ -197,7 +197,7 @@ async function toL2Headers(
 
     return {
       POLY_ADDRESS: client.address,
-      POLY_API_KEY: client.credentials.apiKey,
+      POLY_API_KEY: client.credentials.key,
       POLY_PASSPHRASE: client.credentials.passphrase,
       POLY_SIGNATURE: await buildPolyHmacSignature(
         client.credentials.secret,

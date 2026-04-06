@@ -1,4 +1,4 @@
-import type { ApiKeyResponse } from '@polymarket/bindings/clob';
+import type { ApiKeyCreds } from '@polymarket/bindings/clob';
 import { expectEvmAddress, expectSignature } from '@polymarket/types';
 import { createOrDeriveApiKey } from './actions/auth';
 import {
@@ -17,33 +17,52 @@ export type PublicClientConfig = {
   environment?: EnvironmentConfig;
 };
 
-export class PublicClient {
+type Context = {
   /** @internal */
-  readonly environment: EnvironmentConfig;
-
+  environment: EnvironmentConfig;
   /** @internal */
-  readonly clob: ServiceClient;
-
+  clob: ServiceClient;
   /** @internal */
-  readonly gamma: ServiceClient;
-
+  gamma: ServiceClient;
   /** @internal */
-  readonly data: ServiceClient;
+  data: ServiceClient;
+};
 
-  constructor({ environment = production }: PublicClientConfig = {}) {
-    this.environment = environment;
-    this.clob = new ServiceClient({
-      root: environment.clob,
-    });
-    this.gamma = new ServiceClient({
-      root: environment.gamma,
-    });
-    this.data = new ServiceClient({
-      root: environment.data,
-    });
+type SecureContext = Context & {
+  /** @internal */
+  credentials: ApiKeyCreds;
+};
+
+abstract class AbstractClient<TContext extends Context> {
+  protected readonly context: TContext;
+
+  constructor(context: TContext) {
+    this.context = context;
   }
 
-  resume(_credentials: ApiKeyResponse): SecureClient {
+  /** @internal */
+  get environment(): EnvironmentConfig {
+    return this.context.environment;
+  }
+
+  /** @internal */
+  get clob(): ServiceClient {
+    return this.context.clob;
+  }
+
+  /** @internal */
+  get gamma(): ServiceClient {
+    return this.context.gamma;
+  }
+
+  /** @internal */
+  get data(): ServiceClient {
+    return this.context.data;
+  }
+}
+
+class PublicClient extends AbstractClient<Context> {
+  resume(_credentials: ApiKeyCreds): SecureClient {
     throw new Error('resume is not implemented yet');
   }
 
@@ -67,44 +86,42 @@ export class PublicClient {
           timestamp,
         });
 
-        return new SecureClient(
-          { environment: this.environment },
+        return new SecureClient({
+          ...this.context,
           credentials,
-          address,
-        );
+        });
       }.call(this),
     );
   }
 }
 
-class SecureClient extends PublicClient {
-  readonly #credentials: ApiKeyResponse;
-  readonly #address: string;
-
-  constructor(
-    config: PublicClientConfig,
-    credentials: ApiKeyResponse,
-    address: string,
-  ) {
-    super(config);
-    this.#credentials = credentials;
-    this.#address = address;
-  }
-
+class SecureClient extends AbstractClient<SecureContext> {
   /** @internal */
-  get credentials(): ApiKeyResponse {
-    return this.#credentials;
-  }
-
-  /** @internal */
-  get address(): string {
-    return this.#address;
+  get credentials(): ApiKeyCreds {
+    return this.context.credentials;
   }
 }
 
-export type { SecureClient };
+export type { PublicClient, SecureClient };
 
 export type Client = PublicClient | SecureClient;
+
+function createPublicContext({
+  environment = production,
+}: PublicClientConfig): Context {
+  return {
+    environment,
+    clob: new ServiceClient({
+      root: environment.clob,
+    }),
+    gamma: new ServiceClient({
+      root: environment.gamma,
+    }),
+    data: new ServiceClient({
+      root: environment.data,
+    }),
+  };
+}
 
 /**
  * Creates a new `PublicClient` instance.
@@ -117,5 +134,5 @@ export type Client = PublicClient | SecureClient;
 export function createPublicClient(
   config: PublicClientConfig = {},
 ): PublicClient {
-  return new PublicClient(config);
+  return new PublicClient(createPublicContext(config));
 }
