@@ -5,7 +5,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { createPublicClient } from './clients';
 
-process.loadEnvFile?.();
+if (process.env.CI !== 'true') {
+  try {
+    process.loadEnvFile();
+  } catch {
+    console.warn('.env file is not present; using existing process.env values');
+  }
+}
 
 export const publicClient = createPublicClient();
 
