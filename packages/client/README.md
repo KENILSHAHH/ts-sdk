@@ -15,7 +15,17 @@ pnpm add @polymarket/client
 ## Usage
 
 ```ts
-import {} from '@polymarket/client';
+import { createPublicClient } from '@polymarket/client';
+import { listMarkets } from '@polymarket/client/actions';
+
+const client = createPublicClient();
+
+const markets = await listMarkets(client, {
+  closed: false,
+  limit: 3,
+});
+
+console.log(markets.map((market) => market.question));
 ```
 
 ## Development
