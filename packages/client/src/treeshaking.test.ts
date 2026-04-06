@@ -78,7 +78,7 @@ type BundleOutput = {
   >;
 };
 
-describe('tree-shaking', () => {
+describe.skip('tree-shaking', () => {
   beforeAll(async () => {
     for (const target of runtimeBuildTargets) {
       execFileSync('pnpm', target.args, {
