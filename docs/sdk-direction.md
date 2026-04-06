@@ -26,6 +26,7 @@ The first shipping target is `@polymarket/client`. Its job is to make Polymarket
 ## TODO
 
 - In this case, make CLOB responses use camelCased fields.
+- Add a cache layer for `tickSize`, fee bps, and `negRisk` metadata.
 
 ## Package Direction
 
