@@ -11,6 +11,11 @@ import {
   TagReferenceSchema,
 } from './common';
 
+const TwoStringTupleSchema = z
+  .string()
+  .transform((val) => JSON.parse(val))
+  .pipe(z.tuple([z.string(), z.string()]));
+
 export const MarketSchema = z.looseObject({
   id: MarketIdSchema,
   question: z.string().nullish(),
@@ -34,8 +39,8 @@ export const MarketSchema = z.looseObject({
   lowerBound: z.string().nullish(),
   upperBound: z.string().nullish(),
   description: z.string().nullish(),
-  outcomes: z.string().nullish(),
-  outcomePrices: z.string().nullish(),
+  outcomes: TwoStringTupleSchema.nullish(),
+  outcomePrices: TwoStringTupleSchema.nullish(),
   volume: z.string().nullish(),
   active: z.boolean().nullish(),
   marketType: z.string().nullish(),
@@ -87,7 +92,7 @@ export const MarketSchema = z.looseObject({
   volume1yr: z.number().nullish(),
   gameStartTime: z.string().nullish(),
   secondsDelay: z.number().int().nullish(),
-  clobTokenIds: z.string().nullish(),
+  clobTokenIds: TwoStringTupleSchema.nullish(),
   disqusThread: z.string().nullish(),
   shortOutcomes: z.string().nullish(),
   teamAID: z.string().nullish(),

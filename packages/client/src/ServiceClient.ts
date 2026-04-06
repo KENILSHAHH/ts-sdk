@@ -34,7 +34,7 @@ export class ServiceClient {
     RateLimitError | RequestRejectedError | TransportError
   > {
     return this.#toResult(
-      this.#client.get(path, {
+      this.#client.get(this.#normalizePath(path), {
         headers: options.headers,
         searchParams: options.params,
       }),
@@ -49,7 +49,7 @@ export class ServiceClient {
     RateLimitError | RequestRejectedError | TransportError
   > {
     return this.#toResult(
-      this.#client.post(path, {
+      this.#client.post(this.#normalizePath(path), {
         headers: options.headers,
         json: options.json,
       }),
@@ -58,6 +58,10 @@ export class ServiceClient {
 
   del(_path: string): never {
     return never('ServiceClient.del is not implemented yet');
+  }
+
+  #normalizePath(path: string) {
+    return path.startsWith('/') ? path.slice(1) : path;
   }
 
   #toResult(

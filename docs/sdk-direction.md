@@ -17,6 +17,16 @@ The first shipping target is `@polymarket/client`. Its job is to make Polymarket
 - The SDK should feel pragmatic and typed, staying close to real integration needs without forcing consumers to understand how current services are divided.
 - The SDK can still expose lower-level controls when they are useful, but the default experience should feel unified.
 
+## Current Decisions
+
+- Omit readonly API key management from the first `@polymarket/client` surface for now.
+- Keep phase 2 focused on standard authenticated account reads that are clearly part of the primary trading workflow.
+- Revisit readonly API keys later if there is a concrete SDK use case and clearer public documentation.
+
+## TODO
+
+- In this case, make CLOB responses use camelCased fields.
+
 ## Package Direction
 
 - `@polymarket/client` is the main near-term package.

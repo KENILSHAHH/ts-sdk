@@ -41,6 +41,8 @@ export type FetchWalletTypeError =
  *   address: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
  *   signer: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
  * });
+ *
+ * console.log(walletType); // WalletType.EOA
  * ```
  *
  * @throws {@link FetchWalletTypeError}
@@ -57,6 +59,7 @@ export async function fetchWalletType(
       .get('wallet-type', {
         params: toSearchParams(params, snakeCase()),
       })
-      .andThen(validateWith(WalletTypeSchema)),
+      .andThen(validateWith(WalletTypeSchema))
+      .map(({ type }) => type),
   );
 }

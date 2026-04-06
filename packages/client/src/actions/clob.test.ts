@@ -1,3 +1,4 @@
+import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
 import { fetchFeeRate, fetchNegRisk, fetchTickSize } from './clob';
@@ -50,34 +51,10 @@ async function getClobTokenId(): Promise<string> {
   });
 
   for (const market of markets) {
-    const tokenId = parseFirstClobTokenId(market.clobTokenIds);
+    const [tokenId] = expectPresent(market.clobTokenIds);
 
-    if (tokenId) {
-      return tokenId;
-    }
+    return tokenId;
   }
 
-  throw new Error('Expected at least one live market with a CLOB token id');
-}
-
-function parseFirstClobTokenId(
-  value: string | null | undefined,
-): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  try {
-    const parsed = JSON.parse(value) as unknown;
-
-    if (!Array.isArray(parsed)) {
-      return undefined;
-    }
-
-    const [tokenId] = parsed;
-
-    return typeof tokenId === 'string' ? tokenId : undefined;
-  } catch {
-    return undefined;
-  }
+  never('Expected at least one live market with a CLOB token id');
 }
