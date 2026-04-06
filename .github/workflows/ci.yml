@@ -43,6 +43,8 @@ jobs:
 
       - name: Test
         run: pnpm test
+        env:
+          POLYMARKET_TEST_PRIVATE_KEY: ${{ secrets.POLYMARKET_TEST_PRIVATE_KEY }}
 
       - name: Build
         run: pnpm build
