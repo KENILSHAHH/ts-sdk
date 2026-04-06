@@ -13,6 +13,7 @@ function toTaggedInteger<T extends number>(value: number): T {
 }
 
 export type BestLineId = Tagged<string, 'BestLineId'>;
+export type ApiKey = Tagged<Uuid, 'ApiKey'>;
 export type CategoryId = Tagged<string, 'CategoryId'>;
 export type ChatId = Tagged<string, 'ChatId'>;
 export type ClobRewardId = Tagged<string, 'ClobRewardId'>;
@@ -32,9 +33,12 @@ export type SportId = Tagged<number, 'SportId'>;
 export type TagId = Tagged<string, 'TagId'>;
 export type TeamId = Tagged<number, 'TeamId'>;
 export type TemplateId = Tagged<string, 'TemplateId'>;
+export type Uuid = Tagged<string, 'Uuid'>;
 
 export const toBestLineId = (value: string): BestLineId =>
   toTaggedString<BestLineId>(value);
+export const toApiKey = (value: string): ApiKey =>
+  toTaggedString<ApiKey>(value);
 export const toCategoryId = (value: string): CategoryId =>
   toTaggedString<CategoryId>(value);
 export const toChatId = (value: string): ChatId =>
@@ -68,3 +72,4 @@ export const toTeamId = (value: number): TeamId =>
   toTaggedInteger<TeamId>(value);
 export const toTemplateId = (value: string): TemplateId =>
   toTaggedString<TemplateId>(value);
+export const toUuid = (value: string): Uuid => toTaggedString<Uuid>(value);

@@ -1,4 +1,5 @@
 import {
+  type ApiKey,
   type CategoryId,
   type ClobRewardId,
   type EventId,
@@ -6,6 +7,7 @@ import {
   type InternalUserId,
   type MarketId,
   type TagId,
+  toApiKey,
   toCategoryId,
   toClobRewardId,
   toEventId,
@@ -17,6 +19,7 @@ import {
 import { z } from 'zod';
 
 export const CategoryIdSchema = z.string().transform(toCategoryId);
+export const ApiKeySchema = z.string().transform(toApiKey);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
 export const EventIdSchema = z.string().transform(toEventId);
 export const ISODateStringSchema = z
@@ -36,6 +39,7 @@ export type ISODateString = z.output<typeof ISODateStringSchema>;
 export type ISOCalendarDateString = z.output<typeof ISOCalendarDateSchema>;
 
 export type {
+  ApiKey,
   CategoryId,
   ClobRewardId,
   EventId,
