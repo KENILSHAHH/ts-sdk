@@ -95,3 +95,19 @@ export class RequestRejectedError extends PolymarketError {
 export class RateLimitError extends PolymarketError {
   override name = 'RateLimitError' as const;
 }
+
+/**
+ * Error thrown when the SDK cannot produce a required signature or
+ * authentication payload.
+ */
+export class SigningError extends PolymarketError {
+  override name = 'SigningError' as const;
+
+  constructor(message: string, options: ErrorOptions = {}) {
+    super(message, options);
+  }
+
+  static fromError(error: unknown, message = 'Signing failed'): SigningError {
+    return new SigningError(message, {
+      cause: error,
+    });

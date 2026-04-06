@@ -7,3 +7,9 @@ export const ApiKeyResponseSchema = z.object({
 });
 
 export type ApiKeyResponse = z.infer<typeof ApiKeyResponseSchema>;
+
+export const ApiKeysResponseSchema = z.object({
+  apiKeys: z.array(z.string()),
+});
+
+export type ApiKeysResponse = z.infer<typeof ApiKeysResponseSchema>;

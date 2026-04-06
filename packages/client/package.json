@@ -13,12 +13,19 @@
     "./actions": {
       "types": "./dist/actions/index.d.ts",
       "default": "./dist/actions/index.js"
+    },
+    "./viem": {
+      "types": "./dist/viem/index.d.ts",
+      "default": "./dist/viem/index.js"
     }
   },
   "typesVersions": {
     "*": {
       "actions": [
         "./dist/actions/index.d.ts"
+      ],
+      "viem": [
+        "./dist/viem/index.d.ts"
       ]
     }
   },
@@ -32,11 +39,20 @@
   },
   "devDependencies": {
     "tsup": "^8.5.1",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "viem": "^2.46.3"
   },
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "viem": "^2.46.3"
+  },
+  "peerDependenciesMeta": {
+    "viem": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@polymarket/bindings": "workspace:*",

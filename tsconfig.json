@@ -11,6 +11,7 @@
       "@polymarket/bindings/gamma": ["./packages/bindings/src/gamma"],
       "@polymarket/client": ["./packages/client/src"],
       "@polymarket/client/actions": ["./packages/client/src/actions"],
+      "@polymarket/client/viem": ["./packages/client/src/viem"],
       "@polymarket/types": ["./packages/types/src"]
     }
   },

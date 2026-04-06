@@ -1,13 +1,15 @@
+import type { PrivateKey } from '@polymarket/types';
 import { invariant, isPrivateKey } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { polygon } from 'viem/chains';
 import { createPublicClient } from './clients';
 
 process.loadEnvFile?.();
 
 export const publicClient = createPublicClient();
 
-export function getTestPrivateKey(): `0x${string}` | undefined {
+function getTestPrivateKey(): PrivateKey {
   const value = process.env.POLYMARKET_TEST_PRIVATE_KEY;
 
   invariant(value, 'POLYMARKET_TEST_PRIVATE_KEY is not set');
@@ -23,10 +25,9 @@ export function getTestPrivateKey(): `0x${string}` | undefined {
 export function createTestWalletClient() {
   const privateKey = getTestPrivateKey();
 
-  invariant(privateKey, 'POLYMARKET_TEST_PRIVATE_KEY is not set');
-
   return createWalletClient({
     account: privateKeyToAccount(privateKey),
+    chain: polygon,
     transport: http(),
   });
 }
