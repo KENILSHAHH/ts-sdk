@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EvmAddressSchema } from '../shared';
 import { ImageOptimizationSchema } from './common';
 
 export const PublicProfileUserSchema = z.looseObject({
@@ -43,7 +44,7 @@ export const ProfileSchema = z.looseObject({
 
 export const PublicProfileSchema = z.looseObject({
   createdAt: z.string().nullish(),
-  proxyWallet: z.string().nullish(),
+  proxyWallet: EvmAddressSchema.nullish(),
   profileImage: z.string().nullish(),
   displayUsernamePublic: z.boolean().nullish(),
   bio: z.string().nullish(),

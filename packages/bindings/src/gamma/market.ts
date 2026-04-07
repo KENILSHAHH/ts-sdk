@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MarketIdSchema } from '../shared';
+import { MarketIdSchema, TickSizeValueSchema } from '../shared';
 import {
   CategoryReferenceSchema,
   ClobRewardsSchema,
@@ -74,7 +74,7 @@ export const MarketSchema = z.looseObject({
   questionID: z.string().nullish(),
   umaEndDate: z.string().nullish(),
   enableOrderBook: z.boolean().nullish(),
-  orderPriceMinTickSize: z.number().nullish(),
+  orderPriceMinTickSize: TickSizeValueSchema.nullish(),
   orderMinSize: z.number().nullish(),
   umaResolutionStatus: z.string().nullish(),
   curationOrder: z.number().int().nullish(),

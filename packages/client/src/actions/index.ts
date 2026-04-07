@@ -6,6 +6,7 @@ export * from './comments';
 export * from './events';
 export * from './leaderboards';
 export * from './markets';
+export * from './orders';
 export * from './portfolio';
 export * from './profiles';
 export * from './search';

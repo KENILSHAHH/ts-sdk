@@ -95,7 +95,7 @@ export enum AssetType {
   CONDITIONAL = 'CONDITIONAL',
 }
 
-export const AssetTypeSchema = z.nativeEnum(AssetType);
+export const AssetTypeSchema = z.enum(AssetType);
 
 export const BalanceAllowanceResponseSchema = z.object({
   allowances: z.record(z.string(), z.string()),

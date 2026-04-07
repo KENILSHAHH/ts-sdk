@@ -1,6 +1,7 @@
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
 import { SignatureType } from '@polymarket/bindings/clob';
 import { WalletType } from '@polymarket/bindings/gamma';
+import type { EvmAddress } from '@polymarket/types';
 import { expectEvmAddress, expectSignature } from '@polymarket/types';
 import { createOrDeriveApiKey, fetchApiKeys } from './actions/auth';
 import { fetchPublicProfile } from './actions/profiles';
@@ -39,7 +40,7 @@ type Context = {
 
 type SecureContext = Context & {
   /** @internal */
-  address: string;
+  address: EvmAddress;
   /** @internal */
   credentials: ApiKeyCreds;
   /** @internal */
@@ -91,7 +92,7 @@ class PublicClient extends AbstractClient<Context> {
         const signatureType = await this.#resolveSignatureType(address);
 
         if (options !== undefined && 'credentials' in options) {
-          const client = this.createSecureClient(
+          const client = this.#createSecureClient(
             options.credentials,
             address,
             signatureType,
@@ -128,7 +129,7 @@ class PublicClient extends AbstractClient<Context> {
           timestamp,
         });
 
-        return this.createSecureClient(credentials, address, signatureType);
+        return this.#createSecureClient(credentials, address, signatureType);
       }.call(this),
     );
   }
@@ -151,9 +152,9 @@ class PublicClient extends AbstractClient<Context> {
     }
   }
 
-  createSecureClient(
+  #createSecureClient(
     credentials: ApiKeyCreds,
-    address: string,
+    address: EvmAddress,
     signatureType: SignatureType,
   ): SecureClient {
     return new SecureClient({
@@ -172,7 +173,7 @@ class SecureClient extends AbstractClient<SecureContext> {
   }
 
   /** @internal */
-  get address(): string {
+  get address(): EvmAddress {
     return this.context.address;
   }
 

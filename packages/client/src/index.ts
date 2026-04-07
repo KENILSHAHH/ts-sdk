@@ -1,6 +1,6 @@
 export type * from '@polymarket/bindings';
 export type * from '@polymarket/bindings/clob';
-export { SignatureType } from '@polymarket/bindings/clob';
+export { OrderSide, OrderType, SignatureType } from '@polymarket/bindings/clob';
 export type * from '@polymarket/bindings/data';
 export type * from '@polymarket/bindings/gamma';
 export { WalletType } from '@polymarket/bindings/gamma';

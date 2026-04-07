@@ -1,7 +1,10 @@
+import type { TickSizeValue } from '@polymarket/bindings';
 import {
   FetchFeeRateResponseSchema,
   FetchNegRiskResponseSchema,
+  FetchOrderBookResponseSchema,
   FetchTickSizeResponseSchema,
+  type OrderBook,
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
@@ -24,6 +27,7 @@ const ClobTokenRequestSchema = z.object({
 export type FetchTickSizeRequest = z.input<typeof ClobTokenRequestSchema>;
 export type FetchNegRiskRequest = z.input<typeof ClobTokenRequestSchema>;
 export type FetchFeeRateRequest = z.input<typeof ClobTokenRequestSchema>;
+export type FetchOrderBookRequest = z.input<typeof ClobTokenRequestSchema>;
 
 export type FetchTickSizeError =
   | RateLimitError
@@ -51,7 +55,7 @@ export type FetchTickSizeError =
 export async function fetchTickSize(
   client: Client,
   request: FetchTickSizeRequest,
-): Promise<number> {
+): Promise<TickSizeValue> {
   const params = parseUserInput(request, ClobTokenRequestSchema);
   const response = await unwrap(
     client.clob
@@ -110,6 +114,13 @@ export type FetchFeeRateError =
   | UnexpectedResponseError
   | UserInputError;
 
+export type FetchOrderBookError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
 /**
  * Fetches the base fee rate, in basis points, for a token's order book.
  *
@@ -140,4 +151,35 @@ export async function fetchFeeRate(
   );
 
   return response.base_fee;
+}
+
+/**
+ * Fetches the current order book for a token.
+ *
+ * @throws {@link FetchOrderBookError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const orderBook = await fetchOrderBook(client, {
+ *   tokenId:
+ *     '8501497159083948713316135768103773293754490207922884688769443031624417212426',
+ * });
+ *
+ * // orderBook.bids / orderBook.asks
+ * ```
+ */
+export async function fetchOrderBook(
+  client: Client,
+  request: FetchOrderBookRequest,
+): Promise<OrderBook> {
+  const params = parseUserInput(request, ClobTokenRequestSchema);
+
+  return unwrap(
+    client.clob
+      .get('book', {
+        params: toSearchParams(params, snakeCase()),
+      })
+      .andThen(validateWith(FetchOrderBookResponseSchema)),
+  );
 }

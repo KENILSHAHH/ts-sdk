@@ -1,7 +1,12 @@
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
-import { fetchFeeRate, fetchNegRisk, fetchTickSize } from './clob';
+import {
+  fetchFeeRate,
+  fetchNegRisk,
+  fetchOrderBook,
+  fetchTickSize,
+} from './clob';
 import { listMarkets } from './markets';
 
 describe('CLOB', () => {
@@ -40,6 +45,24 @@ describe('CLOB', () => {
 
       expect(result).toEqual(expect.any(Number));
       expect(result).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('fetchOrderBook', () => {
+    it('fetches the order book for a token', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchOrderBook(publicClient, {
+        tokenId,
+      });
+
+      expect(result.asset_id).toBe(tokenId);
+      expect(Array.isArray(result.bids)).toBe(true);
+      expect(Array.isArray(result.asks)).toBe(true);
+      expect(result.tick_size).toEqual(expect.any(String));
+      expect(result.min_order_size).toEqual(expect.any(String));
+      expect(result.neg_risk).toEqual(expect.any(Boolean));
+      expect(result.hash).toEqual(expect.any(String));
     });
   });
 });

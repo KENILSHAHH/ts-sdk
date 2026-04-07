@@ -1,8 +1,10 @@
+import type { Market } from '@polymarket/bindings/gamma';
 import type { PrivateKey } from '@polymarket/types';
 import { invariant, isPrivateKey } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
+import { listMarkets } from './actions/markets';
 import { createPublicClient } from './clients';
 
 if (process.env.CI !== 'true') {
@@ -36,4 +38,56 @@ export function createTestWalletClient() {
     chain: polygon,
     transport: http(),
   });
+}
+
+export async function findHighVolumeLowPriceMarket(): Promise<Market> {
+  const candidateMarkets = await listMarkets(publicClient, {
+    closed: false,
+    limit: 1000,
+    order: 'volume24hr',
+    ascending: false,
+  });
+  const market = candidateMarkets
+    .filter(hasRequiredOrderFields)
+    .sort(
+      (left, right) =>
+        (left.orderMinSize ?? Number.POSITIVE_INFINITY) -
+        (right.orderMinSize ?? Number.POSITIVE_INFINITY),
+    )[0];
+
+  invariant(
+    market !== undefined,
+    'Could not find an active high-volume market with a very low tradable price',
+  );
+
+  return market;
+}
+
+export function getPolymarketMarketUrl(market: Market): string {
+  const eventSlug = getEventSlug(market);
+
+  if (eventSlug !== undefined) {
+    return `https://polymarket.com/event/${eventSlug}`;
+  }
+
+  invariant(
+    market.slug !== null && market.slug !== undefined,
+    'Could not derive a polymarket.com URL from the market payload',
+  );
+
+  return `https://polymarket.com/event/${market.slug}`;
+}
+
+function hasRequiredOrderFields(candidate: Market) {
+  return (
+    candidate.acceptingOrders !== false &&
+    candidate.clobTokenIds !== null &&
+    candidate.clobTokenIds !== undefined
+  );
+}
+
+function getEventSlug(market: Market): string | undefined {
+  const firstEvent = market.events?.[0] as { slug?: string | null } | undefined;
+
+  return firstEvent?.slug ?? undefined;
 }
