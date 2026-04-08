@@ -1,8 +1,7 @@
 import { ZERO_ADDRESS } from '@polymarket/types';
-import type { MarketOrderDraft } from './market';
-import type { SignedOrder, UnsignedOrder } from './types';
+import type { OrderDraft, SignedOrder, UnsignedOrder } from './types';
 
-export function createUnsignedOrder(order: MarketOrderDraft): UnsignedOrder {
+export function createUnsignedOrder(order: OrderDraft): UnsignedOrder {
   return {
     chainId: order.chainId,
     exchangeAddress: order.exchangeAddress,

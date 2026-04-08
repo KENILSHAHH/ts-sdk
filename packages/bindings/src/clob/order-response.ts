@@ -7,7 +7,7 @@ export const OrderResponseSchema = z.object({
   status: z.string(),
   success: z.boolean(),
   takingAmount: z.string(),
-  transactionsHashes: z.array(z.string()),
+  transactionsHashes: z.array(z.string()).default([]),
 });
 
 export type OrderResponse = z.infer<typeof OrderResponseSchema>;

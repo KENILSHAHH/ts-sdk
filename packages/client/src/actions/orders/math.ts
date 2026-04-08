@@ -20,6 +20,14 @@ export function roundUp(value: number, decimals: number): number {
   return Math.ceil(value * 10 ** decimals) / 10 ** decimals;
 }
 
+export function roundNormal(value: number, decimals: number): number {
+  if (decimalPlaces(value) <= decimals) {
+    return value;
+  }
+
+  return Math.round(value * 10 ** decimals) / 10 ** decimals;
+}
+
 export function decimalPlaces(value: number): number {
   if (Number.isInteger(value)) {
     return 0;

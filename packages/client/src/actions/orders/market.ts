@@ -9,16 +9,15 @@ import {
 import { type EvmAddress, invariant } from '@polymarket/types';
 import { z } from 'zod';
 import type { SecureClient } from '../../clients';
+import { fetchNegRisk, fetchOrderBook, fetchTickSize } from '../clob';
 import {
-  fetchFeeRate,
-  fetchNegRisk,
-  fetchOrderBook,
-  fetchTickSize,
-} from '../clob';
-import { fetchPublicProfile } from '../profiles';
-import { resolveRoundingConfig } from './context';
+  resolveExchangeAddress,
+  resolveFeeRateBps,
+  resolveFunderAddress,
+  resolveRoundingConfig,
+} from './context';
 import { decimalPlaces, parseAmount, roundDown, roundUp } from './math';
-import type { PrepareMarketOrderRequest } from './types';
+import type { OrderDraft, PrepareMarketOrderRequest } from './types';
 
 export const PrepareMarketOrderParamsSchema = z.object({
   tokenId: z.string(),
@@ -34,52 +33,10 @@ export type PrepareMarketOrderDraftParams = z.output<
   typeof PrepareMarketOrderParamsSchema
 >;
 
-export type ResolveMarketOrderContextParams = {
-  amount: number;
-  orderType: OrderType;
-  side: OrderSide;
-  tokenId: string;
-};
-
-export type MarketOrderContext = {
-  exchangeAddress: EvmAddress;
-  feeRateBps: number;
-  funderAddress: EvmAddress;
-  negRisk: boolean;
-  price: number;
-  signatureType: SignatureType;
-  signerAddress: EvmAddress;
-  tickSize: TickSizeValue;
-};
-
-export type MarketOrderDraft = {
-  chainId: number;
-  exchangeAddress: EvmAddress;
-  expiration: number;
-  feeRateBps: number;
-  funderAddress: EvmAddress;
-  offeredAmount: bigint;
-  orderType: OrderType;
-  side: OrderSide;
-  signatureType: SignatureType;
-  signer: EvmAddress;
-  allowedTaker?: EvmAddress;
-  requestedAmount: bigint;
-  tokenId: string;
-};
-
-type ResolvePriceParams = {
-  amount: number;
-  orderType: OrderType;
-  side: OrderSide;
-  tokenId: string;
-  tickSize: TickSizeValue;
-};
-
 export async function prepareMarketOrderDraft(
   client: SecureClient,
   params: PrepareMarketOrderDraftParams,
-): Promise<MarketOrderDraft> {
+): Promise<OrderDraft> {
   const context = await resolveMarketOrderContext(client, params);
   const amounts = computeMarketOrderAmounts({
     amount: params.amount,
@@ -94,18 +51,36 @@ export async function prepareMarketOrderDraft(
     expiration: 0,
     feeRateBps: context.feeRateBps,
     funderAddress: context.funderAddress,
-    offeredAmount: amounts.makerAmount,
+    offeredAmount: amounts.offeredAmount,
     orderType: params.orderType,
     side: params.side,
     signatureType: context.signatureType,
     signer: context.signerAddress,
     allowedTaker: params.taker,
-    requestedAmount: amounts.takerAmount,
+    requestedAmount: amounts.requestedAmount,
     tokenId: params.tokenId,
   };
 }
 
-export async function resolveMarketOrderContext(
+type ResolveMarketOrderContextParams = {
+  amount: number;
+  orderType: OrderType;
+  side: OrderSide;
+  tokenId: string;
+};
+
+type MarketOrderContext = {
+  exchangeAddress: EvmAddress;
+  feeRateBps: number;
+  funderAddress: EvmAddress;
+  negRisk: boolean;
+  price: number;
+  signatureType: SignatureType;
+  signerAddress: EvmAddress;
+  tickSize: TickSizeValue;
+};
+
+async function resolveMarketOrderContext(
   client: SecureClient,
   params: ResolveMarketOrderContextParams,
 ): Promise<MarketOrderContext> {
@@ -139,14 +114,14 @@ export async function resolveMarketOrderContext(
   };
 }
 
-export function computeMarketOrderAmounts(params: {
+function computeMarketOrderAmounts(params: {
   amount: number;
   price: number;
   side: OrderSide;
   tickSize: TickSizeValue;
 }): {
-  makerAmount: bigint;
-  takerAmount: bigint;
+  offeredAmount: bigint;
+  requestedAmount: bigint;
 } {
   const roundConfig = resolveRoundingConfig(params.tickSize);
   const rawPrice = roundDown(params.price, roundConfig.price);
@@ -164,8 +139,8 @@ export function computeMarketOrderAmounts(params: {
     }
 
     return {
-      makerAmount: parseAmount(rawMakerAmount),
-      takerAmount: parseAmount(rawTakerAmount),
+      offeredAmount: parseAmount(rawMakerAmount),
+      requestedAmount: parseAmount(rawTakerAmount),
     };
   }
 
@@ -180,27 +155,18 @@ export function computeMarketOrderAmounts(params: {
   }
 
   return {
-    makerAmount: parseAmount(rawMakerAmount),
-    takerAmount: parseAmount(rawTakerAmount),
+    offeredAmount: parseAmount(rawMakerAmount),
+    requestedAmount: parseAmount(rawTakerAmount),
   };
 }
 
-async function resolveFeeRateBps(
-  client: SecureClient,
-  tokenId: string,
-): Promise<number> {
-  return fetchFeeRate(client, {
-    tokenId,
-  });
-}
-
-async function resolveFunderAddress(client: SecureClient): Promise<EvmAddress> {
-  const profile = await fetchPublicProfile(client, {
-    address: client.address,
-  });
-
-  return profile.proxyWallet ?? client.address;
-}
+type ResolvePriceParams = {
+  amount: number;
+  orderType: OrderType;
+  side: OrderSide;
+  tokenId: string;
+  tickSize: TickSizeValue;
+};
 
 async function resolvePrice(
   client: SecureClient,
@@ -225,15 +191,6 @@ async function resolvePrice(
   );
 
   return price;
-}
-
-function resolveExchangeAddress(
-  client: SecureClient,
-  negRisk: boolean,
-): EvmAddress {
-  return negRisk
-    ? client.environment.negRiskExchange
-    : client.environment.standardExchange;
 }
 
 function isValidPrice(price: number, tickSize: TickSizeValue): boolean {

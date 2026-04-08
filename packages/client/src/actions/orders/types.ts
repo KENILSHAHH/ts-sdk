@@ -37,6 +37,51 @@ export type PrepareMarketOrderRequest = {
   orderType?: OrderType.FAK | OrderType.FOK;
 };
 
+export type PrepareLimitOrderRequest = {
+  /** TokenID of the Conditional token asset being traded */
+  tokenId: string;
+
+  /** Price used to create the order */
+  price: number;
+
+  /** Size in terms of the conditional token */
+  size: number;
+
+  /** Side of the order */
+  side: OrderSide;
+
+  /** Taker address. Omit for public orders (zero address is equivalent). */
+  taker?: string;
+
+  /** Timestamp after which the order is expired. Required for GTD orders. */
+  expiration?: number;
+
+  /**
+   * Specifies the type of order execution.
+   * - GTC (Good-Til-Cancelled): rests on the book until filled or cancelled
+   * - GTD (Good-Til-Date): active until the specified expiration timestamp
+   *
+   * @defaultValue OrderType.GTC
+   */
+  orderType?: OrderType.GTC | OrderType.GTD;
+};
+
+export type OrderDraft = {
+  chainId: number;
+  exchangeAddress: EvmAddress;
+  expiration: number;
+  feeRateBps: number;
+  funderAddress: EvmAddress;
+  offeredAmount: bigint;
+  orderType: OrderType;
+  side: OrderSide;
+  signatureType: SignatureType;
+  signer: EvmAddress;
+  allowedTaker?: EvmAddress;
+  requestedAmount: bigint;
+  tokenId: string;
+};
+
 /**
  * @internal
  */

@@ -29,6 +29,7 @@ The first shipping target is `@polymarket/client`. Its job is to make Polymarket
 - Add a cache layer for `tickSize`, fee bps, and `negRisk` metadata.
 - Consider moving `SignedOrder` into `packages/client/src/types.ts` so it is easier to reuse across order actions and wallet helpers.
 - Revisit whether the Gamma `GET /markets` `active` flag should be modeled in the SDK, since it is accepted in practice but omitted from the current OpenAPI contract and current client request type.
+- Review `throw new Error` usage in `packages/client/src/actions/orders/market.ts` and decide whether those order-action failures should use a more specific SDK error shape.
 
 ## Package Direction
 
