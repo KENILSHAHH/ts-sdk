@@ -8,7 +8,7 @@ import { fetchPublicProfile } from './actions/profiles';
 import { fetchWalletType } from './actions/wallets';
 import {
   type AuthenticationWorkflow,
-  createL2AuthTypedDataPayload,
+  createApiKeyAuthTypedDataPayload,
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError } from './errors';
@@ -117,7 +117,7 @@ class PublicClient extends AbstractClient<Context> {
 
         const signature = yield {
           kind: 'signAuthMessage',
-          payload: createL2AuthTypedDataPayload({
+          payload: createApiKeyAuthTypedDataPayload({
             address,
             chainId: this.environment.chainId,
             nonce,

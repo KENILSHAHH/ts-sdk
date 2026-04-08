@@ -16,12 +16,7 @@ import {
 } from '../errors';
 import { validateWith } from '../response';
 
-export type CreateL2AuthRequest = {
-  chainId: number;
-  nonce?: number;
-};
-
-export type L2AuthRequest = {
+export type ApiKeyAuthRequest = {
   address: EvmAddress;
   nonce: number;
   signature: Signature;
@@ -50,7 +45,7 @@ export type CreateApiKeyError =
  */
 export async function createApiKey(
   client: Client,
-  request: L2AuthRequest,
+  request: ApiKeyAuthRequest,
 ): Promise<ApiKeyCreds> {
   return unwrap(
     client.clob
@@ -83,7 +78,7 @@ export type DeriveApiKeyError =
  */
 export async function deriveApiKey(
   client: Client,
-  request: L2AuthRequest,
+  request: ApiKeyAuthRequest,
 ): Promise<ApiKeyCreds> {
   return unwrap(
     client.clob
@@ -116,7 +111,7 @@ export type CreateOrDeriveApiKeyError =
  */
 export async function createOrDeriveApiKey(
   client: Client,
-  request: L2AuthRequest,
+  request: ApiKeyAuthRequest,
 ): Promise<ApiKeyCreds> {
   try {
     return await createApiKey(client, request);
@@ -169,7 +164,7 @@ export async function fetchApiKeys(
   return response.apiKeys;
 }
 
-function toL1Headers(auth: L2AuthRequest): HeadersInit {
+function toL1Headers(auth: ApiKeyAuthRequest): HeadersInit {
   return {
     POLY_ADDRESS: auth.address,
     POLY_NONCE: `${auth.nonce}`,

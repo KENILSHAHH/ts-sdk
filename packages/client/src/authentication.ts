@@ -15,7 +15,7 @@ export type AuthenticationWorkflow = AsyncGenerator<
   EvmAddress | Signature
 >;
 
-export type CreateL2AuthTypedDataPayloadRequest = {
+export type CreateApiKeyAuthTypedDataPayloadRequest = {
   address: EvmAddress;
   chainId: number;
   nonce?: number;
@@ -23,8 +23,8 @@ export type CreateL2AuthTypedDataPayloadRequest = {
 };
 
 /** @internal */
-export function createL2AuthTypedDataPayload(
-  request: CreateL2AuthTypedDataPayloadRequest,
+export function createApiKeyAuthTypedDataPayload(
+  request: CreateApiKeyAuthTypedDataPayloadRequest,
 ): TypedDataPayload {
   return {
     domain: {
