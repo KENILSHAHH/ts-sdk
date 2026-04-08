@@ -23,6 +23,20 @@ describe('clients', () => {
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
+    it('authenticates twice with the same nonce', async () => {
+      const firstClient = await publicClient
+        .beginAuthentication({ nonce: 2 })
+        .then(authenticateWith(walletClient));
+
+      await expect(fetchApiKeys(firstClient)).resolves.toBeDefined();
+
+      const secondClient = await publicClient
+        .beginAuthentication({ nonce: 2 })
+        .then(authenticateWith(walletClient));
+
+      await expect(fetchApiKeys(secondClient)).resolves.toBeDefined();
+    });
+
     it('reuses stored credentials during authentication when they remain valid', async () => {
       const initialClient = await publicClient
         .beginAuthentication()

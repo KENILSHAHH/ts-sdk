@@ -101,7 +101,7 @@ export type CreateOrDeriveApiKeyError =
   | UnexpectedResponseError;
 
 /**
- * Derives an API key and falls back to creation when one does not exist yet.
+ * Creates an API key and falls back to derivation when it already exists.
  *
  * @remarks
  * This is a low-level auth action that most SDK consumers will not need.
@@ -118,14 +118,6 @@ export async function createOrDeriveApiKey(
   client: Client,
   request: L2AuthRequest,
 ): Promise<ApiKeyCreds> {
-  try {
-    return await deriveApiKey(client, request);
-  } catch (error) {
-    if (!(error instanceof RequestRejectedError) || error.status !== 400) {
-      throw error;
-    }
-  }
-
   try {
     return await createApiKey(client, request);
   } catch (error) {
