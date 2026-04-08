@@ -76,10 +76,6 @@ abstract class AbstractClient<TContext extends Context> {
 }
 
 class PublicClient extends AbstractClient<Context> {
-  resume(_credentials: ApiKeyCreds): SecureClient {
-    throw new Error('resume is not implemented yet');
-  }
-
   beginAuthentication(
     options?: BeginAuthenticationOptions,
   ): Promise<AuthenticationWorkflow> {
