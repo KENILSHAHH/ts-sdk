@@ -11,3 +11,7 @@ export const OrderResponseSchema = z.object({
 });
 
 export type OrderResponse = z.infer<typeof OrderResponseSchema>;
+
+export const OrderResponsesSchema = z.array(OrderResponseSchema);
+
+export type OrderResponses = z.infer<typeof OrderResponsesSchema>;

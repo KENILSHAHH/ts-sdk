@@ -1,8 +1,11 @@
 import {
   type OrderResponse,
   OrderResponseSchema,
+  type OrderResponses,
+  OrderResponsesSchema,
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
+import { z } from 'zod';
 import type { SecureClient } from '../../clients';
 import type {
   RateLimitError,
@@ -10,9 +13,15 @@ import type {
   SigningError,
   TransportError,
   UnexpectedResponseError,
+  UserInputError,
 } from '../../errors';
+import { parseUserInput } from '../../input';
 import { validateWith } from '../../response';
 import type { SignedOrder } from './types';
+
+const PostOrdersRequestSchema = z.array(z.custom<SignedOrder>()).min(1).max(15);
+
+export type PostOrdersRequest = z.input<typeof PostOrdersRequestSchema>;
 
 export type PostOrderError =
   | RateLimitError
@@ -21,6 +30,18 @@ export type PostOrderError =
   | TransportError
   | UnexpectedResponseError;
 
+export type PostOrdersError = PostOrderError | UserInputError;
+
+/**
+ * Posts a signed order for the authenticated account.
+ *
+ * @example
+ * ```ts
+ * const response = await postOrder(client, signedOrder);
+ * ```
+ *
+ * @throws {@link PostOrderError}
+ */
 export function postOrder(
   client: SecureClient,
   order: SignedOrder,
@@ -35,14 +56,7 @@ export function postOrder(client: SecureClient, order?: SignedOrder) {
     };
   }
 
-  return submitOrder(client, order);
-}
-
-async function submitOrder(
-  client: SecureClient,
-  order: SignedOrder,
-): Promise<OrderResponse> {
-  const payload = createPostOrderPayload(client, order);
+  const payload = createSendOrderPayload(client, order);
 
   return unwrap(
     client.secureClob
@@ -53,7 +67,48 @@ async function submitOrder(
   );
 }
 
-function createPostOrderPayload(client: SecureClient, order: SignedOrder) {
+/**
+ * Posts multiple signed orders for the authenticated account.
+ *
+ * @remarks
+ * Accepts between 1 and 15 orders, matching the current service limit.
+ *
+ * @example
+ * ```ts
+ * const responses = await postOrders(client, [firstSignedOrder, secondSignedOrder]);
+ * ```
+ *
+ * @throws {@link PostOrdersError}
+ */
+export function postOrders(
+  client: SecureClient,
+  orders: PostOrdersRequest,
+): Promise<OrderResponses>;
+export function postOrders(
+  client: SecureClient,
+): (orders: PostOrdersRequest) => Promise<OrderResponses>;
+export function postOrders(client: SecureClient, orders?: PostOrdersRequest) {
+  if (orders === undefined) {
+    return (nextOrders: PostOrdersRequest) => {
+      return postOrders(client, nextOrders);
+    };
+  }
+
+  const validatedOrders = parseUserInput(orders, PostOrdersRequestSchema);
+  const payload = validatedOrders.map((order) =>
+    createSendOrderPayload(client, order),
+  );
+
+  return unwrap(
+    client.secureClob
+      .post('/orders', {
+        json: payload,
+      })
+      .andThen(validateWith(OrderResponsesSchema)),
+  );
+}
+
+function createSendOrderPayload(client: SecureClient, order: SignedOrder) {
   return {
     deferExec: false,
     order: {
