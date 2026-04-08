@@ -38,7 +38,7 @@
 
 - Prefer `type` over `interface` unless an interface is clearly needed, such as when a class implements it or declaration extensibility is a deliberate requirement.
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
-- When a request, params, or options object shape is specific to a single function, colocate that type directly above the function declaration.
+- When a type is specific to a single function, such as a one-off params object, argument union, or return shape, colocate that `type` directly above the function declaration. Promote it to a shared or domain abstraction only when it is reused, part of the public model, or needed to express a real abstraction boundary.
 - Treat property-access-derived types like `SecureClient['signatureType']` as a code smell in most cases. Prefer a named domain type when the value is part of the public or shared model.
 - Prefer simple, local code. Accept small duplication when it keeps logic easier to read.
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
