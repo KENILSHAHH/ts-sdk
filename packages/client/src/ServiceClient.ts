@@ -1,4 +1,4 @@
-import { never, ResultAsync } from '@polymarket/types';
+import { ResultAsync } from '@polymarket/types';
 import ky, { type KyInstance } from 'ky';
 import { RateLimitError, RequestRejectedError, TransportError } from './errors';
 
@@ -12,6 +12,11 @@ export type ServiceClientGetOptions = {
 };
 
 export type ServiceClientPostOptions = {
+  headers?: HeadersInit;
+  json?: unknown;
+};
+
+export type ServiceClientDeleteOptions = {
   headers?: HeadersInit;
   json?: unknown;
 };
@@ -56,8 +61,19 @@ export class ServiceClient {
     );
   }
 
-  del(_path: string): never {
-    return never('ServiceClient.del is not implemented yet');
+  del(
+    path: string,
+    options: ServiceClientDeleteOptions = {},
+  ): ResultAsync<
+    Response,
+    RateLimitError | RequestRejectedError | TransportError
+  > {
+    return this.#toResult(
+      this.#client.delete(this.#normalizePath(path), {
+        headers: options.headers,
+        json: options.json,
+      }),
+    );
   }
 
   #normalizePath(path: string) {

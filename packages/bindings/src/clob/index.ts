@@ -1,5 +1,6 @@
 export * from './account';
 export * from './api-key';
+export * from './cancel';
 export * from './fee-rate';
 export * from './neg-risk';
 export * from './order';
