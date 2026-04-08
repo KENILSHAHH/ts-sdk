@@ -11,8 +11,9 @@ import {
   createApiKeyAuthTypedDataPayload,
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
-import { RequestRejectedError } from './errors';
-import { ServiceClient } from './ServiceClient';
+import { RequestRejectedError, SigningError } from './errors';
+import { buildPolyHmacSignature } from './hmac';
+import { ServiceClient, type ServiceRequest } from './ServiceClient';
 
 export type PublicClientConfig = {
   /**
@@ -172,6 +173,17 @@ class PublicClient extends AbstractClient<Context> {
 }
 
 class SecureClient extends AbstractClient<SecureContext> {
+  readonly #secureClob: ServiceClient;
+
+  constructor(context: SecureContext) {
+    super(context);
+
+    this.#secureClob = new ServiceClient({
+      resolveHeaders: (request) => this.#createL2Headers(request),
+      root: this.environment.clob,
+    });
+  }
+
   /** @internal */
   get credentials(): ApiKeyCreds {
     return this.getContext().credentials;
@@ -185,6 +197,36 @@ class SecureClient extends AbstractClient<SecureContext> {
   /** @internal */
   get signatureType(): SignatureType {
     return this.getContext().signatureType;
+  }
+
+  /** @internal */
+  get secureClob(): ServiceClient {
+    return this.#secureClob;
+  }
+
+  async #createL2Headers(request: ServiceRequest): Promise<HeadersInit> {
+    try {
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      return {
+        POLY_ADDRESS: this.address,
+        POLY_API_KEY: this.credentials.key,
+        POLY_PASSPHRASE: this.credentials.passphrase,
+        POLY_SIGNATURE: await buildPolyHmacSignature(
+          this.credentials.secret,
+          timestamp,
+          request.method,
+          request.path,
+          request.body,
+        ),
+        POLY_TIMESTAMP: `${timestamp}`,
+      };
+    } catch (error) {
+      throw SigningError.fromError(
+        error,
+        'Could not sign the authenticated request',
+      );
+    }
   }
 }
 

@@ -4,7 +4,6 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import { createL2Headers } from '../../authorization';
 import type { SecureClient } from '../../clients';
 import type {
   RateLimitError,
@@ -123,16 +122,9 @@ async function cancel(
   path: string,
   payload?: unknown,
 ): Promise<CancelOrdersResponse> {
-  const body = payload === undefined ? undefined : JSON.stringify(payload);
-
   return unwrap(
-    client.clob
+    client.secureClob
       .del(path, {
-        headers: await createL2Headers(client, {
-          body,
-          method: 'DELETE',
-          requestPath: path,
-        }),
         json: payload,
       })
       .andThen(validateWith(CancelOrdersResponseSchema)),

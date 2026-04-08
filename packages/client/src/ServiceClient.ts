@@ -2,8 +2,25 @@ import { ResultAsync } from '@polymarket/types';
 import ky, { type KyInstance } from 'ky';
 import { RateLimitError, RequestRejectedError, TransportError } from './errors';
 
+/** @internal */
+export type ServiceRequest = {
+  method: 'DELETE' | 'GET' | 'POST';
+  path: string;
+  body?: string;
+  headers?: HeadersInit;
+  json?: unknown;
+  params?: URLSearchParams;
+};
+
+/** @internal */
+export type RequestHeadersResolver = (
+  request: ServiceRequest,
+) => Promise<HeadersInit>;
+
 export type ServiceClientConfig = {
   root: string;
+  /** @internal */
+  resolveHeaders?: RequestHeadersResolver;
 };
 
 export type ServiceClientGetOptions = {
@@ -26,9 +43,11 @@ export type ServiceClientDeleteOptions = {
  */
 export class ServiceClient {
   readonly #client: KyInstance;
+  readonly #resolveHeaders?: RequestHeadersResolver;
 
-  constructor({ root }: ServiceClientConfig) {
+  constructor({ root, resolveHeaders }: ServiceClientConfig) {
     this.#client = ky.create({ prefixUrl: root, throwHttpErrors: false });
+    this.#resolveHeaders = resolveHeaders;
   }
 
   get(
@@ -38,12 +57,7 @@ export class ServiceClient {
     Response,
     RateLimitError | RequestRejectedError | TransportError
   > {
-    return this.#toResult(
-      this.#client.get(this.#normalizePath(path), {
-        headers: options.headers,
-        searchParams: options.params,
-      }),
-    );
+    return this.#request('GET', path, options);
   }
 
   post(
@@ -53,12 +67,7 @@ export class ServiceClient {
     Response,
     RateLimitError | RequestRejectedError | TransportError
   > {
-    return this.#toResult(
-      this.#client.post(this.#normalizePath(path), {
-        headers: options.headers,
-        json: options.json,
-      }),
-    );
+    return this.#request('POST', path, options);
   }
 
   del(
@@ -68,16 +77,91 @@ export class ServiceClient {
     Response,
     RateLimitError | RequestRejectedError | TransportError
   > {
-    return this.#toResult(
-      this.#client.delete(this.#normalizePath(path), {
-        headers: options.headers,
-        json: options.json,
-      }),
-    );
+    return this.#request('DELETE', path, options);
   }
 
   #normalizePath(path: string) {
     return path.startsWith('/') ? path.slice(1) : path;
+  }
+
+  #request(
+    method: ServiceRequest['method'],
+    path: string,
+    options:
+      | ServiceClientDeleteOptions
+      | ServiceClientGetOptions
+      | ServiceClientPostOptions,
+  ): ResultAsync<
+    Response,
+    RateLimitError | RequestRejectedError | TransportError
+  > {
+    return this.#toResult(this.#send(method, path, options));
+  }
+
+  async #send(
+    method: ServiceRequest['method'],
+    path: string,
+    options:
+      | ServiceClientDeleteOptions
+      | ServiceClientGetOptions
+      | ServiceClientPostOptions,
+  ): Promise<Response> {
+    const request = this.#createRequest(method, path, options);
+    const resolvedHeaders = await this.#resolveHeaders?.(request);
+    const headers = this.#mergeHeaders(request.headers, resolvedHeaders);
+
+    if (request.body !== undefined && !headers.has('content-type')) {
+      headers.set('content-type', 'application/json');
+    }
+
+    return this.#client(this.#normalizePath(path), {
+      body: request.body,
+      headers,
+      method,
+      searchParams: request.params,
+    });
+  }
+
+  #createRequest(
+    method: ServiceRequest['method'],
+    path: string,
+    options:
+      | ServiceClientDeleteOptions
+      | ServiceClientGetOptions
+      | ServiceClientPostOptions,
+  ): ServiceRequest {
+    return {
+      body: 'json' in options ? this.#serializeJson(options.json) : undefined,
+      headers: options.headers,
+      json: 'json' in options ? options.json : undefined,
+      method,
+      params: 'params' in options ? options.params : undefined,
+      path,
+    };
+  }
+
+  #serializeJson(json: unknown): string | undefined {
+    if (json === undefined) {
+      return undefined;
+    }
+
+    return JSON.stringify(json);
+  }
+
+  #mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
+    const headers = new Headers();
+
+    for (const source of sources) {
+      if (source === undefined) {
+        continue;
+      }
+
+      for (const [key, value] of new Headers(source).entries()) {
+        headers.set(key, value);
+      }
+    }
+
+    return headers;
   }
 
   #toResult(

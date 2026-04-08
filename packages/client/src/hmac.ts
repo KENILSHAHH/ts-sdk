@@ -1,41 +1,5 @@
-import type { SecureClient } from './clients';
-import { SigningError } from './errors';
-
-export type L2HeadersRequest = {
-  method: string;
-  requestPath: string;
-  body?: string;
-};
-
-export async function createL2Headers(
-  client: SecureClient,
-  request: L2HeadersRequest,
-): Promise<HeadersInit> {
-  try {
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    return {
-      POLY_ADDRESS: client.address,
-      POLY_API_KEY: client.credentials.key,
-      POLY_PASSPHRASE: client.credentials.passphrase,
-      POLY_SIGNATURE: await buildPolyHmacSignature(
-        client.credentials.secret,
-        timestamp,
-        request.method,
-        request.requestPath,
-        request.body,
-      ),
-      POLY_TIMESTAMP: `${timestamp}`,
-    };
-  } catch (error) {
-    throw SigningError.fromError(
-      error,
-      'Could not sign the authenticated request',
-    );
-  }
-}
-
-async function buildPolyHmacSignature(
+/** @internal */
+export async function buildPolyHmacSignature(
   secret: string,
   timestamp: number,
   method: string,

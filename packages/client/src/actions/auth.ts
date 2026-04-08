@@ -5,7 +5,6 @@ import {
   ApiKeysResponseSchema,
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, type Signature, unwrap } from '@polymarket/types';
-import { createL2Headers } from '../authorization';
 import type { Client, SecureClient } from '../clients';
 import {
   type RateLimitError,
@@ -148,16 +147,9 @@ export type FetchApiKeysError =
 export async function fetchApiKeys(
   client: SecureClient,
 ): Promise<ApiKeysResponse['apiKeys']> {
-  const path = '/auth/api-keys';
-
   const response = await unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
-      })
+    client.secureClob
+      .get('/auth/api-keys')
       .andThen(validateWith(ApiKeysResponseSchema)),
   );
 

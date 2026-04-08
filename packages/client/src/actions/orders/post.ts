@@ -3,7 +3,6 @@ import {
   OrderResponseSchema,
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
-import { createL2Headers } from '../../authorization';
 import type { SecureClient } from '../../clients';
 import type {
   RateLimitError,
@@ -43,18 +42,11 @@ async function submitOrder(
   client: SecureClient,
   order: SignedOrder,
 ): Promise<OrderResponse> {
-  const path = '/order';
   const payload = createPostOrderPayload(client, order);
-  const body = JSON.stringify(payload);
 
   return unwrap(
-    client.clob
-      .post(path, {
-        headers: await createL2Headers(client, {
-          body,
-          method: 'POST',
-          requestPath: path,
-        }),
+    client.secureClob
+      .post('/order', {
         json: payload,
       })
       .andThen(validateWith(OrderResponseSchema)),

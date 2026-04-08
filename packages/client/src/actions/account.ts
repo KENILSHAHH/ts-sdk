@@ -26,7 +26,6 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import { createL2Headers } from '../authorization';
 import type { SecureClient } from '../clients';
 import type {
   RateLimitError,
@@ -109,15 +108,9 @@ export type FetchClosedOnlyModeError =
 export async function fetchClosedOnlyMode(
   client: SecureClient,
 ): Promise<boolean> {
-  const path = '/auth/ban-status/closed-only';
   const response = await unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
-      })
+    client.secureClob
+      .get('/auth/ban-status/closed-only')
       .andThen(validateWith(ClosedOnlyModeSchema)),
   );
 
@@ -145,17 +138,11 @@ export async function fetchOpenOrders(
   request?: FetchOpenOrdersRequest,
 ): Promise<OpenOrder[]> {
   const params = parseUserInput(request, FetchOpenOrdersRequestSchema);
-  const path = '/data/orders';
-  const headers = await createL2Headers(client, {
-    method: 'GET',
-    requestPath: path,
-  });
 
   return listAllPages(async (nextCursor) =>
     unwrap(
-      client.clob
-        .get(path, {
-          headers,
+      client.secureClob
+        .get('/data/orders', {
           params: toSearchParams({ ...params, nextCursor }, snakeCase()),
         })
         .andThen(validateWith(OpenOrdersPageSchema)),
@@ -182,16 +169,10 @@ export async function fetchOrder(
   request: FetchOrderRequest,
 ): Promise<OpenOrder> {
   const params = parseUserInput(request, FetchOrderRequestSchema);
-  const path = `/data/order/${params.orderId}`;
 
   return unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
-      })
+    client.secureClob
+      .get(`/data/order/${params.orderId}`)
       .andThen(validateWith(OpenOrderSchema)),
   );
 }
@@ -215,17 +196,11 @@ export async function fetchTrades(
   request?: FetchTradesRequest,
 ): Promise<ClobTrade[]> {
   const params = parseUserInput(request, FetchTradesRequestSchema);
-  const path = '/data/trades';
-  const headers = await createL2Headers(client, {
-    method: 'GET',
-    requestPath: path,
-  });
 
   return listAllPages(async (nextCursor) =>
     unwrap(
-      client.clob
-        .get(path, {
-          headers,
+      client.secureClob
+        .get('/data/trades', {
           params: toSearchParams({ ...params, nextCursor }, snakeCase()),
         })
         .andThen(validateWith(ClobTradesPageSchema)),
@@ -262,14 +237,9 @@ export async function fetchTradesPaginated(
   request?: FetchTradesPaginatedRequest,
 ): Promise<FetchTradesPaginatedResponse> {
   const params = parseUserInput(request, FetchTradesPaginatedRequestSchema);
-  const path = '/data/trades';
   const response = await unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
+    client.secureClob
+      .get('/data/trades', {
         params: toSearchParams(
           {
             ...params,
@@ -304,15 +274,9 @@ export type FetchNotificationsError =
 export async function fetchNotifications(
   client: SecureClient,
 ): Promise<NotificationsResponse> {
-  const path = '/notifications';
-
   return unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
+    client.secureClob
+      .get('/notifications', {
         params: toSearchParams(
           { signatureType: client.signatureType },
           snakeCase(),
@@ -350,15 +314,10 @@ export async function fetchBalanceAllowance(
   request: FetchBalanceAllowanceRequest,
 ): Promise<BalanceAllowanceResponse> {
   const params = parseUserInput(request, FetchBalanceAllowanceRequestSchema);
-  const path = '/balance-allowance';
 
   return unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
+    client.secureClob
+      .get('/balance-allowance', {
         params: toSearchParams(
           {
             ...params,
@@ -392,14 +351,9 @@ export async function fetchOrderScoring(
   request: FetchOrderScoringRequest,
 ): Promise<boolean> {
   const params = parseUserInput(request, FetchOrderScoringRequestSchema);
-  const path = '/order-scoring';
   const response = await unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
+    client.secureClob
+      .get('/order-scoring', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(OrderScoringResponseSchema)),
@@ -429,17 +383,11 @@ export async function fetchOrdersScoring(
   request: FetchOrdersScoringRequest,
 ): Promise<OrdersScoringResponse> {
   const params = parseUserInput(request, FetchOrdersScoringRequestSchema);
-  const path = '/orders-scoring';
   const body = params.orderIds;
 
   return unwrap(
-    client.clob
-      .post(path, {
-        headers: await createL2Headers(client, {
-          method: 'POST',
-          requestPath: path,
-          body: JSON.stringify(body),
-        }),
+    client.secureClob
+      .post('/orders-scoring', {
         json: body,
       })
       .andThen(validateWith(OrdersScoringResponseSchema)),
@@ -467,17 +415,11 @@ export async function fetchEarningsForUserForDay(
   request: FetchEarningsForUserForDayRequest,
 ): Promise<UserEarning[]> {
   const params = parseUserInput(request, FetchUserEarningsForDayRequestSchema);
-  const path = '/rewards/user';
-  const headers = await createL2Headers(client, {
-    method: 'GET',
-    requestPath: path,
-  });
 
   return listAllPages(async (nextCursor) =>
     unwrap(
-      client.clob
-        .get(path, {
-          headers,
+      client.secureClob
+        .get('/rewards/user', {
           params: toSearchParams(
             {
               ...params,
@@ -513,15 +455,10 @@ export async function fetchTotalEarningsForUserForDay(
   request: FetchTotalEarningsForUserForDayRequest,
 ): Promise<TotalUserEarning[]> {
   const params = parseUserInput(request, FetchUserEarningsForDayRequestSchema);
-  const path = '/rewards/user/total';
 
   return unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
+    client.secureClob
+      .get('/rewards/user/total', {
         params: toSearchParams(
           {
             ...params,
@@ -558,17 +495,11 @@ export async function fetchUserEarningsAndMarketsConfig(
     request,
     FetchUserEarningsAndMarketsConfigRequestSchema,
   );
-  const path = '/rewards/user/markets';
-  const headers = await createL2Headers(client, {
-    method: 'GET',
-    requestPath: path,
-  });
 
   return listAllPages(async (nextCursor) =>
     unwrap(
-      client.clob
-        .get(path, {
-          headers,
+      client.secureClob
+        .get('/rewards/user/markets', {
           params: toSearchParams(
             {
               ...params,
@@ -598,15 +529,9 @@ export type FetchRewardPercentagesError =
 export async function fetchRewardPercentages(
   client: SecureClient,
 ): Promise<RewardsPercentages> {
-  const path = '/rewards/user/percentages';
-
   return unwrap(
-    client.clob
-      .get(path, {
-        headers: await createL2Headers(client, {
-          method: 'GET',
-          requestPath: path,
-        }),
+    client.secureClob
+      .get('/rewards/user/percentages', {
         params: toSearchParams(
           { signatureType: client.signatureType },
           snakeCase(),
