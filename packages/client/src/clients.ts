@@ -48,30 +48,36 @@ type SecureContext = Context & {
 };
 
 abstract class AbstractClient<TContext extends Context> {
-  protected readonly context: TContext;
+  // Keep the backing context off the public object shape so accidental
+  // client logs do not print secure credentials.
+  readonly #context: TContext;
 
   constructor(context: TContext) {
-    this.context = context;
+    this.#context = context;
+  }
+
+  protected getContext(): TContext {
+    return this.#context;
   }
 
   /** @internal */
   get environment(): EnvironmentConfig {
-    return this.context.environment;
+    return this.#context.environment;
   }
 
   /** @internal */
   get clob(): ServiceClient {
-    return this.context.clob;
+    return this.#context.clob;
   }
 
   /** @internal */
   get gamma(): ServiceClient {
-    return this.context.gamma;
+    return this.#context.gamma;
   }
 
   /** @internal */
   get data(): ServiceClient {
-    return this.context.data;
+    return this.#context.data;
   }
 }
 
@@ -154,7 +160,10 @@ class PublicClient extends AbstractClient<Context> {
     signatureType: SignatureType,
   ): SecureClient {
     return new SecureClient({
-      ...this.context,
+      environment: this.environment,
+      clob: this.clob,
+      gamma: this.gamma,
+      data: this.data,
       address,
       credentials,
       signatureType,
@@ -165,17 +174,17 @@ class PublicClient extends AbstractClient<Context> {
 class SecureClient extends AbstractClient<SecureContext> {
   /** @internal */
   get credentials(): ApiKeyCreds {
-    return this.context.credentials;
+    return this.getContext().credentials;
   }
 
   /** @internal */
   get address(): EvmAddress {
-    return this.context.address;
+    return this.getContext().address;
   }
 
   /** @internal */
   get signatureType(): SignatureType {
-    return this.context.signatureType;
+    return this.getContext().signatureType;
   }
 }
 
