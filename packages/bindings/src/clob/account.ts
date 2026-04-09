@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NotificationIdSchema } from '../shared';
 
 function createCursorPageSchema<TItem extends z.ZodTypeAny>(item: TItem) {
   return z.object({
@@ -79,8 +80,10 @@ export const ClobTradesPageSchema = createCursorPageSchema(ClobTradeSchema);
 export type ClobTradesPage = z.infer<typeof ClobTradesPageSchema>;
 
 export const NotificationSchema = z.object({
+  id: NotificationIdSchema,
   owner: z.string(),
   payload: z.unknown(),
+  timestamp: z.string().or(z.number().int()),
   type: z.number(),
 });
 

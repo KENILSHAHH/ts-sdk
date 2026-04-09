@@ -1,3 +1,4 @@
+import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
 import { fetchWalletType } from './wallets';
@@ -12,10 +13,7 @@ describe('Wallets', () => {
         signer: TEST_USER,
       });
 
-      expect(result).toEqual({
-        type: 0,
-        typeName: 'EOA',
-      });
+      expect(result).toBe(WalletType.EOA);
     });
   });
 });

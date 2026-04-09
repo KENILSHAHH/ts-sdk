@@ -40,60 +40,6 @@ import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
-const FetchOpenOrdersRequestSchema = z
-  .object({
-    assetId: z.string().optional(),
-    id: z.string().optional(),
-    market: z.string().optional(),
-  })
-  .default({});
-
-const FetchTradesRequestFields = {
-  after: z.string().optional(),
-  assetId: z.string().optional(),
-  before: z.string().optional(),
-  id: z.string().optional(),
-  makerAddress: z.string().optional(),
-  market: z.string().optional(),
-};
-
-const FetchTradesRequestSchema = z.object(FetchTradesRequestFields).default({});
-
-const FetchTradesPaginatedRequestSchema = z
-  .object({
-    ...FetchTradesRequestFields,
-    nextCursor: z.string().optional(),
-  })
-  .default({});
-
-const FetchBalanceAllowanceRequestSchema = z.object({
-  assetType: AssetTypeSchema,
-  tokenId: z.string().optional(),
-});
-
-const FetchOrderRequestSchema = z.object({
-  orderId: z.string(),
-});
-
-const FetchOrderScoringRequestSchema = z.object({
-  orderId: z.string(),
-});
-
-const FetchOrdersScoringRequestSchema = z.object({
-  orderIds: z.array(z.string()),
-});
-
-const FetchUserEarningsForDayRequestSchema = z.object({
-  date: z.string(),
-});
-
-const FetchUserEarningsAndMarketsConfigRequestSchema = z.object({
-  date: z.string(),
-  noCompetition: z.boolean().optional(),
-  orderBy: z.string().optional(),
-  position: z.string().optional(),
-});
-
 export type FetchClosedOnlyModeError =
   | RateLimitError
   | RequestRejectedError
@@ -117,6 +63,14 @@ export async function fetchClosedOnlyMode(
 
   return response.closed_only;
 }
+
+const FetchOpenOrdersRequestSchema = z
+  .object({
+    assetId: z.string().optional(),
+    id: z.string().optional(),
+    market: z.string().optional(),
+  })
+  .default({});
 
 export type FetchOpenOrdersRequest = z.input<
   typeof FetchOpenOrdersRequestSchema
@@ -151,6 +105,10 @@ export async function fetchOpenOrders(
   );
 }
 
+const FetchOrderRequestSchema = z.object({
+  orderId: z.string(),
+});
+
 export type FetchOrderRequest = z.input<typeof FetchOrderRequestSchema>;
 export type FetchOrderError =
   | RateLimitError
@@ -177,6 +135,17 @@ export async function fetchOrder(
       .andThen(validateWith(OpenOrderSchema)),
   );
 }
+
+const FetchTradesRequestFields = {
+  after: z.string().optional(),
+  assetId: z.string().optional(),
+  before: z.string().optional(),
+  id: z.string().optional(),
+  makerAddress: z.string().optional(),
+  market: z.string().optional(),
+};
+
+const FetchTradesRequestSchema = z.object(FetchTradesRequestFields).default({});
 
 export type FetchTradesRequest = z.input<typeof FetchTradesRequestSchema>;
 export type FetchTradesError =
@@ -208,6 +177,13 @@ export async function fetchTrades(
     ),
   );
 }
+
+const FetchTradesPaginatedRequestSchema = z
+  .object({
+    ...FetchTradesRequestFields,
+    nextCursor: z.string().optional(),
+  })
+  .default({});
 
 export type FetchTradesPaginatedRequest = z.input<
   typeof FetchTradesPaginatedRequestSchema
@@ -267,6 +243,14 @@ export type FetchNotificationsError =
   | TransportError
   | UnexpectedResponseError;
 
+const DropNotificationsRequestSchema = z.object({
+  ids: z.array(z.string()).min(1),
+});
+
+export type DropNotificationsRequest = z.input<
+  typeof DropNotificationsRequestSchema
+>;
+
 /**
  * Fetches notifications for the authenticated account.
  *
@@ -285,6 +269,53 @@ export async function fetchNotifications(
       .andThen(validateWith(NotificationsResponseSchema)),
   );
 }
+
+export type DropNotificationsError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
+/**
+ * Drops notifications for the authenticated account.
+ *
+ * @throws {@link DropNotificationsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, cannot be signed, or returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * await dropNotifications(client, {
+ *   ids: ['1', '2'],
+ * });
+ * ```
+ */
+export async function dropNotifications(
+  client: SecureClient,
+  request: DropNotificationsRequest,
+): Promise<void> {
+  const params = parseUserInput(request, DropNotificationsRequestSchema);
+  const signatureType = toSignatureType(client.account.walletType);
+  const searchParams = toSearchParams(
+    {
+      ids: params.ids.join(','),
+      signatureType,
+    },
+    snakeCase(),
+  );
+
+  await unwrap(
+    client.secureClob.del('/notifications', {
+      params: searchParams,
+    }),
+  );
+}
+
+const FetchBalanceAllowanceRequestSchema = z.object({
+  assetType: AssetTypeSchema,
+  tokenId: z.string().optional(),
+});
 
 export type FetchBalanceAllowanceRequest = z.input<
   typeof FetchBalanceAllowanceRequestSchema
@@ -331,6 +362,10 @@ export async function fetchBalanceAllowance(
   );
 }
 
+const FetchOrderScoringRequestSchema = z.object({
+  orderId: z.string(),
+});
+
 export type FetchOrderScoringRequest = z.input<
   typeof FetchOrderScoringRequestSchema
 >;
@@ -363,6 +398,10 @@ export async function fetchOrderScoring(
   return response.scoring;
 }
 
+const FetchOrdersScoringRequestSchema = z.object({
+  orderIds: z.array(z.string()),
+});
+
 export type FetchOrdersScoringRequest = z.input<
   typeof FetchOrdersScoringRequestSchema
 >;
@@ -394,6 +433,10 @@ export async function fetchOrdersScoring(
       .andThen(validateWith(OrdersScoringResponseSchema)),
   );
 }
+
+const FetchUserEarningsForDayRequestSchema = z.object({
+  date: z.string(),
+});
 
 export type FetchEarningsForUserForDayRequest = z.input<
   typeof FetchUserEarningsForDayRequestSchema
@@ -473,6 +516,13 @@ export async function fetchTotalEarningsForUserForDay(
       .andThen(validateWith(TotalUserEarningsResponseSchema)),
   );
 }
+
+const FetchUserEarningsAndMarketsConfigRequestSchema = z.object({
+  date: z.string(),
+  noCompetition: z.boolean().optional(),
+  orderBy: z.string().optional(),
+  position: z.string().optional(),
+});
 
 export type FetchUserEarningsAndMarketsConfigRequest = z.input<
   typeof FetchUserEarningsAndMarketsConfigRequestSchema

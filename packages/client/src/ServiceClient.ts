@@ -36,6 +36,7 @@ export type ServiceClientPostOptions = {
 export type ServiceClientDeleteOptions = {
   headers?: HeadersInit;
   json?: unknown;
+  params?: URLSearchParams;
 };
 
 /**

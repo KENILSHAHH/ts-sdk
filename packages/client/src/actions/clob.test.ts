@@ -1,11 +1,21 @@
+import { OrderSide, PriceHistoryInterval } from '@polymarket/bindings/clob';
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
 import {
   fetchFeeRate,
+  fetchLastTradePrice,
+  fetchLastTradePrices,
+  fetchMidpoint,
+  fetchMidpoints,
   fetchNegRisk,
   fetchOrderBook,
+  fetchPrice,
+  fetchPrices,
+  fetchSpread,
+  fetchSpreads,
   fetchTickSize,
+  listPriceHistory,
 } from './clob';
 import { listMarkets } from './markets';
 
@@ -65,12 +75,139 @@ describe('CLOB', () => {
       expect(result.hash).toEqual(expect.any(String));
     });
   });
+
+  describe('fetchMidpoint', () => {
+    it('fetches the midpoint price for a token', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchMidpoint(publicClient, {
+        tokenId,
+      });
+
+      expect(result).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchMidpoints', () => {
+    it('fetches midpoint prices for multiple tokens', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchMidpoints(publicClient, [{ tokenId }]);
+
+      expect(result[tokenId]).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchPrice', () => {
+    it('fetches the quoted price for a token and side', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchPrice(publicClient, {
+        tokenId,
+        side: OrderSide.BUY,
+      });
+
+      expect(result).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchPrices', () => {
+    it('fetches quoted prices for multiple tokens', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchPrices(publicClient, [
+        {
+          tokenId,
+          side: OrderSide.BUY,
+        },
+      ]);
+
+      expect(result[tokenId]?.BUY).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchSpread', () => {
+    it('fetches the spread for a token', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchSpread(publicClient, {
+        tokenId,
+      });
+
+      expect(result).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchSpreads', () => {
+    it('fetches spreads for multiple tokens', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchSpreads(publicClient, [{ tokenId }]);
+
+      expect(result[tokenId]).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchLastTradePrice', () => {
+    it('fetches the last traded price for a token', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchLastTradePrice(publicClient, {
+        tokenId,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          price: expect.any(String),
+          side: expect.any(String),
+        }),
+      );
+    });
+  });
+
+  describe('fetchLastTradePrices', () => {
+    it('fetches last traded prices for multiple tokens', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchLastTradePrices(publicClient, [{ tokenId }]);
+
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          price: expect.any(String),
+          side: expect.any(String),
+          tokenId,
+        }),
+      );
+    });
+  });
+
+  describe('listPriceHistory', () => {
+    it('lists historical price points for a token', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await listPriceHistory(publicClient, {
+        tokenId,
+        interval: PriceHistoryInterval.ONE_DAY,
+        fidelity: 60,
+      });
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          p: expect.any(Number),
+          t: expect.any(Number),
+        }),
+      );
+    });
+  });
 });
 
 async function getClobTokenId(): Promise<string> {
   const markets = await listMarkets(publicClient, {
     closed: false,
-    limit: 10,
+    limit: 100,
+    order: 'volume24hr',
+    ascending: false,
   });
 
   for (const market of markets) {
