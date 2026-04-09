@@ -37,7 +37,7 @@ export async function prepareMarketOrder(
       return never('Not implemented yet');
     }
 
-    const unsignedOrder = createUnsignedOrder(draft);
+    const unsignedOrder = createUnsignedOrder(draft, client.account);
 
     const signature = expectSignature(
       yield {
@@ -72,7 +72,7 @@ export async function prepareLimitOrder(
       return never('Not implemented yet');
     }
 
-    const unsignedOrder = createUnsignedOrder(draft);
+    const unsignedOrder = createUnsignedOrder(draft, client.account);
 
     const signature = expectSignature(
       yield {

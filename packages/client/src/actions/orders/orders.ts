@@ -1,7 +1,12 @@
 import { ZERO_ADDRESS } from '@polymarket/types';
+import type { AccountIdentity } from '../../account';
+import { toSignatureType } from '../../account';
 import type { OrderDraft, SignedOrder, UnsignedOrder } from './types';
 
-export function createUnsignedOrder(order: OrderDraft): UnsignedOrder {
+export function createUnsignedOrder(
+  order: OrderDraft,
+  account: AccountIdentity,
+): UnsignedOrder {
   return {
     chainId: order.chainId,
     exchangeAddress: order.exchangeAddress,
@@ -14,7 +19,7 @@ export function createUnsignedOrder(order: OrderDraft): UnsignedOrder {
     orderType: order.orderType,
     salt: generateOrderSalt().toString(),
     side: order.side,
-    signatureType: order.signatureType,
+    signatureType: toSignatureType(account.walletType),
     signer: order.signer,
     taker: order.allowedTaker ?? ZERO_ADDRESS,
     takerAmount: order.requestedAmount.toString(),

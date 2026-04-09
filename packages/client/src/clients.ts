@@ -1,8 +1,7 @@
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
-import { SignatureType } from '@polymarket/bindings/clob';
-import { WalletType } from '@polymarket/bindings/gamma';
 import type { EvmAddress } from '@polymarket/types';
 import { expectEvmAddress, expectSignature } from '@polymarket/types';
+import type { AccountIdentity } from './account';
 import { createOrDeriveApiKey, fetchApiKeys } from './actions/auth';
 import { fetchPublicProfile } from './actions/profiles';
 import { fetchWalletType } from './actions/wallets';
@@ -41,11 +40,9 @@ type Context = {
 
 type SecureContext = Context & {
   /** @internal */
-  address: EvmAddress;
+  account: AccountIdentity;
   /** @internal */
   credentials: ApiKeyCreds;
-  /** @internal */
-  signatureType: SignatureType;
 };
 
 abstract class AbstractClient<TContext extends Context> {
@@ -91,14 +88,13 @@ class PublicClient extends AbstractClient<Context> {
         const timestamp = Math.floor(Date.now() / 1000);
         const nonce =
           options !== undefined && 'nonce' in options ? options.nonce : 0;
-        const address = expectEvmAddress(yield { kind: 'requestAddress' });
-        const signatureType = await this.#resolveSignatureType(address);
+        const signer = expectEvmAddress(yield { kind: 'requestAddress' });
+        const identity = await this.#resolveAccountIdentity(signer);
 
         if (options !== undefined && 'credentials' in options) {
           const client = this.#createSecureClient(
             options.credentials,
-            address,
-            signatureType,
+            identity,
           );
 
           try {
@@ -119,55 +115,48 @@ class PublicClient extends AbstractClient<Context> {
         const signature = yield {
           kind: 'signAuthMessage',
           payload: createApiKeyAuthTypedDataPayload({
-            address,
+            address: signer,
             chainId: this.environment.chainId,
             nonce,
             timestamp,
           }),
         };
         const credentials = await createOrDeriveApiKey(this, {
-          address,
+          address: signer,
           nonce,
           signature: expectSignature(signature),
           timestamp,
         });
 
-        return this.#createSecureClient(credentials, address, signatureType);
+        return this.#createSecureClient(credentials, identity);
       }.call(this),
     );
   }
 
-  async #resolveSignatureType(address: string): Promise<SignatureType> {
-    const profile = await fetchPublicProfile(this, { address });
+  async #resolveAccountIdentity(signer: EvmAddress): Promise<AccountIdentity> {
+    const profile = await fetchPublicProfile(this, { address: signer });
+    const wallet = profile.proxyWallet ?? signer;
 
-    const walletType = await fetchWalletType(this, {
-      address: profile.proxyWallet ?? address,
-      signer: address,
-    });
+    const walletType = await fetchWalletType(this, { address: wallet, signer });
 
-    switch (walletType) {
-      case WalletType.EOA:
-        return SignatureType.EOA;
-      case WalletType.POLY_PROXY:
-        return SignatureType.POLY_PROXY;
-      case WalletType.POLY_GNOSIS_SAFE:
-        return SignatureType.POLY_GNOSIS_SAFE;
-    }
+    return {
+      signer,
+      wallet,
+      walletType,
+    };
   }
 
   #createSecureClient(
     credentials: ApiKeyCreds,
-    address: EvmAddress,
-    signatureType: SignatureType,
+    identity: AccountIdentity,
   ): SecureClient {
     return new SecureClient({
       environment: this.environment,
       clob: this.clob,
       gamma: this.gamma,
       data: this.data,
-      address,
+      account: identity,
       credentials,
-      signatureType,
     });
   }
 }
@@ -190,13 +179,8 @@ class SecureClient extends AbstractClient<SecureContext> {
   }
 
   /** @internal */
-  get address(): EvmAddress {
-    return this.getContext().address;
-  }
-
-  /** @internal */
-  get signatureType(): SignatureType {
-    return this.getContext().signatureType;
+  get account(): AccountIdentity {
+    return this.getContext().account;
   }
 
   /** @internal */
@@ -209,7 +193,7 @@ class SecureClient extends AbstractClient<SecureContext> {
       const timestamp = Math.floor(Date.now() / 1000);
 
       return {
-        POLY_ADDRESS: this.address,
+        POLY_ADDRESS: this.account.signer,
         POLY_API_KEY: this.credentials.key,
         POLY_PASSPHRASE: this.credentials.passphrase,
         POLY_SIGNATURE: await buildPolyHmacSignature(

@@ -26,6 +26,7 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import { toSignatureType } from '../account';
 import type { SecureClient } from '../clients';
 import type {
   RateLimitError,
@@ -274,13 +275,12 @@ export type FetchNotificationsError =
 export async function fetchNotifications(
   client: SecureClient,
 ): Promise<NotificationsResponse> {
+  const signatureType = toSignatureType(client.account.walletType);
+
   return unwrap(
     client.secureClob
       .get('/notifications', {
-        params: toSearchParams(
-          { signatureType: client.signatureType },
-          snakeCase(),
-        ),
+        params: toSearchParams({ signatureType }, snakeCase()),
       })
       .andThen(validateWith(NotificationsResponseSchema)),
   );
@@ -314,6 +314,7 @@ export async function fetchBalanceAllowance(
   request: FetchBalanceAllowanceRequest,
 ): Promise<BalanceAllowanceResponse> {
   const params = parseUserInput(request, FetchBalanceAllowanceRequestSchema);
+  const signatureType = toSignatureType(client.account.walletType);
 
   return unwrap(
     client.secureClob
@@ -321,7 +322,7 @@ export async function fetchBalanceAllowance(
         params: toSearchParams(
           {
             ...params,
-            signatureType: client.signatureType,
+            signatureType,
           },
           snakeCase(),
         ),
@@ -415,6 +416,7 @@ export async function fetchEarningsForUserForDay(
   request: FetchEarningsForUserForDayRequest,
 ): Promise<UserEarning[]> {
   const params = parseUserInput(request, FetchUserEarningsForDayRequestSchema);
+  const signatureType = toSignatureType(client.account.walletType);
 
   return listAllPages(async (nextCursor) =>
     unwrap(
@@ -424,7 +426,7 @@ export async function fetchEarningsForUserForDay(
             {
               ...params,
               nextCursor,
-              signatureType: client.signatureType,
+              signatureType,
             },
             snakeCase(),
           ),
@@ -455,6 +457,7 @@ export async function fetchTotalEarningsForUserForDay(
   request: FetchTotalEarningsForUserForDayRequest,
 ): Promise<TotalUserEarning[]> {
   const params = parseUserInput(request, FetchUserEarningsForDayRequestSchema);
+  const signatureType = toSignatureType(client.account.walletType);
 
   return unwrap(
     client.secureClob
@@ -462,7 +465,7 @@ export async function fetchTotalEarningsForUserForDay(
         params: toSearchParams(
           {
             ...params,
-            signatureType: client.signatureType,
+            signatureType,
           },
           snakeCase(),
         ),
@@ -495,6 +498,7 @@ export async function fetchUserEarningsAndMarketsConfig(
     request,
     FetchUserEarningsAndMarketsConfigRequestSchema,
   );
+  const signatureType = toSignatureType(client.account.walletType);
 
   return listAllPages(async (nextCursor) =>
     unwrap(
@@ -504,7 +508,7 @@ export async function fetchUserEarningsAndMarketsConfig(
             {
               ...params,
               nextCursor,
-              signatureType: client.signatureType,
+              signatureType,
             },
             snakeCase(),
           ),
@@ -529,13 +533,12 @@ export type FetchRewardPercentagesError =
 export async function fetchRewardPercentages(
   client: SecureClient,
 ): Promise<RewardsPercentages> {
+  const signatureType = toSignatureType(client.account.walletType);
+
   return unwrap(
     client.secureClob
       .get('/rewards/user/percentages', {
-        params: toSearchParams(
-          { signatureType: client.signatureType },
-          snakeCase(),
-        ),
+        params: toSearchParams({ signatureType }, snakeCase()),
       })
       .andThen(validateWith(RewardsPercentagesSchema)),
   );

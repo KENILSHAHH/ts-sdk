@@ -4,7 +4,6 @@ import {
   OrderSide,
   OrderSideSchema,
   OrderType,
-  type SignatureType,
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, invariant } from '@polymarket/types';
 import { z } from 'zod';
@@ -13,7 +12,6 @@ import { fetchNegRisk, fetchOrderBook, fetchTickSize } from '../clob';
 import {
   resolveExchangeAddress,
   resolveFeeRateBps,
-  resolveFunderAddress,
   resolveRoundingConfig,
 } from './context';
 import { decimalPlaces, parseAmount, roundDown, roundUp } from './math';
@@ -54,7 +52,6 @@ export async function prepareMarketOrderDraft(
     offeredAmount: amounts.offeredAmount,
     orderType: params.orderType,
     side: params.side,
-    signatureType: context.signatureType,
     signer: context.signerAddress,
     allowedTaker: params.taker,
     requestedAmount: amounts.requestedAmount,
@@ -75,7 +72,6 @@ type MarketOrderContext = {
   funderAddress: EvmAddress;
   negRisk: boolean;
   price: number;
-  signatureType: SignatureType;
   signerAddress: EvmAddress;
   tickSize: TickSizeValue;
 };
@@ -84,9 +80,7 @@ async function resolveMarketOrderContext(
   client: SecureClient,
   params: ResolveMarketOrderContextParams,
 ): Promise<MarketOrderContext> {
-  const signerAddress = client.address;
-  const signatureType = client.signatureType;
-  const funderAddress = await resolveFunderAddress(client);
+  const account = client.account;
   const tickSize = await fetchTickSize(client, {
     tokenId: params.tokenId,
   });
@@ -105,11 +99,10 @@ async function resolveMarketOrderContext(
   return {
     exchangeAddress: resolveExchangeAddress(client, negRisk),
     feeRateBps,
-    funderAddress,
+    funderAddress: account.wallet,
     negRisk,
     price,
-    signatureType,
-    signerAddress,
+    signerAddress: account.signer,
     tickSize,
   };
 }

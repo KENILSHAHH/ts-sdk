@@ -75,7 +75,6 @@ export type OrderDraft = {
   offeredAmount: bigint;
   orderType: OrderType;
   side: OrderSide;
-  signatureType: SignatureType;
   signer: EvmAddress;
   allowedTaker?: EvmAddress;
   requestedAmount: bigint;

@@ -3,7 +3,6 @@ import {
   OrderSide,
   OrderSideSchema,
   OrderType,
-  type SignatureType,
 } from '@polymarket/bindings/clob';
 import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
@@ -13,7 +12,6 @@ import { fetchNegRisk, fetchTickSize } from '../clob';
 import {
   resolveExchangeAddress,
   resolveFeeRateBps,
-  resolveFunderAddress,
   resolveRoundingConfig,
 } from './context';
 import {
@@ -103,7 +101,6 @@ export async function prepareLimitOrderDraft(
     offeredAmount: amounts.offeredAmount,
     orderType: params.orderType,
     side: params.side,
-    signatureType: context.signatureType,
     signer: context.signerAddress,
     allowedTaker: params.taker,
     requestedAmount: amounts.requestedAmount,
@@ -117,7 +114,6 @@ type LimitOrderContext = {
   funderAddress: EvmAddress;
   negRisk: boolean;
   price: number;
-  signatureType: SignatureType;
   signerAddress: EvmAddress;
   tickSize: TickSizeValue;
 };
@@ -126,9 +122,7 @@ async function resolveLimitOrderContext(
   client: SecureClient,
   params: ResolveLimitOrderContextParams,
 ): Promise<LimitOrderContext> {
-  const signerAddress = client.address;
-  const signatureType = client.signatureType;
-  const funderAddress = await resolveFunderAddress(client);
+  const account = client.account;
   const tickSize = await fetchTickSize(client, {
     tokenId: params.tokenId,
   });
@@ -140,11 +134,10 @@ async function resolveLimitOrderContext(
   return {
     exchangeAddress: resolveExchangeAddress(client, negRisk),
     feeRateBps,
-    funderAddress,
+    funderAddress: account.wallet,
     negRisk,
     price: resolvePrice(params.price, tickSize),
-    signatureType,
-    signerAddress,
+    signerAddress: account.signer,
     tickSize,
   };
 }

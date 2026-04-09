@@ -3,7 +3,6 @@ import type { EvmAddress } from '@polymarket/types';
 import { invariant } from '@polymarket/types';
 import type { SecureClient } from '../../clients';
 import { fetchFeeRate } from '../clob';
-import { fetchPublicProfile } from '../profiles';
 
 export type RoundingConfig = {
   amount: number;
@@ -33,16 +32,6 @@ export async function resolveFeeRateBps(
   return fetchFeeRate(client, {
     tokenId,
   });
-}
-
-export async function resolveFunderAddress(
-  client: SecureClient,
-): Promise<EvmAddress> {
-  const profile = await fetchPublicProfile(client, {
-    address: client.address,
-  });
-
-  return profile.proxyWallet ?? client.address;
 }
 
 export function resolveExchangeAddress(
