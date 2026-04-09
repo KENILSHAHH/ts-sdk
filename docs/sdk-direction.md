@@ -23,13 +23,13 @@ The first shipping target is `@polymarket/client`. Its job is to make Polymarket
 - Keep phase 2 focused on standard authenticated account reads that are clearly part of the primary trading workflow.
 - Revisit readonly API keys later if there is a concrete SDK use case and clearer public documentation.
 - Normalize the CTF position identifier to `tokenId` in the SDK public model, even when upstream services call the same value `assetId`.
-- Standardize SDK identifier naming on JS/TS-style `...Id` forms such as `orderId`, `tokenId`, and `marketId`, and translate legacy `...ID` and wire-format variants at the service boundary.
+- Standardize SDK identifier naming on JS/TS-style `...Id` forms such as `orderId`, `tradeId`, `tokenId`, and `marketId`, and translate legacy `...ID` and wire-format variants at the service boundary.
 
 ## TODO
 
 - In this case, make CLOB responses use camelCased fields.
 - Normalize upstream CLOB `assetId`/`asset_id` fields to `tokenId` across bindings, client actions, and public result types.
-- Audit legacy `...ID` and mixed `Id`/`ID` spellings across CLOB-backed SDK models, and standardize the public SDK surface on `...Id` names.
+- Audit legacy `...ID` and mixed `Id`/`ID` spellings across CLOB-backed SDK models, including `orderID` and `tradeIDs`, and standardize the public SDK surface on `...Id` names.
 - Add a cache layer for `tickSize`, fee bps, and `negRisk` metadata.
 - Consider moving `SignedOrder` into `packages/client/src/types.ts` so it is easier to reuse across order actions and wallet helpers.
 - Revisit whether the Gamma `GET /markets` `active` flag should be modeled in the SDK, since it is accepted in practice but omitted from the current OpenAPI contract and current client request type.
