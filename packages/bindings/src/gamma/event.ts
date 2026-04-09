@@ -1,4 +1,6 @@
+import { z } from 'zod';
 import {
+  EventIdSchema,
   toBestLineId,
   toChatId,
   toCollectionId,
@@ -9,9 +11,7 @@ import {
   toSportId,
   toTeamId,
   toTemplateId,
-} from '@polymarket/types';
-import { z } from 'zod';
-import { EventIdSchema } from '../shared';
+} from '../shared';
 import {
   CategoryReferenceSchema,
   ImageOptimizationSchema,

@@ -1,5 +1,10 @@
 import { InvariantError } from './errors';
-import { type EvmAddress, isHexString, type Signature } from './hex';
+import {
+  type EvmAddress,
+  isHexString,
+  type Signature,
+  type TxHash,
+} from './hex';
 
 export type NonEmptyArray<T> = readonly [T, ...T[]];
 
@@ -57,4 +62,18 @@ export function expectSignature(
   }
 
   return value as Signature;
+}
+
+/**
+ * Refines a string to a transaction hash or throws when the value is invalid.
+ */
+export function expectTxHash(
+  value: string,
+  message = 'Expected a transaction hash',
+): TxHash {
+  if (!isHexString(value) || value.length !== 66) {
+    throw new InvariantError(message);
+  }
+
+  return value as TxHash;
 }

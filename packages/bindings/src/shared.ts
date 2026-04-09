@@ -1,24 +1,130 @@
 import {
-  type ApiKey,
-  type CategoryId,
-  type ClobRewardId,
-  type EventId,
   type EvmAddress,
   expectEvmAddress,
-  type ImageOptimizationId,
-  type InternalUserId,
-  type MarketId,
-  type TagId,
-  toApiKey,
-  toCategoryId,
-  toClobRewardId,
-  toEventId,
-  toImageOptimizationId,
-  toInternalUserId,
-  toMarketId,
-  toTagId,
+  expectTxHash,
+  type TxHash,
 } from '@polymarket/types';
 import { z } from 'zod';
+
+type Tagged<T, Tag extends string> = T & { readonly __tag: Tag };
+
+function toTaggedString<T extends string>(value: string): T {
+  return value as T;
+}
+
+function toTaggedInteger<T extends number>(value: number): T {
+  if (!Number.isInteger(value)) {
+    throw new TypeError(`Expected an integer, received: ${value}`);
+  }
+
+  return value as T;
+}
+
+export type BestLineId = Tagged<string, 'BestLineId'>;
+export type Uuid = Tagged<string, 'Uuid'>;
+export type ApiKey = Tagged<Uuid, 'ApiKey'>;
+export type CategoryId = Tagged<string, 'CategoryId'>;
+export type ChatId = Tagged<string, 'ChatId'>;
+export type ClobRewardId = Tagged<string, 'ClobRewardId'>;
+export type CollectionId = Tagged<string, 'CollectionId'>;
+export type EventCreatorId = Tagged<string, 'EventCreatorId'>;
+export type EventExternalPartnerMappingId = Tagged<
+  number,
+  'EventExternalPartnerMappingId'
+>;
+export type EventId = Tagged<string, 'EventId'>;
+export type ImageOptimizationId = Tagged<string, 'ImageOptimizationId'>;
+export type InternalUserId = Tagged<string, 'InternalUserId'>;
+export type MarketId = Tagged<string, 'MarketId'>;
+export type NotificationId = Tagged<number, 'NotificationId'>;
+export type PartnerId = Tagged<number, 'PartnerId'>;
+export type SeriesId = Tagged<string, 'SeriesId'>;
+export type SportId = Tagged<number, 'SportId'>;
+export type TagId = Tagged<string, 'TagId'>;
+export type TeamId = Tagged<number, 'TeamId'>;
+export type TemplateId = Tagged<string, 'TemplateId'>;
+
+export function toBestLineId(value: string): BestLineId {
+  return toTaggedString<BestLineId>(value);
+}
+
+export function toUuid(value: string): Uuid {
+  return toTaggedString<Uuid>(value);
+}
+
+export function toApiKey(value: string): ApiKey {
+  return toTaggedString<ApiKey>(value);
+}
+
+export function toCategoryId(value: string): CategoryId {
+  return toTaggedString<CategoryId>(value);
+}
+
+export function toChatId(value: string): ChatId {
+  return toTaggedString<ChatId>(value);
+}
+
+export function toClobRewardId(value: string): ClobRewardId {
+  return toTaggedString<ClobRewardId>(value);
+}
+
+export function toCollectionId(value: string): CollectionId {
+  return toTaggedString<CollectionId>(value);
+}
+
+export function toEventCreatorId(value: string): EventCreatorId {
+  return toTaggedString<EventCreatorId>(value);
+}
+
+export function toEventExternalPartnerMappingId(
+  value: number,
+): EventExternalPartnerMappingId {
+  return toTaggedInteger<EventExternalPartnerMappingId>(value);
+}
+
+export function toEventId(value: string): EventId {
+  return toTaggedString<EventId>(value);
+}
+
+export function toImageOptimizationId(value: string): ImageOptimizationId {
+  return toTaggedString<ImageOptimizationId>(value);
+}
+
+export function toInternalUserId(value: string): InternalUserId {
+  return toTaggedString<InternalUserId>(value);
+}
+
+export function toMarketId(value: string): MarketId {
+  return toTaggedString<MarketId>(value);
+}
+
+export function toNotificationId(value: number): NotificationId {
+  return toTaggedInteger<NotificationId>(value);
+}
+
+export function toPartnerId(value: number): PartnerId {
+  return toTaggedInteger<PartnerId>(value);
+}
+
+export function toSeriesId(value: string): SeriesId {
+  return toTaggedString<SeriesId>(value);
+}
+
+export function toSportId(value: number): SportId {
+  return toTaggedInteger<SportId>(value);
+}
+
+export function toTagId(value: string): TagId {
+  return toTaggedString<TagId>(value);
+}
+
+export function toTeamId(value: number): TeamId {
+  return toTaggedInteger<TeamId>(value);
+}
+
+export function toTemplateId(value: string): TemplateId {
+  return toTaggedString<TemplateId>(value);
+}
 
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
@@ -42,23 +148,18 @@ export const ImageOptimizationIdSchema = z
   .transform(toImageOptimizationId);
 export const InternalUserIdSchema = z.string().transform(toInternalUserId);
 export const MarketIdSchema = z.string().transform(toMarketId);
+export const NotificationIdSchema = z
+  .number()
+  .int()
+  .transform(toNotificationId);
 export const TagIdSchema = z.string().transform(toTagId);
+export const TxHashSchema = z.string().transform(toTxHash);
 
 export type ISODateString = z.output<typeof ISODateStringSchema>;
 export type ISOCalendarDateString = z.output<typeof ISOCalendarDateSchema>;
 export type TickSizeValue = z.output<typeof TickSizeValueSchema>;
 
-export type {
-  ApiKey,
-  CategoryId,
-  ClobRewardId,
-  EventId,
-  EvmAddress,
-  ImageOptimizationId,
-  InternalUserId,
-  MarketId,
-  TagId,
-};
+export type { EvmAddress, TxHash };
 
 function toISODateString(value: Date): string {
   return value.toISOString();
@@ -70,4 +171,8 @@ function toISOCalendarDateString(value: Date): string {
 
 function toEvmAddress(value: string): EvmAddress {
   return expectEvmAddress(value);
+}
+
+function toTxHash(value: string): TxHash {
+  return expectTxHash(value);
 }
