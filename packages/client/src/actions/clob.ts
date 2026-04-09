@@ -600,18 +600,13 @@ export async function fetchLastTradePrices(
 ): Promise<LastTradePriceForToken[]> {
   const params = parseUserInput(request, FetchLastTradePricesRequestSchema);
 
-  const response = await unwrap(
+  return unwrap(
     client.clob
       .post('last-trades-prices', {
         json: toTokenRequestPayload(params),
       })
       .andThen(validateWith(LastTradePricesSchema)),
   );
-
-  return response.map(({ token_id, ...trade }) => ({
-    ...trade,
-    tokenId: token_id,
-  }));
 }
 
 const ListPriceHistoryRequestSchema = z.object({

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MarketIdSchema, TickSizeValueSchema } from '../shared';
+import { MarketIdSchema, TickSizeValueSchema, TokenIdSchema } from '../shared';
 import {
   CategoryReferenceSchema,
   ClobRewardsSchema,
@@ -11,10 +11,20 @@ import {
   TagReferenceSchema,
 } from './common';
 
-const TwoStringTupleSchema = z
+const OutcomePairSchema = z
   .string()
   .transform((val) => JSON.parse(val))
   .pipe(z.tuple([z.string(), z.string()]));
+
+const OutcomePricePairSchema = z
+  .string()
+  .transform((val) => JSON.parse(val))
+  .pipe(z.tuple([z.string(), z.string()]));
+
+const TokenIdPairSchema = z
+  .string()
+  .transform((val) => JSON.parse(val))
+  .pipe(z.tuple([TokenIdSchema, TokenIdSchema]));
 
 export const MarketSchema = z.looseObject({
   id: MarketIdSchema,
@@ -39,8 +49,8 @@ export const MarketSchema = z.looseObject({
   lowerBound: z.string().nullish(),
   upperBound: z.string().nullish(),
   description: z.string().nullish(),
-  outcomes: TwoStringTupleSchema.nullish(),
-  outcomePrices: TwoStringTupleSchema.nullish(),
+  outcomes: OutcomePairSchema.nullish(),
+  outcomePrices: OutcomePricePairSchema.nullish(),
   volume: z.string().nullish(),
   active: z.boolean().nullish(),
   marketType: z.string().nullish(),
@@ -92,7 +102,7 @@ export const MarketSchema = z.looseObject({
   volume1yr: z.number().nullish(),
   gameStartTime: z.string().nullish(),
   secondsDelay: z.number().int().nullish(),
-  clobTokenIds: TwoStringTupleSchema.nullish(),
+  clobTokenIds: TokenIdPairSchema.nullish(),
   disqusThread: z.string().nullish(),
   shortOutcomes: z.string().nullish(),
   teamAID: z.string().nullish(),

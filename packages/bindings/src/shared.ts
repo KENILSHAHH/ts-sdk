@@ -43,6 +43,7 @@ export type SportId = Tagged<number, 'SportId'>;
 export type TagId = Tagged<string, 'TagId'>;
 export type TeamId = Tagged<number, 'TeamId'>;
 export type TemplateId = Tagged<string, 'TemplateId'>;
+export type TokenId = Tagged<string, 'TokenId'>;
 
 export function toBestLineId(value: string): BestLineId {
   return toTaggedString<BestLineId>(value);
@@ -126,6 +127,10 @@ export function toTemplateId(value: string): TemplateId {
   return toTaggedString<TemplateId>(value);
 }
 
+export function toTokenId(value: string): TokenId {
+  return toTaggedString<TokenId>(value);
+}
+
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
@@ -153,6 +158,7 @@ export const NotificationIdSchema = z
   .int()
   .transform(toNotificationId);
 export const TagIdSchema = z.string().transform(toTagId);
+export const TokenIdSchema = z.string().transform(toTokenId);
 export const TxHashSchema = z.string().transform(toTxHash);
 
 export type ISODateString = z.output<typeof ISODateStringSchema>;

@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { TokenIdSchema } from '../shared';
 import { ImageOptimizationSchema } from './common';
 
 export const CommentPositionSchema = z.looseObject({
-  tokenId: z.string().nullish(),
+  tokenId: TokenIdSchema.nullish(),
   positionSize: z.string().nullish(),
 });
 

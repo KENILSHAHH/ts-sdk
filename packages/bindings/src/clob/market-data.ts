@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TokenIdSchema } from '../shared';
 import { OrderSideSchema } from './order';
 
 export enum PriceHistoryInterval {
@@ -24,10 +25,7 @@ export const PriceSchema = z.looseObject({
 });
 export type Price = z.infer<typeof PriceSchema>;
 
-const PricesBySideSchema = z.object({
-  BUY: z.string().optional(),
-  SELL: z.string().optional(),
-});
+const PricesBySideSchema = z.record(OrderSideSchema, z.string().optional());
 export type PricesBySide = z.infer<typeof PricesBySideSchema>;
 
 export const PricesSchema = z.record(z.string(), PricesBySideSchema);
@@ -47,15 +45,23 @@ export const LastTradePriceSchema = z.looseObject({
 });
 export type LastTradePrice = z.infer<typeof LastTradePriceSchema>;
 
-const LastTradePriceForTokenResponseSchema = LastTradePriceSchema.extend({
-  token_id: z.string(),
-});
+const LastTradePriceForTokenResponseSchema = z
+  .object({
+    price: z.string(),
+    side: OrderSideSchema,
+    token_id: TokenIdSchema,
+  })
+  .transform(({ token_id, price, side }) => ({
+    tokenId: token_id,
+    price,
+    side,
+  }));
 export type LastTradePriceForTokenResponse = z.infer<
   typeof LastTradePriceForTokenResponseSchema
 >;
 
 const LastTradePriceForTokenSchema = z.object({
-  tokenId: z.string(),
+  tokenId: TokenIdSchema,
   price: z.string(),
   side: OrderSideSchema,
 });
