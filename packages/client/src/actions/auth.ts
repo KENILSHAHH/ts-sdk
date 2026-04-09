@@ -5,6 +5,7 @@ import {
   ApiKeysResponseSchema,
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, type Signature, unwrap } from '@polymarket/types';
+import { z } from 'zod';
 import type { Client, SecureClient } from '../clients';
 import {
   type RateLimitError,
@@ -154,6 +155,34 @@ export async function fetchApiKeys(
   );
 
   return response.apiKeys;
+}
+
+export type DeleteApiKeyError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError;
+
+/**
+ * Deletes the authenticated API key.
+ *
+ * @remarks
+ * This is a low-level auth action that most SDK consumers will not need.
+ *
+ * @example
+ * 
+ *
+ * @throws {@link DeleteApiKeyError}
+ * Thrown when request signing fails, or the request is rejected, rate limited,
+ * interrupted by transport issues, or returns an unexpected response.
+ */
+export async function deleteApiKey(client: SecureClient): Promise<void> {
+  await unwrap(
+    client.secureClob
+      .del('/auth/api-key')
+      .andThen(validateWith(z.literal('OK'))),
+  );
 }
 
 function toL1Headers(auth: ApiKeyAuthRequest): HeadersInit {

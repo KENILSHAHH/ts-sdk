@@ -1,5 +1,6 @@
+import { InvariantError } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { fetchApiKeys } from './actions';
+import { fetchApiKeys, fetchPublicProfile } from './actions';
 import { createTestWalletClient, publicClient } from './testing';
 import { authenticateWith } from './viem';
 
@@ -47,6 +48,33 @@ describe('clients', () => {
         .then(authenticateWith(walletClient));
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
+    });
+  });
+
+  describe('SecureClient.endAuthentication', () => {
+    it('returns a public client and invalidates the secure client', async () => {
+      const controlClient = await publicClient
+        .beginAuthentication({ nonce: 997 })
+        .then(authenticateWith(walletClient));
+      const secureClient = await publicClient
+        .beginAuthentication({ nonce: 998 })
+        .then(authenticateWith(walletClient));
+      const revokedKey = secureClient.credentials.key;
+      const signer = secureClient.account.signer;
+
+      await expect(fetchApiKeys(controlClient)).resolves.toContain(revokedKey);
+
+      const publicOnlyClient = await secureClient.endAuthentication();
+      const remainingApiKeys = await fetchApiKeys(controlClient);
+
+      expect(remainingApiKeys).toContain(controlClient.credentials.key);
+      expect(remainingApiKeys).not.toContain(revokedKey);
+      await expect(fetchApiKeys(secureClient)).rejects.toBeInstanceOf(
+        InvariantError,
+      );
+      await expect(
+        fetchPublicProfile(publicOnlyClient, { address: signer }),
+      ).resolves.toBeDefined();
     });
   });
 });
