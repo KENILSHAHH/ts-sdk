@@ -22,6 +22,9 @@ The first shipping target is `@polymarket/client`. Its job is to make Polymarket
 - Omit readonly API key management from the first `@polymarket/client` surface for now.
 - Keep phase 2 focused on standard authenticated account reads that are clearly part of the primary trading workflow.
 - Revisit readonly API keys later if there is a concrete SDK use case and clearer public documentation.
+- Pause a public server-time action until there is clear evidence that clock synchronization is needed for supported SDK workflows.
+- Do not add `simplified-markets`, `sampling-markets`, or `sampling-simplified-markets` actions unless a concrete SDK workflow needs those legacy market listing variants.
+- Do not add heartbeat actions to `@polymarket/client`; the current heartbeat endpoint is expected to be removed in v2.
 - Normalize the CTF position identifier to `tokenId` in the SDK public model, even when upstream services call the same value `assetId`.
 - Standardize SDK identifier naming on JS/TS-style `...Id` forms such as `orderId`, `tradeId`, `tokenId`, and `marketId`, and translate legacy `...ID` and wire-format variants at the service boundary.
 
