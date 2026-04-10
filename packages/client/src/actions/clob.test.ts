@@ -1,20 +1,24 @@
 import { OrderSide, PriceHistoryInterval } from '@polymarket/bindings/clob';
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
+import { RequestRejectedError } from '../errors';
 import { publicClient } from '../testing';
 import {
   fetchFeeRate,
   fetchLastTradePrice,
   fetchLastTradePrices,
+  fetchMarketRewards,
   fetchMidpoint,
   fetchMidpoints,
   fetchNegRisk,
   fetchOrderBook,
+  fetchOrderBooks,
   fetchPrice,
   fetchPrices,
   fetchSpread,
   fetchSpreads,
   fetchTickSize,
+  listCurrentRewards,
   listPriceHistory,
 } from './clob';
 import { listMarkets } from './markets';
@@ -73,6 +77,22 @@ describe('CLOB', () => {
       expect(result.min_order_size).toEqual(expect.any(String));
       expect(result.neg_risk).toEqual(expect.any(Boolean));
       expect(result.hash).toEqual(expect.any(String));
+    });
+  });
+
+  describe('fetchOrderBooks', () => {
+    it('fetches order books for multiple tokens', async () => {
+      const tokenId = await getClobTokenId();
+
+      const result = await fetchOrderBooks(publicClient, [{ tokenId }]);
+
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          asset_id: tokenId,
+          asks: expect.any(Array),
+          bids: expect.any(Array),
+        }),
+      );
     });
   });
 
@@ -200,6 +220,55 @@ describe('CLOB', () => {
       );
     });
   });
+
+  describe('listCurrentRewards', () => {
+    it('lists current active market rewards', async () => {
+      const result = await listCurrentRewards(publicClient).catch(
+        ignoreRewardsEndpointTimeout,
+      );
+
+      if (result === undefined) {
+        return;
+      }
+
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('fetchMarketRewards', () => {
+    it('fetches reward configurations for a market', async () => {
+      const currentRewards = await listCurrentRewards(publicClient).catch(
+        ignoreRewardsEndpointTimeout,
+      );
+
+      if (currentRewards === undefined) {
+        return;
+      }
+
+      const currentReward = currentRewards[0];
+
+      if (currentReward === undefined) {
+        return;
+      }
+
+      const result = await fetchMarketRewards(publicClient, {
+        conditionId: currentReward.condition_id,
+      }).catch(ignoreRewardsEndpointTimeout);
+
+      if (result === undefined) {
+        return;
+      }
+
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          condition_id: currentReward.condition_id,
+          question: expect.any(String),
+          tokens: expect.any(Array),
+        }),
+      );
+    });
+  });
 });
 
 async function getClobTokenId(): Promise<string> {
@@ -217,4 +286,15 @@ async function getClobTokenId(): Promise<string> {
   }
 
   never('Expected at least one live market with a CLOB token id');
+}
+
+function ignoreRewardsEndpointTimeout(error: unknown) {
+  if (
+    error instanceof RequestRejectedError &&
+    error.message.includes('canceling statement due to statement timeout')
+  ) {
+    return undefined;
+  }
+
+  throw error;
 }

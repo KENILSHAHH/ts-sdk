@@ -1,5 +1,6 @@
 import type { TickSizeValue } from '@polymarket/bindings';
 import {
+  type CurrentReward,
   FetchFeeRateResponseSchema,
   FetchNegRiskResponseSchema,
   FetchOrderBookResponseSchema,
@@ -8,10 +9,14 @@ import {
   type LastTradePriceForToken,
   LastTradePriceSchema,
   LastTradePricesSchema,
+  type MarketReward,
   MidpointSchema,
   MidpointsSchema,
   type OrderBook,
+  OrderBooksSchema,
   OrderSideSchema,
+  PaginatedCurrentRewardsSchema,
+  PaginatedMarketRewardsSchema,
   PriceHistoryIntervalSchema,
   type PriceHistoryPoint,
   PriceHistorySchema,
@@ -412,6 +417,58 @@ export async function fetchOrderBook(
   );
 }
 
+const FetchOrderBooksRequestSchema = z
+  .array(
+    z.object({
+      tokenId: z.string(),
+    }),
+  )
+  .min(1);
+
+export type FetchOrderBooksRequest = z.input<
+  typeof FetchOrderBooksRequestSchema
+>;
+
+export type FetchOrderBooksError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
+/**
+ * Fetches order books for multiple tokens.
+ *
+ * @throws {@link FetchOrderBooksError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const books = await fetchOrderBooks(client, [
+ *   {
+ *     tokenId:
+ *       '8501497159083948713316135768103773293754490207922884688769443031624417212426',
+ *   },
+ * ])
+ *
+ * // books === OrderBook[]
+ * ```
+ */
+export async function fetchOrderBooks(
+  client: Client,
+  request: FetchOrderBooksRequest,
+): Promise<OrderBook[]> {
+  const params = parseUserInput(request, FetchOrderBooksRequestSchema);
+
+  return unwrap(
+    client.clob
+      .post('books', {
+        json: toTokenRequestPayload(params),
+      })
+      .andThen(validateWith(OrderBooksSchema)),
+  );
+}
+
 const FetchSpreadRequestSchema = z.object({
   tokenId: z.string(),
 });
@@ -669,6 +726,114 @@ export async function listPriceHistory(
   return response.history;
 }
 
+const ListCurrentRewardsRequestSchema = z
+  .object({
+    sponsored: z.boolean().optional(),
+  })
+  .default({});
+
+export type ListCurrentRewardsRequest = z.input<
+  typeof ListCurrentRewardsRequestSchema
+>;
+
+export type ListCurrentRewardsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
+/**
+ * Lists current active market rewards.
+ *
+ * @throws {@link ListCurrentRewardsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const rewards = await listCurrentRewards(client)
+ *
+ * // rewards === CurrentReward[]
+ * ```
+ */
+export async function listCurrentRewards(
+  client: Client,
+  request: ListCurrentRewardsRequest = {},
+): Promise<CurrentReward[]> {
+  const params = parseUserInput(request, ListCurrentRewardsRequestSchema);
+
+  return listAllClobPages(async (nextCursor) =>
+    unwrap(
+      client.clob
+        .get('rewards/markets/current', {
+          params: toSearchParams(
+            {
+              ...params,
+              nextCursor,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(PaginatedCurrentRewardsSchema)),
+    ),
+  );
+}
+
+const FetchMarketRewardsRequestSchema = z.object({
+  conditionId: z.string(),
+  sponsored: z.boolean().optional(),
+});
+
+export type FetchMarketRewardsRequest = z.input<
+  typeof FetchMarketRewardsRequestSchema
+>;
+
+export type FetchMarketRewardsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
+/**
+ * Fetches reward configurations for a market.
+ *
+ * @throws {@link FetchMarketRewardsError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ *
+ * @example
+ * ```ts
+ * const rewards = await fetchMarketRewards(client, {
+ *   conditionId:
+ *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
+ * })
+ *
+ * // rewards === MarketReward[]
+ * ```
+ */
+export async function fetchMarketRewards(
+  client: Client,
+  request: FetchMarketRewardsRequest,
+): Promise<MarketReward[]> {
+  const params = parseUserInput(request, FetchMarketRewardsRequestSchema);
+
+  return listAllClobPages(async (nextCursor) =>
+    unwrap(
+      client.clob
+        .get(`rewards/markets/${params.conditionId}`, {
+          params: toSearchParams(
+            {
+              nextCursor,
+              sponsored: params.sponsored,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(PaginatedMarketRewardsSchema)),
+    ),
+  );
+}
+
 function toTokenRequestPayload(
   params: Array<{
     tokenId: string;
@@ -689,4 +854,23 @@ function toTokenWithSideRequestPayload(
     token_id: tokenId,
     side,
   }));
+}
+
+async function listAllClobPages<TItem>(
+  fetchPage: (nextCursor: string) => Promise<{
+    data: TItem[];
+    next_cursor: string;
+  }>,
+): Promise<TItem[]> {
+  let nextCursor = 'MA==';
+  const results: TItem[] = [];
+
+  while (nextCursor !== 'LTE=') {
+    const response = await fetchPage(nextCursor);
+
+    results.push(...response.data);
+    nextCursor = response.next_cursor;
+  }
+
+  return results;
 }

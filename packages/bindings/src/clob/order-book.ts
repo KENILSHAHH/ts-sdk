@@ -19,9 +19,11 @@ export const OrderBookSchema = z.looseObject({
 });
 
 export const FetchOrderBookResponseSchema = OrderBookSchema;
+export const OrderBooksSchema = z.array(OrderBookSchema);
 
 export type OrderBookLevel = z.infer<typeof OrderBookLevelSchema>;
 export type OrderBook = z.infer<typeof OrderBookSchema>;
+export type OrderBooks = z.infer<typeof OrderBooksSchema>;
 export type FetchOrderBookResponse = z.infer<
   typeof FetchOrderBookResponseSchema
 >;
