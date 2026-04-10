@@ -45,12 +45,11 @@ Creates a new action in `packages/client/src/actions` for the unified client sur
 - If request input benefits from runtime validation or normalization, use Zod in the action module
 - Prefer inline Zod transforms with well-named helpers such as `.transform(toISODateString)`
 - Keep helpers small and local; do not add a new helper or abstraction unless it is really necessary and materially improves reuse, safety, or readability
-- Document every public action with full TSDoc in the richer style used by established actions such as `fetchMarket`: include a short summary sentence, one `@throws` block per distinct public error type, and a practical `@example` block showing a realistic call and returned shape; keep examples usage-focused and omit import statements
+- Document every public action with full TSDoc in the richer style used by established actions such as `fetchMarket`: include a short summary sentence, an `@throws` block, and a practical `@example` block showing a realistic call and returned shape; keep examples usage-focused and omit import statements
 - When documenting `@throws`, trace the full call path instead of only the top-level function body: inspect local `throw` statements, helpers invoked before the request, and anything unwrapped from `Result`/`ResultAsync`
 - `parseUserInput(...)` throws `UserInputError`
 - `unwrap(Result<T, E> | ResultAsync<T, E>)` throws `E`
 - In current client actions, `unwrap(client.<service>.get(...))` throws `RateLimitError`, `ServerError`, or `InvalidResponseError`
-- Use one `@throws` block per error type and explain the condition that causes it; do not collapse multiple error types into a single union-style `@throws` line
 - If a helper catches and remaps errors, document the remapped public errors rather than the helper's internal implementation details
 
 ## Testing Rules
