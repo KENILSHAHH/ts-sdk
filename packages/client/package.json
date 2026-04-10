@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
     "./actions": {
       "types": "./dist/actions/index.d.ts",
       "default": "./dist/actions/index.js"
@@ -21,6 +25,9 @@
   },
   "typesVersions": {
     "*": {
+      "node": [
+        "./dist/node.d.ts"
+      ],
       "actions": [
         "./dist/actions/index.d.ts"
       ],

@@ -74,6 +74,30 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/client/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**/node",
+                      "**/node.ts",
+                      "@polymarket/client/node"
+                    ],
+                    "message": "Import shared client modules directly instead of routing through the Node-only entrypoint."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
