@@ -1,19 +1,19 @@
 import { EvmAddressSchema, type TickSizeValue } from '@polymarket/bindings';
 import {
-  type OrderBookLevel,
   OrderSide,
   OrderSideSchema,
   OrderType,
 } from '@polymarket/bindings/clob';
-import { type EvmAddress, invariant } from '@polymarket/types';
+import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
 import type { SecureClient } from '../../clients';
-import { fetchNegRisk, fetchOrderBook, fetchTickSize } from '../clob';
+import { fetchNegRisk, fetchTickSize } from '../clob';
 import {
   resolveExchangeAddress,
   resolveFeeRateBps,
   resolveRoundingConfig,
 } from './context';
+import { resolveEstimatedMarketPrice } from './estimate';
 import { decimalPlaces, parseAmount, roundDown, roundUp } from './math';
 import type { OrderDraft, PrepareMarketOrderRequest } from './types';
 
@@ -85,7 +85,7 @@ async function resolveMarketOrderContext(
     tokenId: params.tokenId,
   });
   const feeRateBps = await resolveFeeRateBps(client, params.tokenId);
-  const price = await resolvePrice(client, {
+  const price = await resolveEstimatedMarketPrice(client, {
     amount: params.amount,
     orderType: params.orderType,
     side: params.side,
@@ -151,117 +151,4 @@ function computeMarketOrderAmounts(params: {
     offeredAmount: parseAmount(rawMakerAmount),
     requestedAmount: parseAmount(rawTakerAmount),
   };
-}
-
-type ResolvePriceParams = {
-  amount: number;
-  orderType: OrderType;
-  side: OrderSide;
-  tokenId: string;
-  tickSize: TickSizeValue;
-};
-
-async function resolvePrice(
-  client: SecureClient,
-  params: ResolvePriceParams,
-): Promise<number> {
-  const orderBook = await fetchOrderBook(client, {
-    tokenId: params.tokenId,
-  });
-
-  const price =
-    params.side === OrderSide.BUY
-      ? calculateBuyMarketPrice(orderBook.asks, params.amount, params.orderType)
-      : calculateSellMarketPrice(
-          orderBook.bids,
-          params.amount,
-          params.orderType,
-        );
-
-  invariant(
-    isValidPrice(price, params.tickSize),
-    `Resolved market price fell outside the valid range for tick size ${params.tickSize}.`,
-  );
-
-  return price;
-}
-
-function isValidPrice(price: number, tickSize: TickSizeValue): boolean {
-  return price >= tickSize && price <= 1 - tickSize;
-}
-
-function calculateBuyMarketPrice(
-  positions: OrderBookLevel[],
-  amountToMatch: number,
-  orderType: OrderType,
-): number {
-  if (positions.length === 0) {
-    throw new Error('no match');
-  }
-
-  let sum = 0;
-
-  for (let index = positions.length - 1; index >= 0; index -= 1) {
-    const position = positions[index];
-
-    if (position === undefined) {
-      continue;
-    }
-
-    sum += Number.parseFloat(position.size) * Number.parseFloat(position.price);
-
-    if (sum >= amountToMatch) {
-      return Number.parseFloat(position.price);
-    }
-  }
-
-  if (orderType === OrderType.FOK) {
-    throw new Error('no match');
-  }
-
-  const bestPosition = positions[0];
-
-  if (bestPosition === undefined) {
-    throw new Error('no match');
-  }
-
-  return Number.parseFloat(bestPosition.price);
-}
-
-function calculateSellMarketPrice(
-  positions: OrderBookLevel[],
-  amountToMatch: number,
-  orderType: OrderType,
-): number {
-  if (positions.length === 0) {
-    throw new Error('no match');
-  }
-
-  let sum = 0;
-
-  for (let index = positions.length - 1; index >= 0; index -= 1) {
-    const position = positions[index];
-
-    if (position === undefined) {
-      continue;
-    }
-
-    sum += Number.parseFloat(position.size);
-
-    if (sum >= amountToMatch) {
-      return Number.parseFloat(position.price);
-    }
-  }
-
-  if (orderType === OrderType.FOK) {
-    throw new Error('no match');
-  }
-
-  const bestPosition = positions[0];
-
-  if (bestPosition === undefined) {
-    throw new Error('no match');
-  }
-
-  return Number.parseFloat(bestPosition.price);
 }

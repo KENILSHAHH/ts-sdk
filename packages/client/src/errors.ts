@@ -97,6 +97,18 @@ export class RateLimitError extends PolymarketError {
 }
 
 /**
+ * Error thrown when there is not enough resting market liquidity to satisfy the
+ * requested execution semantics.
+ */
+export class InsufficientLiquidityError extends PolymarketError {
+  override name = 'InsufficientLiquidityError' as const;
+
+  constructor(message: string, options: ErrorOptions = {}) {
+    super(message, options);
+  }
+}
+
+/**
  * Error thrown when the SDK cannot produce a required signature or
  * authentication payload.
  */
