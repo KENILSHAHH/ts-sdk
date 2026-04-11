@@ -1,11 +1,14 @@
 import type { Market } from '@polymarket/bindings/gamma';
 import type { PrivateKey } from '@polymarket/types';
-import { invariant, isPrivateKey } from '@polymarket/types';
+import { expectPresent, invariant, isPrivateKey } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { listMarkets } from './actions/markets';
 import { createPublicClient } from './clients';
+
+// biome-ignore lint/style/noRestrictedImports: intentional
+import type { LocalBuilderApiCredentials } from './node';
 
 if (process.env.CI !== 'true') {
   try {
@@ -16,6 +19,12 @@ if (process.env.CI !== 'true') {
 }
 
 export const publicClient = createPublicClient();
+
+export const builderCredentials = {
+  key: expectPresent(process.env.POLYMARKET_BUILDER_API_KEY),
+  secret: expectPresent(process.env.POLYMARKET_BUILDER_SECRET),
+  passphrase: expectPresent(process.env.POLYMARKET_BUILDER_PASSPHRASE),
+} satisfies LocalBuilderApiCredentials;
 
 function getTestPrivateKey(): PrivateKey {
   const value = process.env.POLYMARKET_TEST_PRIVATE_KEY;

@@ -21,3 +21,13 @@ export type TypedDataPayload = {
   primaryType: string;
   types: TypedData;
 };
+
+export type BuilderAuthorizationRequest = {
+  method: 'DELETE' | 'GET' | 'POST';
+  path: string;
+  body?: string;
+};
+
+export interface BuilderAuthorization {
+  authorize(request: BuilderAuthorizationRequest): Promise<HeadersInit>;
+}

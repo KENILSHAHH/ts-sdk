@@ -21,21 +21,11 @@ import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
 import { buildPolyHmacSignature } from './hmac';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
+import type { BuilderAuthorization } from './types';
 
-export type PublicClientConfig = {
-  /**
-   * The environment configuration used by the client.
-   *
-   * @defaultValue `production`
-   */
-  environment?: EnvironmentConfig;
-};
-
-export type BeginAuthenticationOptions =
-  | { credentials: ApiKeyCreds }
-  | { nonce: number };
-
-type Context = {
+type PublicContext = {
+  /** @internal */
+  builder?: BuilderAuthorization;
   /** @internal */
   environment: EnvironmentConfig;
   /** @internal */
@@ -46,65 +36,73 @@ type Context = {
   data: ServiceClient;
 };
 
-type SecureContext = Context & {
-  /** @internal */
-  account: AccountIdentity;
-  /** @internal */
-  credentials: ApiKeyCreds;
-  /** @internal */
-  secureClob: ServiceClient;
-};
-
-type SecureClientConfig = Context & {
-  account: AccountIdentity;
-  credentials: ApiKeyCreds;
-};
-
-abstract class AbstractClient<TContext extends Context> {
+abstract class AbstractClient<TContext extends PublicContext> {
   // Keep the backing context off the public object shape so accidental
   // client logs do not print secure credentials.
   readonly #context: TContext;
-  #hasEndedAuthentication = false;
+
+  protected get context(): TContext {
+    return this.#context;
+  }
+
+  /** @internal */
+  get environment(): EnvironmentConfig {
+    return this.context.environment;
+  }
+
+  /** @internal */
+  get clob(): ServiceClient {
+    return this.context.clob;
+  }
+
+  /** @internal */
+  get gamma(): ServiceClient {
+    return this.context.gamma;
+  }
+
+  /** @internal */
+  get data(): ServiceClient {
+    return this.context.data;
+  }
 
   constructor(context: TContext) {
     this.#context = context;
   }
 
-  protected getContext(): TContext {
-    invariant(
-      !this.#hasEndedAuthentication,
-      'This client has ended authentication and can no longer be used.',
-    );
+  protected async resolveBuilderHeaders(
+    request: ServiceRequest,
+  ): Promise<HeadersInit> {
+    if (this.context.builder === undefined) {
+      return Promise.resolve({});
+    }
 
-    return this.#context;
-  }
-
-  protected endAuthenticationLifecycle(): void {
-    this.#hasEndedAuthentication = true;
-  }
-
-  /** @internal */
-  get environment(): EnvironmentConfig {
-    return this.getContext().environment;
-  }
-
-  /** @internal */
-  get clob(): ServiceClient {
-    return this.getContext().clob;
-  }
-
-  /** @internal */
-  get gamma(): ServiceClient {
-    return this.getContext().gamma;
-  }
-
-  /** @internal */
-  get data(): ServiceClient {
-    return this.getContext().data;
+    return this.context.builder.authorize(request);
   }
 }
 
-class PublicClient extends AbstractClient<Context> {
+export type BeginAuthenticationOptions =
+  | { credentials: ApiKeyCreds }
+  | { nonce: number };
+
+type PublicClientConfig = {
+  environment: EnvironmentConfig;
+  builder?: BuilderAuthorization;
+};
+
+export class PublicClient extends AbstractClient<PublicContext> {
+  constructor(config: PublicClientConfig) {
+    super({
+      builder: config.builder,
+      environment: config.environment,
+      data: new ServiceClient({ root: config.environment.data }),
+      gamma: new ServiceClient({ root: config.environment.gamma }),
+      clob: new ServiceClient({
+        root: config.environment.clob,
+        resolveHeaders: (request) => this.resolveBuilderHeaders(request),
+      }),
+    });
+  }
+
   beginAuthentication(
     options?: BeginAuthenticationOptions,
   ): Promise<AuthenticationWorkflow> {
@@ -173,25 +171,68 @@ class PublicClient extends AbstractClient<Context> {
 
   #createSecureClient(
     credentials: ApiKeyCreds,
-    identity: AccountIdentity,
+    account: AccountIdentity,
   ): SecureClient {
     return new SecureClient({
-      environment: this.environment,
-      clob: this.clob,
-      gamma: this.gamma,
-      data: this.data,
-      account: identity,
+      account: account,
+      builder: this.context.builder,
       credentials,
+      environment: this.environment,
     });
   }
 }
 
-class SecureClient extends AbstractClient<SecureContext> {
+type SecureContext = PublicContext & {
+  /** @internal */
+  account: AccountIdentity;
+  /** @internal */
+  credentials: ApiKeyCreds;
+  /** @internal */
+  secureClob: ServiceClient;
+};
+
+type SecureClientConfig = PublicClientConfig & {
+  account: AccountIdentity;
+  credentials: ApiKeyCreds;
+};
+
+export class SecureClient extends AbstractClient<SecureContext> {
+  #hasEndedAuthentication = false;
+
+  /**
+   * @remarks This is the choking point for all requests, so we can ensure that once
+   * `endAuthentication` is called, no further authenticated requests can be made with this client instance.
+   */
+  protected override get context(): SecureContext {
+    invariant(
+      !this.#hasEndedAuthentication,
+      'This client has ended authentication and can no longer be used.',
+    );
+
+    return super.context;
+  }
+
+  protected endAuthenticationLifecycle(): void {
+    this.#hasEndedAuthentication = true;
+  }
+
   constructor(config: SecureClientConfig) {
     super({
-      ...config,
+      account: config.account,
+      credentials: config.credentials,
+      builder: config.builder,
+      environment: config.environment,
+      clob: new ServiceClient({
+        root: config.environment.clob,
+        resolveHeaders: (request) => this.resolveBuilderHeaders(request),
+      }),
+      gamma: new ServiceClient({ root: config.environment.gamma }),
+      data: new ServiceClient({ root: config.environment.data }),
       secureClob: new ServiceClient({
-        resolveHeaders: async (request) => this.#createL2Headers(request),
+        resolveHeaders: async (request) => ({
+          ...(await this.resolveBuilderHeaders(request)),
+          ...(await this.#createL2Headers(request)),
+        }),
         root: config.environment.clob,
       }),
     });
@@ -199,17 +240,17 @@ class SecureClient extends AbstractClient<SecureContext> {
 
   /** @internal */
   get credentials(): ApiKeyCreds {
-    return this.getContext().credentials;
+    return this.context.credentials;
   }
 
   /** @internal */
   get account(): AccountIdentity {
-    return this.getContext().account;
+    return this.context.account;
   }
 
   /** @internal */
   get secureClob(): ServiceClient {
-    return this.getContext().secureClob;
+    return this.context.secureClob;
   }
 
   /**
@@ -225,12 +266,15 @@ class SecureClient extends AbstractClient<SecureContext> {
    * ```
    */
   async endAuthentication(): Promise<PublicClient> {
-    const context = this.getContext();
+    const { builder, environment } = this.context;
 
     await deleteApiKey(this);
     this.endAuthenticationLifecycle();
 
-    return new PublicClient(toPublicContext(context));
+    return new PublicClient({
+      builder,
+      environment,
+    });
   }
 
   async #createL2Headers(request: ServiceRequest): Promise<HeadersInit> {
@@ -259,35 +303,16 @@ class SecureClient extends AbstractClient<SecureContext> {
   }
 }
 
-export type { PublicClient, SecureClient };
-
 export type Client = PublicClient | SecureClient;
 
-function createPublicContext({
-  environment = production,
-}: PublicClientConfig): Context {
-  return {
-    environment,
-    clob: new ServiceClient({
-      root: environment.clob,
-    }),
-    gamma: new ServiceClient({
-      root: environment.gamma,
-    }),
-    data: new ServiceClient({
-      root: environment.data,
-    }),
-  };
-}
-
-function toPublicContext(context: Context): Context {
-  return {
-    clob: context.clob,
-    data: context.data,
-    environment: context.environment,
-    gamma: context.gamma,
-  };
-}
+export type PublicClientOptions = {
+  /**
+   * The environment configuration used by the client.
+   *
+   * @defaultValue `production`
+   */
+  environment?: EnvironmentConfig;
+};
 
 /**
  * Creates a new `PublicClient` instance.
@@ -298,7 +323,7 @@ function toPublicContext(context: Context): Context {
  * ```
  */
 export function createPublicClient(
-  config: PublicClientConfig = {},
+  options: PublicClientOptions = {},
 ): PublicClient {
-  return new PublicClient(createPublicContext(config));
+  return new PublicClient({ environment: options.environment ?? production });
 }

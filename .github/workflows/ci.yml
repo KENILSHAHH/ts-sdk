@@ -44,6 +44,9 @@ jobs:
       - name: Test
         run: pnpm test
         env:
+          POLYMARKET_BUILDER_API_KEY: ${{ secrets.POLYMARKET_BUILDER_API_KEY }}
+          POLYMARKET_BUILDER_PASSPHRASE: ${{ secrets.POLYMARKET_BUILDER_PASSPHRASE }}
+          POLYMARKET_BUILDER_SECRET: ${{ secrets.POLYMARKET_BUILDER_SECRET }}
           POLYMARKET_TEST_PRIVATE_KEY: ${{ secrets.POLYMARKET_TEST_PRIVATE_KEY }}
 
       - name: Build

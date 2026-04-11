@@ -9,7 +9,8 @@ export type {
   AuthenticationWorkflow,
   AuthenticationWorkflowRequest,
 } from './authentication';
-export * from './clients';
+export type * from './clients';
+export { createPublicClient } from './clients';
 export * from './environments';
 export * from './errors';
 export * from './types';
