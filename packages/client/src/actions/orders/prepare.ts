@@ -1,4 +1,4 @@
-import { expectSignature, never } from '@polymarket/types';
+import { expectEvmSignature, never } from '@polymarket/types';
 import type { SecureClient } from '../../clients';
 import type {
   InsufficientLiquidityError,
@@ -61,7 +61,7 @@ export async function prepareMarketOrder(
 
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
-    const signature = expectSignature(
+    const signature = expectEvmSignature(
       yield {
         kind: 'signOrder',
         payload: createOrderTypedDataPayload(unsignedOrder),
@@ -108,7 +108,7 @@ export async function prepareLimitOrder(
 
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
-    const signature = expectSignature(
+    const signature = expectEvmSignature(
       yield {
         kind: 'signOrder',
         payload: createOrderTypedDataPayload(unsignedOrder),

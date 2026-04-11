@@ -5,8 +5,8 @@ import type {
 } from '@polymarket/bindings/clob';
 import type {
   EvmAddress,
+  EvmSignature,
   HexString,
-  Signature,
   TxHash,
 } from '@polymarket/types';
 import type { TypedDataPayload } from '../../types';
@@ -116,7 +116,7 @@ export type SignedOrder = {
   taker: EvmAddress;
   takerAmount: string;
   tokenId: string;
-  signature: Signature;
+  signature: EvmSignature;
 };
 
 export type OrderWorkflowRequest =
@@ -136,5 +136,5 @@ export type OrderWorkflowRequest =
 export type OrderWorkflow = AsyncGenerator<
   OrderWorkflowRequest,
   SignedOrder,
-  Signature | TxHash
+  EvmSignature | TxHash
 >;

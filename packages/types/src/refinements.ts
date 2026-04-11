@@ -1,8 +1,8 @@
 import { InvariantError } from './errors';
 import {
   type EvmAddress,
+  type EvmSignature,
   isHexString,
-  type Signature,
   type TxHash,
 } from './hex';
 
@@ -51,17 +51,17 @@ export function expectEvmAddress(
 }
 
 /**
- * Refines a string to a signature or throws when the value is invalid.
+ * Refines a string to an EVM signature or throws when the value is invalid.
  */
-export function expectSignature(
+export function expectEvmSignature(
   value: string,
-  message = 'Expected a signature',
-): Signature {
+  message = 'Expected an EVM signature',
+): EvmSignature {
   if (!isHexString(value) || value.length !== 132) {
     throw new InvariantError(message);
   }
 
-  return value as Signature;
+  return value as EvmSignature;
 }
 
 /**

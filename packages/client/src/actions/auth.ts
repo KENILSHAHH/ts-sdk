@@ -8,7 +8,7 @@ import {
   BuilderApiKeyCredsSchema,
   BuilderApiKeysResponseSchema,
 } from '@polymarket/bindings/clob';
-import { type EvmAddress, type Signature, unwrap } from '@polymarket/types';
+import { type EvmAddress, type EvmSignature, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client, SecureClient } from '../clients';
 import {
@@ -23,7 +23,7 @@ import { validateWith } from '../response';
 export type ApiKeyAuthRequest = {
   address: EvmAddress;
   nonce: number;
-  signature: Signature;
+  signature: EvmSignature;
   timestamp: number;
 };
 

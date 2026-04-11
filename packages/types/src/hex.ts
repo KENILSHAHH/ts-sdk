@@ -16,9 +16,9 @@ export type PrivateKey = Tagged<HexString, 'PrivateKey'>;
 export type EvmAddress = Tagged<HexString, 'EvmAddress'>;
 
 /**
- * A hex-encoded cryptographic signature.
+ * A hex-encoded EVM signature.
  */
-export type Signature = Tagged<HexString, 'Signature'>;
+export type EvmSignature = Tagged<HexString, 'EvmSignature'>;
 
 /**
  * A transaction hash returned by an EVM-compatible network.

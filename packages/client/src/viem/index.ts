@@ -1,6 +1,6 @@
 import {
   expectEvmAddress,
-  expectSignature,
+  expectEvmSignature,
   invariant,
   type TxHash,
 } from '@polymarket/types';
@@ -41,7 +41,7 @@ export function authenticateWith(walletClient: WalletClient) {
             break;
           case 'signAuthMessage':
             result = await workflow.next(
-              expectSignature(
+              expectEvmSignature(
                 await walletClient.signTypedData({
                   account,
                   ...result.value.payload,
@@ -75,7 +75,7 @@ export function executeWith(walletClient: WalletClient) {
         switch (result.value.kind) {
           case 'signOrder':
             result = await workflow.next(
-              expectSignature(
+              expectEvmSignature(
                 await walletClient.signTypedData({
                   account,
                   ...result.value.payload,

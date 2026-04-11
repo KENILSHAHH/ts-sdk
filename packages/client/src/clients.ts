@@ -2,7 +2,7 @@ import type { ApiKeyCreds } from '@polymarket/bindings/clob';
 import type { EvmAddress } from '@polymarket/types';
 import {
   expectEvmAddress,
-  expectSignature,
+  expectEvmSignature,
   invariant,
 } from '@polymarket/types';
 import type { AccountIdentity } from './account';
@@ -147,7 +147,7 @@ export class PublicClient extends AbstractClient<PublicContext> {
         const credentials = await createOrDeriveApiKey(this, {
           address: signer,
           nonce,
-          signature: expectSignature(signature),
+          signature: expectEvmSignature(signature),
           timestamp,
         });
 
