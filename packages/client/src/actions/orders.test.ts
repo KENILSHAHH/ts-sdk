@@ -1,8 +1,9 @@
-import { OrderSide, OrderType } from '@polymarket/bindings';
 import {
   type AcceptedOrderResponse,
   OrderPostStatus,
   type OrderResponse,
+  OrderSide,
+  OrderType,
 } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';

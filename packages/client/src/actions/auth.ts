@@ -1,8 +1,12 @@
+import type { ApiKey } from '@polymarket/bindings';
 import {
   type ApiKeyCreds,
   ApiKeyCredsSchema,
-  type ApiKeysResponse,
   ApiKeysResponseSchema,
+  type BuilderApiKey,
+  type BuilderApiKeyCreds,
+  BuilderApiKeyCredsSchema,
+  BuilderApiKeysResponseSchema,
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, type Signature, unwrap } from '@polymarket/types';
 import { z } from 'zod';
@@ -145,9 +149,7 @@ export type FetchApiKeysError =
  * @throws {@link FetchApiKeysError}
  * Thrown when request signing fails, or the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  */
-export async function fetchApiKeys(
-  client: SecureClient,
-): Promise<ApiKeysResponse['apiKeys']> {
+export async function fetchApiKeys(client: SecureClient): Promise<ApiKey[]> {
   const response = await unwrap(
     client.secureClob
       .get('/auth/api-keys')
@@ -171,7 +173,9 @@ export type DeleteApiKeyError =
  * This is a low-level auth action that most SDK consumers will not need.
  *
  * @example
- * 
+ * ```ts
+ * await deleteApiKey(client);
+ * ```
  *
  * @throws {@link DeleteApiKeyError}
  * Thrown when request signing fails, or the request is rejected, rate limited,
@@ -181,6 +185,100 @@ export async function deleteApiKey(client: SecureClient): Promise<void> {
   await unwrap(
     client.secureClob
       .del('/auth/api-key')
+      .andThen(validateWith(z.literal('OK'))),
+  );
+}
+
+export type CreateBuilderApiKeyError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError;
+
+/**
+ * Creates a new builder API key for the authenticated client.
+ *
+ * @remarks
+ * This is a low-level auth action that most SDK consumers will not need.
+ *
+ * @example
+ * ```ts
+ * const builderApiKey = await createBuilderApiKey(client);
+ * ```
+ *
+ * @throws {@link CreateBuilderApiKeyError}
+ * Thrown when request signing fails, or the request is rejected, rate limited,
+ * interrupted by transport issues, or returns an unexpected response.
+ */
+export async function createBuilderApiKey(
+  client: SecureClient,
+): Promise<BuilderApiKeyCreds> {
+  return unwrap(
+    client.secureClob
+      .post('/auth/builder-api-key')
+      .andThen(validateWith(BuilderApiKeyCredsSchema)),
+  );
+}
+
+export type FetchBuilderApiKeysError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError;
+
+/**
+ * Fetches builder API keys associated with the authenticated client.
+ *
+ * @remarks
+ * This is a low-level auth action that most SDK consumers will not need.
+ *
+ * @example
+ * ```ts
+ * const builderApiKeys = await fetchBuilderApiKeys(client);
+ * ```
+ *
+ * @throws {@link FetchBuilderApiKeysError}
+ * Thrown when request signing fails, or the request is rejected, rate limited,
+ * interrupted by transport issues, or returns an unexpected response.
+ */
+export async function fetchBuilderApiKeys(
+  client: SecureClient,
+): Promise<BuilderApiKey[]> {
+  return unwrap(
+    client.secureClob
+      .get('/auth/builder-api-key')
+      .andThen(validateWith(BuilderApiKeysResponseSchema)),
+  );
+}
+
+export type RevokeBuilderApiKeyError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError;
+
+/**
+ * Revokes a builder API key.
+ *
+ * @remarks
+ * This is a low-level auth action that most SDK consumers will not need.
+ *
+ * @example
+ * ```ts
+ * await revokeBuilderApiKey(client);
+ * ```
+ *
+ * @throws {@link RevokeBuilderApiKeyError}
+ * Thrown when request signing fails, or the request is rejected, rate limited,
+ * interrupted by transport issues, or returns an unexpected response.
+ */
+export async function revokeBuilderApiKey(client: Client): Promise<void> {
+  await unwrap(
+    client.clob
+      .del('/auth/builder-api-key')
       .andThen(validateWith(z.literal('OK'))),
   );
 }

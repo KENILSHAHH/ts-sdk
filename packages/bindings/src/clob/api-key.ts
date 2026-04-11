@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ApiKeySchema } from '../shared';
+import { ApiKeySchema, ISODateStringSchema } from '../shared';
 
 export const RawApiKeyCredsSchema = z.object({
   apiKey: ApiKeySchema,
@@ -20,3 +20,31 @@ export const ApiKeysResponseSchema = z.object({
 });
 
 export type ApiKeysResponse = z.infer<typeof ApiKeysResponseSchema>;
+
+export const BuilderApiKeyCredsSchema = z.object({
+  key: ApiKeySchema,
+  secret: z.string(),
+  passphrase: z.string(),
+});
+
+export type BuilderApiKeyCreds = z.infer<typeof BuilderApiKeyCredsSchema>;
+
+export const BuilderApiKeySchema = z.object({
+  key: ApiKeySchema,
+  createdAt: ISODateStringSchema.optional(),
+  revokedAt: ISODateStringSchema.nullable().optional(),
+});
+
+export type BuilderApiKey = z.infer<typeof BuilderApiKeySchema>;
+
+export const BuilderApiKeysResponseSchema = z
+  .array(
+    z.union([ApiKeySchema.transform((key) => ({ key })), BuilderApiKeySchema]),
+  )
+  .transform((apiKeys) =>
+    apiKeys.map((apiKey) => BuilderApiKeySchema.parse(apiKey)),
+  );
+
+export type BuilderApiKeysResponse = z.infer<
+  typeof BuilderApiKeysResponseSchema
+>;
