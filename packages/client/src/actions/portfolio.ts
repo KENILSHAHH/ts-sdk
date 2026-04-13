@@ -137,7 +137,7 @@ export async function listPositions(
 
   return unwrap(
     client.data
-      .get('positions', {
+      .get('/positions', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListPositionsResponseSchema)),
@@ -175,7 +175,7 @@ export async function listClosedPositions(
 
   return unwrap(
     client.data
-      .get('closed-positions', {
+      .get('/closed-positions', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListClosedPositionsResponseSchema)),
@@ -212,7 +212,7 @@ export async function fetchPortfolioValue(
 
   return unwrap(
     client.data
-      .get('value', {
+      .get('/value', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(FetchPortfolioValueResponseSchema)),
@@ -249,7 +249,7 @@ export async function fetchTradedMarketCount(
 
   return unwrap(
     client.data
-      .get('traded', {
+      .get('/traded', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(TradedSchema)),
@@ -289,7 +289,7 @@ export async function downloadAccountingSnapshot(
 
   return unwrap(
     client.data
-      .get('v1/accounting/snapshot', {
+      .get('/v1/accounting/snapshot', {
         params: toDataSearchParams(params),
       })
       .andThen(readBlob),

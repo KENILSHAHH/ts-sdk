@@ -164,7 +164,7 @@ export async function listMarkets(
 
   return unwrap(
     client.gamma
-      .get('markets', {
+      .get('/markets', {
         params: toMarketsSearchParams(params),
       })
       .andThen(validateWith(ListMarketsResponseSchema)),
@@ -272,7 +272,7 @@ export async function listMarketHolders(
 
   return unwrap(
     client.data
-      .get('holders', {
+      .get('/holders', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListMarketHoldersResponseSchema)),
@@ -309,7 +309,7 @@ export async function listOpenInterest(
 
   return unwrap(
     client.data
-      .get('oi', {
+      .get('/oi', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListOpenInterestResponseSchema)),
@@ -347,7 +347,7 @@ export async function listMarketPositions(
 
   return unwrap(
     client.data
-      .get('v1/market-positions', {
+      .get('/v1/market-positions', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListMarketPositionsResponseSchema)),

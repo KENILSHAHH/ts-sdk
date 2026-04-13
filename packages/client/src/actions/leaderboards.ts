@@ -84,7 +84,7 @@ export async function listBuilderLeaderboard(
 
   return unwrap(
     client.data
-      .get('v1/builders/leaderboard', {
+      .get('/v1/builders/leaderboard', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListBuilderLeaderboardResponseSchema)),
@@ -121,7 +121,7 @@ export async function listBuilderVolume(
 
   return unwrap(
     client.data
-      .get('v1/builders/volume', {
+      .get('/v1/builders/volume', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListBuilderVolumeResponseSchema)),
@@ -160,7 +160,7 @@ export async function listTraderLeaderboard(
 
   return unwrap(
     client.data
-      .get('v1/leaderboard', {
+      .get('/v1/leaderboard', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListTraderLeaderboardResponseSchema)),

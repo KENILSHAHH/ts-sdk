@@ -86,7 +86,7 @@ export async function deriveApiKey(
 ): Promise<ApiKeyCreds> {
   return unwrap(
     client.clob
-      .get('auth/derive-api-key', {
+      .get('/auth/derive-api-key', {
         headers: toL1Headers(request),
       })
       .andThen(validateWith(ApiKeyCredsSchema)),

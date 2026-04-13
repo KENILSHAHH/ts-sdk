@@ -69,7 +69,7 @@ export async function search(
 
   return unwrap(
     client.gamma
-      .get('public-search', {
+      .get('/public-search', {
         params: toSearchParams(
           params,
           snakeCase<SearchParams>({

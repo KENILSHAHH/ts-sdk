@@ -77,7 +77,7 @@ export async function fetchMidpoint(
   const params = parseUserInput(request, FetchMidpointRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('midpoint', {
+      .get('/midpoint', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(MidpointSchema)),
@@ -173,7 +173,7 @@ export async function fetchTickSize(
   const params = parseUserInput(request, FetchTickSizeRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('tick-size', {
+      .get('/tick-size', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(FetchTickSizeResponseSchema)),
@@ -218,7 +218,7 @@ export async function fetchNegRisk(
   const params = parseUserInput(request, FetchNegRiskRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('neg-risk', {
+      .get('/neg-risk', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(FetchNegRiskResponseSchema)),
@@ -263,7 +263,7 @@ export async function fetchFeeRate(
   const params = parseUserInput(request, FetchFeeRateRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('fee-rate', {
+      .get('/fee-rate', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(FetchFeeRateResponseSchema)),
@@ -311,7 +311,7 @@ export async function fetchPrice(
   const params = parseUserInput(request, FetchPriceRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('price', {
+      .get('/price', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(PriceSchema)),
@@ -410,7 +410,7 @@ export async function fetchOrderBook(
 
   return unwrap(
     client.clob
-      .get('book', {
+      .get('/book', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(FetchOrderBookResponseSchema)),
@@ -506,7 +506,7 @@ export async function fetchSpread(
   const params = parseUserInput(request, FetchSpreadRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('spread', {
+      .get('/spread', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(SpreadSchema)),
@@ -606,7 +606,7 @@ export async function fetchLastTradePrice(
 
   return unwrap(
     client.clob
-      .get('last-trade-price', {
+      .get('/last-trade-price', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(LastTradePriceSchema)),
@@ -711,7 +711,7 @@ export async function listPriceHistory(
   const params = parseUserInput(request, ListPriceHistoryRequestSchema);
   const response = await unwrap(
     client.clob
-      .get('prices-history', {
+      .get('/prices-history', {
         params: toSearchParams(params, {
           tokenId: 'market',
           startTs: 'startTs',
@@ -765,7 +765,7 @@ export async function listCurrentRewards(
   return listAllClobPages(async (nextCursor) =>
     unwrap(
       client.clob
-        .get('rewards/markets/current', {
+        .get('/rewards/markets/current', {
           params: toSearchParams(
             {
               ...params,

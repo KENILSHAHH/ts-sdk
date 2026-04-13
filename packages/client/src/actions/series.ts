@@ -73,7 +73,7 @@ export async function listSeries(
 
   return unwrap(
     client.gamma
-      .get('series', {
+      .get('/series', {
         params: toSearchParams(
           params,
           snakeCase<ListSeriesParams>({

@@ -108,7 +108,7 @@ export async function listTags(
 
   return unwrap(
     client.gamma
-      .get('tags', {
+      .get('/tags', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(ListTagsResponseSchema)),

@@ -54,7 +54,7 @@ export async function fetchPublicProfile(
 
   return unwrap(
     client.gamma
-      .get('public-profile', {
+      .get('/public-profile', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(PublicProfileSchema)),

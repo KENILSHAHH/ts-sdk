@@ -56,7 +56,7 @@ export async function fetchWalletType(
 
   return unwrap(
     client.gamma
-      .get('wallet-type', {
+      .get('/wallet-type', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(WalletTypeSchema))

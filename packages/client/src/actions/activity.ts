@@ -102,7 +102,7 @@ export async function listTrades(
 
   return unwrap(
     client.data
-      .get('trades', {
+      .get('/trades', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListTradesResponseSchema)),
@@ -140,7 +140,7 @@ export async function listActivity(
 
   return unwrap(
     client.data
-      .get('activity', {
+      .get('/activity', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(ListActivityResponseSchema)),

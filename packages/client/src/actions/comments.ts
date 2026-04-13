@@ -80,7 +80,7 @@ export async function listComments(
 
   return unwrap(
     client.gamma
-      .get('comments', {
+      .get('/comments', {
         params: toSearchParams(params, snakeCase()),
       })
       .andThen(validateWith(ListCommentsResponseSchema)),

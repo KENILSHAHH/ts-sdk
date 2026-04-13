@@ -57,7 +57,7 @@ export async function listTeams(
 
   return unwrap(
     client.gamma
-      .get('teams', {
+      .get('/teams', {
         params: toSearchParams(
           params,
           snakeCase({ providerId: 'provider_id' }),

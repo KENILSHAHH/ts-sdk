@@ -138,7 +138,7 @@ export async function listEvents(
 
   return unwrap(
     client.gamma
-      .get('events', {
+      .get('/events', {
         params: toEventsSearchParams(params),
       })
       .andThen(validateWith(ListEventsResponseSchema)),
@@ -257,7 +257,7 @@ export async function fetchEventLiveVolume(
 
   return unwrap(
     client.data
-      .get('live-volume', {
+      .get('/live-volume', {
         params: toDataSearchParams(params),
       })
       .andThen(validateWith(FetchEventLiveVolumeResponseSchema)),

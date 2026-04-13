@@ -36,7 +36,7 @@ export type ListSportsError =
 export async function listSports(client: Client): Promise<SportsMetadata[]> {
   return unwrap(
     client.gamma
-      .get('sports')
+      .get('/sports')
       .andThen(validateWith(ListSportsMetadataResponseSchema)),
   );
 }
@@ -65,7 +65,7 @@ export async function fetchSportsMarketTypes(
 ): Promise<SportsMarketTypesResponse> {
   return unwrap(
     client.gamma
-      .get('sports/market-types')
+      .get('/sports/market-types')
       .andThen(validateWith(SportsMarketTypesResponseSchema)),
   );
 }
