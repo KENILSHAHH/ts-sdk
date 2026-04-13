@@ -46,7 +46,7 @@ export async function prepareMarketOrder(
 ): Promise<OrderWorkflow> {
   const params = parseUserInput(request, PrepareMarketOrderParamsSchema);
 
-  return (async function* (): OrderWorkflow {
+  return async function* (): OrderWorkflow {
     const draft = await prepareMarketOrderDraft(client, params);
 
     const currentAllowance = await resolveCurrentAllowance(client, {
@@ -69,7 +69,7 @@ export async function prepareMarketOrder(
     );
 
     return createSignedOrder(unsignedOrder, signature);
-  })();
+  }.call(null);
 }
 
 export type PrepareLimitOrderError =
@@ -93,7 +93,7 @@ export async function prepareLimitOrder(
 ): Promise<OrderWorkflow> {
   const params = parseUserInput(request, PrepareLimitOrderParamsSchema);
 
-  return (async function* (): OrderWorkflow {
+  return async function* (): OrderWorkflow {
     const draft = await prepareLimitOrderDraft(client, params);
 
     const currentAllowance = await resolveCurrentAllowance(client, {
@@ -116,5 +116,5 @@ export async function prepareLimitOrder(
     );
 
     return createSignedOrder(unsignedOrder, signature);
-  })();
+  }.call(null);
 }

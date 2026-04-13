@@ -1,5 +1,6 @@
 export * from './account';
 export * from './activity';
+export * from './approvals';
 export * from './auth';
 export * from './builders';
 export * from './clob';
@@ -10,6 +11,7 @@ export * from './markets';
 export * from './orders';
 export * from './portfolio';
 export * from './profiles';
+export * from './relayer';
 export * from './search';
 export * from './series';
 export * from './sports';

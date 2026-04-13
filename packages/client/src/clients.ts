@@ -16,6 +16,7 @@ import { fetchWalletType } from './actions/wallets';
 import {
   type AuthenticationWorkflow,
   createApiKeyAuthTypedDataPayload,
+  requestAddress,
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
@@ -140,7 +141,7 @@ export class PublicClient extends AbstractClient<PublicContext> {
         const timestamp = Math.floor(Date.now() / 1000);
         const nonce =
           options !== undefined && 'nonce' in options ? options.nonce : 0;
-        const signer = expectEvmAddress(yield { kind: 'requestAddress' });
+        const signer = expectEvmAddress(yield requestAddress());
         const identity = await this.#resolveAccountIdentity(signer);
 
         if (options !== undefined && 'credentials' in options) {

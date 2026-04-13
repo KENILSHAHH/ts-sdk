@@ -9,6 +9,7 @@
       "@polymarket/bindings/clob": ["./packages/bindings/src/clob"],
       "@polymarket/bindings/data": ["./packages/bindings/src/data"],
       "@polymarket/bindings/gamma": ["./packages/bindings/src/gamma"],
+      "@polymarket/bindings/relayer": ["./packages/bindings/src/relayer"],
       "@polymarket/client": ["./packages/client/src"],
       "@polymarket/client/node": ["./packages/client/src/node.ts"],
       "@polymarket/client/actions": ["./packages/client/src/actions"],

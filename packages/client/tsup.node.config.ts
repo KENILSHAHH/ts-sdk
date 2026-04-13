@@ -3,21 +3,14 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig(() => ({
-  entry: [
-    'src/index.ts',
-    'src/clob/index.ts',
-    'src/data/index.ts',
-    'src/gamma/index.ts',
-    'src/relayer/index.ts',
-  ],
+  entry: ['src/node.ts'],
   outDir: 'dist',
   sourcemap: true,
   treeshake: true,
-  clean: true,
+  clean: false,
   tsconfig: 'tsconfig.build.json',
-  bundle: true,
   minify: true,
   dts: true,
-  platform: 'neutral',
+  platform: 'node',
   format: ['esm'],
 }));

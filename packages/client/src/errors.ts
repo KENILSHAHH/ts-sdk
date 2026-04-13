@@ -97,6 +97,28 @@ export class RateLimitError extends PolymarketError {
 }
 
 /**
+ * Error thrown when an async wait operation exceeds its allotted polling time.
+ */
+export class TimeoutError extends PolymarketError {
+  override name = 'TimeoutError' as const;
+
+  constructor(message: string, options: ErrorOptions = {}) {
+    super(message, options);
+  }
+}
+
+/**
+ * Error thrown when a submitted transaction reaches a terminal failure state.
+ */
+export class TransactionFailedError extends PolymarketError {
+  override name = 'TransactionFailedError' as const;
+
+  constructor(message: string, options: ErrorOptions = {}) {
+    super(message, options);
+  }
+}
+
+/**
  * Error thrown when there is not enough resting market liquidity to satisfy the
  * requested execution semantics.
  */

@@ -1,5 +1,11 @@
 import type { TransactionId } from '@polymarket/bindings';
-import type { EvmAddress, HexString, TxHash } from '@polymarket/types';
+import {
+  type EvmAddress,
+  type HexString,
+  invariant,
+  type TxHash,
+} from '@polymarket/types';
+import type { WaitForGaslessTransactionError } from './actions';
 
 export type TypedDataField = {
   name: string;
@@ -23,6 +29,19 @@ export type TypedDataPayload = {
   types: TypedData;
 };
 
+export type TransactionCall = {
+  data: HexString;
+  to: EvmAddress;
+  value?: bigint;
+};
+
+export type SignerTransactionRequest = {
+  data?: HexString;
+  to: EvmAddress;
+  value?: bigint;
+};
+
+/** @internal */
 export type ApiKeyAuthorizationRequest = {
   method: 'DELETE' | 'GET' | 'POST';
   path: string;
@@ -45,8 +64,33 @@ export type TransactionOutcome = {
   transactionId: TransactionId | null;
 };
 
+export type WaitForTransactionError = WaitForGaslessTransactionError;
+
 export interface TransactionHandle {
   readonly transactionHash: TxHash | null;
   readonly transactionId: TransactionId | null;
+  /**
+   * Waits for the submitted transaction to settle.
+   *
+   * @throws {@link WaitForTransactionError}
+   * Thrown when polling times out, the transaction reaches a terminal failure state, or a later read returns an unexpected response.
+   */
   wait(): Promise<TransactionOutcome>;
+}
+
+/** @internal */
+export function expectTransactionHandle(
+  value: unknown,
+  message = 'Expected a TransactionHandle',
+): TransactionHandle {
+  invariant(
+    typeof value === 'object' &&
+      value !== null &&
+      'transactionHash' in value &&
+      'transactionId' in value &&
+      'wait' in value &&
+      typeof value.wait === 'function',
+    message,
+  );
+  return value as TransactionHandle;
 }
