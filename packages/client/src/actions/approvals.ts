@@ -15,7 +15,7 @@ import {
   GaslessTransactionMetadataSchema,
   type GaslessWorkflowRequest,
   prepareGaslessTransaction,
-} from './relayer';
+} from './gasless';
 
 export type Erc20ApprovalWorkflowRequest =
   | GaslessWorkflowRequest
