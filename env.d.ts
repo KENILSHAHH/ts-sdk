@@ -5,5 +5,7 @@ declare namespace NodeJS {
     POLYMARKET_BUILDER_API_KEY: string | undefined;
     POLYMARKET_BUILDER_SECRET: string | undefined;
     POLYMARKET_BUILDER_PASSPHRASE: string | undefined;
+    POLYMARKET_RELAYER_API_KEY: string | undefined;
+    POLYMARKET_RELAYER_API_KEY_ADDRESS: string | undefined;
   }
 }

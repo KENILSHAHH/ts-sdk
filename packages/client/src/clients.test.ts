@@ -1,10 +1,8 @@
 import { InvariantError } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { fetchApiKeys, fetchPublicProfile } from './actions';
-import { createTestWalletClient, publicClient } from './testing';
+import { publicClient, walletClient } from './testing';
 import { authenticateWith } from './viem';
-
-const walletClient = createTestWalletClient();
 
 describe('clients', () => {
   describe('PublicClient.beginAuthentication', () => {

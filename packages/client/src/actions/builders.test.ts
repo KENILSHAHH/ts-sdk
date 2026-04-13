@@ -5,9 +5,9 @@ import type { PublicClient } from '../clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
 import { createPublicClient } from '../node';
 import {
-  builderCredentials,
-  createTestWalletClient,
+  builderKey,
   findHighVolumeLowPriceMarket,
+  walletClient,
 } from '../testing';
 import { authenticateWith, executeWith } from '../viem';
 import { listBuilderTrades } from './builders';
@@ -17,7 +17,7 @@ describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder trades', async () => {
       const client = createPublicClient({
-        apiKey: builderCredentials,
+        apiKey: builderKey,
       });
 
       const result = await listBuilderTrades(client);
@@ -27,7 +27,7 @@ describe('Builders', () => {
 
     it.skip('records at least one builder-attributed trade, placing one minimum-size market order only when needed', async () => {
       const client = createPublicClient({
-        apiKey: builderCredentials,
+        apiKey: builderKey,
       });
       const existingTrades = await listBuilderTrades(client);
 
@@ -41,7 +41,6 @@ describe('Builders', () => {
         return;
       }
 
-      const walletClient = createTestWalletClient();
       const secureClient = await client
         .beginAuthentication()
         .then(authenticateWith(walletClient));

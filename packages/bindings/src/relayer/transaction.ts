@@ -6,7 +6,7 @@ export enum RelayerTransactionType {
   PROXY = 'PROXY',
 }
 
-const RelayerTransactionTypeSchema = z.nativeEnum(RelayerTransactionType);
+const RelayerTransactionTypeSchema = z.enum(RelayerTransactionType);
 
 export enum RelayerTransactionState {
   STATE_NEW = 'STATE_NEW',
@@ -17,7 +17,7 @@ export enum RelayerTransactionState {
   STATE_FAILED = 'STATE_FAILED',
 }
 
-const RelayerTransactionStateSchema = z.nativeEnum(RelayerTransactionState);
+const RelayerTransactionStateSchema = z.enum(RelayerTransactionState);
 
 const RelayerSignatureParamsSchema = z.object({
   baseGas: z.string().optional(),

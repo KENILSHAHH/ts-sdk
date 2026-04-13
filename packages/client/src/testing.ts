@@ -2,13 +2,13 @@ import type { Market } from '@polymarket/bindings/gamma';
 import type { PrivateKey } from '@polymarket/types';
 import { expectPresent, invariant, isPrivateKey } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { listMarkets } from './actions/markets';
 import { createPublicClient } from './clients';
 
 // biome-ignore lint/style/noRestrictedImports: intentional
-import { builderApiKey } from './node';
+import { builderApiKey, relayerApiKey } from './node';
 
 if (process.env.CI !== 'true') {
   try {
@@ -20,10 +20,15 @@ if (process.env.CI !== 'true') {
 
 export const publicClient = createPublicClient();
 
-export const builderCredentials = builderApiKey({
+export const builderKey = builderApiKey({
   key: expectPresent(process.env.POLYMARKET_BUILDER_API_KEY),
   secret: expectPresent(process.env.POLYMARKET_BUILDER_SECRET),
   passphrase: expectPresent(process.env.POLYMARKET_BUILDER_PASSPHRASE),
+});
+
+export const relayerKey = relayerApiKey({
+  key: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY),
+  address: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY_ADDRESS),
 });
 
 function getTestPrivateKey(): PrivateKey {
@@ -39,8 +44,14 @@ function getTestPrivateKey(): PrivateKey {
   return value;
 }
 
-export function createTestWalletClient() {
-  const privateKey = getTestPrivateKey();
+export const walletClient = createWalletClient({
+  account: privateKeyToAccount(getTestPrivateKey()),
+  chain: polygon,
+  transport: http(),
+});
+
+export function createRandomWalletClient() {
+  const privateKey = generatePrivateKey();
 
   return createWalletClient({
     account: privateKeyToAccount(privateKey),

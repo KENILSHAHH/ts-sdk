@@ -1,4 +1,5 @@
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
+import { WalletType } from '@polymarket/bindings/gamma';
 import type { EvmAddress } from '@polymarket/types';
 import {
   expectEvmAddress,
@@ -188,9 +189,20 @@ export class PublicClient extends AbstractClient<PublicContext> {
 
   async #resolveAccountIdentity(signer: EvmAddress): Promise<AccountIdentity> {
     const profile = await fetchPublicProfile(this, { address: signer });
-    const wallet = profile.proxyWallet ?? signer;
 
-    const walletType = await fetchWalletType(this, { address: wallet, signer });
+    if (profile === null) {
+      return {
+        signer,
+        wallet: signer,
+        walletType: WalletType.EOA,
+      };
+    }
+
+    const wallet = profile.proxyWallet ?? signer;
+    const walletType = await fetchWalletType(this, {
+      address: wallet,
+      signer,
+    });
 
     return {
       signer,

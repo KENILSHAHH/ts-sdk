@@ -10,6 +10,7 @@ import type {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
+import { TypedDataPayload } from '../../types';
 import { resolveCurrentAllowance } from './allowance';
 import { PrepareLimitOrderParamsSchema, prepareLimitOrderDraft } from './limit';
 import {
@@ -18,10 +19,11 @@ import {
 } from './market';
 import { createSignedOrder, createUnsignedOrder } from './orders';
 import { createOrderTypedDataPayload } from './typed-data';
-import type {
-  OrderWorkflow,
-  PrepareLimitOrderRequest,
-  PrepareMarketOrderRequest,
+import {
+  type OrderWorkflow,
+  type PrepareLimitOrderRequest,
+  type PrepareMarketOrderRequest,
+  signOrder,
 } from './types';
 
 export type PrepareMarketOrderError =
@@ -62,10 +64,7 @@ export async function prepareMarketOrder(
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
     const signature = expectEvmSignature(
-      yield {
-        kind: 'signOrder',
-        payload: createOrderTypedDataPayload(unsignedOrder),
-      },
+      yield signOrder(createOrderTypedDataPayload(unsignedOrder)),
     );
 
     return createSignedOrder(unsignedOrder, signature);
@@ -109,10 +108,7 @@ export async function prepareLimitOrder(
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
     const signature = expectEvmSignature(
-      yield {
-        kind: 'signOrder',
-        payload: createOrderTypedDataPayload(unsignedOrder),
-      },
+      yield signOrder(createOrderTypedDataPayload(unsignedOrder)),
     );
 
     return createSignedOrder(unsignedOrder, signature);

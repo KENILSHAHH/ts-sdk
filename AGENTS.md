@@ -43,6 +43,7 @@
 - Prefer simple, local code. Accept small duplication when it keeps logic easier to read.
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
 - Shape abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
+- When translating one public error into another at an action boundary, prefer `ResultAsync.mapErr(...)` on the request pipeline over `try`/`catch` around `unwrap(...)` when the remap can stay inside the result chain.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 - Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.
 - For any public SDK function export, including actions and client methods, document the public thrown-error surface explicitly. Export a flattened `...Error` union of the concrete public error types the function can throw through its public contract, dedupe the union, and do not include internal assertion-style errors such as `InvariantError` in that union.

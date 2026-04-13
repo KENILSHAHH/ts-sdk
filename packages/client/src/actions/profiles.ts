@@ -2,15 +2,15 @@ import {
   type PublicProfile,
   PublicProfileSchema,
 } from '@polymarket/bindings/gamma';
-import { unwrap } from '@polymarket/types';
+import { err, ok, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
-import type {
-  RateLimitError,
+import {
+  type RateLimitError,
   RequestRejectedError,
-  TransportError,
-  UnexpectedResponseError,
-  UserInputError,
+  type TransportError,
+  type UnexpectedResponseError,
+  type UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
@@ -43,13 +43,13 @@ export type FetchPublicProfileError =
  *   address: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
  * });
  *
- * // profile === PublicProfile
+ * // profile === PublicProfile | null
  * ```
  */
 export async function fetchPublicProfile(
   client: Client,
   request: FetchPublicProfileRequest,
-): Promise<PublicProfile> {
+): Promise<PublicProfile | null> {
   const params = parseUserInput(request, FetchPublicProfileRequestSchema);
 
   return unwrap(
@@ -57,6 +57,13 @@ export async function fetchPublicProfile(
       .get('/public-profile', {
         params: toSearchParams(params, snakeCase()),
       })
-      .andThen(validateWith(PublicProfileSchema)),
+      .andThen(validateWith(PublicProfileSchema))
+      .orElse((error) => {
+        if (error instanceof RequestRejectedError && error.status === 404) {
+          return ok(null);
+        }
+
+        return err(error);
+      }),
   );
 }

@@ -119,22 +119,23 @@ export type SignedOrder = {
   signature: EvmSignature;
 };
 
-export type OrderWorkflowRequest =
-  | {
-      kind: 'sendTransaction';
-      request: {
-        data?: HexString;
-        to: EvmAddress;
-        value?: bigint;
-      };
-    }
-  | {
-      kind: 'signOrder';
-      payload: TypedDataPayload;
-    };
+export type SignOrderRequest = {
+  kind: 'signOrder';
+  payload: TypedDataPayload;
+};
+
+export type OrderWorkflowRequest = SignOrderRequest;
 
 export type OrderWorkflow = AsyncGenerator<
   OrderWorkflowRequest,
   SignedOrder,
   EvmSignature | TxHash
 >;
+
+/** @internal */
+export function signOrder(payload: TypedDataPayload): SignOrderRequest {
+  return {
+    kind: 'signOrder',
+    payload,
+  };
+}

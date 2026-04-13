@@ -8,7 +8,7 @@ import {
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { InsufficientLiquidityError } from '../errors';
-import { createTestWalletClient, publicClient } from '../testing';
+import { publicClient, walletClient } from '../testing';
 import { authenticateWith, executeWith } from '../viem';
 import { fetchOpenOrders } from './account';
 import { fetchMarket } from './markets';
@@ -30,8 +30,6 @@ const TEST_MARKET_SLUG = 'eth-flipped-in-2026';
 const market = await fetchMarket(publicClient, {
   slug: TEST_MARKET_SLUG,
 });
-
-const walletClient = createTestWalletClient();
 
 const secureClient = await publicClient
   .beginAuthentication()

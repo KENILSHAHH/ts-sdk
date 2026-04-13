@@ -15,5 +15,13 @@ describe('Profiles', () => {
         }),
       );
     });
+
+    it('returns null when the profile does not exist', async () => {
+      await expect(
+        fetchPublicProfile(publicClient, {
+          address: '0x0000000000000000000000000000000000000001',
+        }),
+      ).resolves.toBeNull();
+    });
   });
 });
