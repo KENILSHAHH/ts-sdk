@@ -1,10 +1,9 @@
 import process from 'node:process';
 import { invariant } from '@polymarket/types';
-import {
-  type PublicClientOptions as BasePublicClientOptions,
-  PublicClient,
-} from './clients';
-import { production } from './environments';
+
+export type { PublicClientOptions } from './clients';
+export { createPublicClient } from './clients';
+
 import { SigningError } from './errors';
 import { buildPolyHmacSignature } from './hmac';
 import type { ApiKeyAuthorization, ApiKeyAuthorizationRequest } from './types';
@@ -39,39 +38,6 @@ export function relayerApiKey(
   options: RelayerApiKeyOptions,
 ): ApiKeyAuthorization {
   return new LocalRelayerApiKey(options);
-}
-
-export type PublicClientOptions = BasePublicClientOptions & {
-  apiKey?: ApiKeyAuthorization;
-};
-
-/**
- * Creates a new `PublicClient` instance.
- *
- * @example
- * ```ts
- * const client = createPublicClient();
- * ```
- *
- * @example
- * With a builder API key
- * ```ts
- * const client = createPublicClient({
- *   apiKey: builderApiKey({
- *     key: process.env.POLYMARKET_BUILDER_API_KEY!,
- *     secret: process.env.POLYMARKET_BUILDER_SECRET!,
- *     passphrase: process.env.POLYMARKET_BUILDER_PASSPHRASE!,
- *   }),
- * });
- * ```
- */
-export function createPublicClient(
-  options: PublicClientOptions = {},
-): PublicClient {
-  return new PublicClient({
-    environment: options.environment ?? production,
-    apiKey: options.apiKey,
-  });
 }
 
 class LocalBuilderApiKey implements ApiKeyAuthorization {

@@ -1,9 +1,8 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { ZERO_ADDRESS } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
+import { createPublicClient } from '../clients';
 import { SigningError } from '../errors';
-// biome-ignore lint/style/noRestrictedImports: intentional
-import { createPublicClient } from '../node';
 import { createRandomWalletClient, relayerKey, walletClient } from '../testing';
 import { approveWith, authenticateWith } from '../viem';
 import { prepareErc20Approval } from './approvals';

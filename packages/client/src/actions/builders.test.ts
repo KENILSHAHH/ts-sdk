@@ -1,9 +1,7 @@
 import { OrderSide } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import type { PublicClient } from '../clients';
-// biome-ignore lint/style/noRestrictedImports: intentional
-import { createPublicClient } from '../node';
+import { createPublicClient, type PublicClient } from '../clients';
 import {
   builderKey,
   findHighVolumeLowPriceMarket,

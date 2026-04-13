@@ -358,6 +358,11 @@ export type PublicClientOptions = {
    * @defaultValue `production`
    */
   environment?: EnvironmentConfig;
+
+  /**
+   * Optional request authorization applied by the client when needed.
+   */
+  apiKey?: ApiKeyAuthorization;
 };
 
 /**
@@ -371,5 +376,8 @@ export type PublicClientOptions = {
 export function createPublicClient(
   options: PublicClientOptions = {},
 ): PublicClient {
-  return new PublicClient({ environment: options.environment ?? production });
+  return new PublicClient({
+    environment: options.environment ?? production,
+    apiKey: options.apiKey,
+  });
 }
