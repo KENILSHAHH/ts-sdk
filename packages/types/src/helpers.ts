@@ -27,3 +27,10 @@ export function invariant(
 export function never(message = 'Unexpected call to never()'): never {
   throw new InvariantError(message);
 }
+
+/**
+ * Resolves after the provided delay in milliseconds.
+ */
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
