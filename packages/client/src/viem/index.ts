@@ -27,6 +27,7 @@ import type {
   TradingApprovalsWorkflowRequest,
 } from '../actions/approvals';
 import type { OrderWorkflow, SignedOrder } from '../actions/orders';
+import type { Erc20TransferWorkflow } from '../actions/transfers';
 import type { AuthenticationWorkflow } from '../authentication';
 import type { SecureClient } from '../clients';
 import {
@@ -175,6 +176,72 @@ export function approveWith(walletClient: WalletClient) {
         switch (result.value.kind) {
           case 'sendErc20ApprovalTransaction':
           case 'sendErc1155ApprovalForAllTransaction': {
+            const hash = await sendTransaction(walletClient, {
+              account,
+              ...result.value.request,
+            });
+            result = await workflow.next(
+              new DirectTransactionHandle(hash, walletClient),
+            );
+            break;
+          }
+
+          case 'requestAddress':
+            result = await workflow.next(address);
+            break;
+
+          case 'signGaslessTypedDataAsMessage':
+            result = await workflow.next(
+              expectEvmSignature(
+                await signMessage(walletClient, {
+                  account,
+                  message: {
+                    raw: hashTypedData(result.value.payload as never),
+                  },
+                }),
+              ),
+            );
+            break;
+        }
+      } catch (error) {
+        result = await workflow.throw(error);
+      }
+    }
+
+    return result.value;
+  };
+}
+
+export type TransferWithError = CancelledSigningError | SigningError;
+
+/**
+ * Drives an ERC-20 transfer workflow with a viem wallet client.
+ *
+ * @throws {@link TransferWithError}
+ * Thrown when the required wallet signature or submission is rejected or cannot be produced.
+ */
+export function transferWith(walletClient: WalletClient) {
+  invariant(
+    isWalletClientWithAccount(walletClient),
+    'Wallet client with account is required',
+  );
+
+  const account = walletClient.account;
+  const address = expectEvmAddress(
+    typeof walletClient.account === 'string'
+      ? walletClient.account
+      : walletClient.account.address,
+  );
+
+  return async function transfer(
+    workflow: Erc20TransferWorkflow,
+  ): Promise<TransactionHandle> {
+    let result = await workflow.next();
+
+    while (!result.done) {
+      try {
+        switch (result.value.kind) {
+          case 'sendErc20TransferTransaction': {
             const hash = await sendTransaction(walletClient, {
               account,
               ...result.value.request,

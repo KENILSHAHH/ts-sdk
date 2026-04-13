@@ -3,11 +3,12 @@ import { UserInputError } from './errors';
 import type { TransactionCall } from './types';
 
 const ERC20_APPROVE_SELECTOR = '095ea7b3';
+const ERC20_TRANSFER_SELECTOR = 'a9059cbb';
 const ERC1155_SET_APPROVAL_FOR_ALL_SELECTOR = 'a22cb465';
 const SAFE_MULTISEND_SELECTOR = '8d80ff0a';
 
 /** @internal */
-export const MAX_APPROVAL_AMOUNT = (1n << 256n) - 1n;
+export const MAX_UINT256 = (1n << 256n) - 1n;
 
 export type Erc20ApprovalCallError = UserInputError;
 
@@ -26,7 +27,7 @@ export function erc20ApprovalCall(
     throw new UserInputError('Approval amount must be non-negative');
   }
 
-  if (amount > MAX_APPROVAL_AMOUNT) {
+  if (amount > MAX_UINT256) {
     throw new UserInputError('Approval amount exceeds uint256 range');
   }
 
@@ -46,6 +47,33 @@ export function erc1155ApprovalForAllCall(
 ): TransactionCall {
   return {
     data: encodeErc1155SetApprovalForAllCall(operator, approved),
+    to: tokenAddress,
+  };
+}
+
+export type Erc20TransferCallError = UserInputError;
+
+/**
+ * Creates a transaction call for `transfer(address,uint256)` on an ERC-20 token.
+ *
+ * @throws {@link Erc20TransferCallError}
+ * Thrown when the transfer amount is invalid.
+ */
+export function erc20TransferCall(
+  tokenAddress: EvmAddress,
+  recipient: EvmAddress,
+  amount: bigint,
+): TransactionCall {
+  if (amount < 0n) {
+    throw new UserInputError('Transfer amount must be non-negative');
+  }
+
+  if (amount > MAX_UINT256) {
+    throw new UserInputError('Transfer amount exceeds uint256 range');
+  }
+
+  return {
+    data: encodeErc20TransferCall(recipient, amount),
     to: tokenAddress,
   };
 }
@@ -70,6 +98,16 @@ function encodeErc1155SetApprovalForAllCall(
   const encodedApproved = encodeUint256(approved ? 1n : 0n);
 
   return `0x${ERC1155_SET_APPROVAL_FOR_ALL_SELECTOR}${encodedOperator}${encodedApproved}`;
+}
+
+function encodeErc20TransferCall(
+  recipient: EvmAddress,
+  amount: bigint,
+): HexString {
+  const encodedRecipient = encodeAddress(recipient);
+  const encodedAmount = encodeUint256(amount);
+
+  return `0x${ERC20_TRANSFER_SELECTOR}${encodedRecipient}${encodedAmount}`;
 }
 
 /** @internal */

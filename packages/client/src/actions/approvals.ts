@@ -5,7 +5,7 @@ import { z } from 'zod';
 import {
   erc20ApprovalCall,
   erc1155ApprovalForAllCall,
-  MAX_APPROVAL_AMOUNT,
+  MAX_UINT256,
 } from '../abis';
 import type { SecureClient } from '../clients';
 import type { UserInputError } from '../errors';
@@ -69,7 +69,7 @@ export async function prepareErc20Approval(
   request: PrepareErc20ApprovalRequest,
 ): Promise<Erc20ApprovalWorkflow> {
   const params = parseUserInput(request, PrepareErc20ApprovalRequestSchema);
-  const amount = params.amount === 'max' ? MAX_APPROVAL_AMOUNT : params.amount;
+  const amount = params.amount === 'max' ? MAX_UINT256 : params.amount;
 
   return async function* (): Erc20ApprovalWorkflow {
     if (client.account.walletType === WalletType.EOA) {
@@ -197,12 +197,12 @@ export async function prepareTradingApprovals(
     erc20ApprovalCall(
       client.environment.collateralToken,
       client.environment.standardExchange,
-      MAX_APPROVAL_AMOUNT,
+      MAX_UINT256,
     ),
     erc20ApprovalCall(
       client.environment.collateralToken,
       client.environment.negRiskExchange,
-      MAX_APPROVAL_AMOUNT,
+      MAX_UINT256,
     ),
     erc1155ApprovalForAllCall(
       client.environment.conditionalTokens,
