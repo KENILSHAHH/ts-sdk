@@ -21,15 +21,17 @@ import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
 import { buildPolyHmacSignature } from './hmac';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
-import type { BuilderAuthorization } from './types';
+import type { ApiKeyAuthorization } from './types';
 
 type PublicContext = {
   /** @internal */
-  builder?: BuilderAuthorization;
+  apiKey?: ApiKeyAuthorization;
   /** @internal */
   environment: EnvironmentConfig;
   /** @internal */
   clob: ServiceClient;
+  /** @internal */
+  relayer: ServiceClient;
   /** @internal */
   gamma: ServiceClient;
   /** @internal */
@@ -56,6 +58,11 @@ abstract class AbstractClient<TContext extends PublicContext> {
   }
 
   /** @internal */
+  get relayer(): ServiceClient {
+    return this.context.relayer;
+  }
+
+  /** @internal */
   get gamma(): ServiceClient {
     return this.context.gamma;
   }
@@ -65,18 +72,36 @@ abstract class AbstractClient<TContext extends PublicContext> {
     return this.context.data;
   }
 
+  /** @internal */
+  get hasApiKey(): boolean {
+    return this.context.apiKey !== undefined;
+  }
+
+  /** @internal */
+  get supportsGasless(): boolean {
+    return this.context.apiKey?.supportGasless ?? false;
+  }
+
   constructor(context: TContext) {
     this.#context = context;
   }
 
-  protected async resolveBuilderHeaders(
+  protected async resolveClobHeaders(
     request: ServiceRequest,
   ): Promise<HeadersInit> {
-    if (this.context.builder === undefined) {
-      return Promise.resolve({});
+    if (this.context.apiKey?.isBuilderKey) {
+      return this.context.apiKey.authorize(request);
     }
+    return Promise.resolve({});
+  }
 
-    return this.context.builder.authorize(request);
+  protected async resolveRelayerHeaders(
+    request: ServiceRequest,
+  ): Promise<HeadersInit> {
+    if (this.context.apiKey?.supportGasless) {
+      return this.context.apiKey.authorize(request);
+    }
+    return Promise.resolve({});
   }
 }
 
@@ -86,19 +111,23 @@ export type BeginAuthenticationOptions =
 
 type PublicClientConfig = {
   environment: EnvironmentConfig;
-  builder?: BuilderAuthorization;
+  apiKey?: ApiKeyAuthorization;
 };
 
 export class PublicClient extends AbstractClient<PublicContext> {
   constructor(config: PublicClientConfig) {
     super({
-      builder: config.builder,
+      apiKey: config.apiKey,
       environment: config.environment,
       data: new ServiceClient({ root: config.environment.data }),
       gamma: new ServiceClient({ root: config.environment.gamma }),
       clob: new ServiceClient({
         root: config.environment.clob,
-        resolveHeaders: (request) => this.resolveBuilderHeaders(request),
+        resolveHeaders: (request) => this.resolveClobHeaders(request),
+      }),
+      relayer: new ServiceClient({
+        root: config.environment.relayer,
+        resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
     });
   }
@@ -175,7 +204,7 @@ export class PublicClient extends AbstractClient<PublicContext> {
   ): SecureClient {
     return new SecureClient({
       account: account,
-      builder: this.context.builder,
+      apiKey: this.context.apiKey,
       credentials,
       environment: this.environment,
     });
@@ -220,17 +249,21 @@ export class SecureClient extends AbstractClient<SecureContext> {
     super({
       account: config.account,
       credentials: config.credentials,
-      builder: config.builder,
+      apiKey: config.apiKey,
       environment: config.environment,
       clob: new ServiceClient({
         root: config.environment.clob,
-        resolveHeaders: (request) => this.resolveBuilderHeaders(request),
+        resolveHeaders: (request) => this.resolveClobHeaders(request),
+      }),
+      relayer: new ServiceClient({
+        root: config.environment.relayer,
+        resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
       gamma: new ServiceClient({ root: config.environment.gamma }),
       data: new ServiceClient({ root: config.environment.data }),
       secureClob: new ServiceClient({
         resolveHeaders: async (request) => ({
-          ...(await this.resolveBuilderHeaders(request)),
+          ...(await this.resolveClobHeaders(request)),
           ...(await this.#createL2Headers(request)),
         }),
         root: config.environment.clob,
@@ -266,13 +299,13 @@ export class SecureClient extends AbstractClient<SecureContext> {
    * ```
    */
   async endAuthentication(): Promise<PublicClient> {
-    const { builder, environment } = this.context;
+    const { apiKey, environment } = this.context;
 
     await deleteApiKey(this);
     this.endAuthenticationLifecycle();
 
     return new PublicClient({
-      builder,
+      apiKey,
       environment,
     });
   }

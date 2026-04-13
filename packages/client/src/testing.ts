@@ -8,7 +8,7 @@ import { listMarkets } from './actions/markets';
 import { createPublicClient } from './clients';
 
 // biome-ignore lint/style/noRestrictedImports: intentional
-import type { LocalBuilderApiCredentials } from './node';
+import { builderApiKey } from './node';
 
 if (process.env.CI !== 'true') {
   try {
@@ -20,11 +20,11 @@ if (process.env.CI !== 'true') {
 
 export const publicClient = createPublicClient();
 
-export const builderCredentials = {
+export const builderCredentials = builderApiKey({
   key: expectPresent(process.env.POLYMARKET_BUILDER_API_KEY),
   secret: expectPresent(process.env.POLYMARKET_BUILDER_SECRET),
   passphrase: expectPresent(process.env.POLYMARKET_BUILDER_PASSPHRASE),
-} satisfies LocalBuilderApiCredentials;
+});
 
 function getTestPrivateKey(): PrivateKey {
   const value = process.env.POLYMARKET_TEST_PRIVATE_KEY;

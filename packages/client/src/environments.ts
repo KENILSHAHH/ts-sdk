@@ -10,6 +10,8 @@ export type EnvironmentConfig = {
   /** @internal */
   clob: string;
   /** @internal */
+  relayer: string;
+  /** @internal */
   gamma: string;
   /** @internal */
   data: string;
@@ -28,6 +30,7 @@ export const production: EnvironmentConfig = {
     '0xC5d563A36AE78145C45a50134d48A1215220f80a',
   ),
   clob: 'https://clob.polymarket.com',
+  relayer: 'https://relayer-v2.polymarket.com',
   gamma: 'https://gamma-api.polymarket.com',
   data: 'https://data-api.polymarket.com',
 };

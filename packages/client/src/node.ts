@@ -7,10 +7,7 @@ import {
 import { production } from './environments';
 import { SigningError } from './errors';
 import { buildPolyHmacSignature } from './hmac';
-import type {
-  BuilderAuthorization,
-  BuilderAuthorizationRequest,
-} from './types';
+import type { ApiKeyAuthorization, ApiKeyAuthorizationRequest } from './types';
 
 invariant(
   process.release.name === 'node',
@@ -21,14 +18,31 @@ invariant(
   'The @polymarket/client/node entrypoint cannot be imported in a browser-like runtime.',
 );
 
-export type LocalBuilderApiCredentials = {
+export type BuilderApiKeyOptions = {
   key: string;
   secret: string;
   passphrase: string;
 };
 
-export type PublicClientConfig = BasePublicClientOptions & {
-  builder?: LocalBuilderApiCredentials;
+export type RelayerApiKeyOptions = {
+  key: string;
+  address: string;
+};
+
+export function builderApiKey(
+  options: BuilderApiKeyOptions,
+): ApiKeyAuthorization {
+  return new LocalBuilderApiKey(options);
+}
+
+export function relayerApiKey(
+  options: RelayerApiKeyOptions,
+): ApiKeyAuthorization {
+  return new LocalRelayerApiKey(options);
+}
+
+export type PublicClientOptions = BasePublicClientOptions & {
+  apiKey?: ApiKeyAuthorization;
 };
 
 /**
@@ -40,36 +54,46 @@ export type PublicClientConfig = BasePublicClientOptions & {
  * ```
  *
  * @example
- * With builder credentials
+ * With a builder API key
  * ```ts
  * const client = createPublicClient({
- *   builder: {
+ *   apiKey: builderApiKey({
  *     key: process.env.POLYMARKET_BUILDER_API_KEY!,
  *     secret: process.env.POLYMARKET_BUILDER_SECRET!,
  *     passphrase: process.env.POLYMARKET_BUILDER_PASSPHRASE!,
- *   },
+ *   }),
  * });
  * ```
  */
 export function createPublicClient(
-  options: PublicClientConfig = {},
+  options: PublicClientOptions = {},
 ): PublicClient {
   return new PublicClient({
     environment: options.environment ?? production,
-    builder: options.builder
-      ? new LocalBuilderCredentials(options.builder)
-      : undefined,
+    apiKey: options.apiKey,
   });
 }
 
-class LocalBuilderCredentials implements BuilderAuthorization {
-  readonly #credentials: LocalBuilderApiCredentials;
+class LocalBuilderApiKey implements ApiKeyAuthorization {
+  readonly #credentials: BuilderApiKeyOptions;
 
-  constructor(credentials: LocalBuilderApiCredentials) {
+  constructor(credentials: BuilderApiKeyOptions) {
     this.#credentials = credentials;
   }
 
-  async authorize(request: BuilderAuthorizationRequest): Promise<HeadersInit> {
+  get isBuilderKey(): boolean {
+    return true;
+  }
+
+  get supportGasless(): boolean {
+    return true;
+  }
+
+  async authorize(request: ApiKeyAuthorizationRequest): Promise<HeadersInit> {
+    return this.#authorize(request);
+  }
+
+  async #authorize(request: ApiKeyAuthorizationRequest): Promise<HeadersInit> {
     try {
       const timestamp = Math.floor(Date.now() / 1000);
 
@@ -91,5 +115,28 @@ class LocalBuilderCredentials implements BuilderAuthorization {
         'Could not sign the builder-authenticated request',
       );
     }
+  }
+}
+
+class LocalRelayerApiKey implements ApiKeyAuthorization {
+  readonly #credentials: RelayerApiKeyOptions;
+
+  constructor(credentials: RelayerApiKeyOptions) {
+    this.#credentials = credentials;
+  }
+
+  get isBuilderKey(): boolean {
+    return false;
+  }
+
+  get supportGasless(): boolean {
+    return true;
+  }
+
+  authorize(): Promise<HeadersInit> {
+    return Promise.resolve({
+      RELAYER_API_KEY: this.#credentials.key,
+      RELAYER_API_KEY_ADDRESS: this.#credentials.address,
+    });
   }
 }

@@ -1,19 +1,88 @@
+import { OrderSide } from '@polymarket/bindings/clob';
+import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
+import type { PublicClient } from '../clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
 import { createPublicClient } from '../node';
-import { builderCredentials } from '../testing';
+import {
+  builderCredentials,
+  createTestWalletClient,
+  findHighVolumeLowPriceMarket,
+} from '../testing';
+import { authenticateWith, executeWith } from '../viem';
 import { listBuilderTrades } from './builders';
+import { postOrder, prepareMarketOrder } from './orders';
 
 describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder trades', async () => {
       const client = createPublicClient({
-        builder: builderCredentials,
+        apiKey: builderCredentials,
       });
 
       const result = await listBuilderTrades(client);
 
       expect(Array.isArray(result)).toBe(true);
     });
+
+    it.skip('records at least one builder-attributed trade, placing one minimum-size market order only when needed', async () => {
+      const client = createPublicClient({
+        apiKey: builderCredentials,
+      });
+      const existingTrades = await listBuilderTrades(client);
+
+      if (existingTrades.length > 0) {
+        expect(existingTrades[0]).toEqual(
+          expect.objectContaining({
+            builder: expect.any(String),
+            id: expect.any(String),
+          }),
+        );
+        return;
+      }
+
+      const walletClient = createTestWalletClient();
+      const secureClient = await client
+        .beginAuthentication()
+        .then(authenticateWith(walletClient));
+      const market = await findHighVolumeLowPriceMarket();
+      const [tokenId] = expectPresent(market.clobTokenIds);
+
+      const order = await prepareMarketOrder(secureClient, {
+        amount: expectPresent(market.orderMinSize),
+        side: OrderSide.BUY,
+        tokenId,
+      }).then(executeWith(walletClient));
+
+      const response = await postOrder(secureClient, order);
+
+      expect(response.ok).toBe(true);
+
+      const trades = await waitForBuilderTrades(client, tokenId);
+
+      expect(trades).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            assetId: tokenId,
+            builder: expect.any(String),
+            id: expect.any(String),
+          }),
+        ]),
+      );
+    });
   });
 });
+
+async function waitForBuilderTrades(client: PublicClient, tokenId: string) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const trades = await listBuilderTrades(client, { tokenId });
+
+    if (trades.length > 0) {
+      return trades;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  return listBuilderTrades(client, { tokenId });
+}

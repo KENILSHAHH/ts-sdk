@@ -1,4 +1,5 @@
-import type { EvmAddress, HexString } from '@polymarket/types';
+import type { TransactionId } from '@polymarket/bindings';
+import type { EvmAddress, HexString, TxHash } from '@polymarket/types';
 
 export type TypedDataField = {
   name: string;
@@ -22,12 +23,30 @@ export type TypedDataPayload = {
   types: TypedData;
 };
 
-export type BuilderAuthorizationRequest = {
+export type ApiKeyAuthorizationRequest = {
   method: 'DELETE' | 'GET' | 'POST';
   path: string;
   body?: string;
 };
 
-export interface BuilderAuthorization {
-  authorize(request: BuilderAuthorizationRequest): Promise<HeadersInit>;
+export interface ApiKeyAuthorization {
+  /** @internal */
+  get isBuilderKey(): boolean;
+
+  /** @internal */
+  get supportGasless(): boolean;
+
+  /** @internal */
+  authorize(request: ApiKeyAuthorizationRequest): Promise<HeadersInit>;
+}
+
+export type TransactionOutcome = {
+  transactionHash: TxHash;
+  transactionId: TransactionId | null;
+};
+
+export interface TransactionHandle {
+  readonly transactionHash: TxHash | null;
+  readonly transactionId: TransactionId | null;
+  wait(): Promise<TransactionOutcome>;
 }

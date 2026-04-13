@@ -1,7 +1,8 @@
-import { InvariantError } from './errors';
+import { invariant } from './helpers';
 import {
   type EvmAddress,
   type EvmSignature,
+  type HexString,
   isHexString,
   type TxHash,
 } from './hex';
@@ -15,10 +16,7 @@ export function expectPresent<T>(
   value: T,
   message = 'Expected value to be present',
 ): Exclude<T, null | undefined> {
-  if (value === null || value === undefined) {
-    throw new InvariantError(message);
-  }
-
+  invariant(value !== null && value !== undefined, message);
   return value as Exclude<T, null | undefined>;
 }
 
@@ -29,11 +27,17 @@ export function expectNonEmptyArray<T>(
   value: readonly T[],
   message = 'Expected a non-empty array',
 ): NonEmptyArray<T> {
-  if (value.length === 0) {
-    throw new InvariantError(message);
-  }
+  invariant(value.length > 0, message);
 
   return value as NonEmptyArray<T>;
+}
+
+export function expectHexString(
+  value: string,
+  message = 'Expected a hex string',
+): HexString {
+  invariant(isHexString(value), message);
+  return value;
 }
 
 /**
@@ -43,10 +47,7 @@ export function expectEvmAddress(
   value: string,
   message = 'Expected an EVM address',
 ): EvmAddress {
-  if (!isHexString(value) || value.length !== 42) {
-    throw new InvariantError(message);
-  }
-
+  invariant(isHexString(value) && value.length === 42, message);
   return value as EvmAddress;
 }
 
@@ -57,10 +58,7 @@ export function expectEvmSignature(
   value: string,
   message = 'Expected an EVM signature',
 ): EvmSignature {
-  if (!isHexString(value) || value.length !== 132) {
-    throw new InvariantError(message);
-  }
-
+  invariant(isHexString(value) && value.length === 132, message);
   return value as EvmSignature;
 }
 
@@ -71,9 +69,6 @@ export function expectTxHash(
   value: string,
   message = 'Expected a transaction hash',
 ): TxHash {
-  if (!isHexString(value) || value.length !== 66) {
-    throw new InvariantError(message);
-  }
-
+  invariant(isHexString(value) && value.length === 66, message);
   return value as TxHash;
 }
