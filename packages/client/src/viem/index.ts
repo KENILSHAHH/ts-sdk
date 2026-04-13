@@ -21,7 +21,11 @@ import {
   type WalletClient,
 } from 'viem';
 import { waitForTransactionReceipt } from 'viem/actions';
-import type { Erc20ApprovalWorkflowRequest } from '../actions/approvals';
+import type {
+  Erc20ApprovalWorkflowRequest,
+  Erc1155ApprovalForAllWorkflowRequest,
+  TradingApprovalsWorkflowRequest,
+} from '../actions/approvals';
 import type { OrderWorkflow, SignedOrder } from '../actions/orders';
 import type { AuthenticationWorkflow } from '../authentication';
 import type { SecureClient } from '../clients';
@@ -157,7 +161,9 @@ export function approveWith(walletClient: WalletClient) {
 
   return async function approve(
     workflow: AsyncGenerator<
-      Erc20ApprovalWorkflowRequest,
+      | Erc20ApprovalWorkflowRequest
+      | Erc1155ApprovalForAllWorkflowRequest
+      | TradingApprovalsWorkflowRequest,
       TransactionHandle,
       EvmAddress | EvmSignature | TransactionHandle
     >,
@@ -167,7 +173,8 @@ export function approveWith(walletClient: WalletClient) {
     while (!result.done) {
       try {
         switch (result.value.kind) {
-          case 'sendErc20ApprovalTransaction': {
+          case 'sendErc20ApprovalTransaction':
+          case 'sendErc1155ApprovalForAllTransaction': {
             const hash = await sendTransaction(walletClient, {
               account,
               ...result.value.request,

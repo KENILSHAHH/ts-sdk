@@ -75,11 +75,6 @@ abstract class AbstractClient<TContext extends PublicContext> {
   }
 
   /** @internal */
-  get hasApiKey(): boolean {
-    return this.context.apiKey !== undefined;
-  }
-
-  /** @internal */
   get supportsGasless(): boolean {
     return this.context.apiKey?.supportGasless ?? false;
   }

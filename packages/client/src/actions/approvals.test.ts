@@ -5,7 +5,11 @@ import { createPublicClient } from '../clients';
 import { SigningError } from '../errors';
 import { createRandomWalletClient, relayerKey, walletClient } from '../testing';
 import { approveWith, authenticateWith } from '../viem';
-import { prepareErc20Approval } from './approvals';
+import {
+  prepareErc20Approval,
+  prepareErc1155ApprovalForAll,
+  prepareTradingApprovals,
+} from './approvals';
 
 describe('Approvals', () => {
   describe('prepareErc20Approval', () => {
@@ -28,7 +32,7 @@ describe('Approvals', () => {
       await expect(handle.wait()).resolves.toBeTruthy();
     });
 
-    it('fails waiting for a reverted approval from a fresh EOA', async () => {
+    it('supports EOA approvals as traditional transactions', async () => {
       const publicClient = createPublicClient();
       const walletClient = createRandomWalletClient();
       const secureClient = await publicClient
@@ -37,6 +41,8 @@ describe('Approvals', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
 
+      // to avoid having to fund the wallet we stop the test by proving the
+      // transaction request is correctly formed, without actually sending it
       await expect(
         prepareErc20Approval(secureClient, {
           amount: 'max',
@@ -44,6 +50,45 @@ describe('Approvals', () => {
           tokenAddress: secureClient.environment.collateralToken,
         }).then(approveWith(walletClient)),
       ).rejects.toBeInstanceOf(SigningError);
+    });
+  });
+
+  describe('prepareErc1155ApprovalForAll', () => {
+    it('submits a Conditional Tokens approval for the standard exchange', async () => {
+      const publicClient = createPublicClient({
+        apiKey: relayerKey,
+      });
+      const secureClient = await publicClient
+        .beginAuthentication()
+        .then(authenticateWith(walletClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+
+      const handle = await prepareErc1155ApprovalForAll(secureClient, {
+        operatorAddress: secureClient.environment.standardExchange,
+        tokenAddress: secureClient.environment.conditionalTokens,
+      }).then(approveWith(walletClient));
+
+      await expect(handle.wait()).resolves.toBeTruthy();
+    });
+  });
+
+  describe('prepareTradingApprovals', () => {
+    it('submits a combined trading-setup approval workflow', async () => {
+      const publicClient = createPublicClient({
+        apiKey: relayerKey,
+      });
+      const secureClient = await publicClient
+        .beginAuthentication()
+        .then(authenticateWith(walletClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+
+      const handle = await prepareTradingApprovals(secureClient).then(
+        approveWith(walletClient),
+      );
+
+      await expect(handle.wait()).resolves.toBeTruthy();
     });
   });
 });

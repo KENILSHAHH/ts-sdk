@@ -6,6 +6,8 @@ export type EnvironmentConfig = {
   /** @internal */
   collateralToken: EvmAddress;
   /** @internal */
+  conditionalTokens: EvmAddress;
+  /** @internal */
   standardExchange: EvmAddress;
   /** @internal */
   negRiskExchange: EvmAddress;
@@ -33,6 +35,9 @@ export const production: EnvironmentConfig = {
   chainId: 137,
   collateralToken: expectEvmAddress(
     '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+  ),
+  conditionalTokens: expectEvmAddress(
+    '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045',
   ),
   standardExchange: expectEvmAddress(
     '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E',

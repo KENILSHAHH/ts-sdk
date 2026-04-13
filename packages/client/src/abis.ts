@@ -3,6 +3,7 @@ import { UserInputError } from './errors';
 import type { TransactionCall } from './types';
 
 const ERC20_APPROVE_SELECTOR = '095ea7b3';
+const ERC1155_SET_APPROVAL_FOR_ALL_SELECTOR = 'a22cb465';
 const SAFE_MULTISEND_SELECTOR = '8d80ff0a';
 
 /** @internal */
@@ -35,6 +36,20 @@ export function erc20ApprovalCall(
   };
 }
 
+/**
+ * Creates a transaction call for `setApprovalForAll(address,bool)` on an ERC-1155 token.
+ */
+export function erc1155ApprovalForAllCall(
+  tokenAddress: EvmAddress,
+  operator: EvmAddress,
+  approved: boolean,
+): TransactionCall {
+  return {
+    data: encodeErc1155SetApprovalForAllCall(operator, approved),
+    to: tokenAddress,
+  };
+}
+
 function encodeErc20ApproveCall(
   spender: EvmAddress,
   amount: bigint,
@@ -45,6 +60,16 @@ function encodeErc20ApproveCall(
   const encodedAmount = encodeUint256(amount);
 
   return `0x${ERC20_APPROVE_SELECTOR}${encodedSpender}${encodedAmount}`;
+}
+
+function encodeErc1155SetApprovalForAllCall(
+  operator: EvmAddress,
+  approved: boolean,
+): HexString {
+  const encodedOperator = encodeAddress(operator);
+  const encodedApproved = encodeUint256(approved ? 1n : 0n);
+
+  return `0x${ERC1155_SET_APPROVAL_FOR_ALL_SELECTOR}${encodedOperator}${encodedApproved}`;
 }
 
 /** @internal */

@@ -2,7 +2,11 @@ import { type EvmAddress, EvmAddressSchema } from '@polymarket/bindings';
 import { WalletType } from '@polymarket/bindings/gamma';
 import type { EvmSignature } from '@polymarket/types';
 import { z } from 'zod';
-import { erc20ApprovalCall, MAX_APPROVAL_AMOUNT } from '../abis';
+import {
+  erc20ApprovalCall,
+  erc1155ApprovalForAllCall,
+  MAX_APPROVAL_AMOUNT,
+} from '../abis';
 import type { SecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
@@ -17,12 +21,14 @@ import {
   prepareGaslessTransaction,
 } from './gasless';
 
+export type SendErc20ApprovalTransactionRequest = {
+  kind: 'sendErc20ApprovalTransaction';
+  request: SignerTransactionRequest;
+};
+
 export type Erc20ApprovalWorkflowRequest =
   | GaslessWorkflowRequest
-  | {
-      kind: 'sendErc20ApprovalTransaction';
-      request: SignerTransactionRequest;
-    };
+  | SendErc20ApprovalTransactionRequest;
 
 export type Erc20ApprovalWorkflow = AsyncGenerator<
   Erc20ApprovalWorkflowRequest,
@@ -83,11 +89,176 @@ export async function prepareErc20Approval(
   }.call(null);
 }
 
+export type SendErc1155ApprovalForAllTransactionRequest = {
+  kind: 'sendErc1155ApprovalForAllTransaction';
+  request: SignerTransactionRequest;
+};
+
+export type Erc1155ApprovalForAllWorkflowRequest =
+  | GaslessWorkflowRequest
+  | SendErc1155ApprovalForAllTransactionRequest;
+
+export type Erc1155ApprovalForAllWorkflow = AsyncGenerator<
+  Erc1155ApprovalForAllWorkflowRequest,
+  TransactionHandle,
+  EvmAddress | EvmSignature
+>;
+
+const PrepareErc1155ApprovalForAllRequestSchema = z.object({
+  approved: z.boolean().default(true),
+  metadata: GaslessTransactionMetadataSchema.optional(),
+  operatorAddress: EvmAddressSchema,
+  tokenAddress: EvmAddressSchema,
+});
+
+export type PrepareErc1155ApprovalForAllRequest = z.input<
+  typeof PrepareErc1155ApprovalForAllRequestSchema
+>;
+
+export type PrepareErc1155ApprovalForAllError = UserInputError;
+
+/**
+ * Starts an ERC-1155 approval-for-all workflow.
+ *
+ * @example
+ * ```ts
+ * const result = await prepareErc1155ApprovalForAll(client, {
+ *   operatorAddress: '0x1234…',
+ *   tokenAddress: '0x5678…',
+ * }).then(approveWith(walletClient));
+ * ```
+ *
+ * @throws {@link PrepareErc1155ApprovalForAllError}
+ * Thrown when the request is invalid.
+ */
+export async function prepareErc1155ApprovalForAll(
+  client: SecureClient,
+  request: PrepareErc1155ApprovalForAllRequest,
+): Promise<Erc1155ApprovalForAllWorkflow> {
+  const params = parseUserInput(
+    request,
+    PrepareErc1155ApprovalForAllRequestSchema,
+  );
+
+  return async function* (): Erc1155ApprovalForAllWorkflow {
+    if (client.account.walletType === WalletType.EOA) {
+      return expectTransactionHandle(
+        yield sendErc1155ApprovalForAllTransaction(
+          erc1155ApprovalForAllCall(
+            params.tokenAddress,
+            params.operatorAddress,
+            params.approved,
+          ),
+        ),
+      );
+    }
+
+    return yield* await prepareGaslessTransaction(client, {
+      calls: [
+        erc1155ApprovalForAllCall(
+          params.tokenAddress,
+          params.operatorAddress,
+          params.approved,
+        ),
+      ],
+      metadata: params.metadata,
+    });
+  }.call(null);
+}
+
+export type TradingApprovalsWorkflowRequest =
+  | GaslessWorkflowRequest
+  | SendErc20ApprovalTransactionRequest
+  | SendErc1155ApprovalForAllTransactionRequest;
+
+export type TradingApprovalsWorkflow = AsyncGenerator<
+  TradingApprovalsWorkflowRequest,
+  TransactionHandle,
+  EvmAddress | EvmSignature
+>;
+
+export type PrepareTradingApprovalsError = UserInputError;
+
+/**
+ * Starts a trading-setup approval workflow.
+ *
+ * @example
+ * ```ts
+ * const result = await prepareTradingApprovals(client).then(approveWith(walletClient));
+ * ```
+ *
+ * @throws {@link PrepareTradingApprovalsError}
+ * Thrown when the request is invalid.
+ */
+export async function prepareTradingApprovals(
+  client: SecureClient,
+): Promise<TradingApprovalsWorkflow> {
+  const calls = [
+    erc20ApprovalCall(
+      client.environment.collateralToken,
+      client.environment.standardExchange,
+      MAX_APPROVAL_AMOUNT,
+    ),
+    erc20ApprovalCall(
+      client.environment.collateralToken,
+      client.environment.negRiskExchange,
+      MAX_APPROVAL_AMOUNT,
+    ),
+    erc1155ApprovalForAllCall(
+      client.environment.conditionalTokens,
+      client.environment.standardExchange,
+      true,
+    ),
+    erc1155ApprovalForAllCall(
+      client.environment.conditionalTokens,
+      client.environment.negRiskExchange,
+      true,
+    ),
+  ] as const;
+
+  return async function* (): TradingApprovalsWorkflow {
+    if (client.account.walletType === WalletType.EOA) {
+      const collateralStandardApproval = expectTransactionHandle(
+        yield sendErc20ApprovalTransaction(calls[0]),
+      );
+      await collateralStandardApproval.wait();
+
+      const collateralNegRiskApproval = expectTransactionHandle(
+        yield sendErc20ApprovalTransaction(calls[1]),
+      );
+      await collateralNegRiskApproval.wait();
+
+      const conditionalStandardApproval = expectTransactionHandle(
+        yield sendErc1155ApprovalForAllTransaction(calls[2]),
+      );
+      await conditionalStandardApproval.wait();
+
+      return expectTransactionHandle(
+        yield sendErc1155ApprovalForAllTransaction(calls[3]),
+      );
+    }
+
+    return yield* await prepareGaslessTransaction(client, {
+      calls: [...calls],
+      metadata: 'Trading setup approvals',
+    });
+  }.call(null);
+}
+
 function sendErc20ApprovalTransaction(
   request: SignerTransactionRequest,
-): Erc20ApprovalWorkflowRequest {
+): SendErc20ApprovalTransactionRequest {
   return {
     kind: 'sendErc20ApprovalTransaction',
+    request,
+  };
+}
+
+function sendErc1155ApprovalForAllTransaction(
+  request: SignerTransactionRequest,
+): SendErc1155ApprovalForAllTransactionRequest {
+  return {
+    kind: 'sendErc1155ApprovalForAllTransaction',
     request,
   };
 }
