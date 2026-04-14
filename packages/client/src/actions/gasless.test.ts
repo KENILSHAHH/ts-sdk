@@ -1,15 +1,22 @@
 import { WalletType } from '@polymarket/bindings/gamma';
+import { expectEvmAddress } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { erc20ApprovalCall } from '../abis';
+import { deriveSafeWalletAddress } from '../account';
 import { createPublicClient } from '../clients';
 import {
+  builderKey,
   createRandomWalletClient,
   relayerKey,
   safeWalletAddress,
   walletClient,
 } from '../testing';
-import { authenticateWith } from '../viem';
-import { isGaslessReady, prepareGaslessTransaction } from './gasless';
+import { approveWith, authenticateWith } from '../viem';
+import {
+  isGaslessReady,
+  prepareGaslessTransaction,
+  prepareGaslessWallet,
+} from './gasless';
 
 describe('Gasless', () => {
   describe('isGaslessReady', () => {
@@ -23,7 +30,11 @@ describe('Gasless', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
 
-      await expect(isGaslessReady(secureClient)).resolves.toBe(true);
+      await expect(
+        isGaslessReady(secureClient, {
+          wallet: secureClient.account.wallet,
+        }),
+      ).resolves.toBe(true);
     });
 
     it('supports checking readiness from a public client with a wallet address', async () => {
@@ -47,7 +58,11 @@ describe('Gasless', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
 
-      await expect(isGaslessReady(secureClient)).resolves.toBe(false);
+      await expect(
+        isGaslessReady(secureClient, {
+          wallet: secureClient.account.wallet,
+        }),
+      ).resolves.toBe(false);
     });
 
     it('supports checking readiness from a public client for an EOA wallet', async () => {
@@ -100,7 +115,7 @@ describe('Gasless', () => {
       }
 
       expect(signRequest.value).toEqual({
-        kind: 'signGaslessTypedDataAsMessage',
+        kind: 'signGaslessMessage',
         payload: expect.objectContaining({
           domain: expect.objectContaining({
             chainId: secureClient.environment.chainId,
@@ -153,7 +168,7 @@ describe('Gasless', () => {
       }
 
       expect(signRequest.value).toEqual({
-        kind: 'signGaslessTypedDataAsMessage',
+        kind: 'signGaslessMessage',
         payload: expect.objectContaining({
           message: expect.objectContaining({
             data: expect.stringMatching(/^0x8d80ff0a/),
@@ -163,6 +178,40 @@ describe('Gasless', () => {
           }),
         }),
       });
+    });
+  });
+
+  describe('prepareGaslessWallet', () => {
+    // skipped cause it deploys a new Safe wallet at each run
+    it.skip('deploys a Safe wallet for a new signer', async () => {
+      const publicClient = createPublicClient({
+        apiKey: builderKey,
+      });
+      const walletClient = createRandomWalletClient();
+      const safeWallet = deriveSafeWalletAddress(
+        expectEvmAddress(walletClient.account.address),
+        publicClient.environment.walletDerivation,
+      );
+
+      await expect(
+        isGaslessReady(publicClient, {
+          wallet: safeWallet,
+        }),
+      ).resolves.toBe(false);
+
+      const handle = await prepareGaslessWallet(publicClient).then(
+        approveWith(walletClient),
+      );
+
+      expect(handle.wallet).toBe(safeWallet);
+
+      await expect(handle.wait()).resolves.toBeTruthy();
+
+      await expect(
+        isGaslessReady(publicClient, {
+          wallet: safeWallet,
+        }),
+      ).resolves.toBe(true);
     });
   });
 });

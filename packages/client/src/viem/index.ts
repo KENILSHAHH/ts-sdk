@@ -26,6 +26,7 @@ import type {
   Erc1155ApprovalForAllWorkflowRequest,
   TradingApprovalsWorkflowRequest,
 } from '../actions/approvals';
+import type { GaslessWalletWorkflowRequest } from '../actions/gasless';
 import type { OrderWorkflow, SignedOrder } from '../actions/orders';
 import type { Erc20TransferWorkflow } from '../actions/transfers';
 import type { AuthenticationWorkflow } from '../authentication';
@@ -160,15 +161,16 @@ export function approveWith(walletClient: WalletClient) {
       : walletClient.account.address,
   );
 
-  return async function approve(
+  return async function approve<TReturn extends TransactionHandle>(
     workflow: AsyncGenerator<
       | Erc20ApprovalWorkflowRequest
       | Erc1155ApprovalForAllWorkflowRequest
+      | GaslessWalletWorkflowRequest
       | TradingApprovalsWorkflowRequest,
-      TransactionHandle,
+      TReturn,
       EvmAddress | EvmSignature | TransactionHandle
     >,
-  ): Promise<TransactionHandle> {
+  ): Promise<TReturn> {
     let result = await workflow.next();
 
     while (!result.done) {
@@ -190,7 +192,18 @@ export function approveWith(walletClient: WalletClient) {
             result = await workflow.next(address);
             break;
 
-          case 'signGaslessTypedDataAsMessage':
+          case 'signGaslessTypedData':
+            result = await workflow.next(
+              expectEvmSignature(
+                await signTypedData(walletClient, {
+                  account,
+                  ...result.value.payload,
+                }),
+              ),
+            );
+            break;
+
+          case 'signGaslessMessage':
             result = await workflow.next(
               expectEvmSignature(
                 await signMessage(walletClient, {
@@ -214,6 +227,7 @@ export function approveWith(walletClient: WalletClient) {
 
 export type TransferWithError = CancelledSigningError | SigningError;
 
+// TODO remove this helper, consolidate in an existing one
 /**
  * Drives an ERC-20 transfer workflow with a viem wallet client.
  *
@@ -256,7 +270,7 @@ export function transferWith(walletClient: WalletClient) {
             result = await workflow.next(address);
             break;
 
-          case 'signGaslessTypedDataAsMessage':
+          case 'signGaslessMessage':
             result = await workflow.next(
               expectEvmSignature(
                 await signMessage(walletClient, {

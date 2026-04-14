@@ -30,7 +30,8 @@ import {
 } from '@polymarket/types';
 import { z } from 'zod';
 import { encodeSafeMultisendCall } from '../abis';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import { deriveSafeWalletAddress } from '../account';
+import type { Client, SecureClient } from '../clients';
 import {
   type RateLimitError,
   type RequestRejectedError,
@@ -38,11 +39,12 @@ import {
   TransactionFailedError,
   type TransportError,
   UnexpectedResponseError,
-  type UserInputError,
+  UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import type {
+  DeployTransactionHandle,
   TransactionCall,
   TransactionHandle,
   TransactionOutcome,
@@ -54,6 +56,14 @@ import { type RequestAddressRequest, requestAddress } from '../workflow';
 const EIP712_DOMAIN: readonly TypedDataField[] = [
   { name: 'chainId', type: 'uint256' },
   { name: 'verifyingContract', type: 'address' },
+];
+
+const SAFE_FACTORY_NAME = 'Polymarket Contract Proxy Factory';
+
+const SAFE_CREATE: readonly TypedDataField[] = [
+  { name: 'paymentToken', type: 'address' },
+  { name: 'payment', type: 'uint256' },
+  { name: 'paymentReceiver', type: 'address' },
 ];
 
 const SAFE_TRANSACTION: readonly TypedDataField[] = [
@@ -134,38 +144,109 @@ export type IsGaslessReadyError =
   | UserInputError;
 
 /**
- * Checks whether an account is ready for gasless transactions.
+ * Checks whether a wallet is ready for gasless transactions.
  *
  * @throws {@link IsGaslessReadyError}
  * Thrown when the readiness check is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
  */
-export async function isGaslessReady(client: SecureClient): Promise<boolean>;
 export async function isGaslessReady(
-  client: PublicClient,
+  client: Client,
   request: IsGaslessReadyRequest,
-): Promise<boolean>;
-export async function isGaslessReady(
-  client: PublicClient | SecureClient,
-  request?: IsGaslessReadyRequest,
 ): Promise<boolean> {
-  if (client.isSecureClient() && client.account.walletType === WalletType.EOA) {
-    return false;
-  }
-
-  const wallet = client.isSecureClient()
-    ? client.account.wallet
-    : parseUserInput(request, IsGaslessReadyRequestSchema).wallet;
+  const params = parseUserInput(request, IsGaslessReadyRequestSchema);
 
   return unwrap(
     client.relayer
       .get('/deployed', {
         params: new URLSearchParams({
-          address: wallet,
+          address: params.wallet,
         }),
       })
       .andThen(validateWith(RelayerDeployedResponseSchema))
       .map(({ deployed }) => deployed),
   );
+}
+
+export type SignGaslessTypedDataRequest = {
+  kind: 'signGaslessTypedData';
+  payload: TypedDataPayload;
+};
+
+export type GaslessWalletWorkflowRequest =
+  | RequestAddressRequest
+  | SignGaslessTypedDataRequest;
+
+export type GaslessWalletWorkflow = AsyncGenerator<
+  GaslessWalletWorkflowRequest,
+  DeployTransactionHandle,
+  EvmAddress | EvmSignature
+>;
+
+export type PrepareGaslessWalletError =
+  | ExecuteGaslessError
+  | IsGaslessReadyError
+  | UserInputError;
+
+/**
+ * Starts preparing the wallet for gasless transactions.
+ *
+ * @throws {@link PrepareGaslessWalletError}
+ * Thrown when the wallet is already ready, cannot be prepared through this flow, or the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ */
+export async function prepareGaslessWallet(
+  client: Client,
+): Promise<GaslessWalletWorkflow> {
+  invariant(
+    client.supportsGasless,
+    'Client does not support gasless transactions',
+  );
+
+  return async function* (): GaslessWalletWorkflow {
+    const signer = expectEvmAddress(yield requestAddress());
+
+    const safeWallet = deriveSafeWalletAddress(
+      signer,
+      client.environment.walletDerivation,
+    );
+
+    if (await isGaslessReady(client, { wallet: safeWallet })) {
+      throw new UserInputError(
+        'Wallet is already ready for gasless transactions',
+      );
+    }
+
+    if (client.isSecureClient()) {
+      invariant(
+        signer === client.account.signer,
+        'Wallet client address does not match the authenticated signer',
+      );
+    }
+
+    const signature = expectEvmSignature(
+      yield signGaslessTypedData(
+        createSafeCreateTypedDataPayload({
+          chainId: client.environment.chainId,
+          safeFactory: client.environment.walletDerivation.safeFactory,
+        }),
+      ),
+    );
+
+    const handle = await executeGasless(client, {
+      data: '0x',
+      from: signer,
+      proxyWallet: safeWallet,
+      signature,
+      signatureParams: {
+        payment: '0',
+        paymentReceiver: ZERO_ADDRESS,
+        paymentToken: ZERO_ADDRESS,
+      },
+      to: client.environment.walletDerivation.safeFactory,
+      type: RelayerTransactionType.SAFE_CREATE,
+    });
+
+    return new GaslessWalletHandle(safeWallet, handle);
+  }.call(null);
 }
 
 /**
@@ -210,12 +291,14 @@ export type PrepareGaslessTransactionRequest = z.input<
   typeof PrepareGaslessTransactionRequestSchema
 >;
 
+export type SignGaslessMessageRequest = {
+  kind: 'signGaslessMessage';
+  payload: TypedDataPayload;
+};
+
 export type GaslessWorkflowRequest =
   | RequestAddressRequest
-  | {
-      kind: 'signGaslessTypedDataAsMessage';
-      payload: TypedDataPayload;
-    };
+  | SignGaslessMessageRequest;
 
 export type GaslessWorkflow = AsyncGenerator<
   GaslessWorkflowRequest,
@@ -286,7 +369,7 @@ export async function prepareGaslessTransaction(
       ),
     );
 
-    return execute(client, {
+    return executeGasless(client, {
       data: transaction.data,
       from: client.account.signer,
       metadata: params.metadata,
@@ -301,25 +384,16 @@ export async function prepareGaslessTransaction(
   }.call(null);
 }
 
-export type ExecuteGaslessRequest = RelayerExecuteRequest;
+type ExecuteGaslessRequest = RelayerExecuteRequest;
 
-export type ExecuteGaslessError =
+type ExecuteGaslessError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
 
-/**
- * Submits a low-level transaction request.
- *
- * @remarks
- * This is a low-level action that most SDK consumers will not need.
- *
- * @throws {@link ExecuteGaslessError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
- */
-export async function execute(
+async function executeGasless(
   client: Client,
   request: ExecuteGaslessRequest,
 ): Promise<GaslessTransactionHandle> {
@@ -415,11 +489,46 @@ function createSafeTypedDataPayload(
   };
 }
 
+type CreateSafeCreateTypedDataPayloadRequest = {
+  chainId: number;
+  safeFactory: EvmAddress;
+};
+
+function createSafeCreateTypedDataPayload(
+  request: CreateSafeCreateTypedDataPayloadRequest,
+): TypedDataPayload {
+  return {
+    domain: {
+      chainId: request.chainId,
+      name: SAFE_FACTORY_NAME,
+      verifyingContract: request.safeFactory,
+    },
+    message: {
+      payment: 0n,
+      paymentReceiver: ZERO_ADDRESS,
+      paymentToken: ZERO_ADDRESS,
+    },
+    primaryType: 'CreateProxy',
+    types: {
+      CreateProxy: SAFE_CREATE,
+    },
+  };
+}
+
+function signGaslessTypedData(
+  payload: TypedDataPayload,
+): SignGaslessTypedDataRequest {
+  return {
+    kind: 'signGaslessTypedData',
+    payload,
+  };
+}
+
 function signGaslessTypedDataAsMessage(
   payload: TypedDataPayload,
-): GaslessWorkflowRequest {
+): SignGaslessMessageRequest {
   return {
-    kind: 'signGaslessTypedDataAsMessage',
+    kind: 'signGaslessMessage',
     payload,
   };
 }
@@ -501,5 +610,31 @@ class GaslessTransactionHandle implements TransactionHandle {
     throw new TimeoutError(
       `Timed out waiting for transaction ${this.transactionId} to settle`,
     );
+  }
+}
+
+class GaslessWalletHandle implements DeployTransactionHandle {
+  readonly #wallet: EvmAddress;
+  readonly #transaction: TransactionHandle;
+
+  constructor(wallet: EvmAddress, transaction: TransactionHandle) {
+    this.#wallet = wallet;
+    this.#transaction = transaction;
+  }
+
+  get wallet() {
+    return this.#wallet;
+  }
+
+  get transactionHash() {
+    return this.#transaction.transactionHash;
+  }
+
+  get transactionId() {
+    return this.#transaction.transactionId;
+  }
+
+  wait() {
+    return this.#transaction.wait();
   }
 }

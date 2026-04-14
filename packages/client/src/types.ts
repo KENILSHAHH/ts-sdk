@@ -60,14 +60,28 @@ export interface ApiKeyAuthorization {
 }
 
 export type TransactionOutcome = {
+  /**
+   * The hash of the settled transaction.
+   */
   transactionHash: TxHash;
+  /**
+   * The unique identifier of the settled transaction when submitted through the Polymarket API,
+   * or null if the transaction was submitted directly to the blockchain.
+   */
   transactionId: TransactionId | null;
 };
 
 export type WaitForTransactionError = WaitForGaslessTransactionError;
 
 export interface TransactionHandle {
+  /**
+   * The hash of the submitted transaction, or null if the transaction is pending submission.
+   */
   readonly transactionHash: TxHash | null;
+  /**
+   * The unique identifier of the submitted transaction when submitted through the Polymarket API,
+   * or null if the transaction was submitted directly to the blockchain.
+   */
   readonly transactionId: TransactionId | null;
   /**
    * Waits for the submitted transaction to settle.
@@ -76,6 +90,13 @@ export interface TransactionHandle {
    * Thrown when polling times out, the transaction reaches a terminal failure state, or a later read returns an unexpected response.
    */
   wait(): Promise<TransactionOutcome>;
+}
+
+export interface DeployTransactionHandle extends TransactionHandle {
+  /**
+   * The deterministic address of the Safe wallet being deployed by this transaction.
+   */
+  readonly wallet: EvmAddress;
 }
 
 /** @internal */

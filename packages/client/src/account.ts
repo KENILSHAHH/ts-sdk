@@ -66,7 +66,8 @@ function deriveProxyWalletAddress(
   );
 }
 
-function deriveSafeWalletAddress(
+/** @internal */
+export function deriveSafeWalletAddress(
   signer: EvmAddress,
   config: WalletDerivationConfig,
 ): EvmAddress {

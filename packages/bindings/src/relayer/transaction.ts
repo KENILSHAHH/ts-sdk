@@ -4,6 +4,7 @@ import { EvmAddressSchema, TransactionIdSchema, TxHashSchema } from '../shared';
 export enum RelayerTransactionType {
   SAFE = 'SAFE',
   PROXY = 'PROXY',
+  SAFE_CREATE = 'SAFE-CREATE',
 }
 
 const RelayerTransactionTypeSchema = z.enum(RelayerTransactionType);
@@ -46,7 +47,7 @@ export const RelayerExecuteRequestSchema = z.object({
   data: z.string().min(1),
   from: EvmAddressSchema,
   metadata: z.string().optional(),
-  nonce: z.string().min(1),
+  nonce: z.string().min(1).optional(),
   proxyWallet: EvmAddressSchema,
   signature: z.string().min(1),
   signatureParams: RelayerSignatureParamsSchema,
