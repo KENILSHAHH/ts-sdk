@@ -75,6 +75,14 @@ export type RelayerExecuteResponse = z.output<
   typeof RelayerExecuteResponseSchema
 >;
 
+export const RelayerDeployedResponseSchema = z.object({
+  deployed: z.boolean(),
+});
+
+export type RelayerDeployedResponse = z.output<
+  typeof RelayerDeployedResponseSchema
+>;
+
 export const GaslessTransactionSchema = z
   .object({
     error_msg: z.string().nullish(),

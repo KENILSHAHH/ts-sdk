@@ -1,6 +1,11 @@
 import type { Market } from '@polymarket/bindings/gamma';
-import type { PrivateKey } from '@polymarket/types';
-import { expectPresent, invariant, isPrivateKey } from '@polymarket/types';
+import type { EvmAddress, PrivateKey } from '@polymarket/types';
+import {
+  expectEvmAddress,
+  expectPresent,
+  invariant,
+  isPrivateKey,
+} from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
@@ -33,7 +38,7 @@ export const relayerKey = relayerApiKey({
   address: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY_ADDRESS),
 });
 
-function getTestPrivateKey(): PrivateKey {
+function loadTestPrivateKey(): PrivateKey {
   const value = process.env.POLYMARKET_TEST_PRIVATE_KEY;
 
   invariant(value, 'POLYMARKET_TEST_PRIVATE_KEY is not set');
@@ -46,8 +51,18 @@ function getTestPrivateKey(): PrivateKey {
   return value;
 }
 
+function loadTestSafeWallet(): EvmAddress {
+  const value = process.env.POLYMARKET_TEST_SAFE_WALLET;
+
+  invariant(value, 'POLYMARKET_TEST_SAFE_WALLET is not set');
+
+  return expectEvmAddress(value);
+}
+
+export const safeWalletAddress = loadTestSafeWallet();
+
 export const walletClient = createWalletClient({
-  account: privateKeyToAccount(getTestPrivateKey()),
+  account: privateKeyToAccount(loadTestPrivateKey()),
   chain: polygon,
   transport: http(),
 });

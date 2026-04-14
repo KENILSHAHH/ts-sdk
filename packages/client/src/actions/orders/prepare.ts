@@ -10,7 +10,6 @@ import type {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
-import { TypedDataPayload } from '../../types';
 import { resolveCurrentAllowance } from './allowance';
 import { PrepareLimitOrderParamsSchema, prepareLimitOrderDraft } from './limit';
 import {

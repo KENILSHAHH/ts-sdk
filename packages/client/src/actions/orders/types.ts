@@ -3,12 +3,7 @@ import type {
   OrderType,
   SignatureType,
 } from '@polymarket/bindings/clob';
-import type {
-  EvmAddress,
-  EvmSignature,
-  HexString,
-  TxHash,
-} from '@polymarket/types';
+import type { EvmAddress, EvmSignature, TxHash } from '@polymarket/types';
 import type { TypedDataPayload } from '../../types';
 
 export type PrepareMarketOrderRequest = {

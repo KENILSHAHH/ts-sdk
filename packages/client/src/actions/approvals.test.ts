@@ -3,7 +3,12 @@ import { ZERO_ADDRESS } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { createPublicClient } from '../clients';
 import { SigningError } from '../errors';
-import { createRandomWalletClient, relayerKey, walletClient } from '../testing';
+import {
+  createRandomWalletClient,
+  relayerKey,
+  safeWalletAddress,
+  walletClient,
+} from '../testing';
 import { approveWith, authenticateWith } from '../viem';
 import {
   prepareErc20Approval,
@@ -18,7 +23,7 @@ describe('Approvals', () => {
         apiKey: relayerKey,
       });
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
@@ -36,7 +41,7 @@ describe('Approvals', () => {
       const publicClient = createPublicClient();
       const walletClient = createRandomWalletClient();
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: walletClient.account.address })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
@@ -59,7 +64,7 @@ describe('Approvals', () => {
         apiKey: relayerKey,
       });
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
@@ -79,7 +84,7 @@ describe('Approvals', () => {
         apiKey: relayerKey,
       });
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);

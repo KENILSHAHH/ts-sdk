@@ -1,29 +1,30 @@
+import { ApiKeySchema, EvmAddressSchema } from '@polymarket/bindings';
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
-import { WalletType } from '@polymarket/bindings/gamma';
-import type { EvmAddress } from '@polymarket/types';
 import {
   expectEvmAddress,
   expectEvmSignature,
   invariant,
 } from '@polymarket/types';
+import { z } from 'zod';
 import type { AccountIdentity } from './account';
+import { resolveAccountIdentity } from './account';
 import {
   createOrDeriveApiKey,
   deleteApiKey,
   fetchApiKeys,
 } from './actions/auth';
-import { fetchPublicProfile } from './actions/profiles';
-import { fetchWalletType } from './actions/wallets';
 import {
   type AuthenticationWorkflow,
   createApiKeyAuthTypedDataPayload,
-  requestAddress,
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
-import { ServiceClient, type ServiceRequest } from './ServiceClient';
+import { parseUserInput } from './input';
+import type { ServiceRequest } from './ServiceClient';
+import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization } from './types';
+import { requestAddress } from './workflow';
 
 type PublicContext = {
   /** @internal */
@@ -102,16 +103,86 @@ abstract class AbstractClient<TContext extends PublicContext> {
   }
 }
 
-export type BeginAuthenticationOptions =
-  | { credentials: ApiKeyCreds }
-  | { nonce: number };
+const BeginAuthenticationCredentialsSchema = z.object({
+  key: ApiKeySchema,
+  passphrase: z.string(),
+  secret: z.string(),
+});
+
+export type BeginAuthenticationRequest =
+  | {
+      /**
+       * Wallet address to authenticate as.
+       *
+       * Pass the signer address itself to authenticate as an EOA account.
+       */
+      wallet: string;
+
+      /**
+       * Existing API credentials to reuse when they remain valid.
+       */
+      credentials: ApiKeyCreds;
+      nonce?: never;
+    }
+  | {
+      /**
+       * Wallet address to authenticate as.
+       *
+       * Pass the signer address itself to authenticate as an EOA account.
+       */
+      wallet: string;
+
+      /**
+       * Nonce used when creating or deriving fresh credentials.
+       *
+       * @defaultValue 0
+       */
+      nonce?: number;
+      credentials?: never;
+    };
+
+const BeginAuthenticationRequestSchema: z.ZodType<BeginAuthenticationRequest> =
+  z
+    .object({
+      wallet: EvmAddressSchema,
+      credentials: BeginAuthenticationCredentialsSchema.optional(),
+      nonce: z.number().int().positive().optional(),
+    })
+    .superRefine((value, context) => {
+      if (value.credentials !== undefined && value.nonce !== undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: '`credentials` and `nonce` are mutually exclusive.',
+          path: ['nonce'],
+        });
+      }
+    })
+    .transform((value): BeginAuthenticationRequest => {
+      if (value.credentials !== undefined) {
+        return {
+          wallet: value.wallet,
+          credentials: value.credentials,
+        };
+      }
+
+      if (value.nonce !== undefined) {
+        return {
+          wallet: value.wallet,
+          nonce: value.nonce,
+        };
+      }
+
+      return {
+        wallet: value.wallet,
+      };
+    });
 
 type PublicClientConfig = {
   environment: EnvironmentConfig;
   apiKey?: ApiKeyAuthorization;
 };
 
-export class PublicClient extends AbstractClient<PublicContext> {
+class PublicClient extends AbstractClient<PublicContext> {
   constructor(config: PublicClientConfig) {
     super({
       apiKey: config.apiKey,
@@ -129,26 +200,57 @@ export class PublicClient extends AbstractClient<PublicContext> {
     });
   }
 
+  /**
+   * Use this to narrow a {@link Client} union to {@link SecureClient}.
+   *
+   * @example
+   * ```ts
+   * if (client.isSecureClient()) {
+   *   client.credentials; // SecureClient
+   * }
+   * ```
+   */
+  isSecureClient(): this is SecureClient {
+    return false;
+  }
+
+  /**
+   * Use this to narrow a {@link Client} union to {@link PublicClient}.
+   *
+   * @example
+   * ```ts
+   * if (client.isPublicClient()) {
+   *   client.beginAuthentication(...); // PublicClient
+   * }
+   * ```
+   */
+  isPublicClient(): this is PublicClient {
+    return true;
+  }
+
   beginAuthentication(
-    options?: BeginAuthenticationOptions,
+    request: BeginAuthenticationRequest,
   ): Promise<AuthenticationWorkflow> {
+    const params = parseUserInput(request, BeginAuthenticationRequestSchema);
+
     return Promise.resolve(
       async function* (this: PublicClient): AuthenticationWorkflow {
         const timestamp = Math.floor(Date.now() / 1000);
-        const nonce =
-          options !== undefined && 'nonce' in options ? options.nonce : 0;
+        const nonce = params?.nonce ?? 0;
         const signer = expectEvmAddress(yield requestAddress());
-        const identity = await this.#resolveAccountIdentity(signer);
+        const wallet = expectEvmAddress(params.wallet);
+        const identity = resolveAccountIdentity(
+          this.environment,
+          signer,
+          wallet,
+        );
 
-        if (options !== undefined && 'credentials' in options) {
-          const client = this.#createSecureClient(
-            options.credentials,
-            identity,
-          );
+        if (params.credentials !== undefined) {
+          const client = this.#createSecureClient(params.credentials, identity);
 
           try {
             const apiKeys = await fetchApiKeys(client);
-            if (apiKeys.includes(options.credentials.key)) {
+            if (apiKeys.includes(params.credentials.key)) {
               return client;
             }
           } catch (error) {
@@ -182,30 +284,6 @@ export class PublicClient extends AbstractClient<PublicContext> {
     );
   }
 
-  async #resolveAccountIdentity(signer: EvmAddress): Promise<AccountIdentity> {
-    const profile = await fetchPublicProfile(this, { address: signer });
-
-    if (profile === null) {
-      return {
-        signer,
-        wallet: signer,
-        walletType: WalletType.EOA,
-      };
-    }
-
-    const wallet = profile.proxyWallet ?? signer;
-    const walletType = await fetchWalletType(this, {
-      address: wallet,
-      signer,
-    });
-
-    return {
-      signer,
-      wallet,
-      walletType,
-    };
-  }
-
   #createSecureClient(
     credentials: ApiKeyCreds,
     account: AccountIdentity,
@@ -233,7 +311,7 @@ type SecureClientConfig = PublicClientConfig & {
   credentials: ApiKeyCreds;
 };
 
-export class SecureClient extends AbstractClient<SecureContext> {
+class SecureClient extends AbstractClient<SecureContext> {
   #hasEndedAuthentication = false;
 
   /**
@@ -295,6 +373,34 @@ export class SecureClient extends AbstractClient<SecureContext> {
   }
 
   /**
+   * Use this to narrow a {@link Client} union to {@link SecureClient}.
+   *
+   * @example
+   * ```ts
+   * if (client.isSecureClient()) {
+   *   client.credentials; // SecureClient
+   * }
+   * ```
+   */
+  isSecureClient(): this is SecureClient {
+    return true;
+  }
+
+  /**
+   * Use this to narrow a {@link Client} union to {@link PublicClient}.
+   *
+   * @example
+   * ```ts
+   * if (client.isPublicClient()) {
+   *   client.beginAuthentication(...); // PublicClient
+   * }
+   * ```
+   */
+  isPublicClient(): this is PublicClient {
+    return false;
+  }
+
+  /**
    * Ends authentication for this client and returns a public client.
    *
    * @remarks
@@ -343,6 +449,8 @@ export class SecureClient extends AbstractClient<SecureContext> {
     }
   }
 }
+
+export { PublicClient, SecureClient };
 
 export type Client = PublicClient | SecureClient;
 

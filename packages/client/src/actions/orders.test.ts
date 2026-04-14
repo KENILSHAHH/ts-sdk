@@ -8,7 +8,7 @@ import {
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { InsufficientLiquidityError } from '../errors';
-import { publicClient, walletClient } from '../testing';
+import { publicClient, safeWalletAddress, walletClient } from '../testing';
 import { authenticateWith, executeWith } from '../viem';
 import { fetchOpenOrders } from './account';
 import { fetchMarket } from './markets';
@@ -32,7 +32,7 @@ const market = await fetchMarket(publicClient, {
 });
 
 const secureClient = await publicClient
-  .beginAuthentication()
+  .beginAuthentication({ wallet: safeWalletAddress })
   .then(authenticateWith(walletClient));
 
 describe('Orders', () => {

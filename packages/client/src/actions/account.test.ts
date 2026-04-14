@@ -1,7 +1,7 @@
 import { AssetType } from '@polymarket/bindings/clob';
 import { describe, expect, it } from 'vitest';
 import type { SecureClient } from '../clients';
-import { publicClient, walletClient } from '../testing';
+import { publicClient, safeWalletAddress, walletClient } from '../testing';
 import { authenticateWith } from '../viem';
 import {
   dropNotifications,
@@ -16,7 +16,7 @@ describe('Account', () => {
   describe('authenticated reads', () => {
     it('fetches authenticated account state', async () => {
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       const [closedOnly, openOrders, trades, notifications, balanceAllowance] =
@@ -46,7 +46,7 @@ describe('Account', () => {
   describe('dropNotifications', () => {
     it('marks notifications as read by id', async () => {
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       const notifications = await fetchNotifications(secureClient);

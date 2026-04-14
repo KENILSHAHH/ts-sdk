@@ -18,4 +18,3 @@ export * from './sports';
 export * from './tags';
 export * from './teams';
 export * from './transfers';
-export * from './wallets';

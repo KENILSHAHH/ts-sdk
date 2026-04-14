@@ -22,7 +22,7 @@ function toTaggedInteger<T extends number>(value: number): T {
 
 export type BestLineId = Tagged<string, 'BestLineId'>;
 export type Uuid = Tagged<string, 'Uuid'>;
-export type ApiKey = Tagged<Uuid, 'ApiKey'>;
+export type ApiKey = Tagged<string, 'ApiKey'>;
 export type CategoryId = Tagged<string, 'CategoryId'>;
 export type ChatId = Tagged<string, 'ChatId'>;
 export type ClobRewardId = Tagged<string, 'ClobRewardId'>;

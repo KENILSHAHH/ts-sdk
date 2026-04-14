@@ -2,7 +2,6 @@ import { ResultAsync } from '@polymarket/types';
 import ky, { type KyInstance } from 'ky';
 import { RateLimitError, RequestRejectedError, TransportError } from './errors';
 
-/** @internal */
 export type ServiceRequest = {
   method: 'DELETE' | 'GET' | 'POST';
   path: string;
@@ -12,14 +11,12 @@ export type ServiceRequest = {
   params?: URLSearchParams;
 };
 
-/** @internal */
 export type RequestHeadersResolver = (
   request: ServiceRequest,
 ) => Promise<HeadersInit>;
 
 export type ServiceClientConfig = {
   root: string;
-  /** @internal */
   resolveHeaders?: RequestHeadersResolver;
 };
 

@@ -1,7 +1,7 @@
 import type { EvmAddress, EvmSignature } from '@polymarket/types';
 import type { SecureClient } from './clients';
 import type { TypedDataPayload } from './types';
-import { type RequestAddressRequest, requestAddress } from './workflow';
+import type { RequestAddressRequest } from './workflow';
 
 export type AuthenticationWorkflowRequest =
   | RequestAddressRequest
@@ -51,5 +51,3 @@ export function createApiKeyAuthTypedDataPayload(
     },
   };
 }
-
-export { requestAddress };

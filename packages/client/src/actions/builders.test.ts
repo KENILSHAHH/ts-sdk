@@ -5,6 +5,7 @@ import { createPublicClient, type PublicClient } from '../clients';
 import {
   builderKey,
   findHighVolumeLowPriceMarket,
+  safeWalletAddress,
   walletClient,
 } from '../testing';
 import { authenticateWith, executeWith } from '../viem';
@@ -40,7 +41,7 @@ describe('Builders', () => {
       }
 
       const secureClient = await client
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
       const market = await findHighVolumeLowPriceMarket();
       const [tokenId] = expectPresent(market.clobTokenIds);

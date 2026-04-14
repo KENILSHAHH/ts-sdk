@@ -1,7 +1,7 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
 import { createPublicClient } from '../clients';
-import { relayerKey, walletClient } from '../testing';
+import { relayerKey, safeWalletAddress, walletClient } from '../testing';
 import { authenticateWith, transferWith } from '../viem';
 import { prepareErc20Transfer } from './transfers';
 
@@ -12,7 +12,7 @@ describe('Transfers', () => {
         apiKey: relayerKey,
       });
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);

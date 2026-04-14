@@ -65,6 +65,7 @@
     "@polymarket/bindings": "workspace:*",
     "@polymarket/types": "workspace:*",
     "ky": "^1.14.3",
+    "ox": "^0.14.16",
     "zod": "^4.3.6"
   }
 }

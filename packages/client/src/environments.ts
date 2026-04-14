@@ -1,8 +1,18 @@
 import { type EvmAddress, expectEvmAddress } from '@polymarket/types';
+import type { Hex } from 'ox';
+
+export type WalletDerivationConfig = {
+  proxyFactory: EvmAddress;
+  proxyImplementation: EvmAddress;
+  safeFactory: EvmAddress;
+  safeInitCodeHash: Hex.Hex;
+};
 
 export type EnvironmentConfig = {
   name: string;
   chainId: number;
+  /** @internal */
+  walletDerivation: WalletDerivationConfig;
   /** @internal */
   collateralToken: EvmAddress;
   /** @internal */
@@ -33,6 +43,17 @@ export type EnvironmentConfig = {
 export const production: EnvironmentConfig = {
   name: 'production',
   chainId: 137,
+  walletDerivation: {
+    proxyFactory: expectEvmAddress(
+      '0xaB45c5A4B0c941a2F231C04C3f49182e1A254052',
+    ),
+    proxyImplementation: expectEvmAddress(
+      '0x44e999d5c2F66Ef0861317f9A4805AC2e90aEB4f',
+    ),
+    safeFactory: expectEvmAddress('0xaacFeEa03eb1561C4e67d661e40682Bd20E3541b'),
+    safeInitCodeHash:
+      '0x2bce2127ff07fb632d16c8347c4ebf501f4841168bed00d9e6ef715ddb6fcecf',
+  },
   collateralToken: expectEvmAddress(
     '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
   ),
