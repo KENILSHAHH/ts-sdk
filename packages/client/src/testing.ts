@@ -20,11 +20,13 @@ if (process.env.CI !== 'true') {
 
 export const publicClient = createPublicClient();
 
-export const builderKey = builderApiKey({
+export const builderCredentials = {
   key: expectPresent(process.env.POLYMARKET_BUILDER_API_KEY),
   secret: expectPresent(process.env.POLYMARKET_BUILDER_SECRET),
   passphrase: expectPresent(process.env.POLYMARKET_BUILDER_PASSPHRASE),
-});
+} as const;
+
+export const builderKey = builderApiKey(builderCredentials);
 
 export const relayerKey = relayerApiKey({
   key: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY),

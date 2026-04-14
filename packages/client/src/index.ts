@@ -11,8 +11,11 @@ export type {
   AuthenticationWorkflow,
   AuthenticationWorkflowRequest,
 } from './authentication';
+export type { RemoteBuilderSigningConfig } from './authorization';
+export { remoteBuilderSigning } from './authorization';
 export type * from './clients';
 export { createPublicClient } from './clients';
 export * from './environments';
 export * from './errors';
+export * from './hmac';
 export * from './types';

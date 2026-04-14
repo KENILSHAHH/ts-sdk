@@ -1,5 +1,39 @@
-/** @internal */
-export async function buildPolyHmacSignature(
+/**
+ * Builds the canonical HMAC signature for authenticated requests.
+ *
+ * The signed payload is the raw string concatenation of `timestamp`, `method`,
+ * `requestPath`, and, when present, the serialized request `body`, matching the
+ * remote signing contract.
+ *
+ * The `secret` is expected to be base64-encoded and is decoded before signing.
+ * The returned signature is base64url-encoded with padding preserved.
+ *
+ * @example
+ * Server-side signing example for builder-authenticated requests:
+ *
+ * ```ts
+ * async function handleSignRequest(request: Request): Promise<Response> {
+ *   const { body, method, path } = await request.json();
+ *
+ *   const timestamp = Math.floor(Date.now() / 1000);
+ *   const signature = await buildHmacSignature(
+ *     process.env.POLY_BUILDER_SECRET!,
+ *     timestamp,
+ *     method,
+ *     path,
+ *     body,
+ *   );
+ *
+ *   return Response.json({
+ *     POLY_BUILDER_API_KEY: process.env.POLY_BUILDER_API_KEY!,
+ *     POLY_BUILDER_PASSPHRASE: process.env.POLY_BUILDER_PASSPHRASE!,
+ *     POLY_BUILDER_SIGNATURE: signature,
+ *     POLY_BUILDER_TIMESTAMP: `${timestamp}`,
+ *   });
+ * }
+ * ```
+ */
+export async function buildHmacSignature(
   secret: string,
   timestamp: number,
   method: string,

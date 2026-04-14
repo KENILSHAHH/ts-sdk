@@ -175,9 +175,9 @@ export class SigningError extends PolymarketError {
     super(message, options);
   }
 
-  static fromError(error: unknown, message = 'Signing failed'): SigningError {
-    return new SigningError(message, {
-      cause: error,
-    });
+  static fromError(error: unknown, message?: string): SigningError {
+    const msg =
+      message ?? (error instanceof Error ? error.message : 'Signing failed');
+    return new SigningError(msg, { cause: error });
   }
 }

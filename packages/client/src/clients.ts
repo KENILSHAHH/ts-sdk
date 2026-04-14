@@ -21,7 +21,7 @@ import {
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
-import { buildPolyHmacSignature } from './hmac';
+import { buildHmacSignature } from './hmac';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
 import type { ApiKeyAuthorization } from './types';
 
@@ -326,7 +326,7 @@ export class SecureClient extends AbstractClient<SecureContext> {
         POLY_ADDRESS: this.account.signer,
         POLY_API_KEY: this.credentials.key,
         POLY_PASSPHRASE: this.credentials.passphrase,
-        POLY_SIGNATURE: await buildPolyHmacSignature(
+        POLY_SIGNATURE: await buildHmacSignature(
           this.credentials.secret,
           timestamp,
           request.method,
@@ -338,7 +338,7 @@ export class SecureClient extends AbstractClient<SecureContext> {
     } catch (error) {
       throw SigningError.fromError(
         error,
-        'Could not sign the authenticated request',
+        'Could not sign the L2-authenticated request',
       );
     }
   }

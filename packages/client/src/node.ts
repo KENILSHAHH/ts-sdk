@@ -5,7 +5,7 @@ export type { PublicClientOptions } from './clients';
 export { createPublicClient } from './clients';
 
 import { SigningError } from './errors';
-import { buildPolyHmacSignature } from './hmac';
+import { buildHmacSignature } from './hmac';
 import type { ApiKeyAuthorization, ApiKeyAuthorizationRequest } from './types';
 
 invariant(
@@ -17,33 +17,33 @@ invariant(
   'The @polymarket/client/node entrypoint cannot be imported in a browser-like runtime.',
 );
 
-export type BuilderApiKeyOptions = {
+export type BuilderApiKeyCreds = {
   key: string;
   secret: string;
   passphrase: string;
 };
 
-export type RelayerApiKeyOptions = {
+export type RelayerApiKeyConfig = {
   key: string;
   address: string;
 };
 
 export function builderApiKey(
-  options: BuilderApiKeyOptions,
+  options: BuilderApiKeyCreds,
 ): ApiKeyAuthorization {
   return new LocalBuilderApiKey(options);
 }
 
 export function relayerApiKey(
-  options: RelayerApiKeyOptions,
+  options: RelayerApiKeyConfig,
 ): ApiKeyAuthorization {
   return new LocalRelayerApiKey(options);
 }
 
 class LocalBuilderApiKey implements ApiKeyAuthorization {
-  readonly #credentials: BuilderApiKeyOptions;
+  readonly #credentials: BuilderApiKeyCreds;
 
-  constructor(credentials: BuilderApiKeyOptions) {
+  constructor(credentials: BuilderApiKeyCreds) {
     this.#credentials = credentials;
   }
 
@@ -66,7 +66,7 @@ class LocalBuilderApiKey implements ApiKeyAuthorization {
       return {
         POLY_BUILDER_API_KEY: this.#credentials.key,
         POLY_BUILDER_PASSPHRASE: this.#credentials.passphrase,
-        POLY_BUILDER_SIGNATURE: await buildPolyHmacSignature(
+        POLY_BUILDER_SIGNATURE: await buildHmacSignature(
           this.#credentials.secret,
           timestamp,
           request.method,
@@ -85,9 +85,9 @@ class LocalBuilderApiKey implements ApiKeyAuthorization {
 }
 
 class LocalRelayerApiKey implements ApiKeyAuthorization {
-  readonly #credentials: RelayerApiKeyOptions;
+  readonly #credentials: RelayerApiKeyConfig;
 
-  constructor(credentials: RelayerApiKeyOptions) {
+  constructor(credentials: RelayerApiKeyConfig) {
     this.#credentials = credentials;
   }
 
