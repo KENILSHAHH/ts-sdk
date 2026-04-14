@@ -3,6 +3,7 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import {
   type GaslessTransaction,
   GaslessTransactionSchema,
+  RelayerDeployedResponseSchema,
   type RelayerExecuteParams,
   RelayerExecuteParamsSchema,
   type RelayerExecuteRequest,
@@ -29,7 +30,7 @@ import {
 } from '@polymarket/types';
 import { z } from 'zod';
 import { encodeSafeMultisendCall } from '../abis';
-import type { Client, SecureClient } from '../clients';
+import type { Client, PublicClient, SecureClient } from '../clients';
 import {
   type RateLimitError,
   type RequestRejectedError,
@@ -118,6 +119,54 @@ const FetchGaslessTransactionRequestSchema = z.object({
 export type FetchGaslessTransactionRequest = z.input<
   typeof FetchGaslessTransactionRequestSchema
 >;
+
+const IsGaslessReadyRequestSchema = z.object({
+  wallet: EvmAddressSchema,
+});
+
+export type IsGaslessReadyRequest = z.input<typeof IsGaslessReadyRequestSchema>;
+
+export type IsGaslessReadyError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
+/**
+ * Checks whether an account is ready for gasless transactions.
+ *
+ * @throws {@link IsGaslessReadyError}
+ * Thrown when the readiness check is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ */
+export async function isGaslessReady(client: SecureClient): Promise<boolean>;
+export async function isGaslessReady(
+  client: PublicClient,
+  request: IsGaslessReadyRequest,
+): Promise<boolean>;
+export async function isGaslessReady(
+  client: PublicClient | SecureClient,
+  request?: IsGaslessReadyRequest,
+): Promise<boolean> {
+  if (client.isSecureClient() && client.account.walletType === WalletType.EOA) {
+    return false;
+  }
+
+  const wallet = client.isSecureClient()
+    ? client.account.wallet
+    : parseUserInput(request, IsGaslessReadyRequestSchema).wallet;
+
+  return unwrap(
+    client.relayer
+      .get('/deployed', {
+        params: new URLSearchParams({
+          address: wallet,
+        }),
+      })
+      .andThen(validateWith(RelayerDeployedResponseSchema))
+      .map(({ deployed }) => deployed),
+  );
+}
 
 /**
  * Fetches a submitted transaction.

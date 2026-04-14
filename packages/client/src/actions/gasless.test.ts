@@ -2,18 +2,73 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
 import { erc20ApprovalCall } from '../abis';
 import { createPublicClient } from '../clients';
-import { relayerKey, walletClient } from '../testing';
+import {
+  createRandomWalletClient,
+  relayerKey,
+  safeWalletAddress,
+  walletClient,
+} from '../testing';
 import { authenticateWith } from '../viem';
-import { prepareGaslessTransaction } from './gasless';
+import { isGaslessReady, prepareGaslessTransaction } from './gasless';
 
 describe('Gasless', () => {
+  describe('isGaslessReady', () => {
+    it('returns true for a deployed safe-backed account', async () => {
+      const publicClient = createPublicClient({
+        apiKey: relayerKey,
+      });
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+
+      await expect(isGaslessReady(secureClient)).resolves.toBe(true);
+    });
+
+    it('supports checking readiness from a public client with a wallet address', async () => {
+      const publicClient = createPublicClient({
+        apiKey: relayerKey,
+      });
+
+      await expect(
+        isGaslessReady(publicClient, {
+          wallet: safeWalletAddress,
+        }),
+      ).resolves.toBe(true);
+    });
+
+    it('returns false for an EOA wallet type', async () => {
+      const publicClient = createPublicClient();
+      const walletClient = createRandomWalletClient();
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: walletClient.account.address })
+        .then(authenticateWith(walletClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.EOA);
+
+      await expect(isGaslessReady(secureClient)).resolves.toBe(false);
+    });
+
+    it('supports checking readiness from a public client for an EOA wallet', async () => {
+      const publicClient = createPublicClient();
+      const walletClient = createRandomWalletClient();
+
+      await expect(
+        isGaslessReady(publicClient, {
+          wallet: walletClient.account.address,
+        }),
+      ).resolves.toBe(false);
+    });
+  });
+
   describe('prepareGaslessTransaction', () => {
     it('prepares a single-call workflow without multisend aggregation', async () => {
       const publicClient = createPublicClient({
         apiKey: relayerKey,
       });
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
@@ -67,7 +122,7 @@ describe('Gasless', () => {
         apiKey: relayerKey,
       });
       const secureClient = await publicClient
-        .beginAuthentication()
+        .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
