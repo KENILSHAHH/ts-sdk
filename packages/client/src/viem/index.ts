@@ -28,7 +28,7 @@ import type {
 } from '../actions/approvals';
 import type { GaslessWalletWorkflowRequest } from '../actions/gasless';
 import type { OrderWorkflow, SignedOrder } from '../actions/orders';
-import type { Erc20TransferWorkflow } from '../actions/transfers';
+import type { Erc20TransferWorkflowRequest } from '../actions/transfers';
 import type { AuthenticationWorkflow } from '../authentication';
 import type { SecureClient } from '../clients';
 import {
@@ -248,7 +248,11 @@ export function transferWith(walletClient: WalletClient) {
   );
 
   return async function transfer(
-    workflow: Erc20TransferWorkflow,
+    workflow: AsyncGenerator<
+      Erc20TransferWorkflowRequest,
+      TransactionHandle,
+      EvmAddress | EvmSignature | TransactionHandle
+    >,
   ): Promise<TransactionHandle> {
     let result = await workflow.next();
 
