@@ -1,11 +1,26 @@
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
+import { AbiFunction, AbiParameters } from 'ox';
 import { UserInputError } from './errors';
 import type { TransactionCall } from './types';
 
-const ERC20_APPROVE_SELECTOR = '095ea7b3';
-const ERC20_TRANSFER_SELECTOR = 'a9059cbb';
-const ERC1155_SET_APPROVAL_FOR_ALL_SELECTOR = 'a22cb465';
-const SAFE_MULTISEND_SELECTOR = '8d80ff0a';
+const ZERO_BYTES32 =
+  '0x0000000000000000000000000000000000000000000000000000000000000000';
+const ERC20_APPROVE_FUNCTION = AbiFunction.from(
+  'function approve(address spender, uint256 amount)',
+);
+const ERC20_TRANSFER_FUNCTION = AbiFunction.from(
+  'function transfer(address recipient, uint256 amount)',
+);
+const ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION = AbiFunction.from(
+  'function setApprovalForAll(address operator, bool approved)',
+);
+const CTF_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
+  'function redeemPositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] indexSets)',
+);
+const NEG_RISK_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
+  'function redeemPositions(bytes32 _conditionId, uint256[] _amounts)',
+);
+const SAFE_MULTISEND_FUNCTION = AbiFunction.from('function multiSend(bytes)');
 
 /** @internal */
 export const MAX_UINT256 = (1n << 256n) - 1n;
@@ -78,82 +93,158 @@ export function erc20TransferCall(
   };
 }
 
+export type CtfRedeemPositionsCallError = UserInputError;
+
+/**
+ * Creates a transaction call for `redeemPositions(address,bytes32,bytes32,uint256[])`
+ * on the Conditional Tokens contract.
+ *
+ * @throws {@link CtfRedeemPositionsCallError}
+ * Thrown when the condition or outcome count is invalid.
+ */
+export function ctfRedeemPositionsCall(
+  conditionalTokensAddress: EvmAddress,
+  collateralTokenAddress: EvmAddress,
+  conditionId: string,
+  outcomeCount: number,
+): TransactionCall {
+  return {
+    data: encodeCtfRedeemPositionsCall(
+      collateralTokenAddress,
+      conditionId,
+      outcomeCount,
+    ),
+    to: conditionalTokensAddress,
+  };
+}
+
+export type NegRiskRedeemPositionsCallError = UserInputError;
+
+/**
+ * Creates a transaction call for `redeemPositions(bytes32,uint256[])` on the
+ * negative-risk adapter contract.
+ *
+ * @throws {@link NegRiskRedeemPositionsCallError}
+ * Thrown when the condition or redeem amounts are invalid.
+ */
+export function negRiskRedeemPositionsCall(
+  negRiskAdapterAddress: EvmAddress,
+  conditionId: string,
+  amounts: readonly [bigint, bigint],
+): TransactionCall {
+  return {
+    data: encodeNegRiskRedeemPositionsCall(conditionId, amounts),
+    to: negRiskAdapterAddress,
+  };
+}
+
 function encodeErc20ApproveCall(
   spender: EvmAddress,
   amount: bigint,
 ): HexString {
   invariant(amount >= 0n, 'Approval amount must be non-negative');
 
-  const encodedSpender = encodeAddress(spender);
-  const encodedAmount = encodeUint256(amount);
-
-  return `0x${ERC20_APPROVE_SELECTOR}${encodedSpender}${encodedAmount}`;
+  return AbiFunction.encodeData(ERC20_APPROVE_FUNCTION, [spender, amount]);
 }
 
 function encodeErc1155SetApprovalForAllCall(
   operator: EvmAddress,
   approved: boolean,
 ): HexString {
-  const encodedOperator = encodeAddress(operator);
-  const encodedApproved = encodeUint256(approved ? 1n : 0n);
-
-  return `0x${ERC1155_SET_APPROVAL_FOR_ALL_SELECTOR}${encodedOperator}${encodedApproved}`;
+  return AbiFunction.encodeData(ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION, [
+    operator,
+    approved,
+  ]);
 }
 
 function encodeErc20TransferCall(
   recipient: EvmAddress,
   amount: bigint,
 ): HexString {
-  const encodedRecipient = encodeAddress(recipient);
-  const encodedAmount = encodeUint256(amount);
+  return AbiFunction.encodeData(ERC20_TRANSFER_FUNCTION, [recipient, amount]);
+}
 
-  return `0x${ERC20_TRANSFER_SELECTOR}${encodedRecipient}${encodedAmount}`;
+function encodeCtfRedeemPositionsCall(
+  collateralTokenAddress: EvmAddress,
+  conditionId: string,
+  outcomeCount: number,
+): HexString {
+  return AbiFunction.encodeData(CTF_REDEEM_POSITIONS_FUNCTION, [
+    collateralTokenAddress,
+    ZERO_BYTES32,
+    expectBytes32(conditionId, 'Condition ID must be a 32-byte hex string'),
+    createOutcomeIndexSets(outcomeCount),
+  ]);
+}
+
+function encodeNegRiskRedeemPositionsCall(
+  conditionId: string,
+  amounts: readonly [bigint, bigint],
+): HexString {
+  return AbiFunction.encodeData(NEG_RISK_REDEEM_POSITIONS_FUNCTION, [
+    expectBytes32(conditionId, 'Condition ID must be a 32-byte hex string'),
+    amounts.map((amount) => expectUint256(amount, 'Redeem amount')),
+  ]);
+}
+
+function createOutcomeIndexSets(outcomeCount: number): bigint[] {
+  if (!Number.isInteger(outcomeCount) || outcomeCount < 2) {
+    throw new UserInputError('Outcome count must be an integer of at least 2');
+  }
+
+  if (outcomeCount > 256) {
+    throw new UserInputError('Outcome count must not exceed 256');
+  }
+
+  return Array.from(
+    { length: outcomeCount },
+    (_, index) => 1n << BigInt(index),
+  );
+}
+
+function expectBytes32(value: string, message: string): HexString {
+  if (!/^0x[a-fA-F0-9]{64}$/.test(value)) {
+    throw new UserInputError(message);
+  }
+
+  return value as HexString;
+}
+
+function expectUint256(value: bigint, label: string): bigint {
+  if (value < 0n) {
+    throw new UserInputError(`${label} must be non-negative`);
+  }
+
+  if (value > MAX_UINT256) {
+    throw new UserInputError(`${label} exceeds uint256 range`);
+  }
+
+  return value;
 }
 
 /** @internal */
 export function encodeSafeMultisendCall(
   calls: readonly TransactionCall[],
 ): HexString {
-  const encodedTransactions = calls
-    .map((call) => encodeSafeMultisendTransaction(call))
-    .join('');
+  const encodedTransactions = calls.map((call) =>
+    encodeSafeMultisendTransaction(call),
+  );
 
-  return encodeBytesFunctionCall(SAFE_MULTISEND_SELECTOR, encodedTransactions);
+  return AbiFunction.encodeData(SAFE_MULTISEND_FUNCTION, [
+    encodedTransactions.length === 0
+      ? '0x'
+      : AbiParameters.encodePacked(
+          Array.from({ length: encodedTransactions.length }, () => 'bytes'),
+          encodedTransactions,
+        ),
+  ]);
 }
 
-function encodeAddress(address: EvmAddress): string {
-  return address.slice(2).padStart(64, '0');
-}
-
-function encodeAddressPacked(address: EvmAddress): string {
-  return address.slice(2);
-}
-
-function encodeBytesFunctionCall(selector: string, data: string): HexString {
-  const offset = encodeUint256(32n);
-  const length = encodeUint256(BigInt(data.length / 2));
-  const paddedData = data.padEnd(Math.ceil(data.length / 64) * 64, '0');
-
-  return `0x${selector}${offset}${length}${paddedData}`;
-}
-
-function encodeSafeMultisendTransaction(call: TransactionCall): string {
-  const data = call.data.slice(2);
+function encodeSafeMultisendTransaction(call: TransactionCall): HexString {
   const value = call.value ?? 0n;
 
-  return `${encodeUint8(0)}${encodeAddressPacked(call.to)}${encodeUint256(value)}${encodeUint256(BigInt(data.length / 2))}${data}`;
-}
-
-function encodeUint8(value: number): string {
-  invariant(value >= 0 && value <= 255, 'Value exceeds uint8 range');
-  return value.toString(16).padStart(2, '0');
-}
-
-function encodeUint256(value: bigint): string {
-  invariant(value >= 0n, 'Value must be non-negative');
-  const encoded = value.toString(16);
-
-  invariant(encoded.length <= 64, 'Value exceeds uint256 range');
-
-  return encoded.padStart(64, '0');
+  return AbiParameters.encodePacked(
+    ['uint8', 'address', 'uint256', 'uint256', 'bytes'],
+    [0, call.to, value, BigInt((call.data.length - 2) / 2), call.data],
+  );
 }
