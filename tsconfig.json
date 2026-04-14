@@ -4,6 +4,7 @@
     "rootDir": ".",
     "skipLibCheck": true,
     "types": ["node"],
+    "jsx": "react-jsx",
     "paths": {
       "@polymarket/bindings": ["./packages/bindings/src"],
       "@polymarket/bindings/clob": ["./packages/bindings/src/clob"],
