@@ -1,4 +1,3 @@
-import { invariant } from '@polymarket/types';
 import { z } from 'zod';
 import { SigningError } from './errors';
 import type { ApiKeyAuthorization, ApiKeyAuthorizationRequest } from './types';
@@ -37,7 +36,6 @@ const RemoteBuilderSigningResponseSchema = z.object({
 export function remoteBuilderSigning(
   config: RemoteBuilderSigningConfig,
 ): ApiKeyAuthorization {
-  resolveRemoteBuilderSigningUrl(config.url);
   return new RemoteBuilderAuthorization(config);
 }
 
@@ -81,20 +79,17 @@ class RemoteBuilderAuthorization implements ApiKeyAuthorization {
   async #fetchBuilderKeyHeaders(
     request: ApiKeyAuthorizationRequest,
   ): Promise<HeadersInit> {
-    const response = await fetch(
-      resolveRemoteBuilderSigningUrl(this.#config.url),
-      {
-        body: JSON.stringify({
-          body: request.body,
-          method: request.method,
-          path: request.path,
-        }),
-        credentials: this.#config.credentials,
-        headers: await this.#resolveHeaders(),
-        method: 'POST',
-        mode: 'cors',
-      },
-    );
+    const response = await fetch(this.#config.url, {
+      body: JSON.stringify({
+        body: request.body,
+        method: request.method,
+        path: request.path,
+      }),
+      credentials: this.#config.credentials,
+      headers: await this.#resolveHeaders(),
+      method: 'POST',
+      mode: 'cors',
+    });
 
     if (!response.ok) {
       throw new Error(
@@ -104,28 +99,4 @@ class RemoteBuilderAuthorization implements ApiKeyAuthorization {
 
     return RemoteBuilderSigningResponseSchema.parse(await response.json());
   }
-}
-
-function resolveRemoteBuilderSigningUrl(url: string): string {
-  invariant(url.trim().length > 0, 'Remote builder signing URL is required');
-
-  if (url.startsWith('/')) {
-    const origin = globalThis.location?.origin;
-
-    invariant(
-      typeof origin === 'string' && origin.length > 0,
-      'Root-relative remote builder signing URLs require a browser-like location origin',
-    );
-
-    return new URL(url, origin).toString();
-  }
-
-  const parsedUrl = new URL(url);
-
-  invariant(
-    parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:',
-    'Remote builder signing URL must use HTTP or HTTPS',
-  );
-
-  return parsedUrl.toString();
 }
