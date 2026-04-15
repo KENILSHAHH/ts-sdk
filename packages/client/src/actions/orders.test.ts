@@ -1,6 +1,5 @@
 import {
   type AcceptedOrderResponse,
-  AssetType,
   OrderPostStatus,
   type OrderResponse,
   OrderSide,
