@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NotificationIdSchema } from '../shared';
+import { EvmAddressSchema, NotificationIdSchema } from '../shared';
 
 function createCursorPageSchema<TItem extends z.ZodTypeAny>(item: TItem) {
   return z.object({
@@ -101,7 +101,7 @@ export enum AssetType {
 export const AssetTypeSchema = z.enum(AssetType);
 
 export const BalanceAllowanceResponseSchema = z.object({
-  allowances: z.record(z.string(), z.string()),
+  allowances: z.record(EvmAddressSchema, z.string().transform(BigInt)),
   balance: z.string(),
 });
 

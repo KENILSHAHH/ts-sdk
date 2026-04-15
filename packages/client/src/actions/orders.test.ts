@@ -1,5 +1,6 @@
 import {
   type AcceptedOrderResponse,
+  AssetType,
   OrderPostStatus,
   type OrderResponse,
   OrderSide,
@@ -7,10 +8,18 @@ import {
 } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
+import { createPublicClient } from '../clients';
 import { InsufficientLiquidityError } from '../errors';
-import { publicClient, safeWalletAddress, walletClient } from '../testing';
-import { authenticateWith, executeWith } from '../viem';
+import {
+  publicClient,
+  relayerKey,
+  safeWalletAddress,
+  walletClient,
+} from '../testing';
+import { approveWith, authenticateWith, executeWith } from '../viem';
 import { fetchOpenOrders } from './account';
+import { prepareErc20Approval } from './approvals';
+import { fetchNegRisk } from './clob';
 import { fetchMarket } from './markets';
 import {
   cancelAll,
@@ -124,20 +133,61 @@ describe('Orders', () => {
   });
 
   describe('prepareLimitOrder', () => {
-    it('starts preparing a limit order to buy YES at the minimum size', async () => {
-      const [yesTokenId] = expectPresent(market.clobTokenIds);
+    const [yesTokenId] = expectPresent(market.clobTokenIds);
+    const minPrice = expectPresent(market.orderPriceMinTickSize);
+    const minSize = expectPresent(market.orderMinSize);
 
+    it('allows to place a limit order for the desired size and price', async () => {
       const result = await prepareLimitOrder(secureClient, {
         orderType: OrderType.GTC,
-        price: expectPresent(market.orderPriceMinTickSize),
+        price: minPrice,
         side: OrderSide.BUY,
-        size: expectPresent(market.orderMinSize),
+        size: minSize,
         tokenId: yesTokenId,
       })
         .then(executeWith(walletClient))
         .then(postOrder(secureClient));
 
       expect(result.ok).toBe(true);
+    });
+
+    it('requests a collateral approval if necessary', async () => {
+      const gaslessClient = await createPublicClient({
+        apiKey: relayerKey,
+      })
+        .beginAuthentication({ wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+      const exchangeAddress = await resolveExchangeAddressForToken(
+        gaslessClient,
+        yesTokenId,
+      );
+
+      await prepareErc20Approval(gaslessClient, {
+        amount: 0n,
+        spenderAddress: exchangeAddress,
+        tokenAddress: gaslessClient.environment.collateralToken,
+      })
+        .then(approveWith(walletClient))
+        .then((handle) => handle.wait());
+
+      const response = await prepareLimitOrder(gaslessClient, {
+        orderType: OrderType.GTC,
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      })
+        .then(executeWith(walletClient))
+        .then(postOrder(gaslessClient));
+
+      expect(response.ok).toBe(true);
+      const acceptedResponse = expectAcceptedOrderResponse(response);
+
+      // cleanup
+      const cancelResult = await cancelOrder(gaslessClient, {
+        orderId: acceptedResponse.orderId,
+      });
+      expect(cancelResult.canceled).toContain(acceptedResponse.orderId);
     });
   });
 
@@ -245,6 +295,19 @@ async function createSignedRestingLimitOrder() {
     size,
     tokenId: yesTokenId,
   }).then(executeWith(walletClient));
+}
+
+async function resolveExchangeAddressForToken(
+  client: typeof secureClient,
+  tokenId: string,
+) {
+  const negRisk = await fetchNegRisk(client, {
+    tokenId,
+  });
+
+  return negRisk
+    ? client.environment.negRiskExchange
+    : client.environment.standardExchange;
 }
 
 async function cancelMarketOrderWithRetry(order: {

@@ -33,7 +33,7 @@ export type Erc20ApprovalWorkflowRequest =
 export type Erc20ApprovalWorkflow = AsyncGenerator<
   Erc20ApprovalWorkflowRequest,
   TransactionHandle,
-  EvmAddress | EvmSignature
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 const PrepareErc20ApprovalRequestSchema = z.object({
@@ -101,7 +101,7 @@ export type Erc1155ApprovalForAllWorkflowRequest =
 export type Erc1155ApprovalForAllWorkflow = AsyncGenerator<
   Erc1155ApprovalForAllWorkflowRequest,
   TransactionHandle,
-  EvmAddress | EvmSignature
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 const PrepareErc1155ApprovalForAllRequestSchema = z.object({
@@ -174,7 +174,7 @@ export type TradingApprovalsWorkflowRequest =
 export type TradingApprovalsWorkflow = AsyncGenerator<
   TradingApprovalsWorkflowRequest,
   TransactionHandle,
-  EvmAddress | EvmSignature
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 export type PrepareTradingApprovalsError = UserInputError;

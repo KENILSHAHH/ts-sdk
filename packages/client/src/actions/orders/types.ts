@@ -1,10 +1,15 @@
+import type { TokenId } from '@polymarket/bindings';
 import type {
   OrderSide,
   OrderType,
   SignatureType,
 } from '@polymarket/bindings/clob';
-import type { EvmAddress, EvmSignature, TxHash } from '@polymarket/types';
-import type { TypedDataPayload } from '../../types';
+import type { EvmAddress, EvmSignature } from '@polymarket/types';
+import type { TransactionHandle, TypedDataPayload } from '../../types';
+import type {
+  Erc20ApprovalWorkflowRequest,
+  Erc1155ApprovalForAllWorkflowRequest,
+} from '../approvals';
 
 export type PrepareMarketOrderRequest = {
   /** TokenID of the Conditional token asset being traded */
@@ -73,7 +78,7 @@ export type OrderDraft = {
   signer: EvmAddress;
   allowedTaker?: EvmAddress;
   requestedAmount: bigint;
-  tokenId: string;
+  tokenId: TokenId;
 };
 
 /**
@@ -94,7 +99,7 @@ export type UnsignedOrder = {
   signer: EvmAddress;
   taker: EvmAddress;
   takerAmount: string;
-  tokenId: string;
+  tokenId: TokenId;
 };
 
 export type SignedOrder = {
@@ -110,7 +115,7 @@ export type SignedOrder = {
   signer: EvmAddress;
   taker: EvmAddress;
   takerAmount: string;
-  tokenId: string;
+  tokenId: TokenId;
   signature: EvmSignature;
 };
 
@@ -119,12 +124,15 @@ export type SignOrderRequest = {
   payload: TypedDataPayload;
 };
 
-export type OrderWorkflowRequest = SignOrderRequest;
+export type OrderWorkflowRequest =
+  | Erc20ApprovalWorkflowRequest
+  | Erc1155ApprovalForAllWorkflowRequest
+  | SignOrderRequest;
 
 export type OrderWorkflow = AsyncGenerator<
   OrderWorkflowRequest,
   SignedOrder,
-  EvmSignature | TxHash
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 /** @internal */

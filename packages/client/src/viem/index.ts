@@ -103,6 +103,9 @@ export type ExecuteWithError = CancelledSigningError | SigningError;
 /**
  * Drives an order workflow with a viem wallet client.
  *
+ * When order preparation detects missing approvals, this runner can execute the
+ * required approval steps before producing the final signed order.
+ *
  * @throws {@link ExecuteWithError}
  * Thrown when the required wallet signature is rejected or cannot be produced.
  */
@@ -120,6 +123,41 @@ export function executeWith(walletClient: WalletClient) {
     while (!result.done) {
       try {
         switch (result.value.kind) {
+          case 'sendErc20ApprovalTransaction':
+          case 'sendErc1155ApprovalForAllTransaction': {
+            const hash = await sendTransaction(walletClient, {
+              account,
+              ...result.value.request,
+            });
+            result = await workflow.next(
+              new DirectTransactionHandle(hash, walletClient),
+            );
+            break;
+          }
+
+          case 'requestAddress':
+            result = await workflow.next(
+              expectEvmAddress(
+                typeof walletClient.account === 'string'
+                  ? walletClient.account
+                  : walletClient.account.address,
+              ),
+            );
+            break;
+
+          case 'signGaslessMessage':
+            result = await workflow.next(
+              expectEvmSignature(
+                await signMessage(walletClient, {
+                  account,
+                  message: {
+                    raw: hashTypedData(result.value.payload as never),
+                  },
+                }),
+              ),
+            );
+            break;
+
           case 'signOrder':
             result = await workflow.next(
               expectEvmSignature(

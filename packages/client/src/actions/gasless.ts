@@ -303,7 +303,7 @@ export type GaslessWorkflowRequest =
 export type GaslessWorkflow = AsyncGenerator<
   GaslessWorkflowRequest,
   TransactionHandle,
-  EvmAddress | EvmSignature
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 export type PrepareGaslessTransactionError =

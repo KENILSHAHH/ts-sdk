@@ -331,14 +331,18 @@ export type FetchBalanceAllowanceError =
 /**
  * Fetches balance and allowance for the authenticated account.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
+ * @throws {@link FetchBalanceAllowanceError}
+ * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, cannot be signed, or returns an unexpected response.
+ *
  * @example
  * ```ts
  * const balanceAllowance = await fetchBalanceAllowance(client, {
  *   assetType: AssetType.COLLATERAL,
  * });
  * ```
- *
- * @throws {@link FetchBalanceAllowanceError}
  */
 export async function fetchBalanceAllowance(
   client: SecureClient,

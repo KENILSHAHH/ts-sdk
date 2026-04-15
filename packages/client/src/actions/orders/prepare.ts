@@ -1,4 +1,9 @@
-import { expectEvmSignature, never } from '@polymarket/types';
+import { OrderSide } from '@polymarket/bindings/clob';
+import {
+  type EvmAddress,
+  type EvmSignature,
+  expectEvmSignature,
+} from '@polymarket/types';
 import type { SecureClient } from '../../clients';
 import type {
   InsufficientLiquidityError,
@@ -10,6 +15,13 @@ import type {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
+import type { TransactionHandle } from '../../types';
+import {
+  type Erc20ApprovalWorkflowRequest,
+  type Erc1155ApprovalForAllWorkflowRequest,
+  prepareErc20Approval,
+  prepareErc1155ApprovalForAll,
+} from '../approvals';
 import { resolveCurrentAllowance } from './allowance';
 import { PrepareLimitOrderParamsSchema, prepareLimitOrderDraft } from './limit';
 import {
@@ -19,6 +31,7 @@ import {
 import { createSignedOrder, createUnsignedOrder } from './orders';
 import { createOrderTypedDataPayload } from './typed-data';
 import {
+  type OrderDraft,
   type OrderWorkflow,
   type PrepareLimitOrderRequest,
   type PrepareMarketOrderRequest,
@@ -50,15 +63,7 @@ export async function prepareMarketOrder(
   return async function* (): OrderWorkflow {
     const draft = await prepareMarketOrderDraft(client, params);
 
-    const currentAllowance = await resolveCurrentAllowance(client, {
-      spenderAddress: draft.exchangeAddress,
-      side: draft.side,
-      tokenId: draft.tokenId,
-    });
-
-    if (currentAllowance < draft.offeredAmount) {
-      return never('Not implemented yet');
-    }
+    yield* ensureOrderApproval(client, draft);
 
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
@@ -94,15 +99,7 @@ export async function prepareLimitOrder(
   return async function* (): OrderWorkflow {
     const draft = await prepareLimitOrderDraft(client, params);
 
-    const currentAllowance = await resolveCurrentAllowance(client, {
-      spenderAddress: draft.exchangeAddress,
-      side: draft.side,
-      tokenId: draft.tokenId,
-    });
-
-    if (currentAllowance < draft.offeredAmount) {
-      return never('Not implemented yet');
-    }
+    yield* ensureOrderApproval(client, draft);
 
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
@@ -112,4 +109,37 @@ export async function prepareLimitOrder(
 
     return createSignedOrder(unsignedOrder, signature);
   }.call(null);
+}
+
+async function* ensureOrderApproval(
+  client: SecureClient,
+  draft: OrderDraft,
+): AsyncGenerator<
+  Erc20ApprovalWorkflowRequest | Erc1155ApprovalForAllWorkflowRequest,
+  void,
+  EvmAddress | EvmSignature | TransactionHandle
+> {
+  const currentAllowance = await resolveCurrentAllowance(client, {
+    spenderAddress: draft.exchangeAddress,
+    side: draft.side,
+    tokenId: draft.tokenId,
+  });
+
+  if (currentAllowance >= draft.offeredAmount) {
+    return;
+  }
+
+  const handle =
+    draft.side === OrderSide.BUY
+      ? yield* await prepareErc20Approval(client, {
+          amount: draft.offeredAmount,
+          spenderAddress: draft.exchangeAddress,
+          tokenAddress: client.environment.collateralToken,
+        })
+      : yield* await prepareErc1155ApprovalForAll(client, {
+          operatorAddress: draft.exchangeAddress,
+          tokenAddress: client.environment.conditionalTokens,
+        });
+
+  await handle.wait();
 }

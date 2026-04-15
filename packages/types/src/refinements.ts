@@ -44,7 +44,7 @@ export function expectHexString(
  * Refines a string to an EVM address or throws when the value is invalid.
  */
 export function expectEvmAddress(
-  value: string,
+  value: unknown,
   message = 'Expected an EVM address',
 ): EvmAddress {
   invariant(isHexString(value) && value.length === 42, message);
@@ -55,7 +55,7 @@ export function expectEvmAddress(
  * Refines a string to an EVM signature or throws when the value is invalid.
  */
 export function expectEvmSignature(
-  value: string,
+  value: unknown,
   message = 'Expected an EVM signature',
 ): EvmSignature {
   invariant(isHexString(value) && value.length === 132, message);
@@ -66,7 +66,7 @@ export function expectEvmSignature(
  * Refines a string to a transaction hash or throws when the value is invalid.
  */
 export function expectTxHash(
-  value: string,
+  value: unknown,
   message = 'Expected a transaction hash',
 ): TxHash {
   invariant(isHexString(value) && value.length === 66, message);

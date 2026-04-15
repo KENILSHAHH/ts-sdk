@@ -1,4 +1,8 @@
-import { EvmAddressSchema, type TickSizeValue } from '@polymarket/bindings';
+import {
+  EvmAddressSchema,
+  type TickSizeValue,
+  TokenIdSchema,
+} from '@polymarket/bindings';
 import {
   OrderSide,
   OrderSideSchema,
@@ -25,7 +29,7 @@ import type { OrderDraft, PrepareLimitOrderRequest } from './types';
 
 export const PrepareLimitOrderParamsSchema = z
   .object({
-    tokenId: z.string(),
+    tokenId: TokenIdSchema,
     price: z.number().positive(),
     size: z.number().positive(),
     side: OrderSideSchema,
