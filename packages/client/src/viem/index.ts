@@ -1,6 +1,4 @@
 import {
-  type EvmAddress,
-  type EvmSignature,
   expectEvmAddress,
   expectEvmSignature,
   expectTxHash,
@@ -21,15 +19,6 @@ import {
   type WalletClient,
 } from 'viem';
 import { waitForTransactionReceipt } from 'viem/actions';
-import type {
-  Erc20ApprovalWorkflowRequest,
-  Erc1155ApprovalForAllWorkflowRequest,
-  TradingApprovalsWorkflowRequest,
-} from '../actions/approvals';
-import type { GaslessWalletWorkflowRequest } from '../actions/gasless';
-import type { OrderWorkflow, SignedOrder } from '../actions/orders';
-import type { Erc20TransferWorkflowRequest } from '../actions/transfers';
-import type { AuthenticationWorkflow } from '../authentication';
 import type { SecureClient } from '../clients';
 import {
   CancelledSigningError,
@@ -38,15 +27,20 @@ import {
   TransactionFailedError,
   TransportError,
 } from '../errors';
-import type { TransactionHandle } from '../types';
+import type {
+  AuthenticationWorkflow,
+  CompleteWorkflowNext,
+  CompleteWorkflowRequest,
+} from '../workflow';
+import type {
+  TransactionHandle,
+} from '../types';
 
 function isWalletClientWithAccount(
   walletClient: WalletClient,
 ): walletClient is WalletClient<Transport, Chain, Account> {
   return walletClient.account !== undefined;
 }
-
-export type AuthenticateWithError = CancelledSigningError | SigningError;
 
 /**
  * Drives an authentication workflow with a viem wallet client.
@@ -98,95 +92,16 @@ export function authenticateWith(walletClient: WalletClient) {
   };
 }
 
-export type ExecuteWithError = CancelledSigningError | SigningError;
-
 /**
- * Drives an order workflow with a viem wallet client.
+ * Drives a workflow with a viem wallet client.
  *
- * When order preparation detects missing approvals, this runner can execute the
- * required approval steps before producing the final signed order.
+ * Supports the current non-auth workflow set, including order signing,
+ * approvals, transfers, and gasless wallet preparation.
  *
- * @throws {@link ExecuteWithError}
- * Thrown when the required wallet signature is rejected or cannot be produced.
- */
-export function executeWith(walletClient: WalletClient) {
-  invariant(
-    isWalletClientWithAccount(walletClient),
-    'Wallet client with account is required',
-  );
-
-  const account = walletClient.account;
-
-  return async function execute(workflow: OrderWorkflow): Promise<SignedOrder> {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'sendErc20ApprovalTransaction':
-          case 'sendErc1155ApprovalForAllTransaction': {
-            const hash = await sendTransaction(walletClient, {
-              account,
-              ...result.value.request,
-            });
-            result = await workflow.next(
-              new DirectTransactionHandle(hash, walletClient),
-            );
-            break;
-          }
-
-          case 'requestAddress':
-            result = await workflow.next(
-              expectEvmAddress(
-                typeof walletClient.account === 'string'
-                  ? walletClient.account
-                  : walletClient.account.address,
-              ),
-            );
-            break;
-
-          case 'signGaslessMessage':
-            result = await workflow.next(
-              expectEvmSignature(
-                await signMessage(walletClient, {
-                  account,
-                  message: {
-                    raw: hashTypedData(result.value.payload as never),
-                  },
-                }),
-              ),
-            );
-            break;
-
-          case 'signOrder':
-            result = await workflow.next(
-              expectEvmSignature(
-                await signTypedData(walletClient, {
-                  account,
-                  ...result.value.payload,
-                }),
-              ),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
-  };
-}
-
-export type ApproveWithError = CancelledSigningError | SigningError;
-
-/**
- * Drives an approval workflow with a viem wallet client.
- *
- * @throws {@link ApproveWithError}
+ * @throws {@link CompleteWithError}
  * Thrown when the required wallet signature or submission is rejected or cannot be produced.
  */
-export function approveWith(walletClient: WalletClient) {
+export function completeWith(walletClient: WalletClient) {
   invariant(
     isWalletClientWithAccount(walletClient),
     'Wallet client with account is required',
@@ -199,15 +114,11 @@ export function approveWith(walletClient: WalletClient) {
       : walletClient.account.address,
   );
 
-  return async function approve<TReturn extends TransactionHandle>(
-    workflow: AsyncGenerator<
-      | Erc20ApprovalWorkflowRequest
-      | Erc1155ApprovalForAllWorkflowRequest
-      | GaslessWalletWorkflowRequest
-      | TradingApprovalsWorkflowRequest,
-      TReturn,
-      EvmAddress | EvmSignature | TransactionHandle
-    >,
+  return async function complete<
+    TRequest extends CompleteWorkflowRequest,
+    TReturn,
+  >(
+    workflow: AsyncGenerator<TRequest, TReturn, CompleteWorkflowNext>,
   ): Promise<TReturn> {
     let result = await workflow.next();
 
@@ -231,6 +142,7 @@ export function approveWith(walletClient: WalletClient) {
             break;
 
           case 'signGaslessTypedData':
+          case 'signOrder':
             result = await workflow.next(
               expectEvmSignature(
                 await signTypedData(walletClient, {
@@ -239,77 +151,6 @@ export function approveWith(walletClient: WalletClient) {
                 }),
               ),
             );
-            break;
-
-          case 'signGaslessMessage':
-            result = await workflow.next(
-              expectEvmSignature(
-                await signMessage(walletClient, {
-                  account,
-                  message: {
-                    raw: hashTypedData(result.value.payload as never),
-                  },
-                }),
-              ),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
-  };
-}
-
-export type TransferWithError = CancelledSigningError | SigningError;
-
-// TODO remove this helper, consolidate in an existing one
-/**
- * Drives an ERC-20 transfer workflow with a viem wallet client.
- *
- * @throws {@link TransferWithError}
- * Thrown when the required wallet signature or submission is rejected or cannot be produced.
- */
-export function transferWith(walletClient: WalletClient) {
-  invariant(
-    isWalletClientWithAccount(walletClient),
-    'Wallet client with account is required',
-  );
-
-  const account = walletClient.account;
-  const address = expectEvmAddress(
-    typeof walletClient.account === 'string'
-      ? walletClient.account
-      : walletClient.account.address,
-  );
-
-  return async function transfer(
-    workflow: AsyncGenerator<
-      Erc20TransferWorkflowRequest,
-      TransactionHandle,
-      EvmAddress | EvmSignature | TransactionHandle
-    >,
-  ): Promise<TransactionHandle> {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'sendErc20TransferTransaction': {
-            const hash = await sendTransaction(walletClient, {
-              account,
-              ...result.value.request,
-            });
-            result = await workflow.next(
-              new DirectTransactionHandle(hash, walletClient),
-            );
-            break;
-          }
-
-          case 'requestAddress':
-            result = await workflow.next(address);
             break;
 
           case 'signGaslessMessage':

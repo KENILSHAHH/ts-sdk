@@ -8,9 +8,11 @@ export type * from '@polymarket/bindings/relayer';
 export * from './abis';
 export type { AccountIdentity } from './account';
 export type {
+  AuthenticateWithError,
   AuthenticationWorkflow,
   AuthenticationWorkflowRequest,
-} from './authentication';
+  CompleteWithError,
+} from './workflow';
 export type { RemoteBuilderSigningConfig } from './authorization';
 export { remoteBuilderSigning } from './authorization';
 export type * from './clients';

@@ -14,7 +14,6 @@ import {
   fetchApiKeys,
 } from './actions/auth';
 import {
-  type AuthenticationWorkflow,
   createApiKeyAuthTypedDataPayload,
 } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
@@ -24,7 +23,7 @@ import { parseUserInput } from './input';
 import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization } from './types';
-import { requestAddress } from './workflow';
+import { requestAddress, type AuthenticationWorkflow } from './workflow';
 
 type PublicContext = {
   /** @internal */

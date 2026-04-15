@@ -58,7 +58,7 @@ export type PrepareErc20ApprovalError = UserInputError;
  *   amount: 'max',
  *   spenderAddress: '0x1234…',
  *   tokenAddress: '0x5678…',
- * }).then(approveWith(walletClient));
+ * }).then(completeWith(walletClient));
  * ```
  *
  * @throws {@link PrepareErc20ApprovalError}
@@ -125,7 +125,7 @@ export type PrepareErc1155ApprovalForAllError = UserInputError;
  * const result = await prepareErc1155ApprovalForAll(client, {
  *   operatorAddress: '0x1234…',
  *   tokenAddress: '0x5678…',
- * }).then(approveWith(walletClient));
+ * }).then(completeWith(walletClient));
  * ```
  *
  * @throws {@link PrepareErc1155ApprovalForAllError}
@@ -184,7 +184,7 @@ export type PrepareTradingApprovalsError = UserInputError;
  *
  * @example
  * ```ts
- * const result = await prepareTradingApprovals(client).then(approveWith(walletClient));
+ * const result = await prepareTradingApprovals(client).then(completeWith(walletClient));
  * ```
  *
  * @throws {@link PrepareTradingApprovalsError}

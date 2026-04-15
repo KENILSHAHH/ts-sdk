@@ -2,7 +2,7 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
 import { createPublicClient } from '../clients';
 import { relayerKey, safeWalletAddress, walletClient } from '../testing';
-import { authenticateWith, transferWith } from '../viem';
+import { authenticateWith, completeWith } from '../viem';
 import { prepareErc20Transfer } from './transfers';
 
 describe('Transfers', () => {
@@ -21,7 +21,7 @@ describe('Transfers', () => {
         amount: 1n,
         recipientAddress: secureClient.account.signer,
         tokenAddress: secureClient.environment.collateralToken,
-      }).then(transferWith(walletClient));
+      }).then(completeWith(walletClient));
 
       await expect(handle.wait()).resolves.toBeTruthy();
     });

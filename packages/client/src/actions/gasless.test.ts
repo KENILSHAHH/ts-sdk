@@ -11,7 +11,7 @@ import {
   safeWalletAddress,
   walletClient,
 } from '../testing';
-import { approveWith, authenticateWith } from '../viem';
+import { authenticateWith, completeWith } from '../viem';
 import {
   isGaslessReady,
   prepareGaslessTransaction,
@@ -200,7 +200,7 @@ describe('Gasless', () => {
       ).resolves.toBe(false);
 
       const handle = await prepareGaslessWallet(publicClient).then(
-        approveWith(walletClient),
+        completeWith(walletClient),
       );
 
       expect(handle.wallet).toBe(safeWallet);

@@ -1,20 +1,5 @@
-import type { EvmAddress, EvmSignature } from '@polymarket/types';
-import type { SecureClient } from './clients';
+import type { EvmAddress } from '@polymarket/types';
 import type { TypedDataPayload } from './types';
-import type { RequestAddressRequest } from './workflow';
-
-export type AuthenticationWorkflowRequest =
-  | RequestAddressRequest
-  | {
-      kind: 'signAuthMessage';
-      payload: TypedDataPayload;
-    };
-
-export type AuthenticationWorkflow = AsyncGenerator<
-  AuthenticationWorkflowRequest,
-  SecureClient,
-  EvmAddress | EvmSignature
->;
 
 /** @internal */
 export type CreateApiKeyAuthTypedDataPayloadRequest = {

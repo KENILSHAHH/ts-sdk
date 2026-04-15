@@ -179,7 +179,7 @@ export type GaslessWalletWorkflowRequest =
 export type GaslessWalletWorkflow = AsyncGenerator<
   GaslessWalletWorkflowRequest,
   DeployTransactionHandle,
-  EvmAddress | EvmSignature
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 export type PrepareGaslessWalletError =
@@ -356,7 +356,7 @@ export async function prepareGaslessTransaction(
     );
 
     const signature = expectEvmSignature(
-      yield signGaslessTypedDataAsMessage(
+      yield signGaslessMessage(
         createSafeTypedDataPayload({
           chainId: client.environment.chainId,
           data: transaction.data,
@@ -524,7 +524,7 @@ function signGaslessTypedData(
   };
 }
 
-function signGaslessTypedDataAsMessage(
+function signGaslessMessage(
   payload: TypedDataPayload,
 ): SignGaslessMessageRequest {
   return {

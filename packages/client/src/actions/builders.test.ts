@@ -8,7 +8,7 @@ import {
   safeWalletAddress,
   walletClient,
 } from '../testing';
-import { authenticateWith, executeWith } from '../viem';
+import { authenticateWith, completeWith } from '../viem';
 import { listBuilderTrades } from './builders';
 import { postOrder, prepareMarketOrder } from './orders';
 
@@ -50,7 +50,7 @@ describe('Builders', () => {
         amount: expectPresent(market.orderMinSize),
         side: OrderSide.BUY,
         tokenId,
-      }).then(executeWith(walletClient));
+      }).then(completeWith(walletClient));
 
       const response = await postOrder(secureClient, order);
 

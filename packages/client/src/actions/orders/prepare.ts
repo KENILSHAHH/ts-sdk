@@ -132,7 +132,7 @@ async function* ensureOrderApproval(
   const handle =
     draft.side === OrderSide.BUY
       ? yield* await prepareErc20Approval(client, {
-          amount: draft.offeredAmount,
+          amount: 'max',
           spenderAddress: draft.exchangeAddress,
           tokenAddress: client.environment.collateralToken,
         })

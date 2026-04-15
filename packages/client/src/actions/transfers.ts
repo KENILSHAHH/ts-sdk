@@ -29,7 +29,7 @@ export type Erc20TransferWorkflowRequest =
 export type Erc20TransferWorkflow = AsyncGenerator<
   Erc20TransferWorkflowRequest,
   TransactionHandle,
-  EvmAddress | EvmSignature
+  EvmAddress | EvmSignature | TransactionHandle
 >;
 
 const PrepareErc20TransferRequestSchema = z.object({
@@ -54,7 +54,7 @@ export type PrepareErc20TransferError = UserInputError;
  *   amount: 1n,
  *   recipientAddress: client.account.signer,
  *   tokenAddress: client.environment.collateralToken,
- * }).then(transferWith(walletClient));
+ * }).then(completeWith(walletClient));
  * ```
  *
  * @throws {@link PrepareErc20TransferError}

@@ -9,7 +9,7 @@ import {
   safeWalletAddress,
   walletClient,
 } from '../testing';
-import { approveWith, authenticateWith } from '../viem';
+import { authenticateWith, completeWith } from '../viem';
 import {
   prepareErc20Approval,
   prepareErc1155ApprovalForAll,
@@ -32,7 +32,7 @@ describe('Approvals', () => {
         spenderAddress: secureClient.environment.standardExchange,
         tokenAddress: secureClient.environment.collateralToken,
         amount: 'max',
-      }).then(approveWith(walletClient));
+      }).then(completeWith(walletClient));
 
       await expect(handle.wait()).resolves.toBeTruthy();
     });
@@ -53,7 +53,7 @@ describe('Approvals', () => {
           amount: 'max',
           spenderAddress: ZERO_ADDRESS,
           tokenAddress: secureClient.environment.collateralToken,
-        }).then(approveWith(walletClient)),
+        }).then(completeWith(walletClient)),
       ).rejects.toBeInstanceOf(SigningError);
     });
   });
@@ -72,7 +72,7 @@ describe('Approvals', () => {
       const handle = await prepareErc1155ApprovalForAll(secureClient, {
         operatorAddress: secureClient.environment.standardExchange,
         tokenAddress: secureClient.environment.conditionalTokens,
-      }).then(approveWith(walletClient));
+      }).then(completeWith(walletClient));
 
       await expect(handle.wait()).resolves.toBeTruthy();
     });
@@ -90,7 +90,7 @@ describe('Approvals', () => {
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
 
       const handle = await prepareTradingApprovals(secureClient).then(
-        approveWith(walletClient),
+        completeWith(walletClient),
       );
 
       await expect(handle.wait()).resolves.toBeTruthy();

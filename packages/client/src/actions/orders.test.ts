@@ -15,7 +15,7 @@ import {
   safeWalletAddress,
   walletClient,
 } from '../testing';
-import { approveWith, authenticateWith, executeWith } from '../viem';
+import { authenticateWith, completeWith } from '../viem';
 import { fetchOpenOrders } from './account';
 import { prepareErc20Approval } from './approvals';
 import { fetchNegRisk } from './clob';
@@ -92,7 +92,7 @@ describe('Orders', () => {
           side: OrderSide.SELL,
           tokenId: expectPresent(position.asset),
         })
-          .then(executeWith(walletClient))
+          .then(completeWith(walletClient))
           .then(postOrder(secureClient));
         expect(result.ok).toBe(true);
         const acceptedResult = expectAcceptedOrderResponse(result);
@@ -107,7 +107,7 @@ describe('Orders', () => {
         side: OrderSide.BUY,
         tokenId: yesTokenId,
       })
-        .then(executeWith(walletClient))
+        .then(completeWith(walletClient))
         .then(postOrder(secureClient));
       expect(buyResult.ok).toBe(true);
       const acceptedBuyResult = expectAcceptedOrderResponse(buyResult);
@@ -122,7 +122,7 @@ describe('Orders', () => {
         side: OrderSide.SELL,
         tokenId: yesTokenId,
       })
-        .then(executeWith(walletClient))
+        .then(completeWith(walletClient))
         .then(postOrder(secureClient));
       expect(sellResult.ok).toBe(true);
       const acceptedSellResult = expectAcceptedOrderResponse(sellResult);
@@ -144,7 +144,7 @@ describe('Orders', () => {
         size: minSize,
         tokenId: yesTokenId,
       })
-        .then(executeWith(walletClient))
+        .then(completeWith(walletClient))
         .then(postOrder(secureClient));
 
       expect(result.ok).toBe(true);
@@ -166,7 +166,7 @@ describe('Orders', () => {
         spenderAddress: exchangeAddress,
         tokenAddress: gaslessClient.environment.collateralToken,
       })
-        .then(approveWith(walletClient))
+        .then(completeWith(walletClient))
         .then((handle) => handle.wait());
 
       const response = await prepareLimitOrder(gaslessClient, {
@@ -176,7 +176,7 @@ describe('Orders', () => {
         size: minSize,
         tokenId: yesTokenId,
       })
-        .then(executeWith(walletClient))
+        .then(completeWith(walletClient))
         .then(postOrder(gaslessClient));
 
       expect(response.ok).toBe(true);
@@ -293,7 +293,7 @@ async function createSignedRestingLimitOrder() {
     side: OrderSide.BUY,
     size,
     tokenId: yesTokenId,
-  }).then(executeWith(walletClient));
+  }).then(completeWith(walletClient));
 }
 
 async function resolveExchangeAddressForToken(
