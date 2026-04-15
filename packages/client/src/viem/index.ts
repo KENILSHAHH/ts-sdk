@@ -27,14 +27,12 @@ import {
   TransactionFailedError,
   TransportError,
 } from '../errors';
+import type { TransactionHandle } from '../types';
 import type {
   AuthenticationWorkflow,
   CompleteWorkflowNext,
   CompleteWorkflowRequest,
 } from '../workflow';
-import type {
-  TransactionHandle,
-} from '../types';
 
 function isWalletClientWithAccount(
   walletClient: WalletClient,
@@ -96,7 +94,7 @@ export function authenticateWith(walletClient: WalletClient) {
  * Drives a workflow with a viem wallet client.
  *
  * Supports the current non-auth workflow set, including order signing,
- * approvals, transfers, and gasless wallet preparation.
+ * approvals, transfers, redemptions, and gasless wallet preparation.
  *
  * @throws {@link CompleteWithError}
  * Thrown when the required wallet signature or submission is rejected or cannot be produced.
@@ -126,7 +124,9 @@ export function completeWith(walletClient: WalletClient) {
       try {
         switch (result.value.kind) {
           case 'sendErc20ApprovalTransaction':
-          case 'sendErc1155ApprovalForAllTransaction': {
+          case 'sendErc1155ApprovalForAllTransaction':
+          case 'sendErc20TransferTransaction':
+          case 'sendRedeemPositionsTransaction': {
             const hash = await sendTransaction(walletClient, {
               account,
               ...result.value.request,

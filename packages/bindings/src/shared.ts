@@ -2,6 +2,8 @@ import {
   type EvmAddress,
   expectEvmAddress,
   expectTxHash,
+  type HexString,
+  isHexString,
   type TxHash,
 } from '@polymarket/types';
 import { z } from 'zod';
@@ -26,6 +28,7 @@ export type ApiKey = Tagged<string, 'ApiKey'>;
 export type CategoryId = Tagged<string, 'CategoryId'>;
 export type ChatId = Tagged<string, 'ChatId'>;
 export type ClobRewardId = Tagged<string, 'ClobRewardId'>;
+export type ConditionId = Tagged<HexString, 'ConditionId'>;
 export type CollectionId = Tagged<string, 'CollectionId'>;
 export type EventCreatorId = Tagged<string, 'EventCreatorId'>;
 export type EventExternalPartnerMappingId = Tagged<
@@ -68,6 +71,14 @@ export function toChatId(value: string): ChatId {
 
 export function toClobRewardId(value: string): ClobRewardId {
   return toTaggedString<ClobRewardId>(value);
+}
+
+export function toConditionId(value: string): ConditionId {
+  if (!isHexString(value) || value.length !== 66) {
+    throw new TypeError(`Expected a 32-byte hex string, received: ${value}`);
+  }
+
+  return value as ConditionId;
 }
 
 export function toCollectionId(value: string): CollectionId {
@@ -139,6 +150,7 @@ export function toTokenId(value: string): TokenId {
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
+export const ConditionIdSchema = z.string().transform(toConditionId);
 export const EvmAddressSchema = z.string().transform(toEvmAddress);
 export const EventIdSchema = z.string().transform(toEventId);
 export const TickSizeValueSchema = z.union([

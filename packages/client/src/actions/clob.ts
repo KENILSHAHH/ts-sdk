@@ -1,4 +1,4 @@
-import type { TickSizeValue } from '@polymarket/bindings';
+import { ConditionIdSchema, type TickSizeValue } from '@polymarket/bindings';
 import {
   type CurrentReward,
   FetchFeeRateResponseSchema,
@@ -780,7 +780,7 @@ export async function listCurrentRewards(
 }
 
 const FetchMarketRewardsRequestSchema = z.object({
-  conditionId: z.string(),
+  conditionId: ConditionIdSchema,
   sponsored: z.boolean().optional(),
 });
 

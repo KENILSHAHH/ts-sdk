@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { MarketIdSchema, TickSizeValueSchema, TokenIdSchema } from '../shared';
+import {
+  ConditionIdSchema,
+  MarketIdSchema,
+  TickSizeValueSchema,
+  TokenIdSchema,
+} from '../shared';
 import {
   CategoryReferenceSchema,
   ClobRewardsSchema,
@@ -29,7 +34,7 @@ const TokenIdPairSchema = z
 export const MarketSchema = z.looseObject({
   id: MarketIdSchema,
   question: z.string().nullish(),
-  conditionId: z.string(),
+  conditionId: ConditionIdSchema,
   slug: z.string().nullish(),
   twitterCardImage: z.string().nullish(),
   resolutionSource: z.string().nullish(),

@@ -6,11 +6,11 @@ import type {
 } from './actions/approvals';
 import type { GaslessWalletWorkflowRequest } from './actions/gasless';
 import type { OrderWorkflowRequest } from './actions/orders';
+import type { RedeemPositionsWorkflowRequest } from './actions/redeem';
 import type { Erc20TransferWorkflowRequest } from './actions/transfers';
 import type { SecureClient } from './clients';
 import type { CancelledSigningError, SigningError } from './errors';
-import type { TransactionHandle } from './types';
-import type { TypedDataPayload } from './types';
+import type { TransactionHandle, TypedDataPayload } from './types';
 
 export type RequestAddressRequest = {
   kind: 'requestAddress';
@@ -38,6 +38,7 @@ export type CompleteWorkflowRequest =
   | Erc20TransferWorkflowRequest
   | GaslessWalletWorkflowRequest
   | TradingApprovalsWorkflowRequest
+  | RedeemPositionsWorkflowRequest
   | OrderWorkflowRequest;
 
 export type CompleteWorkflowNext =

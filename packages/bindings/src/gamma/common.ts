@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   CategoryIdSchema,
   ClobRewardIdSchema,
+  ConditionIdSchema,
   EventIdSchema,
   ImageOptimizationIdSchema,
   InternalUserIdSchema,
@@ -61,7 +62,7 @@ export const TagReferenceSchema = z.looseObject({
 
 export const RelatedMarketSchema = z.looseObject({
   id: MarketIdSchema,
-  conditionId: z.string(),
+  conditionId: ConditionIdSchema,
   slug: z.string().nullish(),
   image: z.string().nullish(),
   volume: z.string().nullish(),
@@ -74,7 +75,7 @@ export const RelatedMarketSchema = z.looseObject({
 
 export const ClobRewardsSchema = z.looseObject({
   id: ClobRewardIdSchema,
-  conditionId: z.string(),
+  conditionId: ConditionIdSchema,
   assetAddress: z.string(),
   rewardsAmount: z.number(),
   rewardsDailyRate: z.number(),

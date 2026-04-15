@@ -18,6 +18,8 @@ export type EnvironmentConfig = {
   /** @internal */
   conditionalTokens: EvmAddress;
   /** @internal */
+  negRiskAdapter?: EvmAddress;
+  /** @internal */
   standardExchange: EvmAddress;
   /** @internal */
   negRiskExchange: EvmAddress;
@@ -59,6 +61,9 @@ export const production: EnvironmentConfig = {
   ),
   conditionalTokens: expectEvmAddress(
     '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045',
+  ),
+  negRiskAdapter: expectEvmAddress(
+    '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296',
   ),
   standardExchange: expectEvmAddress(
     '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E',

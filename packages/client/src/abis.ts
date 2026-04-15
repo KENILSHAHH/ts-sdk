@@ -1,6 +1,8 @@
+import { type ConditionId, ConditionIdSchema } from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
 import { UserInputError } from './errors';
+import { parseUserInput } from './input';
 import type { TransactionCall } from './types';
 
 const ZERO_BYTES32 =
@@ -105,7 +107,7 @@ export type CtfRedeemPositionsCallError = UserInputError;
 export function ctfRedeemPositionsCall(
   conditionalTokensAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: string,
+  conditionId: ConditionId,
   outcomeCount: number,
 ): TransactionCall {
   return {
@@ -129,7 +131,7 @@ export type NegRiskRedeemPositionsCallError = UserInputError;
  */
 export function negRiskRedeemPositionsCall(
   negRiskAdapterAddress: EvmAddress,
-  conditionId: string,
+  conditionId: ConditionId,
   amounts: readonly [bigint, bigint],
 ): TransactionCall {
   return {
@@ -166,23 +168,27 @@ function encodeErc20TransferCall(
 
 function encodeCtfRedeemPositionsCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: string,
+  conditionId: ConditionId,
   outcomeCount: number,
 ): HexString {
+  const parsedConditionId = parseUserInput(conditionId, ConditionIdSchema);
+
   return AbiFunction.encodeData(CTF_REDEEM_POSITIONS_FUNCTION, [
     collateralTokenAddress,
     ZERO_BYTES32,
-    expectBytes32(conditionId, 'Condition ID must be a 32-byte hex string'),
+    parsedConditionId,
     createOutcomeIndexSets(outcomeCount),
   ]);
 }
 
 function encodeNegRiskRedeemPositionsCall(
-  conditionId: string,
+  conditionId: ConditionId,
   amounts: readonly [bigint, bigint],
 ): HexString {
+  const parsedConditionId = parseUserInput(conditionId, ConditionIdSchema);
+
   return AbiFunction.encodeData(NEG_RISK_REDEEM_POSITIONS_FUNCTION, [
-    expectBytes32(conditionId, 'Condition ID must be a 32-byte hex string'),
+    parsedConditionId,
     amounts.map((amount) => expectUint256(amount, 'Redeem amount')),
   ]);
 }
@@ -200,14 +206,6 @@ function createOutcomeIndexSets(outcomeCount: number): bigint[] {
     { length: outcomeCount },
     (_, index) => 1n << BigInt(index),
   );
-}
-
-function expectBytes32(value: string, message: string): HexString {
-  if (!/^0x[a-fA-F0-9]{64}$/.test(value)) {
-    throw new UserInputError(message);
-  }
-
-  return value as HexString;
 }
 
 function expectUint256(value: bigint, label: string): bigint {

@@ -13,9 +13,7 @@ import {
   deleteApiKey,
   fetchApiKeys,
 } from './actions/auth';
-import {
-  createApiKeyAuthTypedDataPayload,
-} from './authentication';
+import { createApiKeyAuthTypedDataPayload } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
@@ -23,7 +21,7 @@ import { parseUserInput } from './input';
 import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization } from './types';
-import { requestAddress, type AuthenticationWorkflow } from './workflow';
+import { type AuthenticationWorkflow, requestAddress } from './workflow';
 
 type PublicContext = {
   /** @internal */

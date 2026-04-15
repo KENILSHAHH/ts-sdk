@@ -12,6 +12,7 @@ export * from './markets';
 export * from './orders';
 export * from './portfolio';
 export * from './profiles';
+export * from './redeem';
 export * from './search';
 export * from './series';
 export * from './sports';
