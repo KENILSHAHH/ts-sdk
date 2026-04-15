@@ -1,8 +1,7 @@
-import { type ConditionId, ConditionIdSchema } from '@polymarket/bindings';
+import type { ConditionId } from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
 import { UserInputError } from './errors';
-import { parseUserInput } from './input';
 import type { TransactionCall } from './types';
 
 const ZERO_BYTES32 =
@@ -171,12 +170,10 @@ function encodeCtfRedeemPositionsCall(
   conditionId: ConditionId,
   outcomeCount: number,
 ): HexString {
-  const parsedConditionId = parseUserInput(conditionId, ConditionIdSchema);
-
   return AbiFunction.encodeData(CTF_REDEEM_POSITIONS_FUNCTION, [
     collateralTokenAddress,
     ZERO_BYTES32,
-    parsedConditionId,
+    conditionId,
     createOutcomeIndexSets(outcomeCount),
   ]);
 }
@@ -185,10 +182,8 @@ function encodeNegRiskRedeemPositionsCall(
   conditionId: ConditionId,
   amounts: readonly [bigint, bigint],
 ): HexString {
-  const parsedConditionId = parseUserInput(conditionId, ConditionIdSchema);
-
   return AbiFunction.encodeData(NEG_RISK_REDEEM_POSITIONS_FUNCTION, [
-    parsedConditionId,
+    conditionId,
     amounts.map((amount) => expectUint256(amount, 'Redeem amount')),
   ]);
 }
