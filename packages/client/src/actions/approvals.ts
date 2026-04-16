@@ -186,6 +186,11 @@ export type PrepareTradingApprovalsError = UserInputError;
 /**
  * Starts a trading-setup approval workflow.
  *
+ * Prepares all approvals required for trading, including collateral and
+ * position token approvals for both standard and neg-risk market flows.
+ * The neg-risk adapter approvals cover split, merge, and redemption workflows
+ * on neg-risk markets.
+ *
  * @example
  * ```ts
  * const result = await prepareTradingApprovals(client).then(completeWith(walletClient));
@@ -208,6 +213,11 @@ export async function prepareTradingApprovals(
       client.environment.negRiskExchange,
       MAX_UINT256,
     ),
+    erc20ApprovalCall(
+      client.environment.collateralToken,
+      client.environment.negRiskAdapter,
+      MAX_UINT256,
+    ),
     erc1155ApprovalForAllCall(
       client.environment.conditionalTokens,
       client.environment.standardExchange,
@@ -216,6 +226,11 @@ export async function prepareTradingApprovals(
     erc1155ApprovalForAllCall(
       client.environment.conditionalTokens,
       client.environment.negRiskExchange,
+      true,
+    ),
+    erc1155ApprovalForAllCall(
+      client.environment.conditionalTokens,
+      client.environment.negRiskAdapter,
       true,
     ),
   ] as const;
@@ -232,13 +247,23 @@ export async function prepareTradingApprovals(
       );
       await collateralNegRiskApproval.wait();
 
+      const collateralNegRiskAdapterApproval = expectTransactionHandle(
+        yield sendErc20ApprovalTransaction(calls[2]),
+      );
+      await collateralNegRiskAdapterApproval.wait();
+
       const conditionalStandardApproval = expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(calls[2]),
+        yield sendErc1155ApprovalForAllTransaction(calls[3]),
       );
       await conditionalStandardApproval.wait();
 
+      const conditionalNegRiskApproval = expectTransactionHandle(
+        yield sendErc1155ApprovalForAllTransaction(calls[4]),
+      );
+      await conditionalNegRiskApproval.wait();
+
       return expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(calls[3]),
+        yield sendErc1155ApprovalForAllTransaction(calls[5]),
       );
     }
 
