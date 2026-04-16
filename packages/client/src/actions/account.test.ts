@@ -8,8 +8,8 @@ import {
   fetchBalanceAllowance,
   fetchClosedOnlyMode,
   fetchNotifications,
-  fetchOpenOrders,
-  fetchTrades,
+  listAccountTrades,
+  listOpenOrders,
 } from './account';
 
 describe('Account', () => {
@@ -22,8 +22,8 @@ describe('Account', () => {
       const [closedOnly, openOrders, trades, notifications, balanceAllowance] =
         await Promise.all([
           fetchClosedOnlyMode(secureClient),
-          fetchOpenOrders(secureClient),
-          fetchTrades(secureClient),
+          listOpenOrders(secureClient),
+          listAccountTrades(secureClient),
           fetchNotifications(secureClient),
           fetchBalanceAllowance(secureClient, {
             assetType: AssetType.COLLATERAL,

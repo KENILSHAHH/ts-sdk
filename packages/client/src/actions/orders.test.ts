@@ -15,7 +15,7 @@ import {
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
-import { fetchOpenOrders } from './account';
+import { listOpenOrders } from './account';
 import { prepareErc20Approval } from './approvals';
 import { fetchNegRisk } from './clob';
 import { fetchMarket } from './markets';
@@ -194,7 +194,7 @@ describe('Orders', () => {
 
       expect(result.canceled).toContain(orderId);
 
-      const openOrders = await fetchOpenOrders(secureClient, {
+      const openOrders = await listOpenOrders(secureClient, {
         market: market.id,
       });
 

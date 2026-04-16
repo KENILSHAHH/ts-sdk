@@ -34,7 +34,7 @@ const FetchCommentsByIdRequestSchema = z.object({
   id: CommentIdSchema,
 });
 
-const FetchCommentsByUserAddressRequestSchema = z.object({
+const ListCommentsByUserAddressRequestSchema = z.object({
   address: z.string(),
   ascending: z.boolean().optional(),
   limit: z.number().int().optional(),
@@ -46,8 +46,8 @@ export type ListCommentsRequest = z.input<typeof ListCommentsRequestSchema>;
 export type FetchCommentsByIdRequest = z.input<
   typeof FetchCommentsByIdRequestSchema
 >;
-export type FetchCommentsByUserAddressRequest = z.input<
-  typeof FetchCommentsByUserAddressRequestSchema
+export type ListCommentsByUserAddressRequest = z.input<
+  typeof ListCommentsByUserAddressRequestSchema
 >;
 
 export type ListCommentsError =
@@ -132,7 +132,7 @@ export async function fetchCommentsById(
   );
 }
 
-export type FetchCommentsByUserAddressError =
+export type ListCommentsByUserAddressError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
@@ -140,14 +140,14 @@ export type FetchCommentsByUserAddressError =
   | UserInputError;
 
 /**
- * Fetches comments written by a wallet address.
+ * Lists comments written by a wallet address.
  *
- * @throws {@link FetchCommentsByUserAddressError}
+ * @throws {@link ListCommentsByUserAddressError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const comments = await fetchCommentsByUserAddress(client, {
+ * const comments = await listCommentsByUserAddress(client, {
  *   address: '0x1234...',
  *   limit: 10,
  *   order: 'DESC',
@@ -156,13 +156,13 @@ export type FetchCommentsByUserAddressError =
  * // comments: Comment[]
  * ```
  */
-export async function fetchCommentsByUserAddress(
+export async function listCommentsByUserAddress(
   client: Client,
-  request: FetchCommentsByUserAddressRequest,
+  request: ListCommentsByUserAddressRequest,
 ): Promise<Comment[]> {
   const params = parseUserInput(
     request,
-    FetchCommentsByUserAddressRequestSchema,
+    ListCommentsByUserAddressRequestSchema,
   );
 
   return unwrap(

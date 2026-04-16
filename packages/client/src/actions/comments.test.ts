@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
 import {
   fetchCommentsById,
-  fetchCommentsByUserAddress,
   listComments,
+  listCommentsByUserAddress,
 } from './comments';
 import { listEvents } from './events';
 
@@ -29,7 +29,7 @@ describe('Comments', () => {
     });
   });
 
-  describe('fetchCommentsById and fetchCommentsByUserAddress', () => {
+  describe('fetchCommentsById and listCommentsByUserAddress', () => {
     it('fetches related comment threads when a comment is available', async () => {
       const comments = await listComments(publicClient, {
         parentEntityId: event.id,
@@ -40,7 +40,7 @@ describe('Comments', () => {
       const commentsById = await fetchCommentsById(publicClient, {
         id: comment.id,
       });
-      const commentsByUserAddress = await fetchCommentsByUserAddress(
+      const commentsByUserAddress = await listCommentsByUserAddress(
         publicClient,
         {
           address: expectPresent(comment.userAddress),

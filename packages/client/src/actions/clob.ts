@@ -779,16 +779,16 @@ export async function listCurrentRewards(
   );
 }
 
-const FetchMarketRewardsRequestSchema = z.object({
+const ListMarketRewardsRequestSchema = z.object({
   conditionId: ConditionIdSchema,
   sponsored: z.boolean().optional(),
 });
 
-export type FetchMarketRewardsRequest = z.input<
-  typeof FetchMarketRewardsRequestSchema
+export type ListMarketRewardsRequest = z.input<
+  typeof ListMarketRewardsRequestSchema
 >;
 
-export type FetchMarketRewardsError =
+export type ListMarketRewardsError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
@@ -796,14 +796,14 @@ export type FetchMarketRewardsError =
   | UserInputError;
 
 /**
- * Fetches reward configurations for a market.
+ * Lists reward configurations for a market.
  *
- * @throws {@link FetchMarketRewardsError}
+ * @throws {@link ListMarketRewardsError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const rewards = await fetchMarketRewards(client, {
+ * const rewards = await listMarketRewards(client, {
  *   conditionId:
  *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
  * })
@@ -811,11 +811,11 @@ export type FetchMarketRewardsError =
  * // rewards: MarketReward[]
  * ```
  */
-export async function fetchMarketRewards(
+export async function listMarketRewards(
   client: Client,
-  request: FetchMarketRewardsRequest,
+  request: ListMarketRewardsRequest,
 ): Promise<MarketReward[]> {
-  const params = parseUserInput(request, FetchMarketRewardsRequestSchema);
+  const params = parseUserInput(request, ListMarketRewardsRequestSchema);
 
   return listAllClobPages(async (nextCursor) =>
     unwrap(

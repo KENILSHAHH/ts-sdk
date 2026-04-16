@@ -7,7 +7,6 @@ import {
   fetchFeeRate,
   fetchLastTradePrice,
   fetchLastTradePrices,
-  fetchMarketRewards,
   fetchMidpoint,
   fetchMidpoints,
   fetchNegRisk,
@@ -19,6 +18,7 @@ import {
   fetchSpreads,
   fetchTickSize,
   listCurrentRewards,
+  listMarketRewards,
   listPriceHistory,
 } from './clob';
 import { listMarkets } from './markets';
@@ -235,7 +235,7 @@ describe('CLOB', () => {
     });
   });
 
-  describe('fetchMarketRewards', () => {
+  describe('listMarketRewards', () => {
     it('fetches reward configurations for a market', async () => {
       const currentRewards = await listCurrentRewards(publicClient).catch(
         ignoreRewardsEndpointTimeout,
@@ -251,7 +251,7 @@ describe('CLOB', () => {
         return;
       }
 
-      const result = await fetchMarketRewards(publicClient, {
+      const result = await listMarketRewards(publicClient, {
         conditionId: currentReward.condition_id,
       }).catch(ignoreRewardsEndpointTimeout);
 

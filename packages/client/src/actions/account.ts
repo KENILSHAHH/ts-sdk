@@ -65,7 +65,7 @@ export async function fetchClosedOnlyMode(
   return response.closed_only;
 }
 
-const FetchOpenOrdersRequestSchema = z
+const ListOpenOrdersRequestSchema = z
   .object({
     assetId: z.string().optional(),
     id: z.string().optional(),
@@ -73,10 +73,8 @@ const FetchOpenOrdersRequestSchema = z
   })
   .default({});
 
-export type FetchOpenOrdersRequest = z.input<
-  typeof FetchOpenOrdersRequestSchema
->;
-export type FetchOpenOrdersError =
+export type ListOpenOrdersRequest = z.input<typeof ListOpenOrdersRequestSchema>;
+export type ListOpenOrdersError =
   | RateLimitError
   | RequestRejectedError
   | SigningError
@@ -85,15 +83,15 @@ export type FetchOpenOrdersError =
   | UserInputError;
 
 /**
- * Fetches open orders for the authenticated account across all pages.
+ * Lists open orders for the authenticated account across all pages.
  *
- * @throws {@link FetchOpenOrdersError}
+ * @throws {@link ListOpenOrdersError}
  */
-export async function fetchOpenOrders(
+export async function listOpenOrders(
   client: SecureClient,
-  request?: FetchOpenOrdersRequest,
+  request?: ListOpenOrdersRequest,
 ): Promise<OpenOrder[]> {
-  const params = parseUserInput(request, FetchOpenOrdersRequestSchema);
+  const params = parseUserInput(request, ListOpenOrdersRequestSchema);
 
   return listAllPages(async (nextCursor) =>
     unwrap(
@@ -137,7 +135,7 @@ export async function fetchOrder(
   );
 }
 
-const FetchTradesRequestFields = {
+const ListAccountTradesRequestFields = {
   after: z.string().optional(),
   assetId: z.string().optional(),
   before: z.string().optional(),
@@ -146,10 +144,14 @@ const FetchTradesRequestFields = {
   market: z.string().optional(),
 };
 
-const FetchTradesRequestSchema = z.object(FetchTradesRequestFields).default({});
+const ListAccountTradesRequestSchema = z
+  .object(ListAccountTradesRequestFields)
+  .default({});
 
-export type FetchTradesRequest = z.input<typeof FetchTradesRequestSchema>;
-export type FetchTradesError =
+export type ListAccountTradesRequest = z.input<
+  typeof ListAccountTradesRequestSchema
+>;
+export type ListAccountTradesError =
   | RateLimitError
   | RequestRejectedError
   | SigningError
@@ -158,15 +160,15 @@ export type FetchTradesError =
   | UserInputError;
 
 /**
- * Fetches trades for the authenticated account across all pages.
+ * Lists trades for the authenticated account across all pages.
  *
- * @throws {@link FetchTradesError}
+ * @throws {@link ListAccountTradesError}
  */
-export async function fetchTrades(
+export async function listAccountTrades(
   client: SecureClient,
-  request?: FetchTradesRequest,
+  request?: ListAccountTradesRequest,
 ): Promise<ClobTrade[]> {
-  const params = parseUserInput(request, FetchTradesRequestSchema);
+  const params = parseUserInput(request, ListAccountTradesRequestSchema);
 
   return listAllPages(async (nextCursor) =>
     unwrap(
@@ -179,25 +181,25 @@ export async function fetchTrades(
   );
 }
 
-const FetchTradesPaginatedRequestSchema = z
+const ListAccountTradesPageRequestSchema = z
   .object({
-    ...FetchTradesRequestFields,
+    ...ListAccountTradesRequestFields,
     nextCursor: PaginationCursorSchema.optional(),
   })
   .default({});
 
-export type FetchTradesPaginatedRequest = z.input<
-  typeof FetchTradesPaginatedRequestSchema
+export type ListAccountTradesPageRequest = z.input<
+  typeof ListAccountTradesPageRequestSchema
 >;
 
-export type FetchTradesPaginatedResponse = {
+export type ListAccountTradesPageResponse = {
   count: number;
   limit: number;
   nextCursor: string;
   trades: ClobTrade[];
 };
 
-export type FetchTradesPaginatedError =
+export type ListAccountTradesPageError =
   | RateLimitError
   | RequestRejectedError
   | SigningError
@@ -206,15 +208,15 @@ export type FetchTradesPaginatedError =
   | UserInputError;
 
 /**
- * Fetches a single page of trades for the authenticated account.
+ * Lists a single page of trades for the authenticated account.
  *
- * @throws {@link FetchTradesPaginatedError}
+ * @throws {@link ListAccountTradesPageError}
  */
-export async function fetchTradesPaginated(
+export async function listAccountTradesPage(
   client: SecureClient,
-  request?: FetchTradesPaginatedRequest,
-): Promise<FetchTradesPaginatedResponse> {
-  const params = parseUserInput(request, FetchTradesPaginatedRequestSchema);
+  request?: ListAccountTradesPageRequest,
+): Promise<ListAccountTradesPageResponse> {
+  const params = parseUserInput(request, ListAccountTradesPageRequestSchema);
   const response = await unwrap(
     client.secureClob
       .get('/data/trades', {
@@ -439,14 +441,14 @@ export async function fetchOrdersScoring(
   );
 }
 
-const FetchUserEarningsForDayRequestSchema = z.object({
+const ListUserEarningsForDayRequestSchema = z.object({
   date: z.string(),
 });
 
-export type FetchEarningsForUserForDayRequest = z.input<
-  typeof FetchUserEarningsForDayRequestSchema
+export type ListUserEarningsForDayRequest = z.input<
+  typeof ListUserEarningsForDayRequestSchema
 >;
-export type FetchEarningsForUserForDayError =
+export type ListUserEarningsForDayError =
   | RateLimitError
   | RequestRejectedError
   | SigningError
@@ -455,15 +457,15 @@ export type FetchEarningsForUserForDayError =
   | UserInputError;
 
 /**
- * Fetches per-market earnings for the authenticated account on a given day.
+ * Lists per-market earnings for the authenticated account on a given day.
  *
- * @throws {@link FetchEarningsForUserForDayError}
+ * @throws {@link ListUserEarningsForDayError}
  */
-export async function fetchEarningsForUserForDay(
+export async function listUserEarningsForDay(
   client: SecureClient,
-  request: FetchEarningsForUserForDayRequest,
+  request: ListUserEarningsForDayRequest,
 ): Promise<UserEarning[]> {
-  const params = parseUserInput(request, FetchUserEarningsForDayRequestSchema);
+  const params = parseUserInput(request, ListUserEarningsForDayRequestSchema);
   const signatureType = toSignatureType(client.account.walletType);
 
   return listAllPages(async (nextCursor) =>
@@ -485,7 +487,7 @@ export async function fetchEarningsForUserForDay(
 }
 
 export type FetchTotalEarningsForUserForDayRequest = z.input<
-  typeof FetchUserEarningsForDayRequestSchema
+  typeof ListUserEarningsForDayRequestSchema
 >;
 export type FetchTotalEarningsForUserForDayError =
   | RateLimitError
@@ -504,7 +506,7 @@ export async function fetchTotalEarningsForUserForDay(
   client: SecureClient,
   request: FetchTotalEarningsForUserForDayRequest,
 ): Promise<TotalUserEarning[]> {
-  const params = parseUserInput(request, FetchUserEarningsForDayRequestSchema);
+  const params = parseUserInput(request, ListUserEarningsForDayRequestSchema);
   const signatureType = toSignatureType(client.account.walletType);
 
   return unwrap(
@@ -522,17 +524,17 @@ export async function fetchTotalEarningsForUserForDay(
   );
 }
 
-const FetchUserEarningsAndMarketsConfigRequestSchema = z.object({
+const ListUserEarningsAndMarketsConfigRequestSchema = z.object({
   date: z.string(),
   noCompetition: z.boolean().optional(),
   orderBy: z.string().optional(),
   position: z.string().optional(),
 });
 
-export type FetchUserEarningsAndMarketsConfigRequest = z.input<
-  typeof FetchUserEarningsAndMarketsConfigRequestSchema
+export type ListUserEarningsAndMarketsConfigRequest = z.input<
+  typeof ListUserEarningsAndMarketsConfigRequestSchema
 >;
-export type FetchUserEarningsAndMarketsConfigError =
+export type ListUserEarningsAndMarketsConfigError =
   | RateLimitError
   | RequestRejectedError
   | SigningError
@@ -541,17 +543,17 @@ export type FetchUserEarningsAndMarketsConfigError =
   | UserInputError;
 
 /**
- * Fetches market reward configuration and earnings for the authenticated account on a given day.
+ * Lists market reward configuration and earnings for the authenticated account on a given day.
  *
- * @throws {@link FetchUserEarningsAndMarketsConfigError}
+ * @throws {@link ListUserEarningsAndMarketsConfigError}
  */
-export async function fetchUserEarningsAndMarketsConfig(
+export async function listUserEarningsAndMarketsConfig(
   client: SecureClient,
-  request: FetchUserEarningsAndMarketsConfigRequest,
+  request: ListUserEarningsAndMarketsConfigRequest,
 ): Promise<UserRewardsEarning[]> {
   const params = parseUserInput(
     request,
-    FetchUserEarningsAndMarketsConfigRequestSchema,
+    ListUserEarningsAndMarketsConfigRequestSchema,
   );
   const signatureType = toSignatureType(client.account.walletType);
 
