@@ -15,7 +15,7 @@ import {
 } from './actions/auth';
 import { createApiKeyAuthTypedDataPayload } from './authentication';
 import { type EnvironmentConfig, production } from './environments';
-import { RequestRejectedError, SigningError, UserInputError } from './errors';
+import { RequestRejectedError, SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
 import { parseUserInput } from './input';
 import type { ServiceRequest } from './ServiceClient';
@@ -174,8 +174,6 @@ const BeginAuthenticationRequestSchema: z.ZodType<BeginAuthenticationRequest> =
       };
     });
 
-export type BeginAuthenticationError = UserInputError;
-
 type PublicClientConfig = {
   environment: EnvironmentConfig;
   apiKey?: ApiKeyAuthorization;
@@ -229,9 +227,6 @@ class PublicClient extends AbstractClient<PublicContext> {
 
   /**
    * Begins an authentication workflow that produces a {@link SecureClient}.
-   *
-   * @throws {@link BeginAuthenticationError}
-   * Thrown on failure.
    */
   beginAuthentication(
     request: BeginAuthenticationRequest,
@@ -244,15 +239,11 @@ class PublicClient extends AbstractClient<PublicContext> {
         const nonce = params?.nonce ?? 0;
         const signer = expectEvmAddress(yield requestAddress());
         const wallet = expectEvmAddress(params.wallet);
-        let identity: AccountIdentity;
-        try {
-          identity = resolveAccountIdentity(this.environment, signer, wallet);
-        } catch (error) {
-          throw new UserInputError(
-            'The requested wallet must either equal the signer address or match a supported deterministic wallet derived from that signer.',
-            { cause: error },
-          );
-        }
+        const identity = resolveAccountIdentity(
+          this.environment,
+          signer,
+          wallet,
+        );
 
         if (params.credentials !== undefined) {
           const client = this.#createSecureClient(params.credentials, identity);

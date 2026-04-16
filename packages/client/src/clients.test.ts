@@ -1,7 +1,6 @@
 import { InvariantError } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { fetchApiKeys, fetchPublicProfile } from './actions';
-import { UserInputError } from './errors';
 import {
   createRandomWalletClient,
   publicClient,
@@ -51,14 +50,14 @@ describe('clients', () => {
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
-    it('rejects with UserInputError when wallet does not match signer or any supported derived wallet', async () => {
+    it('rejects with InvariantError when wallet does not match signer or any supported derived wallet', async () => {
       const unrelatedWallet = createRandomWalletClient();
 
       await expect(
         publicClient
           .beginAuthentication({ wallet: unrelatedWallet.account.address })
           .then(authenticateWith(walletClient)),
-      ).rejects.toBeInstanceOf(UserInputError);
+      ).rejects.toBeInstanceOf(InvariantError);
     });
 
     it('reuses stored credentials during authentication when they remain valid', async () => {
