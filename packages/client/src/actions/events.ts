@@ -118,7 +118,7 @@ export type ListEventsError =
  * Lists events.
  *
  * @throws {@link ListEventsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -156,7 +156,7 @@ export type FetchEventError =
  * Fetches an event.
  *
  * @throws {@link FetchEventError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -203,7 +203,7 @@ export type FetchEventTagsError =
  * Fetches an event's tags.
  *
  * @throws {@link FetchEventTagsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -238,7 +238,7 @@ export type FetchEventLiveVolumeError =
  * Fetches live volume for an event.
  *
  * @throws {@link FetchEventLiveVolumeError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

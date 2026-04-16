@@ -45,7 +45,7 @@ export type CreateApiKeyError =
  * ```
  *
  * @throws {@link CreateApiKeyError}
- * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function createApiKey(
   client: Client,
@@ -78,7 +78,7 @@ export type DeriveApiKeyError =
  * ```
  *
  * @throws {@link DeriveApiKeyError}
- * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function deriveApiKey(
   client: Client,
@@ -111,7 +111,7 @@ export type CreateOrDeriveApiKeyError =
  * ```
  *
  * @throws {@link CreateOrDeriveApiKeyError}
- * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function createOrDeriveApiKey(
   client: Client,
@@ -147,7 +147,7 @@ export type FetchApiKeysError =
  * ```
  *
  * @throws {@link FetchApiKeysError}
- * Thrown when request signing fails, or the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function fetchApiKeys(client: SecureClient): Promise<ApiKey[]> {
   const response = await unwrap(

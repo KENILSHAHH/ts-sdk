@@ -102,7 +102,7 @@ export type FetchExecuteParamsError =
  * This is a low-level action that most SDK consumers will not need.
  *
  * @throws {@link FetchExecuteParamsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function fetchExecuteParams(
   client: Client,
@@ -147,7 +147,7 @@ export type IsGaslessReadyError =
  * Checks whether a wallet is ready for gasless transactions.
  *
  * @throws {@link IsGaslessReadyError}
- * Thrown when the readiness check is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function isGaslessReady(
   client: Client,
@@ -191,7 +191,7 @@ export type PrepareGaslessWalletError =
  * Starts preparing the wallet for gasless transactions.
  *
  * @throws {@link PrepareGaslessWalletError}
- * Thrown when the wallet is already ready, cannot be prepared through this flow, or the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function prepareGaslessWallet(
   client: Client,
@@ -256,7 +256,7 @@ export async function prepareGaslessWallet(
  * This is a low-level action that most SDK consumers will not need.
  *
  * @throws {@link FetchGaslessTransactionError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function fetchTransaction(
   client: Client,
@@ -318,7 +318,7 @@ export type PrepareGaslessTransactionError =
  * This is a low-level action that most SDK consumers will not need.
  *
  * @throws {@link PrepareGaslessTransactionError}
- * Thrown when the request is invalid, unsupported for the current account, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  */
 export async function prepareGaslessTransaction(
   client: SecureClient,

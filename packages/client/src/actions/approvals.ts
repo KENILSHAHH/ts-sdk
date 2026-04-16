@@ -62,7 +62,7 @@ export type PrepareErc20ApprovalError = UserInputError;
  * ```
  *
  * @throws {@link PrepareErc20ApprovalError}
- * Thrown when the request is invalid.
+ * Thrown on failure.
  */
 export async function prepareErc20Approval(
   client: SecureClient,
@@ -131,7 +131,7 @@ export type PrepareErc1155ApprovalForAllError = UserInputError;
  * ```
  *
  * @throws {@link PrepareErc1155ApprovalForAllError}
- * Thrown when the request is invalid.
+ * Thrown on failure.
  */
 export async function prepareErc1155ApprovalForAll(
   client: SecureClient,
@@ -197,7 +197,7 @@ export type PrepareTradingApprovalsError = UserInputError;
  * ```
  *
  * @throws {@link PrepareTradingApprovalsError}
- * Thrown when the request is invalid.
+ * Thrown on failure.
  */
 export async function prepareTradingApprovals(
   client: SecureClient,

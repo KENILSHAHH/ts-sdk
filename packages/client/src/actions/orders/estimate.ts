@@ -66,9 +66,7 @@ export type EstimateMarketPriceError =
  * ```
  *
  * @throws {@link EstimateMarketPriceError}
- * Thrown when the request is invalid, market data cannot be fetched or
- * validated, or the current order book cannot satisfy the requested execution
- * semantics.
+ * Thrown on failure.
  */
 export async function estimateMarketPrice(
   client: Client,

@@ -30,7 +30,13 @@ export type PostOrderError =
   | TransportError
   | UnexpectedResponseError;
 
-export type PostOrdersError = PostOrderError | UserInputError;
+export type PostOrdersError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
 
 /**
  * Posts a signed order for the authenticated account.
@@ -41,6 +47,7 @@ export type PostOrdersError = PostOrderError | UserInputError;
  * ```
  *
  * @throws {@link PostOrderError}
+ * Thrown on failure.
  */
 export function postOrder(
   client: SecureClient,
@@ -79,6 +86,7 @@ export function postOrder(client: SecureClient, order?: SignedOrder) {
  * ```
  *
  * @throws {@link PostOrdersError}
+ * Thrown on failure.
  */
 export function postOrders(
   client: SecureClient,

@@ -51,8 +51,7 @@ export type PrepareMarketOrderError =
  * Starts the market-order workflow.
  *
  * @throws {@link PrepareMarketOrderError}
- * Thrown when the request is invalid, required market or allowance data cannot
- * be fetched, or the current order book cannot satisfy the requested fill.
+ * Thrown on failure.
  */
 export async function prepareMarketOrder(
   client: SecureClient,
@@ -87,8 +86,7 @@ export type PrepareLimitOrderError =
  * Starts the limit-order workflow.
  *
  * @throws {@link PrepareLimitOrderError}
- * Thrown when the request is invalid, required market or allowance data cannot
- * be fetched, or signing prerequisites cannot be resolved.
+ * Thrown on failure.
  */
 export async function prepareLimitOrder(
   client: SecureClient,

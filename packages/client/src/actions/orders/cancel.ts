@@ -40,21 +40,19 @@ const CancelMarketOrdersRequestSchema = z
 
 export type CancelOrderRequest = z.input<typeof CancelOrderRequestSchema>;
 
-type CancelRequestError =
+export type CancelOrderError =
+  | CancelError
   | RateLimitError
   | SigningError
   | TransportError
-  | UnexpectedResponseError;
-
-export type CancelOrderError =
-  | CancelError
-  | CancelRequestError
+  | UnexpectedResponseError
   | UserInputError;
 
 /**
  * Cancels a single open order for the authenticated account.
  *
  * @throws {@link CancelOrderError}
+ * Thrown on failure.
  */
 export async function cancelOrder(
   client: SecureClient,
@@ -70,13 +68,17 @@ export async function cancelOrder(
 export type CancelOrdersRequest = z.input<typeof CancelOrdersRequestSchema>;
 export type CancelOrdersError =
   | CancelError
-  | CancelRequestError
+  | RateLimitError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
   | UserInputError;
 
 /**
  * Cancels multiple open orders for the authenticated account.
  *
  * @throws {@link CancelOrdersError}
+ * Thrown on failure.
  */
 export async function cancelOrders(
   client: SecureClient,
@@ -87,12 +89,18 @@ export async function cancelOrders(
   return cancel(client, '/orders', params.orderIds);
 }
 
-export type CancelAllError = CancelError | CancelRequestError;
+export type CancelAllError =
+  | CancelError
+  | RateLimitError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError;
 
 /**
  * Cancels all open orders for the authenticated account.
  *
  * @throws {@link CancelAllError}
+ * Thrown on failure.
  */
 export async function cancelAll(
   client: SecureClient,
@@ -105,7 +113,10 @@ export type CancelMarketOrdersRequest = z.input<
 >;
 export type CancelMarketOrdersError =
   | CancelError
-  | CancelRequestError
+  | RateLimitError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
   | UserInputError;
 
 /**
@@ -113,6 +124,7 @@ export type CancelMarketOrdersError =
  * or asset filter.
  *
  * @throws {@link CancelMarketOrdersError}
+ * Thrown on failure.
  */
 export async function cancelMarketOrders(
   client: SecureClient,

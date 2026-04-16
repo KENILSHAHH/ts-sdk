@@ -82,7 +82,7 @@ export type ListTradesError =
  * Lists trades for a wallet, market, or event.
  *
  * @throws {@link ListTradesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -120,7 +120,7 @@ export type ListActivityError =
  * Lists wallet activity.
  *
  * @throws {@link ListActivityError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
