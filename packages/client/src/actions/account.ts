@@ -40,7 +40,7 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import { type Paginated, paginate } from '../pagination';
+import { PageSizeSchema, type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
@@ -651,7 +651,7 @@ const ListUserEarningsAndMarketsConfigRequestSchema = z.object({
   date: z.string(),
   noCompetition: z.boolean().optional(),
   orderBy: z.string().optional(),
-  pageSize: z.number().int().positive().max(500).optional(),
+  pageSize: PageSizeSchema.max(500).default(100),
   position: z.string().optional(),
 });
 

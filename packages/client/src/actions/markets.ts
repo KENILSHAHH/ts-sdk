@@ -1,4 +1,7 @@
-import { ISODateStringSchema } from '@polymarket/bindings';
+import {
+  ISODateStringSchema,
+  PaginationCursorSchema,
+} from '@polymarket/bindings';
 import {
   ListMarketHoldersResponseSchema,
   ListMarketPositionsResponseSchema,
@@ -25,11 +28,7 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import {
-  type Paginated,
-  PaginatedRequestFields,
-  paginate,
-} from '../pagination';
+import { PageSizeSchema, type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
@@ -38,7 +37,8 @@ const ListMarketsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   closed: z.boolean().optional(),
   clobTokenIds: z.array(z.string()).optional(),
-  ...PaginatedRequestFields,
+  cursor: PaginationCursorSchema.optional(),
+  pageSize: PageSizeSchema.optional(),
   conditionIds: z.array(z.string()).optional(),
   cyom: z.boolean().optional(),
   decimalized: z.boolean().optional(),

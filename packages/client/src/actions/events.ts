@@ -1,6 +1,7 @@
 import {
   ISOCalendarDateSchema,
   ISODateStringSchema,
+  PaginationCursorSchema,
 } from '@polymarket/bindings';
 import {
   FetchEventLiveVolumeResponseSchema,
@@ -24,18 +25,15 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import {
-  type Paginated,
-  PaginatedRequestFields,
-  paginate,
-} from '../pagination';
+import { PageSizeSchema, type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 const ListEventsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   closed: z.boolean().optional(),
-  ...PaginatedRequestFields,
+  cursor: PaginationCursorSchema.optional(),
+  pageSize: PageSizeSchema.optional(),
   cyom: z.boolean().optional(),
   endDateMax: ISODateStringSchema.optional(),
   endDateMin: ISODateStringSchema.optional(),

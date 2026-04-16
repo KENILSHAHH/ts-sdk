@@ -1,4 +1,8 @@
-import { CommentIdSchema, EventIdSchema } from '@polymarket/bindings';
+import {
+  CommentIdSchema,
+  EventIdSchema,
+  PaginationCursorSchema,
+} from '@polymarket/bindings';
 import {
   type Comment,
   ListCommentsResponseSchema,
@@ -15,15 +19,22 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListCommentsRequestSchema = z.object({
   ascending: z.boolean().optional(),
+  cursor: PaginationCursorSchema.optional(),
+  pageSize: PageSizeSchema.default(20),
   getPositions: z.boolean().optional(),
   holdersOnly: z.boolean().optional(),
-  limit: z.number().int().optional(),
-  offset: z.number().int().optional(),
   order: z.string().optional(),
   parentEntityId: z.union([EventIdSchema, SeriesIdSchema]),
   parentEntityType: z.enum(['Event', 'Series']),
@@ -64,29 +75,80 @@ export type ListCommentsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const comments = await listComments(client, {
+ * const result = listComments(client, {
  *   parentEntityId: '123',
  *   parentEntityType: 'Event',
- *   limit: 20,
+ *   pageSize: 20,
  * });
  *
- * // comments: Comment[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Comment[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listComments(client, {
+ *   parentEntityId: '123',
+ *   parentEntityType: 'Event',
+ *   pageSize: 20,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: Comment[]
+ * }
  * ```
  */
-export async function listComments(
+export function listComments(
   client: Client,
   request: ListCommentsRequest,
-): Promise<Comment[]> {
-  const params = parseUserInput(request, ListCommentsRequestSchema);
-
-  return unwrap(
-    client.gamma
-      .get('/comments', {
-        params: toSearchParams(params, snakeCase()),
-      })
-      .andThen(validateWith(ListCommentsResponseSchema)),
+): Paginated<Comment> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListCommentsRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.gamma
+      .get('/comments', {
+        params: toSearchParams(
+          {
+            ascending: params.ascending,
+            getPositions: params.getPositions,
+            holdersOnly: params.holdersOnly,
+            limit: decoded.pageSize + 1,
+            offset: decoded.offset,
+            order: params.order,
+            parentEntityId: params.parentEntityId,
+            parentEntityType: params.parentEntityType,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(ListCommentsResponseSchema))
+      .map((comments) => {
+        const hasMore = comments.length > decoded.pageSize;
+
+        return {
+          items: comments.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type FetchCommentsByIdError =

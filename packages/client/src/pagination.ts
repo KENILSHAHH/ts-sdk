@@ -1,14 +1,12 @@
 import {
   type PaginationCursor,
-  PaginationCursorSchema,
+  toPaginationCursor,
 } from '@polymarket/bindings';
 import { invariant, type ResultAsync, unwrap } from '@polymarket/types';
 import { z } from 'zod';
+import { UserInputError } from './errors';
 
-export const PaginatedRequestFields = {
-  cursor: PaginationCursorSchema.optional(),
-  pageSize: z.number().int().positive().optional(),
-} as const;
+export const PageSizeSchema = z.number().int().positive();
 
 export type Page<T> = {
   items: T[];
@@ -21,6 +19,18 @@ export type Paginated<T> = AsyncIterable<Page<T>> & {
   first(): Promise<Page<T>>;
   from(cursor?: PaginationCursor): Paginated<T>;
 };
+
+/** @internal */
+type OffsetCursorState = {
+  offset: number;
+  pageSize: number;
+};
+
+/** @internal */
+const OffsetCursorStateSchema = z.object({
+  offset: z.number().int().min(0),
+  pageSize: PageSizeSchema,
+});
 
 /** @internal */
 export function paginate<T, TError>(
@@ -73,4 +83,30 @@ export function paginate<T, TError>(
   }
 
   return createPaginator();
+}
+
+/** @internal */
+export function encodeOffsetCursor(state: OffsetCursorState): PaginationCursor {
+  return toPaginationCursor(
+    btoa(JSON.stringify(OffsetCursorStateSchema.parse(state))),
+  );
+}
+
+/** @internal */
+export function decodeOffsetCursor(
+  cursor: PaginationCursor | undefined,
+  pageSize: number,
+): OffsetCursorState {
+  if (cursor === undefined) {
+    return {
+      offset: 0,
+      pageSize,
+    };
+  }
+
+  try {
+    return OffsetCursorStateSchema.parse(JSON.parse(atob(cursor)));
+  } catch (error) {
+    throw new UserInputError('Invalid pagination cursor', { cause: error });
+  }
 }

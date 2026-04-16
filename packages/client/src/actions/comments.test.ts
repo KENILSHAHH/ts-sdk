@@ -20,22 +20,25 @@ const {
 describe('Comments', () => {
   describe('listComments', () => {
     it('fetches comments for an event', async () => {
-      const comments = await listComments(publicClient, {
+      const { items } = await listComments(publicClient, {
         parentEntityId: event.id,
         parentEntityType: 'Event',
-      });
+      }).first();
 
-      expect(comments).toEqual(expect.any(Array));
+      expect(items).toEqual(expect.any(Array));
     });
   });
 
   describe('fetchCommentsById and listCommentsByUserAddress', () => {
     it('fetches related comment threads when a comment is available', async () => {
-      const comments = await listComments(publicClient, {
+      const {
+        items: [comment],
+      } = await listComments(publicClient, {
         parentEntityId: event.id,
         parentEntityType: 'Event',
-      });
-      const comment = expectPresent(comments[0]);
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const commentsById = await fetchCommentsById(publicClient, {
         id: comment.id,
