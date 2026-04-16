@@ -1,3 +1,4 @@
+import { PaginationCursorSchema } from '@polymarket/bindings';
 import {
   ListRelatedTagResourcesResponseSchema,
   ListRelatedTagsResponseSchema,
@@ -17,18 +18,25 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTagsRequestSchema = z.object({
   ascending: z.boolean().optional(),
+  cursor: PaginationCursorSchema.optional(),
   includeChat: z.boolean().optional(),
   includeTemplate: z.boolean().optional(),
   isCarousel: z.boolean().optional(),
-  limit: z.number().int().optional(),
   locale: z.string().optional(),
-  offset: z.number().int().optional(),
   order: z.string().optional(),
+  pageSize: PageSizeSchema.default(20),
 });
 
 const FetchTagRequestSchema = z.union([
@@ -91,28 +99,73 @@ export type ListTagsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const tags = await listTags(client, {
- *   limit: 12,
+ * const result = listTags(client, {
  *   includeTemplate: true,
+ *   pageSize: 12,
  * });
  *
- * // tags: Tag[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Tag[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listTags(client, {
+ *   includeTemplate: true,
+ *   pageSize: 12,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: Tag[]
+ * }
  * ```
  */
-export async function listTags(
+export function listTags(
   client: Client,
   request: ListTagsRequest = {},
-): Promise<Tag[]> {
-  const params = parseUserInput(request, ListTagsRequestSchema);
-
-  return unwrap(
-    client.gamma
-      .get('/tags', {
-        params: toSearchParams(params, snakeCase()),
-      })
-      .andThen(validateWith(ListTagsResponseSchema)),
+): Paginated<Tag> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListTagsRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.gamma
+      .get('/tags', {
+        params: toSearchParams(
+          {
+            ...params,
+            limit: decoded.pageSize + 1,
+            offset: decoded.offset,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(ListTagsResponseSchema))
+      .map((tags) => {
+        const hasMore = tags.length > decoded.pageSize;
+
+        return {
+          items: tags.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type FetchTagError =

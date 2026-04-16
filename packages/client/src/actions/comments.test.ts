@@ -47,12 +47,12 @@ describe('Comments', () => {
         publicClient,
         {
           address: expectPresent(comment.userAddress),
-          limit: 1,
+          pageSize: 1,
         },
-      );
+      ).first();
 
       expect(commentsById).toEqual(expect.any(Array));
-      expect(commentsByUserAddress).toEqual(expect.any(Array));
+      expect(commentsByUserAddress.items).toEqual(expect.any(Array));
     });
   });
 });

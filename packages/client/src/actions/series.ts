@@ -1,3 +1,4 @@
+import { PaginationCursorSchema } from '@polymarket/bindings';
 import {
   ListSeriesResponseSchema,
   type Series,
@@ -14,6 +15,13 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
@@ -22,12 +30,12 @@ const ListSeriesRequestSchema = z.object({
   categoriesIds: z.array(z.number().int()).optional(),
   categoriesLabels: z.array(z.string()).optional(),
   closed: z.boolean().optional(),
+  cursor: PaginationCursorSchema.optional(),
   excludeEvents: z.boolean().optional(),
   includeChat: z.boolean().optional(),
-  limit: z.number().int().optional(),
   locale: z.string().optional(),
-  offset: z.number().int().optional(),
   order: z.string().optional(),
+  pageSize: PageSizeSchema.default(20),
   recurrence: z.enum(['daily', 'weekly', 'monthly']).optional(),
   slug: z.array(z.string()).optional(),
 });
@@ -56,34 +64,76 @@ export type ListSeriesError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const series = await listSeries(client, {
- *   limit: 10,
+ * const result = listSeries(client, {
  *   closed: false,
+ *   pageSize: 10,
  * });
  *
- * // series: Series[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Series[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listSeries(client, {
+ *   closed: false,
+ *   pageSize: 10,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: Series[]
+ * }
  * ```
  */
-export async function listSeries(
+export function listSeries(
   client: Client,
   request: ListSeriesRequest = {},
-): Promise<Series[]> {
-  const params = parseUserInput(request, ListSeriesRequestSchema);
+): Paginated<Series> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListSeriesRequestSchema,
+  );
 
-  return unwrap(
-    client.gamma
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.gamma
       .get('/series', {
         params: toSearchParams(
-          params,
+          {
+            ...params,
+            limit: decoded.pageSize + 1,
+            offset: decoded.offset,
+          },
           snakeCase<ListSeriesParams>({
             categoriesIds: 'categories_ids',
             categoriesLabels: 'categories_labels',
           }),
         ),
       })
-      .andThen(validateWith(ListSeriesResponseSchema)),
-  );
+      .andThen(validateWith(ListSeriesResponseSchema))
+      .map((series) => {
+        const hasMore = series.length > decoded.pageSize;
+
+        return {
+          items: series.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type FetchSeriesError =

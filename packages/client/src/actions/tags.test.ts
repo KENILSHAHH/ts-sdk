@@ -1,6 +1,6 @@
-import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
+import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { expectNonEmptyPage, publicClient } from '../testing';
 import {
   fetchRelatedTagResources,
   fetchRelatedTags,
@@ -12,11 +12,13 @@ describe('Tags', () => {
   describe('listTags', () => {
     it('fetches tags', async () => {
       const result = await listTags(publicClient, {
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           id: expect.any(String),
         }),
@@ -26,9 +28,13 @@ describe('Tags', () => {
 
   describe('fetchTag', () => {
     it('fetches a tag by id and slug', async () => {
-      const [tag] = await listTags(publicClient, {
-        limit: 1,
-      }).then(expectNonEmptyArray);
+      const {
+        items: [tag],
+      } = await listTags(publicClient, {
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const tagById = await fetchTag(publicClient, { id: tag.id });
       const tagBySlug = await fetchTag(publicClient, {
@@ -42,9 +48,13 @@ describe('Tags', () => {
 
   describe('fetchRelatedTags', () => {
     it('fetches related tag relationships by id and slug', async () => {
-      const [tag] = await listTags(publicClient, {
-        limit: 1,
-      }).then(expectNonEmptyArray);
+      const {
+        items: [tag],
+      } = await listTags(publicClient, {
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const relatedById = await fetchRelatedTags(publicClient, {
         id: tag.id,
@@ -60,9 +70,13 @@ describe('Tags', () => {
 
   describe('fetchRelatedTagResources', () => {
     it('fetches related tags by id and slug', async () => {
-      const [tag] = await listTags(publicClient, {
-        limit: 1,
-      }).then(expectNonEmptyArray);
+      const {
+        items: [tag],
+      } = await listTags(publicClient, {
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const relatedTagsById = await fetchRelatedTagResources(publicClient, {
         id: tag.id,

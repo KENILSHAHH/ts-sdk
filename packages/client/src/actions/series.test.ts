@@ -1,17 +1,18 @@
-import { expectNonEmptyArray } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { expectNonEmptyPage, publicClient } from '../testing';
 import { fetchSeries, listSeries } from './series';
 
 describe('Series', () => {
   describe('listSeries', () => {
     it('fetches series', async () => {
       const result = await listSeries(publicClient, {
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           id: expect.any(String),
         }),
@@ -21,9 +22,13 @@ describe('Series', () => {
 
   describe('fetchSeries', () => {
     it('fetches a series by id', async () => {
-      const [series] = await listSeries(publicClient, {
-        limit: 1,
-      }).then(expectNonEmptyArray);
+      const {
+        items: [series],
+      } = await listSeries(publicClient, {
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const result = await fetchSeries(publicClient, {
         id: series.id,

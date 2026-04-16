@@ -1,5 +1,5 @@
+import { PaginationCursorSchema } from '@polymarket/bindings';
 import { ListTeamsResponseSchema, type Team } from '@polymarket/bindings/gamma';
-import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import type {
@@ -10,17 +10,24 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTeamsRequestSchema = z.object({
   abbreviation: z.array(z.string()).optional(),
   ascending: z.boolean().optional(),
+  cursor: PaginationCursorSchema.optional(),
   league: z.array(z.string()).optional(),
-  limit: z.number().int().optional(),
   name: z.array(z.string()).optional(),
-  offset: z.number().int().optional(),
   order: z.string().optional(),
+  pageSize: PageSizeSchema.default(20),
   providerId: z.array(z.number().int()).optional(),
 });
 
@@ -40,29 +47,71 @@ export type ListTeamsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const teams = await listTeams(client, {
+ * const result = listTeams(client, {
  *   league: ['NBA'],
- *   limit: 10,
+ *   pageSize: 10,
  * });
  *
- * // teams: Team[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Team[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listTeams(client, {
+ *   league: ['NBA'],
+ *   pageSize: 10,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: Team[]
+ * }
  * ```
  */
-export async function listTeams(
+export function listTeams(
   client: Client,
   request: ListTeamsRequest = {},
-): Promise<Team[]> {
-  const params = parseUserInput(request, ListTeamsRequestSchema);
+): Paginated<Team> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListTeamsRequestSchema,
+  );
 
-  return unwrap(
-    client.gamma
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.gamma
       .get('/teams', {
         params: toSearchParams(
-          params,
+          {
+            ...params,
+            limit: decoded.pageSize + 1,
+            offset: decoded.offset,
+          },
           snakeCase({ providerId: 'provider_id' }),
         ),
       })
-      .andThen(validateWith(ListTeamsResponseSchema)),
-  );
+      .andThen(validateWith(ListTeamsResponseSchema))
+      .map((teams) => {
+        const hasMore = teams.length > decoded.pageSize;
+
+        return {
+          items: teams.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }

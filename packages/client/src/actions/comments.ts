@@ -48,9 +48,9 @@ const FetchCommentsByIdRequestSchema = z.object({
 const ListCommentsByUserAddressRequestSchema = z.object({
   address: z.string(),
   ascending: z.boolean().optional(),
-  limit: z.number().int().optional(),
-  offset: z.number().int().optional(),
+  cursor: PaginationCursorSchema.optional(),
   order: z.string().optional(),
+  pageSize: PageSizeSchema.default(20),
 });
 
 export type ListCommentsRequest = z.input<typeof ListCommentsRequestSchema>;
@@ -208,38 +208,74 @@ export type ListCommentsByUserAddressError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const comments = await listCommentsByUserAddress(client, {
+ * const result = listCommentsByUserAddress(client, {
  *   address: '0x1234...',
- *   limit: 10,
+ *   pageSize: 10,
  *   order: 'DESC',
  * });
  *
- * // comments: Comment[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Comment[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listCommentsByUserAddress(client, {
+ *   address: '0x1234...',
+ *   pageSize: 10,
+ *   order: 'DESC',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: Comment[]
+ * }
  * ```
  */
-export async function listCommentsByUserAddress(
+export function listCommentsByUserAddress(
   client: Client,
   request: ListCommentsByUserAddressRequest,
-): Promise<Comment[]> {
-  const params = parseUserInput(
+): Paginated<Comment> {
+  const { address, cursor, pageSize, ...params } = parseUserInput(
     request,
     ListCommentsByUserAddressRequestSchema,
   );
 
-  return unwrap(
-    client.gamma
-      .get(`comments/user_address/${params.address}`, {
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.gamma
+      .get(`comments/user_address/${address}`, {
         params: toSearchParams(
           {
             ascending: params.ascending,
-            limit: params.limit,
-            offset: params.offset,
+            limit: decoded.pageSize + 1,
+            offset: decoded.offset,
             order: params.order,
           },
           snakeCase(),
         ),
       })
-      .andThen(validateWith(ListCommentsResponseSchema)),
-  );
+      .andThen(validateWith(ListCommentsResponseSchema))
+      .map((comments) => {
+        const hasMore = comments.length > decoded.pageSize;
+
+        return {
+          items: comments.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
