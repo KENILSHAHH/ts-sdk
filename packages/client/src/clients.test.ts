@@ -1,7 +1,13 @@
 import { InvariantError } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { fetchApiKeys, fetchPublicProfile } from './actions';
-import { publicClient, safeWalletAddress, walletClient } from './testing';
+import { UserInputError } from './errors';
+import {
+  createRandomWalletClient,
+  publicClient,
+  safeWalletAddress,
+  walletClient,
+} from './testing';
 import { authenticateWith } from './viem';
 
 describe('clients', () => {
@@ -34,6 +40,25 @@ describe('clients', () => {
         .then(authenticateWith(walletClient));
 
       await expect(fetchApiKeys(secondClient)).resolves.toBeDefined();
+    });
+
+    it('authenticates as EOA when wallet equals signer address', async () => {
+      const signerAddress = walletClient.account.address;
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: signerAddress })
+        .then(authenticateWith(walletClient));
+
+      await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
+    });
+
+    it('rejects with UserInputError when wallet does not match signer or any supported derived wallet', async () => {
+      const unrelatedWallet = createRandomWalletClient();
+
+      await expect(
+        publicClient
+          .beginAuthentication({ wallet: unrelatedWallet.account.address })
+          .then(authenticateWith(walletClient)),
+      ).rejects.toBeInstanceOf(UserInputError);
     });
 
     it('reuses stored credentials during authentication when they remain valid', async () => {
