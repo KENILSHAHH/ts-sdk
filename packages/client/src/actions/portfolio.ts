@@ -1,3 +1,4 @@
+import { PaginationCursorSchema } from '@polymarket/bindings';
 import {
   type ClosedPosition,
   FetchPortfolioValueResponseSchema,
@@ -19,6 +20,13 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { readBlob, validateWith } from '../response';
 import { toDataSearchParams } from './params';
 
@@ -46,14 +54,14 @@ const ClosedPositionSortBySchema = z.enum([
 
 const ListPositionsRequestSchema = z
   .object({
+    cursor: PaginationCursorSchema.optional(),
     user: z.string(),
     market: z.array(z.string()).optional(),
     eventId: z.array(z.number().int()).optional(),
     sizeThreshold: z.number().optional(),
     redeemable: z.boolean().optional(),
     mergeable: z.boolean().optional(),
-    limit: z.number().int().optional(),
-    offset: z.number().int().optional(),
+    pageSize: PageSizeSchema.default(20),
     sortBy: PositionSortBySchema.optional(),
     sortDirection: PositionSortDirectionSchema.optional(),
     title: z.string().max(100).optional(),
@@ -65,12 +73,12 @@ const ListPositionsRequestSchema = z
 
 const ListClosedPositionsRequestSchema = z
   .object({
+    cursor: PaginationCursorSchema.optional(),
     user: z.string(),
     market: z.array(z.string()).optional(),
     title: z.string().max(100).optional(),
     eventId: z.array(z.number().int()).optional(),
-    limit: z.number().int().optional(),
-    offset: z.number().int().optional(),
+    pageSize: PageSizeSchema.default(20),
     sortBy: ClosedPositionSortBySchema.optional(),
     sortDirection: PositionSortDirectionSchema.optional(),
   })
@@ -120,28 +128,70 @@ export type ListPositionsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const positions = await listPositions(client, {
+ * const result = listPositions(client, {
  *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
- *   limit: 10,
+ *   pageSize: 10,
  * });
  *
- * // positions: Position[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Position[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listPositions(client, {
+ *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+ *   pageSize: 10,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: Position[]
+ * }
  * ```
  */
-export async function listPositions(
+export function listPositions(
   client: Client,
   request: ListPositionsRequest,
-): Promise<Position[]> {
-  const params = parseUserInput(request, ListPositionsRequestSchema);
-
-  return unwrap(
-    client.data
-      .get('/positions', {
-        params: toDataSearchParams(params),
-      })
-      .andThen(validateWith(ListPositionsResponseSchema)),
+): Paginated<Position> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListPositionsRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.data
+      .get('/positions', {
+        params: toDataSearchParams({
+          ...params,
+          limit: decoded.pageSize + 1,
+          offset: decoded.offset,
+        }),
+      })
+      .andThen(validateWith(ListPositionsResponseSchema))
+      .map((positions) => {
+        const hasMore = positions.length > decoded.pageSize;
+
+        return {
+          items: positions.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type ListClosedPositionsError =
@@ -158,28 +208,70 @@ export type ListClosedPositionsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const positions = await listClosedPositions(client, {
+ * const result = listClosedPositions(client, {
  *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
- *   limit: 10,
+ *   pageSize: 10,
  * });
  *
- * // positions: ClosedPosition[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: ClosedPosition[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listClosedPositions(client, {
+ *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+ *   pageSize: 10,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: ClosedPosition[]
+ * }
  * ```
  */
-export async function listClosedPositions(
+export function listClosedPositions(
   client: Client,
   request: ListClosedPositionsRequest,
-): Promise<ClosedPosition[]> {
-  const params = parseUserInput(request, ListClosedPositionsRequestSchema);
-
-  return unwrap(
-    client.data
-      .get('/closed-positions', {
-        params: toDataSearchParams(params),
-      })
-      .andThen(validateWith(ListClosedPositionsResponseSchema)),
+): Paginated<ClosedPosition> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListClosedPositionsRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.data
+      .get('/closed-positions', {
+        params: toDataSearchParams({
+          ...params,
+          limit: decoded.pageSize + 1,
+          offset: decoded.offset,
+        }),
+      })
+      .andThen(validateWith(ListClosedPositionsResponseSchema))
+      .map((positions) => {
+        const hasMore = positions.length > decoded.pageSize;
+
+        return {
+          items: positions.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type FetchPortfolioValueError =

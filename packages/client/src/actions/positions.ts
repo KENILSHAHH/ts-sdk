@@ -203,7 +203,9 @@ export async function prepareMergePositions(
     user: client.account.wallet,
     market: [params.conditionId],
     sizeThreshold: 0,
-  });
+  })
+    .first()
+    .then((page) => page.items);
   const binaryPositions = expectBinaryPositions(params.conditionId, positions);
   const negativeRisk = expectNegativeRiskFlag(
     params.conditionId,
@@ -259,7 +261,9 @@ export async function prepareRedeemPositions(
     user: client.account.wallet,
     market: [params.conditionId],
     sizeThreshold: 0,
-  });
+  })
+    .first()
+    .then((page) => page.items);
   const binaryPositions = expectBinaryPositions(params.conditionId, positions);
   const negativeRisk = expectNegativeRiskFlag(
     params.conditionId,

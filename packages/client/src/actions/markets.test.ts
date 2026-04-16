@@ -1,4 +1,4 @@
-import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
+import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
 import {
@@ -14,10 +14,14 @@ import { listPositions } from './portfolio';
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 async function findPositionConditionId(): Promise<string> {
-  const [position] = await listPositions(publicClient, {
+  const {
+    items: [position],
+  } = await listPositions(publicClient, {
     user: TEST_USER,
-    limit: 1,
-  }).then(expectNonEmptyArray);
+    pageSize: 1,
+  })
+    .first()
+    .then(expectNonEmptyPage);
 
   return expectPresent(position.conditionId);
 }
@@ -139,11 +143,13 @@ describe('Markets', () => {
 
       const result = await listMarketPositions(publicClient, {
         market,
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toEqual(
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           positions: expect.any(Array),
           token: expect.any(String),

@@ -28,7 +28,13 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import { PageSizeSchema, type Paginated, paginate } from '../pagination';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
@@ -116,13 +122,13 @@ const MarketPositionSortBySchema = z.enum([
 const MarketPositionSortDirectionSchema = z.enum(['ASC', 'DESC']);
 
 const ListMarketPositionsRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
   market: z.string(),
+  pageSize: PageSizeSchema.default(20),
   user: z.string().optional(),
   status: MarketPositionStatusSchema.optional(),
   sortBy: MarketPositionSortBySchema.optional(),
   sortDirection: MarketPositionSortDirectionSchema.optional(),
-  limit: z.number().int().optional(),
-  offset: z.number().int().optional(),
 });
 
 export type ListMarketHoldersRequest = z.input<
@@ -363,28 +369,70 @@ export type ListMarketPositionsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const positions = await listMarketPositions(client, {
+ * const result = listMarketPositions(client, {
  *   market: '0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093',
- *   limit: 10,
+ *   pageSize: 10,
  * });
  *
- * // positions: MetaMarketPositionV1[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: MetaMarketPositionV1[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listMarketPositions(client, {
+ *   market: '0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093',
+ *   pageSize: 10,
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: MetaMarketPositionV1[]
+ * }
  * ```
  */
-export async function listMarketPositions(
+export function listMarketPositions(
   client: Client,
   request: ListMarketPositionsRequest,
-): Promise<MetaMarketPositionV1[]> {
-  const params = parseUserInput(request, ListMarketPositionsRequestSchema);
-
-  return unwrap(
-    client.data
-      .get('/v1/market-positions', {
-        params: toDataSearchParams(params),
-      })
-      .andThen(validateWith(ListMarketPositionsResponseSchema)),
+): Paginated<MetaMarketPositionV1> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListMarketPositionsRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.data
+      .get('/v1/market-positions', {
+        params: toDataSearchParams({
+          ...params,
+          limit: decoded.pageSize + 1,
+          offset: decoded.offset,
+        }),
+      })
+      .andThen(validateWith(ListMarketPositionsResponseSchema))
+      .map((positions) => {
+        const hasMore = positions.length > decoded.pageSize;
+
+        return {
+          items: positions.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {

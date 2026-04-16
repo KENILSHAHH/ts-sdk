@@ -77,8 +77,8 @@ describe('Orders', () => {
       const positions = await listPositions(secureClient, {
         market: [market.id],
         user: secureClient.account.wallet,
-      });
-      const position = positions.find(
+      }).first();
+      const position = positions.items.find(
         (candidate) => candidate.asset && (candidate.size ?? 0) > 0,
       );
 

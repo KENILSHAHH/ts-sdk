@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { expectNonEmptyPage, publicClient } from '../testing';
 import {
   downloadAccountingSnapshot,
   fetchPortfolioValue,
@@ -15,11 +15,13 @@ describe('Portfolio', () => {
     it('lists positions for a wallet', async () => {
       const result = await listPositions(publicClient, {
         user: TEST_USER,
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
           proxyWallet: TEST_USER,
@@ -32,11 +34,13 @@ describe('Portfolio', () => {
     it('lists closed positions for a wallet', async () => {
       const result = await listClosedPositions(publicClient, {
         user: TEST_USER,
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
           proxyWallet: TEST_USER,
