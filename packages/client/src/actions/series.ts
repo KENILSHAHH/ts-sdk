@@ -62,7 +62,7 @@ export type ListSeriesError =
  *   closed: false,
  * });
  *
- * // series === Series[]
+ * // series: Series[]
  * ```
  */
 export async function listSeries(

@@ -1,6 +1,8 @@
+import { CommentIdSchema, EventIdSchema } from '@polymarket/bindings';
 import {
   type Comment,
   ListCommentsResponseSchema,
+  SeriesIdSchema,
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
@@ -23,13 +25,13 @@ const ListCommentsRequestSchema = z.object({
   limit: z.number().int().optional(),
   offset: z.number().int().optional(),
   order: z.string().optional(),
-  parentEntityId: z.number().int(),
+  parentEntityId: z.union([EventIdSchema, SeriesIdSchema]),
   parentEntityType: z.enum(['Event', 'Series']),
 });
 
 const FetchCommentsByIdRequestSchema = z.object({
   getPositions: z.boolean().optional(),
-  id: z.number().int(),
+  id: CommentIdSchema,
 });
 
 const FetchCommentsByUserAddressRequestSchema = z.object({
@@ -64,12 +66,12 @@ export type ListCommentsError =
  * @example
  * ```ts
  * const comments = await listComments(client, {
- *   parentEntityId: 123,
+ *   parentEntityId: '123',
  *   parentEntityType: 'Event',
  *   limit: 20,
  * });
  *
- * // comments === Comment[]
+ * // comments: Comment[]
  * ```
  */
 export async function listComments(
@@ -103,11 +105,11 @@ export type FetchCommentsByIdError =
  * @example
  * ```ts
  * const thread = await fetchCommentsById(client, {
- *   id: 456,
+ *   id: '456',
  *   getPositions: true,
  * });
  *
- * // thread === Comment[]
+ * // thread: Comment[]
  * ```
  */
 export async function fetchCommentsById(
@@ -151,7 +153,7 @@ export type FetchCommentsByUserAddressError =
  *   order: 'DESC',
  * });
  *
- * // comments === Comment[]
+ * // comments: Comment[]
  * ```
  */
 export async function fetchCommentsByUserAddress(

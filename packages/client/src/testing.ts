@@ -1,7 +1,8 @@
 import type { Market } from '@polymarket/bindings/gamma';
-import type { EvmAddress, PrivateKey } from '@polymarket/types';
+import type { EvmAddress, NonEmptyArray, PrivateKey } from '@polymarket/types';
 import {
   expectEvmAddress,
+  expectNonEmptyArray,
   expectPresent,
   invariant,
   isPrivateKey,
@@ -11,9 +12,9 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { listMarkets } from './actions/markets';
 import { createPublicClient } from './clients';
-
 // biome-ignore lint/style/noRestrictedImports: intentional
 import { builderApiKey, relayerApiKey } from './node';
+import type { Page } from './pagination';
 
 if (process.env.CI !== 'true') {
   try {
@@ -84,10 +85,12 @@ export function createRandomWalletClient() {
 export async function findHighVolumeLowPriceMarket(): Promise<Market> {
   const candidateMarkets = await listMarkets(publicClient, {
     closed: false,
-    limit: 1000,
+    pageSize: 1000,
     order: 'volume24hr',
     ascending: false,
-  });
+  })
+    .first()
+    .then((page) => page.items);
   const market = candidateMarkets
     .filter(hasRequiredOrderFields)
     .sort(
@@ -131,4 +134,13 @@ function getEventSlug(market: Market): string | undefined {
   const firstEvent = market.events?.[0] as { slug?: string | null } | undefined;
 
   return firstEvent?.slug ?? undefined;
+}
+
+export function expectNonEmptyPage<T>(
+  page: Page<T>,
+): Omit<Page<T>, 'items'> & { items: NonEmptyArray<T> } {
+  return {
+    ...page,
+    items: expectNonEmptyArray(page.items),
+  };
 }

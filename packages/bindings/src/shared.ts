@@ -28,6 +28,7 @@ export type ApiKey = Tagged<string, 'ApiKey'>;
 export type CategoryId = Tagged<string, 'CategoryId'>;
 export type ChatId = Tagged<string, 'ChatId'>;
 export type ClobRewardId = Tagged<string, 'ClobRewardId'>;
+export type CommentId = Tagged<string, 'CommentId'>;
 export type ConditionId = Tagged<HexString, 'ConditionId'>;
 export type CollectionId = Tagged<string, 'CollectionId'>;
 export type EventCreatorId = Tagged<string, 'EventCreatorId'>;
@@ -41,6 +42,7 @@ export type InternalUserId = Tagged<string, 'InternalUserId'>;
 export type MarketId = Tagged<string, 'MarketId'>;
 export type NotificationId = Tagged<number, 'NotificationId'>;
 export type PartnerId = Tagged<number, 'PartnerId'>;
+export type PaginationCursor = Tagged<string, 'PaginationCursor'>;
 export type SeriesId = Tagged<string, 'SeriesId'>;
 export type SportId = Tagged<number, 'SportId'>;
 export type TagId = Tagged<string, 'TagId'>;
@@ -71,6 +73,10 @@ export function toChatId(value: string): ChatId {
 
 export function toClobRewardId(value: string): ClobRewardId {
   return toTaggedString<ClobRewardId>(value);
+}
+
+export function toCommentId(value: string): CommentId {
+  return toTaggedString<CommentId>(value);
 }
 
 export function toConditionId(value: string): ConditionId {
@@ -119,6 +125,10 @@ export function toPartnerId(value: number): PartnerId {
   return toTaggedInteger<PartnerId>(value);
 }
 
+export function toPaginationCursor(value: string): PaginationCursor {
+  return toTaggedString<PaginationCursor>(value);
+}
+
 export function toSeriesId(value: string): SeriesId {
   return toTaggedString<SeriesId>(value);
 }
@@ -150,9 +160,16 @@ export function toTokenId(value: string): TokenId {
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
+export const CommentIdSchema = z.string().transform(toCommentId);
 export const ConditionIdSchema = z.string().transform(toConditionId);
+export const OptionalConditionIdSchema = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  ConditionIdSchema.optional(),
+);
 export const EvmAddressSchema = z.string().transform(toEvmAddress);
-export const EventIdSchema = z.string().transform(toEventId);
+export const EventIdSchema = z
+  .union([z.string(), z.number().int().transform(String)])
+  .transform(toEventId);
 export const TickSizeValueSchema = z.union([
   z.literal(0.1),
   z.literal(0.01),
@@ -174,6 +191,10 @@ export const NotificationIdSchema = z
   .number()
   .int()
   .transform(toNotificationId);
+export const PaginationCursorSchema = z
+  .string()
+  .min(1)
+  .transform(toPaginationCursor);
 export const TagIdSchema = z.string().transform(toTagId);
 export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);

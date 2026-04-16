@@ -126,7 +126,7 @@ export type ListPositionsError =
  *   limit: 10,
  * });
  *
- * // positions === Position[]
+ * // positions: Position[]
  * ```
  */
 export async function listPositions(
@@ -164,7 +164,7 @@ export type ListClosedPositionsError =
  *   limit: 10,
  * });
  *
- * // positions === ClosedPosition[]
+ * // positions: ClosedPosition[]
  * ```
  */
 export async function listClosedPositions(
@@ -201,7 +201,7 @@ export type FetchPortfolioValueError =
  *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
  * });
  *
- * // value === Value[]
+ * // value: Value[]
  * ```
  */
 export async function fetchPortfolioValue(

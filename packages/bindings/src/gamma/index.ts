@@ -2,6 +2,7 @@ export * from './comment';
 export * from './common';
 export * from './event';
 export * from './market';
+export * from './pagination';
 export * from './profile';
 export * from './search';
 export * from './series';

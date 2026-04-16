@@ -9,7 +9,7 @@ import {
 } from '@polymarket/bindings/data';
 import {
   FetchMarketTagsResponseSchema,
-  ListMarketsResponseSchema,
+  ListMarketsKeysetResponseSchema,
   type Market,
   MarketSchema,
   type TagReference,
@@ -25,6 +25,11 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  type Paginated,
+  PaginatedRequestFields,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
@@ -33,6 +38,7 @@ const ListMarketsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   closed: z.boolean().optional(),
   clobTokenIds: z.array(z.string()).optional(),
+  ...PaginatedRequestFields,
   conditionIds: z.array(z.string()).optional(),
   cyom: z.boolean().optional(),
   decimalized: z.boolean().optional(),
@@ -41,12 +47,10 @@ const ListMarketsRequestSchema = z.object({
   gameId: z.string().optional(),
   ids: z.array(z.number().int()).optional(),
   includeTag: z.boolean().optional(),
-  limit: z.number().int().optional(),
   liquidityNumMax: z.number().optional(),
   liquidityNumMin: z.number().optional(),
   locale: z.string().optional(),
   marketMakerAddresses: z.array(z.string()).optional(),
-  offset: z.number().int().optional(),
   order: z.string().optional(),
   questionIds: z.array(z.string()).optional(),
   relatedTags: z.boolean().optional(),
@@ -148,27 +152,46 @@ export type ListMarketsError =
  *
  * @example
  * ```ts
- * const result = await listMarkets(client, {
- *   limit: 10,
+ * const result = listMarkets(client, {
  *   closed: false,
+ *   pageSize: 10,
  * });
  *
- * // result === Market[]
+ * for await (const page of result) {
+ *   // page.items: Market[]
+ * }
+ *
+ * const firstPage = await result.first();
+ *
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Market[]
+ * }
  * ```
  */
-export async function listMarkets(
+export function listMarkets(
   client: Client,
   request: ListMarketsRequest = {},
-): Promise<Market[]> {
+): Paginated<Market> {
   const params = parseUserInput(request, ListMarketsRequestSchema);
 
-  return unwrap(
-    client.gamma
-      .get('/markets', {
-        params: toMarketsSearchParams(params),
-      })
-      .andThen(validateWith(ListMarketsResponseSchema)),
-  );
+  return paginate(async (cursor) => {
+    const response = await unwrap(
+      client.gamma
+        .get('/markets/keyset', {
+          params: toMarketsSearchParams({
+            ...params,
+            cursor: cursor ?? params.cursor,
+          }),
+        })
+        .andThen(validateWith(ListMarketsKeysetResponseSchema)),
+    );
+
+    return {
+      items: response.items,
+      hasMore: response.next_cursor !== undefined,
+      nextCursor: response.next_cursor,
+    };
+  }, params.cursor);
 }
 
 export type FetchMarketError =
@@ -225,7 +248,7 @@ export type FetchMarketTagsError =
  *   id: '12345',
  * });
  *
- * // tags === TagReference[]
+ * // tags: TagReference[]
  * ```
  */
 export async function fetchMarketTags(
@@ -261,7 +284,7 @@ export type ListMarketHoldersError =
  *   limit: 5,
  * });
  *
- * // holders === MetaHolder[]
+ * // holders: MetaHolder[]
  * ```
  */
 export async function listMarketHolders(
@@ -298,7 +321,7 @@ export type ListOpenInterestError =
  *   market: ['0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093'],
  * });
  *
- * // openInterest === OpenInterest[]
+ * // openInterest: OpenInterest[]
  * ```
  */
 export async function listOpenInterest(
@@ -336,7 +359,7 @@ export type ListMarketPositionsError =
  *   limit: 10,
  * });
  *
- * // positions === MetaMarketPositionV1[]
+ * // positions: MetaMarketPositionV1[]
  * ```
  */
 export async function listMarketPositions(
@@ -358,8 +381,10 @@ function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {
   return toSearchParams(
     params,
     snakeCase<ListMarketsParams>({
+      cursor: 'after_cursor',
       ids: 'id',
       marketMakerAddresses: 'market_maker_address',
+      pageSize: 'limit',
     }),
   );
 }

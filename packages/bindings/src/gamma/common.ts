@@ -7,6 +7,7 @@ import {
   ImageOptimizationIdSchema,
   InternalUserIdSchema,
   MarketIdSchema,
+  OptionalConditionIdSchema,
   TagIdSchema,
 } from '../shared';
 
@@ -62,7 +63,7 @@ export const TagReferenceSchema = z.looseObject({
 
 export const RelatedMarketSchema = z.looseObject({
   id: MarketIdSchema,
-  conditionId: ConditionIdSchema,
+  conditionId: OptionalConditionIdSchema,
   slug: z.string().nullish(),
   image: z.string().nullish(),
   volume: z.string().nullish(),

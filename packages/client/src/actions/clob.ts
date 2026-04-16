@@ -451,7 +451,7 @@ export type FetchOrderBooksError =
  *   },
  * ])
  *
- * // books === OrderBook[]
+ * // books: OrderBook[]
  * ```
  */
 export async function fetchOrderBooks(
@@ -753,7 +753,7 @@ export type ListCurrentRewardsError =
  * ```ts
  * const rewards = await listCurrentRewards(client)
  *
- * // rewards === CurrentReward[]
+ * // rewards: CurrentReward[]
  * ```
  */
 export async function listCurrentRewards(
@@ -808,7 +808,7 @@ export type FetchMarketRewardsError =
  *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
  * })
  *
- * // rewards === MarketReward[]
+ * // rewards: MarketReward[]
  * ```
  */
 export async function fetchMarketRewards(

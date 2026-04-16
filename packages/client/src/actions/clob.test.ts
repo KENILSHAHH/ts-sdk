@@ -26,7 +26,7 @@ import { listMarkets } from './markets';
 describe('CLOB', () => {
   describe('fetchTickSize', () => {
     it('fetches the minimum tick size for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchTickSize(publicClient, {
         tokenId,
@@ -39,7 +39,7 @@ describe('CLOB', () => {
 
   describe('fetchNegRisk', () => {
     it('fetches whether a token is negative risk', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchNegRisk(publicClient, {
         tokenId,
@@ -51,7 +51,7 @@ describe('CLOB', () => {
 
   describe('fetchFeeRate', () => {
     it('fetches the fee rate for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchFeeRate(publicClient, {
         tokenId,
@@ -64,7 +64,7 @@ describe('CLOB', () => {
 
   describe('fetchOrderBook', () => {
     it('fetches the order book for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchOrderBook(publicClient, {
         tokenId,
@@ -82,7 +82,7 @@ describe('CLOB', () => {
 
   describe('fetchOrderBooks', () => {
     it('fetches order books for multiple tokens', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchOrderBooks(publicClient, [{ tokenId }]);
 
@@ -98,7 +98,7 @@ describe('CLOB', () => {
 
   describe('fetchMidpoint', () => {
     it('fetches the midpoint price for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchMidpoint(publicClient, {
         tokenId,
@@ -110,7 +110,7 @@ describe('CLOB', () => {
 
   describe('fetchMidpoints', () => {
     it('fetches midpoint prices for multiple tokens', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchMidpoints(publicClient, [{ tokenId }]);
 
@@ -120,7 +120,7 @@ describe('CLOB', () => {
 
   describe('fetchPrice', () => {
     it('fetches the quoted price for a token and side', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchPrice(publicClient, {
         tokenId,
@@ -133,7 +133,7 @@ describe('CLOB', () => {
 
   describe('fetchPrices', () => {
     it('fetches quoted prices for multiple tokens', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchPrices(publicClient, [
         {
@@ -148,7 +148,7 @@ describe('CLOB', () => {
 
   describe('fetchSpread', () => {
     it('fetches the spread for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchSpread(publicClient, {
         tokenId,
@@ -160,7 +160,7 @@ describe('CLOB', () => {
 
   describe('fetchSpreads', () => {
     it('fetches spreads for multiple tokens', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchSpreads(publicClient, [{ tokenId }]);
 
@@ -170,7 +170,7 @@ describe('CLOB', () => {
 
   describe('fetchLastTradePrice', () => {
     it('fetches the last traded price for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchLastTradePrice(publicClient, {
         tokenId,
@@ -187,7 +187,7 @@ describe('CLOB', () => {
 
   describe('fetchLastTradePrices', () => {
     it('fetches last traded prices for multiple tokens', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await fetchLastTradePrices(publicClient, [{ tokenId }]);
 
@@ -203,7 +203,7 @@ describe('CLOB', () => {
 
   describe('listPriceHistory', () => {
     it('lists historical price points for a token', async () => {
-      const tokenId = await getClobTokenId();
+      const tokenId = await selectLiquidClobTokenId();
 
       const result = await listPriceHistory(publicClient, {
         tokenId,
@@ -271,13 +271,15 @@ describe('CLOB', () => {
   });
 });
 
-async function getClobTokenId(): Promise<string> {
+async function selectLiquidClobTokenId(): Promise<string> {
   const markets = await listMarkets(publicClient, {
     closed: false,
-    limit: 100,
+    pageSize: 100,
     order: 'volume24hr',
     ascending: false,
-  });
+  })
+    .first()
+    .then((page) => page.items);
 
   for (const market of markets) {
     const [tokenId] = expectPresent(market.clobTokenIds);

@@ -10,7 +10,7 @@ import {
   type Event,
   EventSchema,
   FetchEventTagsResponseSchema,
-  ListEventsResponseSchema,
+  ListEventsKeysetResponseSchema,
   type TagReference,
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
@@ -24,12 +24,18 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  type Paginated,
+  PaginatedRequestFields,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
 const ListEventsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   closed: z.boolean().optional(),
+  ...PaginatedRequestFields,
   cyom: z.boolean().optional(),
   endDateMax: ISODateStringSchema.optional(),
   endDateMin: ISODateStringSchema.optional(),
@@ -45,12 +51,10 @@ const ListEventsRequestSchema = z.object({
   includeChat: z.boolean().optional(),
   includeChildren: z.boolean().optional(),
   includeTemplate: z.boolean().optional(),
-  limit: z.number().int().optional(),
   liquidityMax: z.number().optional(),
   liquidityMin: z.number().optional(),
   live: z.boolean().optional(),
   locale: z.string().optional(),
-  offset: z.number().int().optional(),
   order: z.string().optional(),
   parentEventId: z.number().int().optional(),
   partnerSlug: z.string().optional(),
@@ -122,27 +126,46 @@ export type ListEventsError =
  *
  * @example
  * ```ts
- * const result = await listEvents(client, {
- *   limit: 10,
+ * const result = listEvents(client, {
  *   closed: false,
+ *   pageSize: 10,
  * });
  *
- * // result === Event[]
+ * for await (const page of result) {
+ *   // page.items: Event[]
+ * }
+ *
+ * const firstPage = await result.first();
+ *
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Event[]
+ * }
  * ```
  */
-export async function listEvents(
+export function listEvents(
   client: Client,
   request: ListEventsRequest = {},
-): Promise<Event[]> {
+): Paginated<Event> {
   const params = parseUserInput(request, ListEventsRequestSchema);
 
-  return unwrap(
-    client.gamma
-      .get('/events', {
-        params: toEventsSearchParams(params),
-      })
-      .andThen(validateWith(ListEventsResponseSchema)),
-  );
+  return paginate(async (cursor) => {
+    const response = await unwrap(
+      client.gamma
+        .get('/events/keyset', {
+          params: toEventsSearchParams({
+            ...params,
+            cursor: cursor ?? params.cursor,
+          }),
+        })
+        .andThen(validateWith(ListEventsKeysetResponseSchema)),
+    );
+
+    return {
+      items: response.items,
+      hasMore: response.next_cursor !== undefined,
+      nextCursor: response.next_cursor,
+    };
+  }, params.cursor);
 }
 
 export type FetchEventError =
@@ -211,7 +234,7 @@ export type FetchEventTagsError =
  *   id: '12345',
  * });
  *
- * // tags === TagReference[]
+ * // tags: TagReference[]
  * ```
  */
 export async function fetchEventTags(
@@ -246,7 +269,7 @@ export type FetchEventLiveVolumeError =
  *   id: '160707',
  * });
  *
- * // volume === LiveVolume[]
+ * // volume: LiveVolume[]
  * ```
  */
 export async function fetchEventLiveVolume(
@@ -268,9 +291,11 @@ function toEventsSearchParams(params: ListEventsParams): URLSearchParams {
   return toSearchParams(
     params,
     snakeCase<ListEventsParams>({
+      cursor: 'after_cursor',
       excludeTagIds: 'exclude_tag_id',
       gameIds: 'game_id',
       ids: 'id',
+      pageSize: 'limit',
       seriesIds: 'series_id',
       tagIds: 'tag_id',
     }),

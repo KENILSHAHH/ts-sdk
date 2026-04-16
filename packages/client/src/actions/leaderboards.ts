@@ -73,7 +73,7 @@ export type ListBuilderLeaderboardError =
  *   timePeriod: 'DAY',
  * });
  *
- * // builders === LeaderboardEntry[]
+ * // builders: LeaderboardEntry[]
  * ```
  */
 export async function listBuilderLeaderboard(
@@ -110,7 +110,7 @@ export type ListBuilderVolumeError =
  *   timePeriod: 'DAY',
  * });
  *
- * // volume === BuilderVolumeEntry[]
+ * // volume: BuilderVolumeEntry[]
  * ```
  */
 export async function listBuilderVolume(
@@ -149,7 +149,7 @@ export type ListTraderLeaderboardError =
  *   timePeriod: 'DAY',
  * });
  *
- * // traders === TraderLeaderboardEntry[]
+ * // traders: TraderLeaderboardEntry[]
  * ```
  */
 export async function listTraderLeaderboard(

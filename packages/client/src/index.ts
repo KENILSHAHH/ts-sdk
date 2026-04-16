@@ -14,6 +14,7 @@ export { createPublicClient } from './clients';
 export * from './environments';
 export * from './errors';
 export * from './hmac';
+export type * from './pagination';
 export * from './types';
 export type {
   AuthenticateWithError,

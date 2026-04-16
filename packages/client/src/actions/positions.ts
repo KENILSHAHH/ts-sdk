@@ -330,10 +330,11 @@ async function resolveMarketNegativeRiskFlag(
   client: SecureClient,
   conditionId: ConditionId,
 ): Promise<boolean> {
-  const markets = await listMarkets(client, {
+  const page = await listMarkets(client, {
     conditionIds: [conditionId],
-    limit: 2,
-  });
+    pageSize: 2,
+  }).first();
+  const markets = page.items;
 
   invariant(
     markets.length === 1,

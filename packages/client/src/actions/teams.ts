@@ -46,7 +46,7 @@ export type ListTeamsError =
  *   limit: 10,
  * });
  *
- * // teams === Team[]
+ * // teams: Team[]
  * ```
  */
 export async function listTeams(

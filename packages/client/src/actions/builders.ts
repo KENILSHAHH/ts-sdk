@@ -46,7 +46,7 @@ export type ListBuilderTradesError =
  * ```ts
  * const trades = await listBuilderTrades(client, {})
  *
- * // trades === BuilderTrade[]
+ * // trades: BuilderTrade[]
  * ```
  */
 export async function listBuilderTrades(

@@ -1,6 +1,6 @@
-import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
+import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { expectNonEmptyPage, publicClient } from '../testing';
 import {
   fetchEvent,
   fetchEventLiveVolume,
@@ -11,27 +11,37 @@ import {
 describe('Events', () => {
   describe('listEvents', () => {
     it('fetches events from Gamma', async () => {
-      const result = await listEvents(publicClient, {
+      const paginator = listEvents(publicClient, {
         closed: false,
-        limit: 1,
+        pageSize: 1,
       });
+      const firstPage = await paginator.first();
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
-        expect.objectContaining({
-          id: expect.any(String),
-          markets: expect.any(Array),
-        }),
-      );
+      expect(firstPage.items).toHaveLength(1);
+      expect(firstPage.nextCursor).toBeDefined();
+
+      let fetched = 0;
+
+      for await (const page of paginator.from(firstPage.nextCursor)) {
+        expect(page.items).toHaveLength(1);
+
+        if (++fetched === 3) {
+          break;
+        }
+      }
     });
   });
 
   describe('fetchEvent', () => {
     it('fetches an event by id and slug', async () => {
-      const [event] = await listEvents(publicClient, {
+      const {
+        items: [event],
+      } = await listEvents(publicClient, {
         closed: false,
-        limit: 1,
-      }).then(expectNonEmptyArray);
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const eventById = await fetchEvent(publicClient, {
         id: event.id,
@@ -48,10 +58,14 @@ describe('Events', () => {
 
   describe('fetchEventTags', () => {
     it("fetches an event's tags by id", async () => {
-      const [event] = await listEvents(publicClient, {
+      const {
+        items: [event],
+      } = await listEvents(publicClient, {
         closed: false,
-        limit: 1,
-      }).then(expectNonEmptyArray);
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const result = await fetchEventTags(publicClient, {
         id: event.id,
@@ -71,10 +85,14 @@ describe('Events', () => {
 
   describe('fetchEventLiveVolume', () => {
     it('fetches live volume for an event', async () => {
-      const [event] = await listEvents(publicClient, {
+      const {
+        items: [event],
+      } = await listEvents(publicClient, {
         closed: false,
-        limit: 1,
-      }).then(expectNonEmptyArray);
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const result = await fetchEventLiveVolume(publicClient, {
         id: event.id,

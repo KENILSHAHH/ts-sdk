@@ -20,12 +20,14 @@ import { listMarkets } from '@polymarket/client/actions';
 
 const client = createPublicClient();
 
-const markets = await listMarkets(client, {
+const result = listMarkets(client, {
   closed: false,
-  limit: 3,
+  pageSize: 3,
 });
 
-console.log(markets.map((market) => market.question));
+for await (const page of result) {
+  // page.items: Market[] 
+}
 ```
 
 ## Development

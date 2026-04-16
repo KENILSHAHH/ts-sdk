@@ -97,7 +97,7 @@ export type ListTagsError =
  *   includeTemplate: true,
  * });
  *
- * // tags === Tag[]
+ * // tags: Tag[]
  * ```
  */
 export async function listTags(
@@ -196,7 +196,7 @@ export type FetchRelatedTagsError =
  *   omitEmpty: true,
  * });
  *
- * // relatedTags === RelatedTag[]
+ * // relatedTags: RelatedTag[]
  * ```
  */
 export async function fetchRelatedTags(
@@ -251,7 +251,7 @@ export type FetchRelatedTagResourcesError =
  *   omitEmpty: true,
  * });
  *
- * // relatedResources === Tag[]
+ * // relatedResources: Tag[]
  * ```
  */
 export async function fetchRelatedTagResources(

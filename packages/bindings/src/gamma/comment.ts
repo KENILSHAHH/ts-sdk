@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { TokenIdSchema } from '../shared';
+import { CommentIdSchema, EventIdSchema, TokenIdSchema } from '../shared';
 import { ImageOptimizationSchema } from './common';
+import { SeriesIdSchema } from './event';
 
 export const CommentPositionSchema = z.looseObject({
   tokenId: TokenIdSchema.nullish(),
@@ -43,11 +44,13 @@ export const CommentMediaSchema = z.looseObject({
 });
 
 export const CommentSchema = z.looseObject({
-  id: z.string(),
+  id: CommentIdSchema,
   body: z.string().nullish(),
-  parentEntityType: z.string().nullish(),
-  parentEntityID: z.number().int().nullish(),
-  parentCommentID: z.string().nullish(),
+  parentEntityType: z
+    .union([z.literal('Event'), z.literal('Series')])
+    .nullish(),
+  parentEntityID: z.union([EventIdSchema, SeriesIdSchema]).nullish(),
+  parentCommentID: CommentIdSchema.nullish(),
   userAddress: z.string().nullish(),
   replyAddress: z.string().nullish(),
   createdAt: z.string().nullish(),

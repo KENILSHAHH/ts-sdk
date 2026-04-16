@@ -30,7 +30,7 @@ export type ListSportsError =
  * ```ts
  * const sports = await listSports(client);
  *
- * // sports === SportsMetadata[]
+ * // sports: SportsMetadata[]
  * ```
  */
 export async function listSports(client: Client): Promise<SportsMetadata[]> {

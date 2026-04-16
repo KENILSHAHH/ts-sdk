@@ -91,7 +91,7 @@ export type ListTradesError =
  *   limit: 10,
  * });
  *
- * // trades === Trade[]
+ * // trades: Trade[]
  * ```
  */
 export async function listTrades(
@@ -129,7 +129,7 @@ export type ListActivityError =
  *   limit: 10,
  * });
  *
- * // activity === Activity[]
+ * // activity: Activity[]
  * ```
  */
 export async function listActivity(

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   ConditionIdSchema,
   MarketIdSchema,
+  PaginationCursorSchema,
   TickSizeValueSchema,
   TokenIdSchema,
 } from '../shared';
@@ -15,21 +16,25 @@ import {
   RelatedMarketSchema,
   TagReferenceSchema,
 } from './common';
+import { createPageSchema } from './pagination';
+
+const StringPairSchema = z.tuple([z.string(), z.string()]);
+const TokenIdPairValueSchema = z.tuple([TokenIdSchema, TokenIdSchema]);
 
 const OutcomePairSchema = z
-  .string()
-  .transform((val) => JSON.parse(val))
-  .pipe(z.tuple([z.string(), z.string()]));
+  .union([z.string().transform((val) => JSON.parse(val)), StringPairSchema])
+  .pipe(StringPairSchema);
 
 const OutcomePricePairSchema = z
-  .string()
-  .transform((val) => JSON.parse(val))
-  .pipe(z.tuple([z.string(), z.string()]));
+  .union([z.string().transform((val) => JSON.parse(val)), StringPairSchema])
+  .pipe(StringPairSchema);
 
 const TokenIdPairSchema = z
-  .string()
-  .transform((val) => JSON.parse(val))
-  .pipe(z.tuple([TokenIdSchema, TokenIdSchema]));
+  .union([
+    z.string().transform((val) => JSON.parse(val)),
+    z.tuple([z.string(), z.string()]),
+  ])
+  .pipe(TokenIdPairValueSchema);
 
 export const MarketSchema = z.looseObject({
   id: MarketIdSchema,
@@ -197,10 +202,25 @@ export const MarketSchema = z.looseObject({
 });
 
 export const ListMarketsResponseSchema = z.array(MarketSchema);
+const MarketsPageSchema = createPageSchema(MarketSchema);
+export const ListMarketsKeysetResponseSchema = z
+  .object({
+    markets: z.array(MarketSchema),
+    next_cursor: PaginationCursorSchema.optional(),
+  })
+  .transform(({ markets, next_cursor }) =>
+    MarketsPageSchema.parse({
+      items: markets,
+      next_cursor,
+    }),
+  );
 export const FetchMarketTagsResponseSchema = z.array(TagReferenceSchema);
 
 export type Market = z.infer<typeof MarketSchema>;
 export type ListMarketsResponse = z.infer<typeof ListMarketsResponseSchema>;
+export type ListMarketsKeysetResponse = z.infer<
+  typeof ListMarketsKeysetResponseSchema
+>;
 export type FetchMarketTagsResponse = z.infer<
   typeof FetchMarketTagsResponseSchema
 >;

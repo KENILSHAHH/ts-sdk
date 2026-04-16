@@ -1,3 +1,4 @@
+import { PaginationCursorSchema } from '@polymarket/bindings';
 import {
   AssetTypeSchema,
   type BalanceAllowanceResponse,
@@ -181,7 +182,7 @@ export async function fetchTrades(
 const FetchTradesPaginatedRequestSchema = z
   .object({
     ...FetchTradesRequestFields,
-    nextCursor: z.string().optional(),
+    nextCursor: PaginationCursorSchema.optional(),
   })
   .default({});
 

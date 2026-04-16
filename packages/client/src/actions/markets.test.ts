@@ -1,6 +1,6 @@
 import { expectNonEmptyArray, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { expectNonEmptyPage, publicClient } from '../testing';
 import {
   fetchMarket,
   fetchMarketTags,
@@ -13,7 +13,7 @@ import { listPositions } from './portfolio';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
-async function getPositionMarket(): Promise<string> {
+async function findPositionConditionId(): Promise<string> {
   const [position] = await listPositions(publicClient, {
     user: TEST_USER,
     limit: 1,
@@ -25,28 +25,37 @@ async function getPositionMarket(): Promise<string> {
 describe('Markets', () => {
   describe('listMarkets', () => {
     it('fetches markets from Gamma', async () => {
-      const result = await listMarkets(publicClient, {
+      const paginator = listMarkets(publicClient, {
         closed: false,
-        limit: 1,
+        pageSize: 1,
       });
+      const firstPage = await paginator.first();
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
-        expect.objectContaining({
-          conditionId: expect.any(String),
-          id: expect.any(String),
-          marketMakerAddress: expect.any(String),
-        }),
-      );
+      expect(firstPage.items).toHaveLength(1);
+      expect(firstPage.nextCursor).toBeDefined();
+
+      let fetched = 0;
+
+      for await (const page of paginator.from(firstPage.nextCursor)) {
+        expect(page.items).toHaveLength(1);
+
+        if (++fetched === 3) {
+          break;
+        }
+      }
     });
   });
 
   describe('fetchMarket', () => {
     it('fetches a market by id and slug', async () => {
-      const [market] = await listMarkets(publicClient, {
+      const {
+        items: [market],
+      } = await listMarkets(publicClient, {
         closed: false,
-        limit: 1,
-      }).then(expectNonEmptyArray);
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const marketById = await fetchMarket(publicClient, {
         id: market.id,
@@ -63,10 +72,14 @@ describe('Markets', () => {
 
   describe('fetchMarketTags', () => {
     it("fetches a market's tags by id", async () => {
-      const [market] = await listMarkets(publicClient, {
+      const {
+        items: [market],
+      } = await listMarkets(publicClient, {
         closed: false,
-        limit: 1,
-      }).then(expectNonEmptyArray);
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
       const result = await fetchMarketTags(publicClient, {
         id: market.id,
@@ -86,7 +99,7 @@ describe('Markets', () => {
 
   describe('listMarketHolders', () => {
     it('lists top holders for a market', async () => {
-      const market = await getPositionMarket();
+      const market = await findPositionConditionId();
 
       const result = await listMarketHolders(publicClient, {
         market: [market],
@@ -105,7 +118,7 @@ describe('Markets', () => {
 
   describe('listOpenInterest', () => {
     it('lists open interest for a market', async () => {
-      const market = await getPositionMarket();
+      const market = await findPositionConditionId();
 
       const result = await listOpenInterest(publicClient, {
         market: [market],
@@ -122,7 +135,7 @@ describe('Markets', () => {
 
   describe('listMarketPositions', () => {
     it('lists positions for a market', async () => {
-      const market = await getPositionMarket();
+      const market = await findPositionConditionId();
 
       const result = await listMarketPositions(publicClient, {
         market,
