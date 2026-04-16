@@ -225,6 +225,9 @@ class PublicClient extends AbstractClient<PublicContext> {
     return true;
   }
 
+  /**
+   * Begins an authentication workflow that produces a {@link SecureClient}.
+   */
   beginAuthentication(
     request: BeginAuthenticationRequest,
   ): Promise<AuthenticationWorkflow> {
