@@ -1,4 +1,7 @@
-import { toPaginationCursor } from '@polymarket/bindings';
+import {
+  PaginationCursorSchema,
+  toPaginationCursor,
+} from '@polymarket/bindings';
 import {
   AssetTypeSchema,
   type BalanceAllowanceResponse,
@@ -68,6 +71,7 @@ export async function fetchClosedOnlyMode(
 const ListOpenOrdersRequestSchema = z
   .object({
     assetId: z.string().optional(),
+    cursor: PaginationCursorSchema.optional(),
     id: z.string().optional(),
     market: z.string().optional(),
   })
@@ -118,23 +122,28 @@ export function listOpenOrders(
   client: SecureClient,
   request?: ListOpenOrdersRequest,
 ): Paginated<OpenOrder> {
-  const params = parseUserInput(request, ListOpenOrdersRequestSchema);
+  const { cursor, ...params } = parseUserInput(
+    request,
+    ListOpenOrdersRequestSchema,
+  );
 
-  return paginate((nextCursor) =>
-    client.secureClob
-      .get('/data/orders', {
-        params: toSearchParams({ ...params, nextCursor }, snakeCase()),
-      })
-      .andThen(validateWith(OpenOrdersPageSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      })),
+  return paginate(
+    (nextCursor) =>
+      client.secureClob
+        .get('/data/orders', {
+          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+        })
+        .andThen(validateWith(OpenOrdersPageSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
   );
 }
 
@@ -173,6 +182,7 @@ const ListAccountTradesRequestFields = {
   after: z.string().optional(),
   assetId: z.string().optional(),
   before: z.string().optional(),
+  cursor: PaginationCursorSchema.optional(),
   id: z.string().optional(),
   makerAddress: z.string().optional(),
   market: z.string().optional(),
@@ -229,23 +239,28 @@ export function listAccountTrades(
   client: SecureClient,
   request?: ListAccountTradesRequest,
 ): Paginated<ClobTrade> {
-  const params = parseUserInput(request, ListAccountTradesRequestSchema);
+  const { cursor, ...params } = parseUserInput(
+    request,
+    ListAccountTradesRequestSchema,
+  );
 
-  return paginate((nextCursor) =>
-    client.secureClob
-      .get('/data/trades', {
-        params: toSearchParams({ ...params, nextCursor }, snakeCase()),
-      })
-      .andThen(validateWith(ClobTradesPageSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      })),
+  return paginate(
+    (nextCursor) =>
+      client.secureClob
+        .get('/data/trades', {
+          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+        })
+        .andThen(validateWith(ClobTradesPageSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
   );
 }
 
@@ -509,6 +524,7 @@ export async function fetchOrdersScoring(
 }
 
 const ListUserEarningsForDayRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
   date: z.string(),
 });
 
@@ -559,31 +575,36 @@ export function listUserEarningsForDay(
   client: SecureClient,
   request: ListUserEarningsForDayRequest,
 ): Paginated<UserEarning> {
-  const params = parseUserInput(request, ListUserEarningsForDayRequestSchema);
+  const { cursor, ...params } = parseUserInput(
+    request,
+    ListUserEarningsForDayRequestSchema,
+  );
   const signatureType = toSignatureType(client.account.walletType);
 
-  return paginate((nextCursor) =>
-    client.secureClob
-      .get('/rewards/user', {
-        params: toSearchParams(
-          {
-            ...params,
-            nextCursor,
-            signatureType,
-          },
-          snakeCase(),
-        ),
-      })
-      .andThen(validateWith(UserEarningsPageSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      })),
+  return paginate(
+    (nextCursor) =>
+      client.secureClob
+        .get('/rewards/user', {
+          params: toSearchParams(
+            {
+              ...params,
+              nextCursor,
+              signatureType,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(UserEarningsPageSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
   );
 }
 
@@ -626,9 +647,11 @@ export async function fetchTotalEarningsForUserForDay(
 }
 
 const ListUserEarningsAndMarketsConfigRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
   date: z.string(),
   noCompetition: z.boolean().optional(),
   orderBy: z.string().optional(),
+  pageSize: z.number().int().positive().max(500).optional(),
   position: z.string().optional(),
 });
 
@@ -679,34 +702,36 @@ export function listUserEarningsAndMarketsConfig(
   client: SecureClient,
   request: ListUserEarningsAndMarketsConfigRequest,
 ): Paginated<UserRewardsEarning> {
-  const params = parseUserInput(
+  const { cursor, ...params } = parseUserInput(
     request,
     ListUserEarningsAndMarketsConfigRequestSchema,
   );
   const signatureType = toSignatureType(client.account.walletType);
 
-  return paginate((nextCursor) =>
-    client.secureClob
-      .get('/rewards/user/markets', {
-        params: toSearchParams(
-          {
-            ...params,
-            nextCursor,
-            signatureType,
-          },
-          snakeCase(),
-        ),
-      })
-      .andThen(validateWith(UserRewardsEarningsPageSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      })),
+  return paginate(
+    (nextCursor) =>
+      client.secureClob
+        .get('/rewards/user/markets', {
+          params: toSearchParams(
+            {
+              ...params,
+              nextCursor,
+              signatureType,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(UserRewardsEarningsPageSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
   );
 }
 

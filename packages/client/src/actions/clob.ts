@@ -1,5 +1,6 @@
 import {
   ConditionIdSchema,
+  PaginationCursorSchema,
   type TickSizeValue,
   toPaginationCursor,
 } from '@polymarket/bindings';
@@ -734,6 +735,7 @@ export async function listPriceHistory(
 
 const ListCurrentRewardsRequestSchema = z
   .object({
+    cursor: PaginationCursorSchema.optional(),
     sponsored: z.boolean().optional(),
   })
   .default({});
@@ -782,34 +784,40 @@ export function listCurrentRewards(
   client: Client,
   request: ListCurrentRewardsRequest = {},
 ): Paginated<CurrentReward> {
-  const params = parseUserInput(request, ListCurrentRewardsRequestSchema);
+  const { cursor, ...params } = parseUserInput(
+    request,
+    ListCurrentRewardsRequestSchema,
+  );
 
-  return paginate((nextCursor) =>
-    client.clob
-      .get('/rewards/markets/current', {
-        params: toSearchParams(
-          {
-            ...params,
-            nextCursor,
-          },
-          snakeCase(),
-        ),
-      })
-      .andThen(validateWith(PaginatedCurrentRewardsSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      })),
+  return paginate(
+    (nextCursor) =>
+      client.clob
+        .get('/rewards/markets/current', {
+          params: toSearchParams(
+            {
+              ...params,
+              nextCursor,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(PaginatedCurrentRewardsSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
   );
 }
 
 const ListMarketRewardsRequestSchema = z.object({
   conditionId: ConditionIdSchema,
+  cursor: PaginationCursorSchema.optional(),
   sponsored: z.boolean().optional(),
 });
 
@@ -863,29 +871,34 @@ export function listMarketRewards(
   client: Client,
   request: ListMarketRewardsRequest,
 ): Paginated<MarketReward> {
-  const params = parseUserInput(request, ListMarketRewardsRequestSchema);
+  const { cursor, ...params } = parseUserInput(
+    request,
+    ListMarketRewardsRequestSchema,
+  );
 
-  return paginate((nextCursor) =>
-    client.clob
-      .get(`rewards/markets/${params.conditionId}`, {
-        params: toSearchParams(
-          {
-            nextCursor,
-            sponsored: params.sponsored,
-          },
-          snakeCase(),
-        ),
-      })
-      .andThen(validateWith(PaginatedMarketRewardsSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      })),
+  return paginate(
+    (nextCursor) =>
+      client.clob
+        .get(`rewards/markets/${params.conditionId}`, {
+          params: toSearchParams(
+            {
+              nextCursor,
+              sponsored: params.sponsored,
+            },
+            snakeCase(),
+          ),
+        })
+        .andThen(validateWith(PaginatedMarketRewardsSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
   );
 }
 

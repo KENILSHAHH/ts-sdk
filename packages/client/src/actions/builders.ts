@@ -1,4 +1,7 @@
-import { toPaginationCursor } from '@polymarket/bindings';
+import {
+  PaginationCursorSchema,
+  toPaginationCursor,
+} from '@polymarket/bindings';
 import {
   type BuilderTrade,
   END_CURSOR,
@@ -22,6 +25,7 @@ const ListBuilderTradesRequestSchema = z.object({
   after: z.string().optional(),
   before: z.string().optional(),
   builder: z.string().optional(),
+  cursor: PaginationCursorSchema.optional(),
   id: z.string().optional(),
   market: z.string().optional(),
   tokenId: z.string().optional(),
@@ -71,27 +75,32 @@ export function listBuilderTrades(
   client: Client,
   request: ListBuilderTradesRequest = {},
 ): Paginated<BuilderTrade> {
-  const params = parseUserInput(request, ListBuilderTradesRequestSchema);
+  const { cursor, ...params } = parseUserInput(
+    request,
+    ListBuilderTradesRequestSchema,
+  );
 
-  return paginate((nextCursor) => {
-    return client.clob
-      .get('/builder/trades', {
-        params: toSearchParams(
-          { ...params, nextCursor },
-          snakeCase({
-            tokenId: 'asset_id',
-          }),
-        ),
-      })
-      .andThen(validateWith(PaginatedBuilderTradesSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.next_cursor !== END_CURSOR,
-        nextCursor:
-          response.next_cursor === END_CURSOR
-            ? undefined
-            : toPaginationCursor(response.next_cursor),
-        totalCount: response.count,
-      }));
-  });
+  return paginate(
+    (nextCursor) =>
+      client.clob
+        .get('/builder/trades', {
+          params: toSearchParams(
+            { ...params, nextCursor },
+            snakeCase({
+              tokenId: 'asset_id',
+            }),
+          ),
+        })
+        .andThen(validateWith(PaginatedBuilderTradesSchema))
+        .map((response) => ({
+          items: response.data,
+          hasMore: response.next_cursor !== END_CURSOR,
+          nextCursor:
+            response.next_cursor === END_CURSOR
+              ? undefined
+              : toPaginationCursor(response.next_cursor),
+          totalCount: response.count,
+        })),
+    cursor,
+  );
 }
