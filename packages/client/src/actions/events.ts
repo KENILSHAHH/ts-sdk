@@ -125,6 +125,23 @@ export type ListEventsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listEvents(client, {
+ *   closed: false,
+ *   pageSize: 10,
+ * });
+ *
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Event[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
  * ```ts
  * const result = listEvents(client, {
  *   closed: false,
@@ -132,12 +149,6 @@ export type ListEventsError =
  * });
  *
  * for await (const page of result) {
- *   // page.items: Event[]
- * }
- *
- * const firstPage = await result.first();
- *
- * for await (const page of result.from(firstPage.nextCursor)) {
  *   // page.items: Event[]
  * }
  * ```
@@ -148,8 +159,8 @@ export function listEvents(
 ): Paginated<Event> {
   const params = parseUserInput(request, ListEventsRequestSchema);
 
-  return paginate(async (cursor) => {
-    const response = await unwrap(
+  return paginate(
+    (cursor) =>
       client.gamma
         .get('/events/keyset', {
           params: toEventsSearchParams({
@@ -157,15 +168,14 @@ export function listEvents(
             cursor: cursor ?? params.cursor,
           }),
         })
-        .andThen(validateWith(ListEventsKeysetResponseSchema)),
-    );
-
-    return {
-      items: response.items,
-      hasMore: response.next_cursor !== undefined,
-      nextCursor: response.next_cursor,
-    };
-  }, params.cursor);
+        .andThen(validateWith(ListEventsKeysetResponseSchema))
+        .map((response) => ({
+          items: response.items,
+          hasMore: response.next_cursor !== undefined,
+          nextCursor: response.next_cursor,
+        })),
+    params.cursor,
+  );
 }
 
 export type FetchEventError =

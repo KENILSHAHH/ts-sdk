@@ -1,4 +1,4 @@
-import { PaginationCursorSchema } from '@polymarket/bindings';
+import { toPaginationCursor } from '@polymarket/bindings';
 import {
   AssetTypeSchema,
   type BalanceAllowanceResponse,
@@ -7,7 +7,6 @@ import {
   ClobTradesPageSchema,
   ClosedOnlyModeSchema,
   END_CURSOR,
-  INITIAL_CURSOR,
   type NotificationsResponse,
   NotificationsResponseSchema,
   type OpenOrder,
@@ -38,6 +37,7 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import { type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
@@ -86,21 +86,55 @@ export type ListOpenOrdersError =
  * Lists open orders for the authenticated account across all pages.
  *
  * @throws {@link ListOpenOrdersError}
+ *
+ * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listOpenOrders(client, {
+ *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+ * });
+ *
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: OpenOrder[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listOpenOrders(client, {
+ *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: OpenOrder[]
+ * }
+ * ```
  */
-export async function listOpenOrders(
+export function listOpenOrders(
   client: SecureClient,
   request?: ListOpenOrdersRequest,
-): Promise<OpenOrder[]> {
+): Paginated<OpenOrder> {
   const params = parseUserInput(request, ListOpenOrdersRequestSchema);
 
-  return listAllPages(async (nextCursor) =>
-    unwrap(
-      client.secureClob
-        .get('/data/orders', {
-          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
-        })
-        .andThen(validateWith(OpenOrdersPageSchema)),
-    ),
+  return paginate((nextCursor) =>
+    client.secureClob
+      .get('/data/orders', {
+        params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+      })
+      .andThen(validateWith(OpenOrdersPageSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      })),
   );
 }
 
@@ -163,80 +197,56 @@ export type ListAccountTradesError =
  * Lists trades for the authenticated account across all pages.
  *
  * @throws {@link ListAccountTradesError}
+ *
+ * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listAccountTrades(client, {
+ *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+ * });
+ *
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: ClobTrade[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listAccountTrades(client, {
+ *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: ClobTrade[]
+ * }
+ * ```
  */
-export async function listAccountTrades(
+export function listAccountTrades(
   client: SecureClient,
   request?: ListAccountTradesRequest,
-): Promise<ClobTrade[]> {
+): Paginated<ClobTrade> {
   const params = parseUserInput(request, ListAccountTradesRequestSchema);
 
-  return listAllPages(async (nextCursor) =>
-    unwrap(
-      client.secureClob
-        .get('/data/trades', {
-          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
-        })
-        .andThen(validateWith(ClobTradesPageSchema)),
-    ),
-  );
-}
-
-const ListAccountTradesPageRequestSchema = z
-  .object({
-    ...ListAccountTradesRequestFields,
-    nextCursor: PaginationCursorSchema.optional(),
-  })
-  .default({});
-
-export type ListAccountTradesPageRequest = z.input<
-  typeof ListAccountTradesPageRequestSchema
->;
-
-export type ListAccountTradesPageResponse = {
-  count: number;
-  limit: number;
-  nextCursor: string;
-  trades: ClobTrade[];
-};
-
-export type ListAccountTradesPageError =
-  | RateLimitError
-  | RequestRejectedError
-  | SigningError
-  | TransportError
-  | UnexpectedResponseError
-  | UserInputError;
-
-/**
- * Lists a single page of trades for the authenticated account.
- *
- * @throws {@link ListAccountTradesPageError}
- */
-export async function listAccountTradesPage(
-  client: SecureClient,
-  request?: ListAccountTradesPageRequest,
-): Promise<ListAccountTradesPageResponse> {
-  const params = parseUserInput(request, ListAccountTradesPageRequestSchema);
-  const response = await unwrap(
+  return paginate((nextCursor) =>
     client.secureClob
       .get('/data/trades', {
-        params: toSearchParams(
-          {
-            ...params,
-            nextCursor: params.nextCursor ?? INITIAL_CURSOR,
-          },
-          snakeCase(),
-        ),
+        params: toSearchParams({ ...params, nextCursor }, snakeCase()),
       })
-      .andThen(validateWith(ClobTradesPageSchema)),
+      .andThen(validateWith(ClobTradesPageSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      })),
   );
-
-  return {
-    count: response.count,
-    limit: response.limit,
-    nextCursor: response.next_cursor,
-    trades: response.data,
-  };
 }
 
 export type FetchNotificationsError =
@@ -323,6 +333,7 @@ const FetchBalanceAllowanceRequestSchema = z.object({
 export type FetchBalanceAllowanceRequest = z.input<
   typeof FetchBalanceAllowanceRequestSchema
 >;
+
 export type FetchBalanceAllowanceError =
   | RateLimitError
   | RequestRejectedError
@@ -516,29 +527,63 @@ export type ListUserEarningsForDayError =
  * Lists per-market earnings for the authenticated account on a given day.
  *
  * @throws {@link ListUserEarningsForDayError}
+ *
+ * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listUserEarningsForDay(client, {
+ *   date: '2026-04-16',
+ * });
+ *
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: UserEarning[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listUserEarningsForDay(client, {
+ *   date: '2026-04-16',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: UserEarning[]
+ * }
+ * ```
  */
-export async function listUserEarningsForDay(
+export function listUserEarningsForDay(
   client: SecureClient,
   request: ListUserEarningsForDayRequest,
-): Promise<UserEarning[]> {
+): Paginated<UserEarning> {
   const params = parseUserInput(request, ListUserEarningsForDayRequestSchema);
   const signatureType = toSignatureType(client.account.walletType);
 
-  return listAllPages(async (nextCursor) =>
-    unwrap(
-      client.secureClob
-        .get('/rewards/user', {
-          params: toSearchParams(
-            {
-              ...params,
-              nextCursor,
-              signatureType,
-            },
-            snakeCase(),
-          ),
-        })
-        .andThen(validateWith(UserEarningsPageSchema)),
-    ),
+  return paginate((nextCursor) =>
+    client.secureClob
+      .get('/rewards/user', {
+        params: toSearchParams(
+          {
+            ...params,
+            nextCursor,
+            signatureType,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(UserEarningsPageSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      })),
   );
 }
 
@@ -602,32 +647,66 @@ export type ListUserEarningsAndMarketsConfigError =
  * Lists market reward configuration and earnings for the authenticated account on a given day.
  *
  * @throws {@link ListUserEarningsAndMarketsConfigError}
+ *
+ * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listUserEarningsAndMarketsConfig(client, {
+ *   date: '2026-04-16',
+ * });
+ *
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: UserRewardsEarning[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listUserEarningsAndMarketsConfig(client, {
+ *   date: '2026-04-16',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: UserRewardsEarning[]
+ * }
+ * ```
  */
-export async function listUserEarningsAndMarketsConfig(
+export function listUserEarningsAndMarketsConfig(
   client: SecureClient,
   request: ListUserEarningsAndMarketsConfigRequest,
-): Promise<UserRewardsEarning[]> {
+): Paginated<UserRewardsEarning> {
   const params = parseUserInput(
     request,
     ListUserEarningsAndMarketsConfigRequestSchema,
   );
   const signatureType = toSignatureType(client.account.walletType);
 
-  return listAllPages(async (nextCursor) =>
-    unwrap(
-      client.secureClob
-        .get('/rewards/user/markets', {
-          params: toSearchParams(
-            {
-              ...params,
-              nextCursor,
-              signatureType,
-            },
-            snakeCase(),
-          ),
-        })
-        .andThen(validateWith(UserRewardsEarningsPageSchema)),
-    ),
+  return paginate((nextCursor) =>
+    client.secureClob
+      .get('/rewards/user/markets', {
+        params: toSearchParams(
+          {
+            ...params,
+            nextCursor,
+            signatureType,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(UserRewardsEarningsPageSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      })),
   );
 }
 
@@ -655,23 +734,4 @@ export async function fetchRewardPercentages(
       })
       .andThen(validateWith(RewardsPercentagesSchema)),
   );
-}
-
-async function listAllPages<TItem>(
-  fetchPage: (nextCursor: string) => Promise<{
-    data: TItem[];
-    next_cursor: string;
-  }>,
-): Promise<TItem[]> {
-  let nextCursor = INITIAL_CURSOR;
-  const results: TItem[] = [];
-
-  while (nextCursor !== END_CURSOR) {
-    const response = await fetchPage(nextCursor);
-
-    results.push(...response.data);
-    nextCursor = response.next_cursor;
-  }
-
-  return results;
 }

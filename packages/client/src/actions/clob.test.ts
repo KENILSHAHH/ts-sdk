@@ -223,29 +223,25 @@ describe('CLOB', () => {
 
   describe('listCurrentRewards', () => {
     it('lists current active market rewards', async () => {
-      const result = await listCurrentRewards(publicClient).catch(
-        ignoreRewardsEndpointTimeout,
-      );
-
-      if (result === undefined) {
-        return;
-      }
-
-      expect(Array.isArray(result)).toBe(true);
+      await expect(
+        listCurrentRewards(publicClient)
+          .first()
+          .catch(ignoreRewardsEndpointTimeout),
+      ).resolves.toBeDefined();
     });
   });
 
   describe('listMarketRewards', () => {
     it('fetches reward configurations for a market', async () => {
-      const currentRewards = await listCurrentRewards(publicClient).catch(
-        ignoreRewardsEndpointTimeout,
-      );
+      const currentRewards = await listCurrentRewards(publicClient)
+        .first()
+        .catch(ignoreRewardsEndpointTimeout);
 
       if (currentRewards === undefined) {
         return;
       }
 
-      const currentReward = currentRewards[0];
+      const currentReward = currentRewards.items[0];
 
       if (currentReward === undefined) {
         return;
@@ -253,14 +249,16 @@ describe('CLOB', () => {
 
       const result = await listMarketRewards(publicClient, {
         conditionId: currentReward.condition_id,
-      }).catch(ignoreRewardsEndpointTimeout);
+      })
+        .first()
+        .catch(ignoreRewardsEndpointTimeout);
 
       if (result === undefined) {
         return;
       }
 
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toEqual(
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           condition_id: currentReward.condition_id,
           question: expect.any(String),

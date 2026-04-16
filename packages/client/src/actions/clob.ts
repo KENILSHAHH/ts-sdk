@@ -1,6 +1,11 @@
-import { ConditionIdSchema, type TickSizeValue } from '@polymarket/bindings';
+import {
+  ConditionIdSchema,
+  type TickSizeValue,
+  toPaginationCursor,
+} from '@polymarket/bindings';
 import {
   type CurrentReward,
+  END_CURSOR,
   FetchFeeRateResponseSchema,
   FetchNegRiskResponseSchema,
   FetchOrderBookResponseSchema,
@@ -37,6 +42,7 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import { type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
@@ -750,32 +756,55 @@ export type ListCurrentRewardsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const rewards = await listCurrentRewards(client)
+ * const result = listCurrentRewards(client);
  *
- * // rewards: CurrentReward[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: CurrentReward[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listCurrentRewards(client);
+ *
+ * for await (const page of result) {
+ *   // page.items: CurrentReward[]
+ * }
  * ```
  */
-export async function listCurrentRewards(
+export function listCurrentRewards(
   client: Client,
   request: ListCurrentRewardsRequest = {},
-): Promise<CurrentReward[]> {
+): Paginated<CurrentReward> {
   const params = parseUserInput(request, ListCurrentRewardsRequestSchema);
 
-  return listAllClobPages(async (nextCursor) =>
-    unwrap(
-      client.clob
-        .get('/rewards/markets/current', {
-          params: toSearchParams(
-            {
-              ...params,
-              nextCursor,
-            },
-            snakeCase(),
-          ),
-        })
-        .andThen(validateWith(PaginatedCurrentRewardsSchema)),
-    ),
+  return paginate((nextCursor) =>
+    client.clob
+      .get('/rewards/markets/current', {
+        params: toSearchParams(
+          {
+            ...params,
+            nextCursor,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(PaginatedCurrentRewardsSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      })),
   );
 }
 
@@ -802,35 +831,61 @@ export type ListMarketRewardsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const rewards = await listMarketRewards(client, {
+ * const result = listMarketRewards(client, {
  *   conditionId:
  *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
- * })
+ * });
  *
- * // rewards: MarketReward[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: MarketReward[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listMarketRewards(client, {
+ *   conditionId:
+ *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: MarketReward[]
+ * }
  * ```
  */
-export async function listMarketRewards(
+export function listMarketRewards(
   client: Client,
   request: ListMarketRewardsRequest,
-): Promise<MarketReward[]> {
+): Paginated<MarketReward> {
   const params = parseUserInput(request, ListMarketRewardsRequestSchema);
 
-  return listAllClobPages(async (nextCursor) =>
-    unwrap(
-      client.clob
-        .get(`rewards/markets/${params.conditionId}`, {
-          params: toSearchParams(
-            {
-              nextCursor,
-              sponsored: params.sponsored,
-            },
-            snakeCase(),
-          ),
-        })
-        .andThen(validateWith(PaginatedMarketRewardsSchema)),
-    ),
+  return paginate((nextCursor) =>
+    client.clob
+      .get(`rewards/markets/${params.conditionId}`, {
+        params: toSearchParams(
+          {
+            nextCursor,
+            sponsored: params.sponsored,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(PaginatedMarketRewardsSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      })),
   );
 }
 
@@ -854,23 +909,4 @@ function toTokenWithSideRequestPayload(
     token_id: tokenId,
     side,
   }));
-}
-
-async function listAllClobPages<TItem>(
-  fetchPage: (nextCursor: string) => Promise<{
-    data: TItem[];
-    next_cursor: string;
-  }>,
-): Promise<TItem[]> {
-  let nextCursor = 'MA==';
-  const results: TItem[] = [];
-
-  while (nextCursor !== 'LTE=') {
-    const response = await fetchPage(nextCursor);
-
-    results.push(...response.data);
-    nextCursor = response.next_cursor;
-  }
-
-  return results;
 }

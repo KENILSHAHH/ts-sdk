@@ -194,11 +194,11 @@ describe('Orders', () => {
 
       expect(result.canceled).toContain(orderId);
 
-      const openOrders = await listOpenOrders(secureClient, {
+      const { items } = await listOpenOrders(secureClient, {
         market: market.id,
-      });
+      }).first();
 
-      expect(openOrders.some((order) => order.id === orderId)).toBe(false);
+      expect(items.some((order) => order.id === orderId)).toBe(false);
     });
   });
 

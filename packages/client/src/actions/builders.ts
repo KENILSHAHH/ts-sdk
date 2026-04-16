@@ -1,8 +1,9 @@
+import { toPaginationCursor } from '@polymarket/bindings';
 import {
   type BuilderTrade,
+  END_CURSOR,
   PaginatedBuilderTradesSchema,
 } from '@polymarket/bindings/clob';
-import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { Client } from '../clients';
 import type {
@@ -13,8 +14,9 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import { type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
-import { toSearchParams } from './params';
+import { snakeCase, toSearchParams } from './params';
 
 const ListBuilderTradesRequestSchema = z.object({
   after: z.string().optional(),
@@ -43,65 +45,53 @@ export type ListBuilderTradesError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const trades = await listBuilderTrades(client, {})
+ * const result = listBuilderTrades(client);
  *
- * // trades: BuilderTrade[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: BuilderTrade[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listBuilderTrades(client);
+ *
+ * for await (const page of result) {
+ *   // page.items: BuilderTrade[]
+ * }
  * ```
  */
-export async function listBuilderTrades(
+export function listBuilderTrades(
   client: Client,
   request: ListBuilderTradesRequest = {},
-): Promise<BuilderTrade[]> {
+): Paginated<BuilderTrade> {
   const params = parseUserInput(request, ListBuilderTradesRequestSchema);
 
-  return listAllBuilderTradePages(async (nextCursor) => {
-    const requestPath = '/builder/trades';
-
-    return unwrap(
-      client.clob
-        .get(requestPath, {
-          params: toSearchParams(
-            {
-              after: params.after,
-              before: params.before,
-              builder: params.builder,
-              id: params.id,
-              market: params.market,
-              nextCursor,
-              tokenId: params.tokenId,
-            },
-            {
-              after: 'after',
-              before: 'before',
-              builder: 'builder',
-              id: 'id',
-              market: 'market',
-              nextCursor: 'next_cursor',
-              tokenId: 'asset_id',
-            },
-          ),
-        })
-        .andThen(validateWith(PaginatedBuilderTradesSchema)),
-    );
+  return paginate((nextCursor) => {
+    return client.clob
+      .get('/builder/trades', {
+        params: toSearchParams(
+          { ...params, nextCursor },
+          snakeCase({
+            tokenId: 'asset_id',
+          }),
+        ),
+      })
+      .andThen(validateWith(PaginatedBuilderTradesSchema))
+      .map((response) => ({
+        items: response.data,
+        hasMore: response.next_cursor !== END_CURSOR,
+        nextCursor:
+          response.next_cursor === END_CURSOR
+            ? undefined
+            : toPaginationCursor(response.next_cursor),
+        totalCount: response.count,
+      }));
   });
-}
-
-async function listAllBuilderTradePages(
-  fetchPage: (nextCursor: string) => Promise<{
-    data: BuilderTrade[];
-    next_cursor: string;
-  }>,
-): Promise<BuilderTrade[]> {
-  let nextCursor = 'MA==';
-  const results: BuilderTrade[] = [];
-
-  while (nextCursor !== 'LTE=') {
-    const response = await fetchPage(nextCursor);
-
-    results.push(...response.data);
-    nextCursor = response.next_cursor;
-  }
-
-  return results;
 }

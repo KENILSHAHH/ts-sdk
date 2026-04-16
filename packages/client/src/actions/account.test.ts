@@ -22,8 +22,8 @@ describe('Account', () => {
       const [closedOnly, openOrders, trades, notifications, balanceAllowance] =
         await Promise.all([
           fetchClosedOnlyMode(secureClient),
-          listOpenOrders(secureClient),
-          listAccountTrades(secureClient),
+          listOpenOrders(secureClient).first(),
+          listAccountTrades(secureClient).first(),
           fetchNotifications(secureClient),
           fetchBalanceAllowance(secureClient, {
             assetType: AssetType.COLLATERAL,
@@ -31,8 +31,8 @@ describe('Account', () => {
         ]);
 
       expect(typeof closedOnly).toBe('boolean');
-      expect(Array.isArray(openOrders)).toBe(true);
-      expect(Array.isArray(trades)).toBe(true);
+      expect(Array.isArray(openOrders.items)).toBe(true);
+      expect(Array.isArray(trades.items)).toBe(true);
       expect(Array.isArray(notifications)).toBe(true);
       expect(balanceAllowance).toEqual(
         expect.objectContaining({

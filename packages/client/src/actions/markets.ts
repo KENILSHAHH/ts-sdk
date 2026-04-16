@@ -151,6 +151,23 @@ export type ListMarketsError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listMarkets(client, {
+ *   closed: false,
+ *   pageSize: 10,
+ * });
+ *
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: Market[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
  * ```ts
  * const result = listMarkets(client, {
  *   closed: false,
@@ -158,12 +175,6 @@ export type ListMarketsError =
  * });
  *
  * for await (const page of result) {
- *   // page.items: Market[]
- * }
- *
- * const firstPage = await result.first();
- *
- * for await (const page of result.from(firstPage.nextCursor)) {
  *   // page.items: Market[]
  * }
  * ```
@@ -174,8 +185,8 @@ export function listMarkets(
 ): Paginated<Market> {
   const params = parseUserInput(request, ListMarketsRequestSchema);
 
-  return paginate(async (cursor) => {
-    const response = await unwrap(
+  return paginate(
+    (cursor) =>
       client.gamma
         .get('/markets/keyset', {
           params: toMarketsSearchParams({
@@ -183,15 +194,14 @@ export function listMarkets(
             cursor: cursor ?? params.cursor,
           }),
         })
-        .andThen(validateWith(ListMarketsKeysetResponseSchema)),
-    );
-
-    return {
-      items: response.items,
-      hasMore: response.next_cursor !== undefined,
-      nextCursor: response.next_cursor,
-    };
-  }, params.cursor);
+        .andThen(validateWith(ListMarketsKeysetResponseSchema))
+        .map((response) => ({
+          items: response.items,
+          hasMore: response.next_cursor !== undefined,
+          nextCursor: response.next_cursor,
+        })),
+    params.cursor,
+  );
 }
 
 export type FetchMarketError =

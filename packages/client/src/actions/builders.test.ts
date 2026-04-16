@@ -1,8 +1,9 @@
 import { OrderSide } from '@polymarket/bindings/clob';
-import { expectPresent } from '@polymarket/types';
+import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import type { PublicClient } from '../clients';
 import {
+  expectNonEmptyPage,
   findHighVolumeLowPriceMarket,
   publicClientWithBuilderKey,
   safeWalletAddress,
@@ -15,14 +16,16 @@ import { postOrder, prepareMarketOrder } from './orders';
 describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder trades', async () => {
-      const result = await listBuilderTrades(publicClientWithBuilderKey);
-
-      expect(Array.isArray(result)).toBe(true);
+      await expect(
+        listBuilderTrades(publicClientWithBuilderKey).first(),
+      ).resolves.toBeDefined();
     });
 
     it.skip('records at least one builder-attributed trade, placing one minimum-size market order only when needed', async () => {
       const client = publicClientWithBuilderKey;
-      const existingTrades = await listBuilderTrades(client);
+      const existingTrades = await listBuilderTrades(client)
+        .first()
+        .then((page) => page.items);
 
       if (existingTrades.length > 0) {
         expect(existingTrades[0]).toEqual(
@@ -67,14 +70,17 @@ describe('Builders', () => {
 
 async function waitForBuilderTrades(client: PublicClient, tokenId: string) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const trades = await listBuilderTrades(client, { tokenId });
+    const { items } = await listBuilderTrades(client, { tokenId }).first();
 
-    if (trades.length > 0) {
-      return trades;
+    if (items.length > 0) {
+      return items;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await delay(500);
   }
 
-  return listBuilderTrades(client, { tokenId });
+  return listBuilderTrades(client, { tokenId })
+    .first()
+    .then(expectNonEmptyPage)
+    .then((page) => page.items);
 }
