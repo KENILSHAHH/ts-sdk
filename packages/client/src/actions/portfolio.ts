@@ -117,7 +117,7 @@ export type ListPositionsError =
  * Lists current positions for a wallet.
  *
  * @throws {@link ListPositionsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -155,7 +155,7 @@ export type ListClosedPositionsError =
  * Lists closed positions for a wallet.
  *
  * @throws {@link ListClosedPositionsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -193,7 +193,7 @@ export type FetchPortfolioValueError =
  * Fetches the total value for a wallet's positions.
  *
  * @throws {@link FetchPortfolioValueError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -230,7 +230,7 @@ export type FetchTradedMarketCountError =
  * Fetches the total number of markets a wallet has traded.
  *
  * @throws {@link FetchTradedMarketCountError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -267,7 +267,7 @@ export type DownloadAccountingSnapshotError =
  * Downloads an accounting snapshot archive for a wallet.
  *
  * @throws {@link DownloadAccountingSnapshotError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

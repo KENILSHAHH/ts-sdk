@@ -57,7 +57,7 @@ export type FetchMidpointError =
  * Fetches the midpoint price for a token.
  *
  * @throws {@link FetchMidpointError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -107,7 +107,7 @@ export type FetchMidpointsError =
  * Fetches midpoint prices for multiple tokens.
  *
  * @throws {@link FetchMidpointsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -154,7 +154,7 @@ export type FetchTickSizeError =
  * Fetches the minimum price tick size for a token's order book.
  *
  * @throws {@link FetchTickSizeError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -199,7 +199,7 @@ export type FetchNegRiskError =
  * Fetches whether a token is in a negative-risk market.
  *
  * @throws {@link FetchNegRiskError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -244,7 +244,7 @@ export type FetchFeeRateError =
  * Fetches the base fee rate, in basis points, for a token's order book.
  *
  * @throws {@link FetchFeeRateError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -290,7 +290,7 @@ export type FetchPriceError =
  * Fetches the current quoted price for a token and side.
  *
  * @throws {@link FetchPriceError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -342,7 +342,7 @@ export type FetchPricesError =
  * Fetches quoted prices for multiple tokens.
  *
  * @throws {@link FetchPricesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -390,7 +390,7 @@ export type FetchOrderBookError =
  * Fetches the current order book for a token.
  *
  * @throws {@link FetchOrderBookError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -440,7 +440,7 @@ export type FetchOrderBooksError =
  * Fetches order books for multiple tokens.
  *
  * @throws {@link FetchOrderBooksError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -486,7 +486,7 @@ export type FetchSpreadError =
  * Fetches the spread for a token.
  *
  * @throws {@link FetchSpreadError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -536,7 +536,7 @@ export type FetchSpreadsError =
  * Fetches spreads for multiple tokens.
  *
  * @throws {@link FetchSpreadsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -585,7 +585,7 @@ export type FetchLastTradePriceError =
  * Fetches the last traded price for a token.
  *
  * @throws {@link FetchLastTradePriceError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -636,7 +636,7 @@ export type FetchLastTradePricesError =
  * Fetches last traded prices for multiple tokens.
  *
  * @throws {@link FetchLastTradePricesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -689,7 +689,7 @@ export type ListPriceHistoryError =
  * Lists historical price points for a token.
  *
  * @throws {@link ListPriceHistoryError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -747,7 +747,7 @@ export type ListCurrentRewardsError =
  * Lists current active market rewards.
  *
  * @throws {@link ListCurrentRewardsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -799,7 +799,7 @@ export type FetchMarketRewardsError =
  * Fetches reward configurations for a market.
  *
  * @throws {@link FetchMarketRewardsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

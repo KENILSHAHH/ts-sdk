@@ -53,7 +53,7 @@ export type ListSeriesError =
  * Lists series.
  *
  * @throws {@link ListSeriesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -97,7 +97,7 @@ export type FetchSeriesError =
  * Fetches a series.
  *
  * @throws {@link FetchSeriesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

@@ -64,7 +64,7 @@ export type ListBuilderLeaderboardError =
  * Lists builder leaderboard rankings.
  *
  * @throws {@link ListBuilderLeaderboardError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -102,7 +102,7 @@ export type ListBuilderVolumeError =
  * Lists daily builder volume entries.
  *
  * @throws {@link ListBuilderVolumeError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -139,7 +139,7 @@ export type ListTraderLeaderboardError =
  * Lists trader leaderboard rankings.
  *
  * @throws {@link ListTraderLeaderboardError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

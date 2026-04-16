@@ -59,7 +59,7 @@ export type ListCommentsError =
  * Lists comments for an event or series.
  *
  * @throws {@link ListCommentsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -98,7 +98,7 @@ export type FetchCommentsByIdError =
  * Fetches a comment thread by comment id.
  *
  * @throws {@link FetchCommentsByIdError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -141,7 +141,7 @@ export type FetchCommentsByUserAddressError =
  * Fetches comments written by a wallet address.
  *
  * @throws {@link FetchCommentsByUserAddressError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

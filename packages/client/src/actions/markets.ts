@@ -144,7 +144,7 @@ export type ListMarketsError =
  * Lists markets.
  *
  * @throws {@link ListMarketsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -182,7 +182,7 @@ export type FetchMarketError =
  * Fetches a market.
  *
  * @throws {@link FetchMarketError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -217,7 +217,7 @@ export type FetchMarketTagsError =
  * Fetches a market's tags.
  *
  * @throws {@link FetchMarketTagsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -252,7 +252,7 @@ export type ListMarketHoldersError =
  * Lists the top holders for one or more markets.
  *
  * @throws {@link ListMarketHoldersError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -290,7 +290,7 @@ export type ListOpenInterestError =
  * Lists open interest for one or more markets.
  *
  * @throws {@link ListOpenInterestError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -327,7 +327,7 @@ export type ListMarketPositionsError =
  * Lists positions for a market.
  *
  * @throws {@link ListMarketPositionsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

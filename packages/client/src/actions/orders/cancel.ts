@@ -5,14 +5,13 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { SecureClient } from '../../clients';
-import {
-  CancelError,
-  type RateLimitError,
+import type {
+  RateLimitError,
   RequestRejectedError,
-  type SigningError,
-  type TransportError,
-  type UnexpectedResponseError,
-  type UserInputError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
 import { validateWith } from '../../response';
@@ -40,21 +39,19 @@ const CancelMarketOrdersRequestSchema = z
 
 export type CancelOrderRequest = z.input<typeof CancelOrderRequestSchema>;
 
-type CancelRequestError =
+export type CancelOrderError =
+  | RequestRejectedError
   | RateLimitError
   | SigningError
   | TransportError
-  | UnexpectedResponseError;
-
-export type CancelOrderError =
-  | CancelError
-  | CancelRequestError
+  | UnexpectedResponseError
   | UserInputError;
 
 /**
  * Cancels a single open order for the authenticated account.
  *
  * @throws {@link CancelOrderError}
+ * Thrown on failure.
  */
 export async function cancelOrder(
   client: SecureClient,
@@ -69,14 +66,18 @@ export async function cancelOrder(
 
 export type CancelOrdersRequest = z.input<typeof CancelOrdersRequestSchema>;
 export type CancelOrdersError =
-  | CancelError
-  | CancelRequestError
+  | RequestRejectedError
+  | RateLimitError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
   | UserInputError;
 
 /**
  * Cancels multiple open orders for the authenticated account.
  *
  * @throws {@link CancelOrdersError}
+ * Thrown on failure.
  */
 export async function cancelOrders(
   client: SecureClient,
@@ -87,12 +88,18 @@ export async function cancelOrders(
   return cancel(client, '/orders', params.orderIds);
 }
 
-export type CancelAllError = CancelError | CancelRequestError;
+export type CancelAllError =
+  | RequestRejectedError
+  | RateLimitError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError;
 
 /**
  * Cancels all open orders for the authenticated account.
  *
  * @throws {@link CancelAllError}
+ * Thrown on failure.
  */
 export async function cancelAll(
   client: SecureClient,
@@ -104,8 +111,11 @@ export type CancelMarketOrdersRequest = z.input<
   typeof CancelMarketOrdersRequestSchema
 >;
 export type CancelMarketOrdersError =
-  | CancelError
-  | CancelRequestError
+  | RequestRejectedError
+  | RateLimitError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
   | UserInputError;
 
 /**
@@ -113,6 +123,7 @@ export type CancelMarketOrdersError =
  * or asset filter.
  *
  * @throws {@link CancelMarketOrdersError}
+ * Thrown on failure.
  */
 export async function cancelMarketOrders(
   client: SecureClient,
@@ -135,15 +146,6 @@ async function cancel(
     client.secureClob
       .del(path, {
         json: payload,
-      })
-      .mapErr((error) => {
-        if (!(error instanceof RequestRejectedError)) {
-          return error;
-        }
-
-        return new CancelError(error.message, {
-          cause: error,
-        });
       })
       .andThen(validateWith(CancelOrdersResponseSchema)),
   );

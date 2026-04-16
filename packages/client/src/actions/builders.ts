@@ -40,7 +40,7 @@ export type ListBuilderTradesError =
  * Lists builder-attributed trades.
  *
  * @throws {@link ListBuilderTradesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

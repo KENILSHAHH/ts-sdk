@@ -24,7 +24,7 @@ export type ListSportsError =
  * Lists available sports metadata.
  *
  * @throws {@link ListSportsError}
- * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -51,7 +51,7 @@ export type FetchSportsMarketTypesError =
  * Fetches the available market types grouped by sport.
  *
  * @throws {@link FetchSportsMarketTypesError}
- * Thrown when the request is rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

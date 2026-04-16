@@ -88,7 +88,7 @@ export type ListTagsError =
  * Lists tags.
  *
  * @throws {@link ListTagsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -126,7 +126,7 @@ export type FetchTagError =
  * Fetches a tag by id or slug.
  *
  * @throws {@link FetchTagError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -186,7 +186,7 @@ export type FetchRelatedTagsError =
  * Fetches related tag relationships by id or slug.
  *
  * @throws {@link FetchRelatedTagsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -241,7 +241,7 @@ export type FetchRelatedTagResourcesError =
  * Fetches resources linked from related tag relationships by id or slug.
  *
  * @throws {@link FetchRelatedTagResourcesError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

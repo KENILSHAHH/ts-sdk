@@ -49,7 +49,7 @@ export type SearchError =
  * Runs a public full-text search.
  *
  * @throws {@link SearchError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts

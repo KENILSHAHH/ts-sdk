@@ -17,7 +17,13 @@ import {
   splitPositionCall,
 } from '../abis';
 import type { SecureClient } from '../clients';
-import { UserInputError } from '../errors';
+import {
+  type RateLimitError,
+  type RequestRejectedError,
+  type TransportError,
+  type UnexpectedResponseError,
+  UserInputError,
+} from '../errors';
 import { parseUserInput } from '../input';
 import {
   expectTransactionHandle,
@@ -30,7 +36,7 @@ import {
   prepareGaslessTransaction,
 } from './gasless';
 import { listMarkets } from './markets';
-import { type ListPositionsError, listPositions } from './portfolio';
+import { listPositions } from './portfolio';
 
 type BinaryPositions = readonly [
   yes: Position | undefined,
@@ -114,8 +120,18 @@ export type PrepareRedeemPositionsRequest = z.input<
 >;
 
 export type PrepareSplitPositionError = UserInputError;
-export type PrepareMergePositionsError = ListPositionsError;
-export type PrepareRedeemPositionsError = ListPositionsError;
+export type PrepareMergePositionsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export type PrepareRedeemPositionsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
 
 /**
  * Starts a split workflow for a market condition.
@@ -130,7 +146,7 @@ export type PrepareRedeemPositionsError = ListPositionsError;
  * ```
  *
  * @throws {@link PrepareSplitPositionError}
- * Thrown when the request is invalid or the environment does not support the requested split flow.
+ * Thrown on failure.
  */
 export async function prepareSplitPosition(
   client: SecureClient,
@@ -176,7 +192,7 @@ export async function prepareSplitPosition(
  * ```
  *
  * @throws {@link PrepareMergePositionsError}
- * Thrown when the request is invalid, when the market positions cannot satisfy the requested merge amount, or when the workflow cannot be prepared.
+ * Thrown on failure.
  */
 export async function prepareMergePositions(
   client: SecureClient,
@@ -232,7 +248,7 @@ export async function prepareMergePositions(
  * ```
  *
  * @throws {@link PrepareRedeemPositionsError}
- * Thrown when the request is invalid or the environment does not support the requested redemption flow.
+ * Thrown on failure.
  */
 export async function prepareRedeemPositions(
   client: SecureClient,

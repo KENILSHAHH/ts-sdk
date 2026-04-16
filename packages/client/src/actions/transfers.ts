@@ -58,7 +58,7 @@ export type PrepareErc20TransferError = UserInputError;
  * ```
  *
  * @throws {@link PrepareErc20TransferError}
- * Thrown when the request is invalid.
+ * Thrown on failure.
  */
 export async function prepareErc20Transfer(
   client: SecureClient,

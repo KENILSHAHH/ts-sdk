@@ -282,7 +282,7 @@ export type DropNotificationsError =
  * Drops notifications for the authenticated account.
  *
  * @throws {@link DropNotificationsError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, cannot be signed, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
@@ -335,7 +335,7 @@ export type FetchBalanceAllowanceError =
  * This is a low-level action that most SDK consumers will not need.
  *
  * @throws {@link FetchBalanceAllowanceError}
- * Thrown when the request is invalid, rejected, rate limited, interrupted by transport issues, cannot be signed, or returns an unexpected response.
+ * Thrown on failure.
  *
  * @example
  * ```ts
