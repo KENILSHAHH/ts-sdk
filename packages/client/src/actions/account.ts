@@ -369,6 +369,62 @@ export async function fetchBalanceAllowance(
   );
 }
 
+const UpdateBalanceAllowanceRequestSchema = z.object({
+  assetType: AssetTypeSchema,
+  tokenId: z.string().optional(),
+});
+
+export type UpdateBalanceAllowanceRequest = z.input<
+  typeof UpdateBalanceAllowanceRequestSchema
+>;
+
+export type UpdateBalanceAllowanceError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+
+/**
+ * Refreshes balance and allowance for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
+ * @throws {@link UpdateBalanceAllowanceError}
+ * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const balanceAllowance = await updateBalanceAllowance(client, {
+ *   assetType: AssetType.COLLATERAL,
+ * });
+ * ```
+ */
+export async function updateBalanceAllowance(
+  client: SecureClient,
+  request: UpdateBalanceAllowanceRequest,
+): Promise<BalanceAllowanceResponse> {
+  const params = parseUserInput(request, UpdateBalanceAllowanceRequestSchema);
+  const signatureType = toSignatureType(client.account.walletType);
+  const searchParams = toSearchParams(
+    {
+      ...params,
+      signatureType,
+    },
+    snakeCase(),
+  );
+
+  await unwrap(
+    client.secureClob.get('/balance-allowance/update', {
+      params: searchParams,
+    }),
+  );
+
+  return fetchBalanceAllowance(client, params);
+}
+
 const FetchOrderScoringRequestSchema = z.object({
   orderId: z.string(),
 });
