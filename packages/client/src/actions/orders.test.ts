@@ -7,11 +7,10 @@ import {
 } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { createPublicClient } from '../clients';
 import { InsufficientLiquidityError } from '../errors';
 import {
   publicClient,
-  relayerKey,
+  publicClientWithRelayerKey,
   safeWalletAddress,
   walletClient,
 } from '../testing';
@@ -151,9 +150,7 @@ describe('Orders', () => {
     });
 
     it('requests a collateral approval if necessary', async () => {
-      const gaslessClient = await createPublicClient({
-        apiKey: relayerKey,
-      })
+      const gaslessClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
       const exchangeAddress = await resolveExchangeAddressForToken(

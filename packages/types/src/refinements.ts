@@ -1,3 +1,4 @@
+import type { NonEmptyArray } from './array';
 import { invariant } from './helpers';
 import {
   type EvmAddress,
@@ -6,8 +7,6 @@ import {
   isHexString,
   type TxHash,
 } from './hex';
-
-export type NonEmptyArray<T> = readonly [T, ...T[]];
 
 /**
  * Refines a value to exclude `null` and `undefined`.
@@ -21,7 +20,7 @@ export function expectPresent<T>(
 }
 
 /**
- * Refines an array to a non-empty tuple.
+ * Refines an array to a non-empty tuple or throws when the array is empty.
  */
 export function expectNonEmptyArray<T>(
   value: readonly T[],
@@ -32,6 +31,9 @@ export function expectNonEmptyArray<T>(
   return value as NonEmptyArray<T>;
 }
 
+/**
+ * Refines a string to a hex string or throws when the value is invalid.
+ */
 export function expectHexString(
   value: string,
   message = 'Expected a hex string',

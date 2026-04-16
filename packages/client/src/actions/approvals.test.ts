@@ -5,7 +5,7 @@ import { createPublicClient } from '../clients';
 import { SigningError } from '../errors';
 import {
   createRandomWalletClient,
-  relayerKey,
+  publicClientWithRelayerKey,
   safeWalletAddress,
   walletClient,
 } from '../testing';
@@ -19,10 +19,7 @@ import {
 describe('Approvals', () => {
   describe('prepareErc20Approval', () => {
     it('submits a collateral approval for the standard exchange', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
@@ -60,10 +57,7 @@ describe('Approvals', () => {
 
   describe('prepareErc1155ApprovalForAll', () => {
     it('submits a Conditional Tokens approval for the standard exchange', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
@@ -80,10 +74,7 @@ describe('Approvals', () => {
 
   describe('prepareTradingApprovals', () => {
     it('submits a combined trading-setup approval workflow', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 

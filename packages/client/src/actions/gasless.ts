@@ -284,7 +284,7 @@ const PrepareGaslessTransactionRequestSchema = z.object({
     .array(TransactionCallSchema)
     .min(1)
     .transform((val) => expectNonEmptyArray(val)),
-  metadata: GaslessTransactionMetadataSchema.optional(),
+  metadata: GaslessTransactionMetadataSchema,
 });
 
 export type PrepareGaslessTransactionRequest = z.input<
@@ -331,7 +331,7 @@ export async function prepareGaslessTransaction(
 
   invariant(
     client.supportsGasless,
-    'Client does not support gasless transactions',
+    'Gasless transactions require a Relayer API Key or Builder API Key in the client configuration.',
   );
   invariant(
     client.account.walletType === WalletType.POLY_GNOSIS_SAFE,

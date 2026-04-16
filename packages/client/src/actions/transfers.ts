@@ -87,7 +87,9 @@ export async function prepareErc20Transfer(
           params.amount,
         ),
       ],
-      metadata: params.metadata,
+      metadata:
+        params.metadata ??
+        `Transfer ${params.amount} of ${params.tokenAddress} to ${params.recipientAddress}`,
     });
   }.call(null);
 }

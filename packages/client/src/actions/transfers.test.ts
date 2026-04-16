@@ -1,17 +1,17 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
-import { createPublicClient } from '../clients';
-import { relayerKey, safeWalletAddress, walletClient } from '../testing';
+import {
+  publicClientWithRelayerKey,
+  safeWalletAddress,
+  walletClient,
+} from '../testing';
 import { authenticateWith, completeWith } from '../viem';
 import { prepareErc20Transfer } from './transfers';
 
 describe('Transfers', () => {
   describe('prepareErc20Transfer', () => {
     it('submits a self-transfer for the collateral token', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 

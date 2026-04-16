@@ -84,7 +84,9 @@ export async function prepareErc20Approval(
       calls: [
         erc20ApprovalCall(params.tokenAddress, params.spenderAddress, amount),
       ],
-      metadata: params.metadata,
+      metadata:
+        params.metadata ??
+        `Approve ${params.amount} of ${params.tokenAddress} to ${params.spenderAddress}`,
     });
   }.call(null);
 }
@@ -161,7 +163,9 @@ export async function prepareErc1155ApprovalForAll(
           params.approved,
         ),
       ],
-      metadata: params.metadata,
+      metadata:
+        params.metadata ??
+        `${params.approved ? 'Approve' : 'Revoke'} ${params.operatorAddress} on ${params.tokenAddress}`,
     });
   }.call(null);
 }

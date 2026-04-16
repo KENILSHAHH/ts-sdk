@@ -1,10 +1,10 @@
 import { OrderSide } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { createPublicClient, type PublicClient } from '../clients';
+import type { PublicClient } from '../clients';
 import {
-  builderKey,
   findHighVolumeLowPriceMarket,
+  publicClientWithBuilderKey,
   safeWalletAddress,
   walletClient,
 } from '../testing';
@@ -15,19 +15,13 @@ import { postOrder, prepareMarketOrder } from './orders';
 describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder trades', async () => {
-      const client = createPublicClient({
-        apiKey: builderKey,
-      });
-
-      const result = await listBuilderTrades(client);
+      const result = await listBuilderTrades(publicClientWithBuilderKey);
 
       expect(Array.isArray(result)).toBe(true);
     });
 
     it.skip('records at least one builder-attributed trade, placing one minimum-size market order only when needed', async () => {
-      const client = createPublicClient({
-        apiKey: builderKey,
-      });
+      const client = publicClientWithBuilderKey;
       const existingTrades = await listBuilderTrades(client);
 
       if (existingTrades.length > 0) {

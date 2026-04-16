@@ -5,9 +5,9 @@ import { erc20ApprovalCall } from '../abis';
 import { deriveSafeWalletAddress } from '../account';
 import { createPublicClient } from '../clients';
 import {
-  builderKey,
   createRandomWalletClient,
-  relayerKey,
+  publicClientWithBuilderKey,
+  publicClientWithRelayerKey,
   safeWalletAddress,
   walletClient,
 } from '../testing';
@@ -21,10 +21,7 @@ import {
 describe('Gasless', () => {
   describe('isGaslessReady', () => {
     it('returns true for a deployed safe-backed account', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
@@ -38,12 +35,8 @@ describe('Gasless', () => {
     });
 
     it('supports checking readiness from a public client with a wallet address', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-
       await expect(
-        isGaslessReady(publicClient, {
+        isGaslessReady(publicClientWithRelayerKey, {
           wallet: safeWalletAddress,
         }),
       ).resolves.toBe(true);
@@ -79,10 +72,7 @@ describe('Gasless', () => {
 
   describe('prepareGaslessTransaction', () => {
     it('prepares a single-call workflow without multisend aggregation', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
@@ -95,6 +85,7 @@ describe('Gasless', () => {
       );
       const workflow = await prepareGaslessTransaction(secureClient, {
         calls: [call],
+        metadata: 'Single-call gasless transaction',
       });
 
       const addressRequest = await workflow.next();
@@ -133,10 +124,7 @@ describe('Gasless', () => {
     });
 
     it('prepares a multisend workflow when given multiple calls', async () => {
-      const publicClient = createPublicClient({
-        apiKey: relayerKey,
-      });
-      const secureClient = await publicClient
+      const secureClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
@@ -156,6 +144,7 @@ describe('Gasless', () => {
       ];
       const workflow = await prepareGaslessTransaction(secureClient, {
         calls,
+        metadata: 'Multisend gasless transaction',
       });
 
       await workflow.next();
@@ -184,31 +173,28 @@ describe('Gasless', () => {
   describe('prepareGaslessWallet', () => {
     // skipped cause it deploys a new Safe wallet at each run
     it.skip('deploys a Safe wallet for a new signer', async () => {
-      const publicClient = createPublicClient({
-        apiKey: builderKey,
-      });
       const walletClient = createRandomWalletClient();
       const safeWallet = deriveSafeWalletAddress(
         expectEvmAddress(walletClient.account.address),
-        publicClient.environment.walletDerivation,
+        publicClientWithBuilderKey.environment.walletDerivation,
       );
 
       await expect(
-        isGaslessReady(publicClient, {
+        isGaslessReady(publicClientWithBuilderKey, {
           wallet: safeWallet,
         }),
       ).resolves.toBe(false);
 
-      const handle = await prepareGaslessWallet(publicClient).then(
-        completeWith(walletClient),
-      );
+      const handle = await prepareGaslessWallet(
+        publicClientWithBuilderKey,
+      ).then(completeWith(walletClient));
 
       expect(handle.wallet).toBe(safeWallet);
 
       await expect(handle.wait()).resolves.toBeTruthy();
 
       await expect(
-        isGaslessReady(publicClient, {
+        isGaslessReady(publicClientWithBuilderKey, {
           wallet: safeWallet,
         }),
       ).resolves.toBe(true);
