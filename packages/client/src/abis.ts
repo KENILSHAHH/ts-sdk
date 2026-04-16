@@ -15,6 +15,12 @@ const ERC20_TRANSFER_FUNCTION = AbiFunction.from(
 const ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION = AbiFunction.from(
   'function setApprovalForAll(address operator, bool approved)',
 );
+const CTF_SPLIT_POSITION_FUNCTION = AbiFunction.from(
+  'function splitPosition(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount)',
+);
+const CTF_MERGE_POSITIONS_FUNCTION = AbiFunction.from(
+  'function mergePositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount)',
+);
 const CTF_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
   'function redeemPositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] indexSets)',
 );
@@ -22,6 +28,8 @@ const NEG_RISK_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
   'function redeemPositions(bytes32 _conditionId, uint256[] _amounts)',
 );
 const SAFE_MULTISEND_FUNCTION = AbiFunction.from('function multiSend(bytes)');
+const BINARY_OUTCOME_PARTITION = [1n, 2n] as const;
+const BINARY_OUTCOME_INDEX_SETS = [1n, 2n] as const;
 
 /** @internal */
 export const MAX_UINT256 = (1n << 256n) - 1n;
@@ -96,25 +104,83 @@ export function erc20TransferCall(
 
 export type CtfRedeemPositionsCallError = UserInputError;
 
+export type SplitPositionCallError = UserInputError;
+
+/**
+ * Creates a transaction call for `splitPosition(address,bytes32,bytes32,uint256[],uint256)`.
+ * Works with both the Conditional Tokens contract and the neg-risk adapter.
+ *
+ * @remarks
+ * This is a low-level transaction builder that most SDK consumers will not need.
+ *
+ * @throws {@link SplitPositionCallError}
+ * Thrown when the amount is invalid.
+ */
+export function splitPositionCall(
+  targetAddress: EvmAddress,
+  collateralTokenAddress: EvmAddress,
+  conditionId: ConditionId,
+  amount: bigint,
+  negRisk = false,
+): TransactionCall {
+  return {
+    data: encodeSplitPositionCall(
+      collateralTokenAddress,
+      conditionId,
+      amount,
+      negRisk,
+    ),
+    to: targetAddress,
+  };
+}
+
+export type MergePositionsCallError = UserInputError;
+
+/**
+ * Creates a transaction call for `mergePositions(address,bytes32,bytes32,uint256[],uint256)`.
+ * Works with both the Conditional Tokens contract and the neg-risk adapter.
+ *
+ * @remarks
+ * This is a low-level transaction builder that most SDK consumers will not need.
+ *
+ * @throws {@link MergePositionsCallError}
+ * Thrown when the amount is invalid.
+ */
+export function mergePositionsCall(
+  targetAddress: EvmAddress,
+  collateralTokenAddress: EvmAddress,
+  conditionId: ConditionId,
+  amount: bigint,
+  negRisk = false,
+): TransactionCall {
+  return {
+    data: encodeMergePositionsCall(
+      collateralTokenAddress,
+      conditionId,
+      amount,
+      negRisk,
+    ),
+    to: targetAddress,
+  };
+}
+
 /**
  * Creates a transaction call for `redeemPositions(address,bytes32,bytes32,uint256[])`
  * on the Conditional Tokens contract.
  *
+ * @remarks
+ * This is a low-level transaction builder that most SDK consumers will not need.
+ *
  * @throws {@link CtfRedeemPositionsCallError}
- * Thrown when the condition or outcome count is invalid.
+ * Thrown when the condition is invalid.
  */
 export function ctfRedeemPositionsCall(
   conditionalTokensAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
   conditionId: ConditionId,
-  outcomeCount: number,
 ): TransactionCall {
   return {
-    data: encodeCtfRedeemPositionsCall(
-      collateralTokenAddress,
-      conditionId,
-      outcomeCount,
-    ),
+    data: encodeCtfRedeemPositionsCall(collateralTokenAddress, conditionId),
     to: conditionalTokensAddress,
   };
 }
@@ -124,6 +190,9 @@ export type NegRiskRedeemPositionsCallError = UserInputError;
 /**
  * Creates a transaction call for `redeemPositions(bytes32,uint256[])` on the
  * negative-risk adapter contract.
+ *
+ * @remarks
+ * This is a low-level transaction builder that most SDK consumers will not need.
  *
  * @throws {@link NegRiskRedeemPositionsCallError}
  * Thrown when the condition or redeem amounts are invalid.
@@ -165,16 +234,45 @@ function encodeErc20TransferCall(
   return AbiFunction.encodeData(ERC20_TRANSFER_FUNCTION, [recipient, amount]);
 }
 
+function encodeSplitPositionCall(
+  collateralTokenAddress: EvmAddress,
+  conditionId: ConditionId,
+  amount: bigint,
+  negRisk: boolean,
+): HexString {
+  return AbiFunction.encodeData(CTF_SPLIT_POSITION_FUNCTION, [
+    collateralTokenAddress,
+    ZERO_BYTES32,
+    conditionId,
+    negRisk ? [] : BINARY_OUTCOME_PARTITION,
+    expectUint256(amount, 'Split amount'),
+  ]);
+}
+
+function encodeMergePositionsCall(
+  collateralTokenAddress: EvmAddress,
+  conditionId: ConditionId,
+  amount: bigint,
+  negRisk: boolean,
+): HexString {
+  return AbiFunction.encodeData(CTF_MERGE_POSITIONS_FUNCTION, [
+    collateralTokenAddress,
+    ZERO_BYTES32,
+    conditionId,
+    negRisk ? [] : BINARY_OUTCOME_PARTITION,
+    expectUint256(amount, 'Merge amount'),
+  ]);
+}
+
 function encodeCtfRedeemPositionsCall(
   collateralTokenAddress: EvmAddress,
   conditionId: ConditionId,
-  outcomeCount: number,
 ): HexString {
   return AbiFunction.encodeData(CTF_REDEEM_POSITIONS_FUNCTION, [
     collateralTokenAddress,
     ZERO_BYTES32,
     conditionId,
-    createOutcomeIndexSets(outcomeCount),
+    BINARY_OUTCOME_INDEX_SETS,
   ]);
 }
 
@@ -186,21 +284,6 @@ function encodeNegRiskRedeemPositionsCall(
     conditionId,
     amounts.map((amount) => expectUint256(amount, 'Redeem amount')),
   ]);
-}
-
-function createOutcomeIndexSets(outcomeCount: number): bigint[] {
-  if (!Number.isInteger(outcomeCount) || outcomeCount < 2) {
-    throw new UserInputError('Outcome count must be an integer of at least 2');
-  }
-
-  if (outcomeCount > 256) {
-    throw new UserInputError('Outcome count must not exceed 256');
-  }
-
-  return Array.from(
-    { length: outcomeCount },
-    (_, index) => 1n << BigInt(index),
-  );
 }
 
 function expectUint256(value: bigint, label: string): bigint {

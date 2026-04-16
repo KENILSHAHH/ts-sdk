@@ -31,11 +31,15 @@ export const builderCredentials = {
   passphrase: expectPresent(process.env.POLYMARKET_BUILDER_PASSPHRASE),
 } as const;
 
-export const builderKey = builderApiKey(builderCredentials);
+export const publicClientWithBuilderKey = createPublicClient({
+  apiKey: builderApiKey(builderCredentials),
+});
 
-export const relayerKey = relayerApiKey({
-  key: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY),
-  address: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY_ADDRESS),
+export const publicClientWithRelayerKey = createPublicClient({
+  apiKey: relayerApiKey({
+    key: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY),
+    address: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY_ADDRESS),
+  }),
 });
 
 function loadTestPrivateKey(): PrivateKey {

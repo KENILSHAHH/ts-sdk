@@ -18,7 +18,7 @@ export type EnvironmentConfig = {
   /** @internal */
   conditionalTokens: EvmAddress;
   /** @internal */
-  negRiskAdapter?: EvmAddress;
+  negRiskAdapter: EvmAddress;
   /** @internal */
   standardExchange: EvmAddress;
   /** @internal */

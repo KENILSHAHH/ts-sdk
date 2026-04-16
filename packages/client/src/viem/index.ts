@@ -126,7 +126,9 @@ export function completeWith(walletClient: WalletClient) {
           case 'sendErc20ApprovalTransaction':
           case 'sendErc1155ApprovalForAllTransaction':
           case 'sendErc20TransferTransaction':
-          case 'sendRedeemPositionsTransaction': {
+          case 'sendMergePositionsTransaction':
+          case 'sendRedeemPositionsTransaction':
+          case 'sendSplitPositionTransaction': {
             const hash = await sendTransaction(walletClient, {
               account,
               ...result.value.request,

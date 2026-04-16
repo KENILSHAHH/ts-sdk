@@ -6,7 +6,11 @@ import type {
 } from './actions/approvals';
 import type { GaslessWalletWorkflowRequest } from './actions/gasless';
 import type { OrderWorkflowRequest } from './actions/orders';
-import type { RedeemPositionsWorkflowRequest } from './actions/redeem';
+import type {
+  MergePositionsWorkflowRequest,
+  RedeemPositionsWorkflowRequest,
+  SplitPositionWorkflowRequest,
+} from './actions/positions';
 import type { Erc20TransferWorkflowRequest } from './actions/transfers';
 import type { SecureClient } from './clients';
 import type { CancelledSigningError, SigningError } from './errors';
@@ -37,8 +41,10 @@ export type CompleteWorkflowRequest =
   | Erc1155ApprovalForAllWorkflowRequest
   | Erc20TransferWorkflowRequest
   | GaslessWalletWorkflowRequest
+  | MergePositionsWorkflowRequest
   | TradingApprovalsWorkflowRequest
   | RedeemPositionsWorkflowRequest
+  | SplitPositionWorkflowRequest
   | OrderWorkflowRequest;
 
 export type CompleteWorkflowNext =
