@@ -1,3 +1,4 @@
+import { PaginationCursorSchema } from '@polymarket/bindings';
 import {
   type BuilderVolumeEntry,
   LeaderboardCategorySchema,
@@ -20,13 +21,20 @@ import type {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { toDataSearchParams } from './params';
 
 const ListBuilderLeaderboardRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
+  pageSize: PageSizeSchema.default(20),
   timePeriod: TimePeriodSchema.optional(),
-  limit: z.number().int().optional(),
-  offset: z.number().int().optional(),
 });
 
 const ListBuilderVolumeRequestSchema = z.object({
@@ -35,10 +43,10 @@ const ListBuilderVolumeRequestSchema = z.object({
 
 const ListTraderLeaderboardRequestSchema = z.object({
   category: LeaderboardCategorySchema.optional(),
+  cursor: PaginationCursorSchema.optional(),
+  pageSize: PageSizeSchema.default(20),
   timePeriod: TimePeriodSchema.optional(),
   orderBy: LeaderboardOrderBySchema.optional(),
-  limit: z.number().int().optional(),
-  offset: z.number().int().optional(),
   user: z.string().optional(),
   userName: z.string().optional(),
 });
@@ -67,28 +75,70 @@ export type ListBuilderLeaderboardError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const builders = await listBuilderLeaderboard(client, {
- *   limit: 10,
+ * const result = listBuilderLeaderboard(client, {
+ *   pageSize: 10,
  *   timePeriod: 'DAY',
  * });
  *
- * // builders: LeaderboardEntry[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: LeaderboardEntry[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listBuilderLeaderboard(client, {
+ *   pageSize: 10,
+ *   timePeriod: 'DAY',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: LeaderboardEntry[]
+ * }
  * ```
  */
-export async function listBuilderLeaderboard(
+export function listBuilderLeaderboard(
   client: Client,
   request: ListBuilderLeaderboardRequest = {},
-): Promise<LeaderboardEntry[]> {
-  const params = parseUserInput(request, ListBuilderLeaderboardRequestSchema);
-
-  return unwrap(
-    client.data
-      .get('/v1/builders/leaderboard', {
-        params: toDataSearchParams(params),
-      })
-      .andThen(validateWith(ListBuilderLeaderboardResponseSchema)),
+): Paginated<LeaderboardEntry> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListBuilderLeaderboardRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.data
+      .get('/v1/builders/leaderboard', {
+        params: toDataSearchParams({
+          ...params,
+          limit: decoded.pageSize + 1,
+          offset: decoded.offset,
+        }),
+      })
+      .andThen(validateWith(ListBuilderLeaderboardResponseSchema))
+      .map((builders) => {
+        const hasMore = builders.length > decoded.pageSize;
+
+        return {
+          items: builders.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type ListBuilderVolumeError =
@@ -142,27 +192,70 @@ export type ListTraderLeaderboardError =
  * Thrown on failure.
  *
  * @example
+ * Fetch the first page of results:
  * ```ts
- * const traders = await listTraderLeaderboard(client, {
- *   limit: 10,
+ * const result = listTraderLeaderboard(client, {
  *   orderBy: 'PNL',
+ *   pageSize: 10,
  *   timePeriod: 'DAY',
  * });
  *
- * // traders: TraderLeaderboardEntry[]
+ * const firstPage = await result.first();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: TraderLeaderboardEntry[]
+ * }
+ * ```
+ *
+ * @example
+ * Loop through all pages with `for await`:
+ * ```ts
+ * const result = listTraderLeaderboard(client, {
+ *   orderBy: 'PNL',
+ *   pageSize: 10,
+ *   timePeriod: 'DAY',
+ * });
+ *
+ * for await (const page of result) {
+ *   // page.items: TraderLeaderboardEntry[]
+ * }
  * ```
  */
-export async function listTraderLeaderboard(
+export function listTraderLeaderboard(
   client: Client,
   request: ListTraderLeaderboardRequest = {},
-): Promise<TraderLeaderboardEntry[]> {
-  const params = parseUserInput(request, ListTraderLeaderboardRequestSchema);
-
-  return unwrap(
-    client.data
-      .get('/v1/leaderboard', {
-        params: toDataSearchParams(params),
-      })
-      .andThen(validateWith(ListTraderLeaderboardResponseSchema)),
+): Paginated<TraderLeaderboardEntry> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListTraderLeaderboardRequestSchema,
   );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.data
+      .get('/v1/leaderboard', {
+        params: toDataSearchParams({
+          ...params,
+          limit: decoded.pageSize + 1,
+          offset: decoded.offset,
+        }),
+      })
+      .andThen(validateWith(ListTraderLeaderboardResponseSchema))
+      .map((traders) => {
+        const hasMore = traders.length > decoded.pageSize;
+
+        return {
+          items: traders.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }

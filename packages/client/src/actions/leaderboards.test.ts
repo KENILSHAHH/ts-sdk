@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { expectNonEmptyPage, publicClient } from '../testing';
 import {
   listBuilderLeaderboard,
   listBuilderVolume,
@@ -10,11 +10,13 @@ describe('Leaderboards', () => {
   describe('listTraderLeaderboard', () => {
     it('lists trader rankings', async () => {
       const result = await listTraderLeaderboard(publicClient, {
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           proxyWallet: expect.any(String),
           rank: expect.any(String),
@@ -26,11 +28,13 @@ describe('Leaderboards', () => {
   describe('listBuilderLeaderboard', () => {
     it('lists builder rankings', async () => {
       const result = await listBuilderLeaderboard(publicClient, {
-        limit: 1,
-      });
+        pageSize: 1,
+      })
+        .first()
+        .then(expectNonEmptyPage);
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual(
         expect.objectContaining({
           builder: expect.any(String),
           rank: expect.any(String),
