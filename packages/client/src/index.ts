@@ -14,6 +14,7 @@ export type {
 export { relayerApiKey, remoteBuilderSigning } from './authorization';
 export type * from './clients';
 export { createPublicClient } from './clients';
+export * from './decorators';
 export * from './environments';
 export * from './errors';
 export * from './hmac';

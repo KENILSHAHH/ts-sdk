@@ -4,6 +4,7 @@ import {
   expectEvmAddress,
   expectEvmSignature,
   invariant,
+  type Prettify,
 } from '@polymarket/types';
 import { z } from 'zod';
 import type { AccountIdentity } from './account';
@@ -14,6 +15,11 @@ import {
   fetchApiKeys,
 } from './actions/auth';
 import { createApiKeyAuthTypedDataPayload } from './authentication';
+import {
+  allActions,
+  type PublicActions,
+  type SecureActions,
+} from './decorators';
 import { type EnvironmentConfig, production } from './environments';
 import { RequestRejectedError, SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
@@ -38,13 +44,45 @@ type PublicContext = {
   data: ServiceClient;
 };
 
+// biome-ignore lint/complexity/noBannedTypes: intentional
+export type ClientActions = {};
+
+export type ClientDecorator<
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
+> = {
+  (client: PublicClient<ClientActions, ClientActions>): TPublicActions;
+  (client: SecureClient<ClientActions, ClientActions>): TSecureActions;
+};
+
+type DecoratorPublicActions<TDecorator extends ClientDecorator> =
+  TDecorator extends ClientDecorator<
+    infer TPublicActions,
+    infer _TSecureActions
+  >
+    ? TPublicActions
+    : never;
+
+type DecoratorSecureActions<TDecorator extends ClientDecorator> =
+  TDecorator extends ClientDecorator<
+    infer _TPublicActions,
+    infer TSecureActions
+  >
+    ? TSecureActions
+    : never;
+
 abstract class AbstractClient<TContext extends PublicContext> {
   // Keep the backing context off the public object shape so accidental
   // client logs do not print secure credentials.
   readonly #context: TContext;
+  readonly #decorators: ClientDecorator[];
 
   protected get context(): TContext {
     return this.#context;
+  }
+
+  protected get decorators(): readonly ClientDecorator[] {
+    return this.#decorators;
   }
 
   /** @internal */
@@ -77,8 +115,9 @@ abstract class AbstractClient<TContext extends PublicContext> {
     return this.context.apiKey?.supportGasless ?? false;
   }
 
-  constructor(context: TContext) {
+  constructor(context: TContext, decorators: readonly ClientDecorator[] = []) {
     this.#context = context;
+    this.#decorators = [...decorators];
   }
 
   protected async resolveClobHeaders(
@@ -97,6 +136,10 @@ abstract class AbstractClient<TContext extends PublicContext> {
       return this.context.apiKey.authorize(request);
     }
     return Promise.resolve({});
+  }
+
+  protected rememberDecorator(decorator: ClientDecorator): void {
+    this.#decorators.push(decorator);
   }
 }
 
@@ -179,22 +222,31 @@ type PublicClientConfig = {
   apiKey?: ApiKeyAuthorization;
 };
 
-class PublicClient extends AbstractClient<PublicContext> {
-  constructor(config: PublicClientConfig) {
-    super({
-      apiKey: config.apiKey,
-      environment: config.environment,
-      data: new ServiceClient({ root: config.environment.data }),
-      gamma: new ServiceClient({ root: config.environment.gamma }),
-      clob: new ServiceClient({
-        root: config.environment.clob,
-        resolveHeaders: (request) => this.resolveClobHeaders(request),
-      }),
-      relayer: new ServiceClient({
-        root: config.environment.relayer,
-        resolveHeaders: (request) => this.resolveRelayerHeaders(request),
-      }),
-    });
+class BasePublicClient<
+  TPublicActions extends ClientActions,
+  TSecureActions extends ClientActions,
+> extends AbstractClient<PublicContext> {
+  constructor(
+    config: PublicClientConfig,
+    decorators: readonly ClientDecorator[] = [],
+  ) {
+    super(
+      {
+        apiKey: config.apiKey,
+        environment: config.environment,
+        data: new ServiceClient({ root: config.environment.data }),
+        gamma: new ServiceClient({ root: config.environment.gamma }),
+        clob: new ServiceClient({
+          root: config.environment.clob,
+          resolveHeaders: (request) => this.resolveClobHeaders(request),
+        }),
+        relayer: new ServiceClient({
+          root: config.environment.relayer,
+          resolveHeaders: (request) => this.resolveRelayerHeaders(request),
+        }),
+      },
+      decorators,
+    );
   }
 
   /**
@@ -226,15 +278,36 @@ class PublicClient extends AbstractClient<PublicContext> {
   }
 
   /**
+   * Returns a client typed with the methods contributed by the decorator.
+   */
+  extend<TDecorator extends ClientDecorator>(
+    decorator: TDecorator,
+  ): PublicClient<
+    Prettify<TPublicActions & DecoratorPublicActions<TDecorator>>,
+    Prettify<TSecureActions & DecoratorSecureActions<TDecorator>>
+  > {
+    this.rememberDecorator(decorator);
+    Object.assign(this, decorator(this));
+    return this as unknown as PublicClient<
+      Prettify<TPublicActions & DecoratorPublicActions<TDecorator>>,
+      Prettify<TSecureActions & DecoratorSecureActions<TDecorator>>
+    >;
+  }
+
+  /**
    * Begins an authentication workflow that produces a {@link SecureClient}.
    */
   beginAuthentication(
     request: BeginAuthenticationRequest,
-  ): Promise<AuthenticationWorkflow> {
+  ): Promise<
+    AuthenticationWorkflow<SecureClient<TPublicActions, TSecureActions>>
+  > {
     const params = parseUserInput(request, BeginAuthenticationRequestSchema);
 
     return Promise.resolve(
-      async function* (this: PublicClient): AuthenticationWorkflow {
+      async function* (
+        this: PublicClient<TPublicActions, TSecureActions>,
+      ): AuthenticationWorkflow<SecureClient<TPublicActions, TSecureActions>> {
         const timestamp = Math.floor(Date.now() / 1000);
         const nonce = params?.nonce ?? 0;
         const signer = expectEvmAddress(yield requestAddress());
@@ -272,46 +345,41 @@ class PublicClient extends AbstractClient<PublicContext> {
             timestamp,
           }),
         };
-        const credentials = await createOrDeriveApiKey(this, {
-          address: signer,
-          nonce,
-          signature: expectEvmSignature(signature),
-          timestamp,
-        });
+        const credentials = await createOrDeriveApiKey(
+          this as unknown as PublicClient<TPublicActions, TSecureActions>,
+          {
+            address: signer,
+            nonce,
+            signature: expectEvmSignature(signature),
+            timestamp,
+          },
+        );
 
         return this.#createSecureClient(credentials, identity);
-      }.call(this),
+      }.call(this as unknown as PublicClient<TPublicActions, TSecureActions>),
     );
   }
 
   #createSecureClient(
     credentials: ApiKeyCreds,
     account: AccountIdentity,
-  ): SecureClient {
-    return new SecureClient({
-      account: account,
-      apiKey: this.context.apiKey,
-      credentials,
-      environment: this.environment,
-    });
+  ): SecureClient<TPublicActions, TSecureActions> {
+    return new BaseSecureClient(
+      {
+        account: account,
+        apiKey: this.context.apiKey,
+        credentials,
+        environment: this.environment,
+      },
+      this.decorators,
+    ) as SecureClient<TPublicActions, TSecureActions>;
   }
 }
 
-type SecureContext = PublicContext & {
-  /** @internal */
-  account: AccountIdentity;
-  /** @internal */
-  credentials: ApiKeyCreds;
-  /** @internal */
-  secureClob: ServiceClient;
-};
-
-type SecureClientConfig = PublicClientConfig & {
-  account: AccountIdentity;
-  credentials: ApiKeyCreds;
-};
-
-class SecureClient extends AbstractClient<SecureContext> {
+class BaseSecureClient<
+  TPublicActions extends ClientActions,
+  TSecureActions extends ClientActions,
+> extends AbstractClient<SecureContext> {
   #hasEndedAuthentication = false;
 
   /**
@@ -331,30 +399,36 @@ class SecureClient extends AbstractClient<SecureContext> {
     this.#hasEndedAuthentication = true;
   }
 
-  constructor(config: SecureClientConfig) {
-    super({
-      account: config.account,
-      credentials: config.credentials,
-      apiKey: config.apiKey,
-      environment: config.environment,
-      clob: new ServiceClient({
-        root: config.environment.clob,
-        resolveHeaders: (request) => this.resolveClobHeaders(request),
-      }),
-      relayer: new ServiceClient({
-        root: config.environment.relayer,
-        resolveHeaders: (request) => this.resolveRelayerHeaders(request),
-      }),
-      gamma: new ServiceClient({ root: config.environment.gamma }),
-      data: new ServiceClient({ root: config.environment.data }),
-      secureClob: new ServiceClient({
-        resolveHeaders: async (request) => ({
-          ...(await this.resolveClobHeaders(request)),
-          ...(await this.#createL2Headers(request)),
+  constructor(
+    config: SecureClientConfig,
+    decorators: readonly ClientDecorator[] = [],
+  ) {
+    super(
+      {
+        account: config.account,
+        credentials: config.credentials,
+        apiKey: config.apiKey,
+        environment: config.environment,
+        clob: new ServiceClient({
+          root: config.environment.clob,
+          resolveHeaders: (request) => this.resolveClobHeaders(request),
         }),
-        root: config.environment.clob,
-      }),
-    });
+        relayer: new ServiceClient({
+          root: config.environment.relayer,
+          resolveHeaders: (request) => this.resolveRelayerHeaders(request),
+        }),
+        gamma: new ServiceClient({ root: config.environment.gamma }),
+        data: new ServiceClient({ root: config.environment.data }),
+        secureClob: new ServiceClient({
+          resolveHeaders: async (request) => ({
+            ...(await this.resolveClobHeaders(request)),
+            ...(await this.#createL2Headers(request)),
+          }),
+          root: config.environment.clob,
+        }),
+      },
+      decorators,
+    );
   }
 
   /** @internal */
@@ -401,6 +475,24 @@ class SecureClient extends AbstractClient<SecureContext> {
   }
 
   /**
+   * Returns a secure client typed with the methods contributed by the decorator.
+   */
+  extend<TDecorator extends ClientDecorator>(
+    decorator: TDecorator,
+  ): SecureClient<
+    TPublicActions,
+    Prettify<TSecureActions & DecoratorSecureActions<TDecorator>>
+  > {
+    this.rememberDecorator(decorator);
+    Object.assign(this, decorator(this));
+
+    return this as unknown as SecureClient<
+      TPublicActions,
+      Prettify<TSecureActions & DecoratorSecureActions<TDecorator>>
+    >;
+  }
+
+  /**
    * Ends authentication for this client and returns a public client.
    *
    * @remarks
@@ -412,16 +504,21 @@ class SecureClient extends AbstractClient<SecureContext> {
    * const publicClient = await secureClient.endAuthentication();
    * ```
    */
-  async endAuthentication(): Promise<PublicClient> {
+  async endAuthentication(): Promise<
+    PublicClient<TPublicActions, TSecureActions>
+  > {
     const { apiKey, environment } = this.context;
 
     await deleteApiKey(this);
     this.endAuthenticationLifecycle();
 
-    return new PublicClient({
-      apiKey,
-      environment,
-    });
+    return new BasePublicClient(
+      {
+        apiKey,
+        environment,
+      },
+      this.decorators,
+    ) as PublicClient<TPublicActions, TSecureActions>;
   }
 
   async #createL2Headers(request: ServiceRequest): Promise<HeadersInit> {
@@ -450,9 +547,38 @@ class SecureClient extends AbstractClient<SecureContext> {
   }
 }
 
-export { PublicClient, SecureClient };
+type SecureContext = PublicContext & {
+  /** @internal */
+  account: AccountIdentity;
+  /** @internal */
+  credentials: ApiKeyCreds;
+  /** @internal */
+  secureClob: ServiceClient;
+};
 
-export type Client = PublicClient | SecureClient;
+type SecureClientConfig = PublicClientConfig & {
+  account: AccountIdentity;
+  credentials: ApiKeyCreds;
+};
+
+export type PublicClient<
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
+> = BasePublicClient<TPublicActions, TSecureActions> & TPublicActions;
+
+export type SecureClient<
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
+> = BaseSecureClient<TPublicActions, TSecureActions> & TSecureActions;
+
+export { BasePublicClient, BaseSecureClient };
+
+export type Client<
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
+> =
+  | PublicClient<TPublicActions, TSecureActions>
+  | SecureClient<TPublicActions, TSecureActions>;
 
 export type PublicClientOptions = {
   /**
@@ -478,9 +604,9 @@ export type PublicClientOptions = {
  */
 export function createPublicClient(
   options: PublicClientOptions = {},
-): PublicClient {
-  return new PublicClient({
+): PublicClient<PublicActions, SecureActions> {
+  return new BasePublicClient({
     environment: options.environment ?? production,
     apiKey: options.apiKey,
-  });
+  }).extend(allActions);
 }

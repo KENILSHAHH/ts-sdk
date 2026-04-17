@@ -18,6 +18,10 @@
       "types": "./dist/actions/index.d.ts",
       "default": "./dist/actions/index.js"
     },
+    "./decorators": {
+      "types": "./dist/decorators/index.d.ts",
+      "default": "./dist/decorators/index.js"
+    },
     "./viem": {
       "types": "./dist/viem/index.d.ts",
       "default": "./dist/viem/index.js"
@@ -30,6 +34,9 @@
       ],
       "actions": [
         "./dist/actions/index.d.ts"
+      ],
+      "decorators": [
+        "./dist/decorators/index.d.ts"
       ],
       "viem": [
         "./dist/viem/index.d.ts"

@@ -4,7 +4,12 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig(() => [
   {
-    entry: ['src/index.ts', 'src/actions/index.ts', 'src/viem/index.ts'],
+    entry: [
+      'src/index.ts',
+      'src/actions/index.ts',
+      'src/decorators/index.ts',
+      'src/viem/index.ts',
+    ],
     outDir: 'dist',
     sourcemap: true,
     treeshake: true,

@@ -1,6 +1,13 @@
 import { InvariantError } from './errors';
 
 /**
+ * Flattens an object type for clearer IDE hovers and inferred signatures.
+ */
+export type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};
+
+/**
  * Asserts that a condition is truthy.
  *
  * @internal

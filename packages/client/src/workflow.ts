@@ -12,7 +12,6 @@ import type {
   SplitPositionWorkflowRequest,
 } from './actions/positions';
 import type { Erc20TransferWorkflowRequest } from './actions/transfers';
-import type { SecureClient } from './clients';
 import type { CancelledSigningError, SigningError } from './errors';
 import type { TransactionHandle, TypedDataPayload } from './types';
 
@@ -27,9 +26,9 @@ export type AuthenticationWorkflowRequest =
       payload: TypedDataPayload;
     };
 
-export type AuthenticationWorkflow = AsyncGenerator<
+export type AuthenticationWorkflow<TReturn> = AsyncGenerator<
   AuthenticationWorkflowRequest,
-  SecureClient,
+  TReturn,
   EvmAddress | EvmSignature
 >;
 

@@ -19,7 +19,6 @@ import {
   type WalletClient,
 } from 'viem';
 import { waitForTransactionReceipt } from 'viem/actions';
-import type { SecureClient } from '../clients';
 import {
   CancelledSigningError,
   SigningError,
@@ -59,9 +58,9 @@ export function authenticateWith(walletClient: WalletClient) {
       : walletClient.account.address,
   );
 
-  return async function authenticate(
-    workflow: AuthenticationWorkflow,
-  ): Promise<SecureClient> {
+  return async function authenticate<TReturn>(
+    workflow: AuthenticationWorkflow<TReturn>,
+  ): Promise<TReturn> {
     let result = await workflow.next();
 
     while (!result.done) {
