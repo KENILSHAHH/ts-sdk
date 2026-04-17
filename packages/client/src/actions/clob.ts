@@ -160,6 +160,9 @@ export type FetchTickSizeError =
 /**
  * Fetches the minimum price tick size for a token's order book.
  *
+ * @remarks
+ * This is a low-level market action that most SDK consumers will not need.
+ *
  * @throws {@link FetchTickSizeError}
  * Thrown on failure.
  *
@@ -205,6 +208,9 @@ export type FetchNegRiskError =
 /**
  * Fetches whether a token is in a negative-risk market.
  *
+ * @remarks
+ * This is a low-level market action that most SDK consumers will not need.
+ *
  * @throws {@link FetchNegRiskError}
  * Thrown on failure.
  *
@@ -249,6 +255,9 @@ export type FetchFeeRateError =
 
 /**
  * Fetches the base fee rate, in basis points, for a token's order book.
+ *
+ * @remarks
+ * This is a low-level market action that most SDK consumers will not need.
  *
  * @throws {@link FetchFeeRateError}
  * Thrown on failure.
