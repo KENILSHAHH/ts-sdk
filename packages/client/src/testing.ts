@@ -25,6 +25,8 @@ if (process.env.CI !== 'true') {
   }
 }
 
+export const runMeteredTests = process.env.POLYMARKET_RUN_METERED_TESTS === '1';
+
 export const publicClient = createPublicClient();
 
 export const builderCredentials = {
@@ -93,16 +95,9 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
   })
     .first()
     .then((page) => page.items);
-  const eligibleMarkets = candidateMarkets.filter(hasRequiredOrderFields);
-  const market =
-    eligibleMarkets
-      .filter(isNonPoliticalMarket)
-      .sort(
-        (left, right) =>
-          (left.orderMinSize ?? Number.POSITIVE_INFINITY) -
-          (right.orderMinSize ?? Number.POSITIVE_INFINITY),
-      )[0] ??
-    eligibleMarkets.sort(
+  const market = candidateMarkets
+    .filter(hasRequiredOrderFields)
+    .sort(
       (left, right) =>
         (left.orderMinSize ?? Number.POSITIVE_INFINITY) -
         (right.orderMinSize ?? Number.POSITIVE_INFINITY),
@@ -116,68 +111,12 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
   return market;
 }
 
-export function getPolymarketMarketUrl(market: Market): string {
-  const eventSlug = getEventSlug(market);
-
-  if (eventSlug !== undefined) {
-    return `https://polymarket.com/event/${eventSlug}`;
-  }
-
-  invariant(
-    market.slug !== null && market.slug !== undefined,
-    'Could not derive a polymarket.com URL from the market payload',
-  );
-
-  return `https://polymarket.com/event/${market.slug}`;
-}
-
 function hasRequiredOrderFields(candidate: Market) {
   return (
     candidate.acceptingOrders !== false &&
     candidate.clobTokenIds !== null &&
     candidate.clobTokenIds !== undefined
   );
-}
-
-function isNonPoliticalMarket(candidate: Market) {
-  const searchableFields = [
-    candidate.category,
-    candidate.subcategory,
-    candidate.question,
-    candidate.slug,
-    ...(candidate.tags ?? []).flatMap((tag) => [tag.label, tag.slug]),
-  ]
-    .filter((value): value is string => value !== null && value !== undefined)
-    .map((value) => value.toLowerCase());
-
-  return !searchableFields.some((value) =>
-    POLITICAL_MARKET_KEYWORDS.some((keyword) => value.includes(keyword)),
-  );
-}
-
-const POLITICAL_MARKET_KEYWORDS = [
-  'politic',
-  'election',
-  'president',
-  'presidential',
-  'congress',
-  'senate',
-  'house',
-  'government',
-  'governor',
-  'mayor',
-  'parliament',
-  'prime minister',
-  'trump',
-  'biden',
-  'harris',
-  'vance',
-] as const;
-
-function getEventSlug(market: Market): string | undefined {
-  const firstEvent = market.events?.[0] as { slug?: string | null } | undefined;
-
-  return firstEvent?.slug ?? undefined;
 }
 
 export function expectNonEmptyPage<T>(

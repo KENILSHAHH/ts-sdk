@@ -11,6 +11,7 @@ import { InsufficientLiquidityError } from '../errors';
 import {
   publicClient,
   publicClientWithRelayerKey,
+  runMeteredTests,
   safeWalletAddress,
   walletClient,
 } from '../testing';
@@ -73,61 +74,64 @@ describe('Orders', () => {
   });
 
   describe('prepareMarketOrder', () => {
-    it.skip('closes leftover inventory or round-trips a minimum-size market order', async () => {
-      const positions = await listPositions(secureClient, {
-        market: [market.id],
-        user: secureClient.account.wallet,
-      }).first();
-      const position = positions.items.find(
-        (candidate) => candidate.asset && (candidate.size ?? 0) > 0,
-      );
+    it.runIf(runMeteredTests)(
+      'closes leftover inventory or round-trips a minimum-size market order',
+      async () => {
+        const positions = await listPositions(secureClient, {
+          market: [market.id],
+          user: secureClient.account.wallet,
+        }).first();
+        const position = positions.items.find(
+          (candidate) => candidate.asset && (candidate.size ?? 0) > 0,
+        );
 
-      if (position !== undefined) {
-        // Recover from a previous partially executed test run by selling any
-        // leftover inventory, and use that cleanup path to exercise market
-        // order posting.
-        const result = await prepareMarketOrder(secureClient, {
-          amount: expectPresent(position.size),
-          side: OrderSide.SELL,
-          tokenId: expectPresent(position.asset),
+        if (position !== undefined) {
+          // Recover from a previous partially executed test run by selling any
+          // leftover inventory, and use that cleanup path to exercise market
+          // order posting.
+          const result = await prepareMarketOrder(secureClient, {
+            amount: expectPresent(position.size),
+            side: OrderSide.SELL,
+            tokenId: expectPresent(position.asset),
+          })
+            .then(completeWith(walletClient))
+            .then(postOrder(secureClient));
+          expect(result.ok).toBe(true);
+          const acceptedResult = expectAcceptedOrderResponse(result);
+
+          expect(acceptedResult.orderId).not.toBe('');
+          return;
+        }
+
+        const [yesTokenId] = expectPresent(market.clobTokenIds);
+        const buyResult = await prepareMarketOrder(secureClient, {
+          amount: expectPresent(market.orderMinSize),
+          side: OrderSide.BUY,
+          tokenId: yesTokenId,
         })
           .then(completeWith(walletClient))
           .then(postOrder(secureClient));
-        expect(result.ok).toBe(true);
-        const acceptedResult = expectAcceptedOrderResponse(result);
+        expect(buyResult.ok).toBe(true);
+        const acceptedBuyResult = expectAcceptedOrderResponse(buyResult);
 
-        expect(acceptedResult.orderId).not.toBe('');
-        return;
-      }
+        expect(acceptedBuyResult.orderId).not.toBe('');
 
-      const [yesTokenId] = expectPresent(market.clobTokenIds);
-      const buyResult = await prepareMarketOrder(secureClient, {
-        amount: expectPresent(market.orderMinSize),
-        side: OrderSide.BUY,
-        tokenId: yesTokenId,
-      })
-        .then(completeWith(walletClient))
-        .then(postOrder(secureClient));
-      expect(buyResult.ok).toBe(true);
-      const acceptedBuyResult = expectAcceptedOrderResponse(buyResult);
+        // When the test starts flat, buy a minimum-sized position and sell it
+        // immediately after so we still exercise market orders while minimizing
+        // inventory risk from the test itself.
+        const sellResult = await prepareMarketOrder(secureClient, {
+          amount: Number.parseInt(acceptedBuyResult.takingAmount, 10),
+          side: OrderSide.SELL,
+          tokenId: yesTokenId,
+        })
+          .then(completeWith(walletClient))
+          .then(postOrder(secureClient));
+        expect(sellResult.ok).toBe(true);
+        const acceptedSellResult = expectAcceptedOrderResponse(sellResult);
 
-      expect(acceptedBuyResult.orderId).not.toBe('');
-
-      // When the test starts flat, buy a minimum-sized position and sell it
-      // immediately after so we still exercise market orders while minimizing
-      // inventory risk from the test itself.
-      const sellResult = await prepareMarketOrder(secureClient, {
-        amount: Number.parseInt(acceptedBuyResult.takingAmount, 10),
-        side: OrderSide.SELL,
-        tokenId: yesTokenId,
-      })
-        .then(completeWith(walletClient))
-        .then(postOrder(secureClient));
-      expect(sellResult.ok).toBe(true);
-      const acceptedSellResult = expectAcceptedOrderResponse(sellResult);
-
-      expect(acceptedSellResult.orderId).not.toBe('');
-    });
+        expect(acceptedSellResult.orderId).not.toBe('');
+      },
+    );
   });
 
   describe('prepareLimitOrder', () => {
@@ -251,7 +255,7 @@ describe('Orders', () => {
   });
 
   describe('cancelMarketOrders', () => {
-    it.skip('cancels open orders for a market and asset', async () => {
+    it('cancels open orders for a market and asset', async () => {
       const order = await createRestingLimitOrder();
       const result = await cancelMarketOrderWithRetry(order);
 

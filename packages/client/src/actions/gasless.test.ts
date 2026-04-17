@@ -8,6 +8,7 @@ import {
   createRandomWalletClient,
   publicClientWithBuilderKey,
   publicClientWithRelayerKey,
+  runMeteredTests,
   safeWalletAddress,
   walletClient,
 } from '../testing';
@@ -171,33 +172,37 @@ describe('Gasless', () => {
   });
 
   describe('prepareGaslessWallet', () => {
-    // skipped cause it deploys a new Safe wallet at each run
-    it.skip('deploys a Safe wallet for a new signer', async () => {
-      const walletClient = createRandomWalletClient();
-      const safeWallet = deriveSafeWalletAddress(
-        expectEvmAddress(walletClient.account.address),
-        publicClientWithBuilderKey.environment.walletDerivation,
-      );
+    it.runIf(runMeteredTests)(
+      'deploys a Safe wallet for a new signer',
+      async ({ annotate }) => {
+        const walletClient = createRandomWalletClient();
+        const safeWallet = deriveSafeWalletAddress(
+          expectEvmAddress(walletClient.account.address),
+          publicClientWithBuilderKey.environment.walletDerivation,
+        );
 
-      await expect(
-        isGaslessReady(publicClientWithBuilderKey, {
-          wallet: safeWallet,
-        }),
-      ).resolves.toBe(false);
+        await expect(
+          isGaslessReady(publicClientWithBuilderKey, {
+            wallet: safeWallet,
+          }),
+        ).resolves.toBe(false);
 
-      const handle = await prepareGaslessWallet(
-        publicClientWithBuilderKey,
-      ).then(completeWith(walletClient));
+        const handle = await prepareGaslessWallet(
+          publicClientWithBuilderKey,
+        ).then(completeWith(walletClient));
 
-      expect(handle.wallet).toBe(safeWallet);
+        expect(handle.wallet).toBe(safeWallet);
 
-      await expect(handle.wait()).resolves.toBeTruthy();
+        annotate(`Deployment transaction: ${handle.transactionHash}`);
 
-      await expect(
-        isGaslessReady(publicClientWithBuilderKey, {
-          wallet: safeWallet,
-        }),
-      ).resolves.toBe(true);
-    });
+        await expect(handle.wait()).resolves.toBeTruthy();
+
+        await expect(
+          isGaslessReady(publicClientWithBuilderKey, {
+            wallet: safeWallet,
+          }),
+        ).resolves.toBe(true);
+      },
+    );
   });
 });
