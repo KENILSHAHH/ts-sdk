@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { SigningError } from './errors';
 import type { ApiKeyAuthorization, ApiKeyAuthorizationRequest } from './types';
 
+export type RelayerApiKeyConfig = {
+  key: string;
+  address: string;
+};
+
 export type RemoteBuilderSigningConfig = {
   /**
    * URL for the application's remote builder-signing endpoint.
@@ -37,6 +42,12 @@ export function remoteBuilderSigning(
   config: RemoteBuilderSigningConfig,
 ): ApiKeyAuthorization {
   return new RemoteBuilderAuthorization(config);
+}
+
+export function relayerApiKey(
+  config: RelayerApiKeyConfig,
+): ApiKeyAuthorization {
+  return new RelayerApiKeyAuthorization(config);
 }
 
 class RemoteBuilderAuthorization implements ApiKeyAuthorization {
@@ -98,5 +109,28 @@ class RemoteBuilderAuthorization implements ApiKeyAuthorization {
     }
 
     return RemoteBuilderSigningResponseSchema.parse(await response.json());
+  }
+}
+
+class RelayerApiKeyAuthorization implements ApiKeyAuthorization {
+  readonly #config: RelayerApiKeyConfig;
+
+  constructor(config: RelayerApiKeyConfig) {
+    this.#config = config;
+  }
+
+  get isBuilderKey(): boolean {
+    return false;
+  }
+
+  get supportGasless(): boolean {
+    return true;
+  }
+
+  authorize(): Promise<HeadersInit> {
+    return Promise.resolve({
+      RELAYER_API_KEY: this.#config.key,
+      RELAYER_API_KEY_ADDRESS: this.#config.address,
+    });
   }
 }

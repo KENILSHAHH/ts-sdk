@@ -11,9 +11,10 @@ import { createWalletClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { listMarkets } from './actions/markets';
+import { relayerApiKey } from './authorization';
 import { createPublicClient } from './clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
-import { builderApiKey, relayerApiKey } from './node';
+import { builderApiKey } from './node';
 import type { Page } from './pagination';
 
 if (process.env.CI !== 'true') {
@@ -88,12 +89,20 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
     pageSize: 1000,
     order: 'volume24hr',
     ascending: false,
+    sportsMarketTypes: ['moneyline', 'spreads', 'totals'],
   })
     .first()
     .then((page) => page.items);
-  const market = candidateMarkets
-    .filter(hasRequiredOrderFields)
-    .sort(
+  const eligibleMarkets = candidateMarkets.filter(hasRequiredOrderFields);
+  const market =
+    eligibleMarkets
+      .filter(isNonPoliticalMarket)
+      .sort(
+        (left, right) =>
+          (left.orderMinSize ?? Number.POSITIVE_INFINITY) -
+          (right.orderMinSize ?? Number.POSITIVE_INFINITY),
+      )[0] ??
+    eligibleMarkets.sort(
       (left, right) =>
         (left.orderMinSize ?? Number.POSITIVE_INFINITY) -
         (right.orderMinSize ?? Number.POSITIVE_INFINITY),
@@ -129,6 +138,41 @@ function hasRequiredOrderFields(candidate: Market) {
     candidate.clobTokenIds !== undefined
   );
 }
+
+function isNonPoliticalMarket(candidate: Market) {
+  const searchableFields = [
+    candidate.category,
+    candidate.subcategory,
+    candidate.question,
+    candidate.slug,
+    ...(candidate.tags ?? []).flatMap((tag) => [tag.label, tag.slug]),
+  ]
+    .filter((value): value is string => value !== null && value !== undefined)
+    .map((value) => value.toLowerCase());
+
+  return !searchableFields.some((value) =>
+    POLITICAL_MARKET_KEYWORDS.some((keyword) => value.includes(keyword)),
+  );
+}
+
+const POLITICAL_MARKET_KEYWORDS = [
+  'politic',
+  'election',
+  'president',
+  'presidential',
+  'congress',
+  'senate',
+  'house',
+  'government',
+  'governor',
+  'mayor',
+  'parliament',
+  'prime minister',
+  'trump',
+  'biden',
+  'harris',
+  'vance',
+] as const;
 
 function getEventSlug(market: Market): string | undefined {
   const firstEvent = market.events?.[0] as { slug?: string | null } | undefined;

@@ -23,21 +23,10 @@ export type BuilderApiKeyCreds = {
   passphrase: string;
 };
 
-export type RelayerApiKeyConfig = {
-  key: string;
-  address: string;
-};
-
 export function builderApiKey(
   options: BuilderApiKeyCreds,
 ): ApiKeyAuthorization {
   return new LocalBuilderApiKey(options);
-}
-
-export function relayerApiKey(
-  options: RelayerApiKeyConfig,
-): ApiKeyAuthorization {
-  return new LocalRelayerApiKey(options);
 }
 
 class LocalBuilderApiKey implements ApiKeyAuthorization {
@@ -81,28 +70,5 @@ class LocalBuilderApiKey implements ApiKeyAuthorization {
         'Could not sign the builder-authenticated request',
       );
     }
-  }
-}
-
-class LocalRelayerApiKey implements ApiKeyAuthorization {
-  readonly #credentials: RelayerApiKeyConfig;
-
-  constructor(credentials: RelayerApiKeyConfig) {
-    this.#credentials = credentials;
-  }
-
-  get isBuilderKey(): boolean {
-    return false;
-  }
-
-  get supportGasless(): boolean {
-    return true;
-  }
-
-  authorize(): Promise<HeadersInit> {
-    return Promise.resolve({
-      RELAYER_API_KEY: this.#credentials.key,
-      RELAYER_API_KEY_ADDRESS: this.#credentials.address,
-    });
   }
 }
