@@ -1,4 +1,4 @@
-import { OrderSide } from '@polymarket/bindings/clob';
+import { AssetType, OrderSide } from '@polymarket/bindings/clob';
 import {
   type EvmAddress,
   type EvmSignature,
@@ -16,6 +16,7 @@ import type {
 } from '../../errors';
 import { parseUserInput } from '../../input';
 import type { TransactionHandle } from '../../types';
+import { updateBalanceAllowance } from '../account';
 import {
   type Erc20ApprovalWorkflowRequest,
   type Erc1155ApprovalForAllWorkflowRequest,
@@ -140,4 +141,12 @@ async function* ensureOrderApproval(
         });
 
   await handle.wait();
+
+  await updateBalanceAllowance(client, {
+    assetType:
+      draft.side === OrderSide.BUY
+        ? AssetType.COLLATERAL
+        : AssetType.CONDITIONAL,
+    tokenId: draft.side === OrderSide.SELL ? draft.tokenId : undefined,
+  });
 }
