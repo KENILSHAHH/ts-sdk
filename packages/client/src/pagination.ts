@@ -2,7 +2,7 @@ import {
   type PaginationCursor,
   toPaginationCursor,
 } from '@polymarket/bindings';
-import { invariant, type ResultAsync, unwrap } from '@polymarket/types';
+import { type ResultAsync, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { UserInputError } from './errors';
 
@@ -40,10 +40,10 @@ export function paginate<T, TError>(
   function createEmptyPaginator(): Paginated<T> {
     return {
       async firstPage() {
-        invariant(
-          false,
-          'Expected the paginated result to yield at least one page',
-        );
+        return {
+          items: [],
+          hasMore: false,
+        };
       },
       from() {
         return createEmptyPaginator();
