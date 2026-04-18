@@ -8,7 +8,7 @@ import {
   type Trade,
 } from '@polymarket/bindings/data';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -121,7 +121,7 @@ export type ListTradesError =
  * ```
  */
 export function listTrades(
-  client: Client,
+  client: BaseClient,
   request: ListTradesRequest = {},
 ): Paginated<Trade> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -201,7 +201,7 @@ export type ListActivityError =
  * ```
  */
 export function listActivity(
-  client: Client,
+  client: BaseClient,
   request: ListActivityRequest,
 ): Paginated<Activity> {
   const { cursor, pageSize, ...params } = parseUserInput(

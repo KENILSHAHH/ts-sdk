@@ -14,7 +14,11 @@ import {
   listBuilderVolume,
   listTraderLeaderboard,
 } from '../actions';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 import type { Paginated } from '../pagination';
 
 export type AnalyticsActions = {
@@ -153,9 +157,9 @@ export type AnalyticsActions = {
   ): Paginated<TraderLeaderboardEntry>;
 };
 
-export function analyticsActions(client: PublicClient): AnalyticsActions;
-export function analyticsActions(client: SecureClient): AnalyticsActions;
-export function analyticsActions(client: Client): AnalyticsActions {
+export function analyticsActions(client: BasePublicClient): AnalyticsActions;
+export function analyticsActions(client: BaseSecureClient): AnalyticsActions;
+export function analyticsActions(client: BaseClient): AnalyticsActions {
   return {
     listBuilderTrades: listBuilderTrades.bind(null, client),
     listBuilderLeaderboard: listBuilderLeaderboard.bind(null, client),

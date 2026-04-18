@@ -10,7 +10,7 @@ import {
 } from '@polymarket/bindings/clob';
 import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import { UserInputError } from '../../errors';
 import { fetchNegRisk, fetchTickSize } from '../clob';
 import {
@@ -82,7 +82,7 @@ type ResolveLimitOrderContextParams = {
 };
 
 export async function prepareLimitOrderDraft(
-  client: SecureClient,
+  client: BaseSecureClient,
   params: PrepareLimitOrderDraftParams,
 ): Promise<OrderDraft> {
   const context = await resolveLimitOrderContext(client, {
@@ -123,7 +123,7 @@ type LimitOrderContext = {
 };
 
 async function resolveLimitOrderContext(
-  client: SecureClient,
+  client: BaseSecureClient,
   params: ResolveLimitOrderContextParams,
 ): Promise<LimitOrderContext> {
   const account = client.account;

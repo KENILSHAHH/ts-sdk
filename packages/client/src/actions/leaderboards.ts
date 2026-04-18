@@ -12,7 +12,7 @@ import {
 } from '@polymarket/bindings/data';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -104,7 +104,7 @@ export type ListBuilderLeaderboardError =
  * ```
  */
 export function listBuilderLeaderboard(
-  client: Client,
+  client: BaseClient,
   request: ListBuilderLeaderboardRequest = {},
 ): Paginated<LeaderboardEntry> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -164,7 +164,7 @@ export type ListBuilderVolumeError =
  * ```
  */
 export async function listBuilderVolume(
-  client: Client,
+  client: BaseClient,
   request: ListBuilderVolumeRequest = {},
 ): Promise<BuilderVolumeEntry[]> {
   const params = parseUserInput(request, ListBuilderVolumeRequestSchema);
@@ -223,7 +223,7 @@ export type ListTraderLeaderboardError =
  * ```
  */
 export function listTraderLeaderboard(
-  client: Client,
+  client: BaseClient,
   request: ListTraderLeaderboardRequest = {},
 ): Paginated<TraderLeaderboardEntry> {
   const { cursor, pageSize, ...params } = parseUserInput(

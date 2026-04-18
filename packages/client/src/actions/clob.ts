@@ -34,7 +34,7 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -78,7 +78,7 @@ export type FetchMidpointError =
  *
  */
 export async function fetchMidpoint(
-  client: Client,
+  client: BaseClient,
   request: FetchMidpointRequest,
 ): Promise<string> {
   const params = parseUserInput(request, FetchMidpointRequestSchema);
@@ -130,7 +130,7 @@ export type FetchMidpointsError =
  *
  */
 export async function fetchMidpoints(
-  client: Client,
+  client: BaseClient,
   request: FetchMidpointsRequest,
 ): Promise<Record<string, string>> {
   const params = parseUserInput(request, FetchMidpointsRequestSchema);
@@ -177,7 +177,7 @@ export type FetchTickSizeError =
  * ```
  */
 export async function fetchTickSize(
-  client: Client,
+  client: BaseClient,
   request: FetchTickSizeRequest,
 ): Promise<TickSizeValue> {
   const params = parseUserInput(request, FetchTickSizeRequestSchema);
@@ -225,7 +225,7 @@ export type FetchNegRiskError =
  * ```
  */
 export async function fetchNegRisk(
-  client: Client,
+  client: BaseClient,
   request: FetchNegRiskRequest,
 ): Promise<boolean> {
   const params = parseUserInput(request, FetchNegRiskRequestSchema);
@@ -273,7 +273,7 @@ export type FetchFeeRateError =
  * ```
  */
 export async function fetchFeeRate(
-  client: Client,
+  client: BaseClient,
   request: FetchFeeRateRequest,
 ): Promise<number> {
   const params = parseUserInput(request, FetchFeeRateRequestSchema);
@@ -321,7 +321,7 @@ export type FetchPriceError =
  *
  */
 export async function fetchPrice(
-  client: Client,
+  client: BaseClient,
   request: FetchPriceRequest,
 ): Promise<string> {
   const params = parseUserInput(request, FetchPriceRequestSchema);
@@ -375,7 +375,7 @@ export type FetchPricesError =
  *
  */
 export async function fetchPrices(
-  client: Client,
+  client: BaseClient,
   request: FetchPricesRequest,
 ): Promise<Prices> {
   const params = parseUserInput(request, FetchPricesRequestSchema);
@@ -419,7 +419,7 @@ export type FetchOrderBookError =
  * ```
  */
 export async function fetchOrderBook(
-  client: Client,
+  client: BaseClient,
   request: FetchOrderBookRequest,
 ): Promise<OrderBook> {
   const params = parseUserInput(request, FetchOrderBookRequestSchema);
@@ -471,7 +471,7 @@ export type FetchOrderBooksError =
  * ```
  */
 export async function fetchOrderBooks(
-  client: Client,
+  client: BaseClient,
   request: FetchOrderBooksRequest,
 ): Promise<OrderBook[]> {
   const params = parseUserInput(request, FetchOrderBooksRequestSchema);
@@ -516,7 +516,7 @@ export type FetchSpreadError =
  *
  */
 export async function fetchSpread(
-  client: Client,
+  client: BaseClient,
   request: FetchSpreadRequest,
 ): Promise<string> {
   const params = parseUserInput(request, FetchSpreadRequestSchema);
@@ -568,7 +568,7 @@ export type FetchSpreadsError =
  *
  */
 export async function fetchSpreads(
-  client: Client,
+  client: BaseClient,
   request: FetchSpreadsRequest,
 ): Promise<Record<string, string>> {
   const params = parseUserInput(request, FetchSpreadsRequestSchema);
@@ -615,7 +615,7 @@ export type FetchLastTradePriceError =
  *
  */
 export async function fetchLastTradePrice(
-  client: Client,
+  client: BaseClient,
   request: FetchLastTradePriceRequest,
 ): Promise<LastTradePrice> {
   const params = parseUserInput(request, FetchLastTradePriceRequestSchema);
@@ -668,7 +668,7 @@ export type FetchLastTradePricesError =
  *
  */
 export async function fetchLastTradePrices(
-  client: Client,
+  client: BaseClient,
   request: FetchLastTradePricesRequest,
 ): Promise<LastTradePriceForToken[]> {
   const params = parseUserInput(request, FetchLastTradePricesRequestSchema);
@@ -721,7 +721,7 @@ export type FetchPriceHistoryError =
  *
  */
 export async function fetchPriceHistory(
-  client: Client,
+  client: BaseClient,
   request: FetchPriceHistoryRequest,
 ): Promise<PriceHistoryPoint[]> {
   const params = parseUserInput(request, ListPriceHistoryRequestSchema);
@@ -790,7 +790,7 @@ export type ListCurrentRewardsError =
  * ```
  */
 export function listCurrentRewards(
-  client: Client,
+  client: BaseClient,
   request: ListCurrentRewardsRequest = {},
 ): Paginated<CurrentReward> {
   const { cursor, ...params } = parseUserInput(
@@ -877,7 +877,7 @@ export type ListMarketRewardsError =
  * ```
  */
 export function listMarketRewards(
-  client: Client,
+  client: BaseClient,
   request: ListMarketRewardsRequest,
 ): Paginated<MarketReward> {
   const { cursor, ...params } = parseUserInput(

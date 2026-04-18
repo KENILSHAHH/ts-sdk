@@ -16,7 +16,7 @@ import {
   negRiskRedeemPositionsCall,
   splitPositionCall,
 } from '../abis';
-import type { SecureClient } from '../clients';
+import type { BaseSecureClient } from '../clients';
 import {
   type RateLimitError,
   type RequestRejectedError,
@@ -153,7 +153,7 @@ export type PrepareRedeemPositionsError =
  * Thrown on failure.
  */
 export async function prepareSplitPosition(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareSplitPositionRequest,
 ): Promise<SplitPositionWorkflow> {
   const params = parseUserInput(request, PrepareSplitPositionRequestSchema);
@@ -203,7 +203,7 @@ export async function prepareSplitPosition(
  * Thrown on failure.
  */
 export async function prepareMergePositions(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareMergePositionsRequest,
 ): Promise<MergePositionsWorkflow> {
   const params = parseUserInput(request, PrepareMergePositionsRequestSchema);
@@ -265,7 +265,7 @@ export async function prepareMergePositions(
  * Thrown on failure.
  */
 export async function prepareRedeemPositions(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareRedeemPositionsRequest,
 ): Promise<RedeemPositionsWorkflow> {
   const params = parseUserInput(request, PrepareRedeemPositionsRequestSchema);
@@ -336,14 +336,14 @@ function sendRedeemPositionsTransaction(
   };
 }
 
-function resolveSplitTargetAddress(client: SecureClient, negRisk: boolean) {
+function resolveSplitTargetAddress(client: BaseSecureClient, negRisk: boolean) {
   return negRisk
     ? client.environment.negRiskAdapter
     : client.environment.conditionalTokens;
 }
 
 async function resolveMarketNegativeRiskFlag(
-  client: SecureClient,
+  client: BaseSecureClient,
   conditionId: ConditionId,
 ): Promise<boolean> {
   const page = await listMarkets(client, {
@@ -371,7 +371,7 @@ async function resolveMarketNegativeRiskFlag(
   return market.negRisk;
 }
 
-function resolveMergeTargetAddress(client: SecureClient, negRisk: boolean) {
+function resolveMergeTargetAddress(client: BaseSecureClient, negRisk: boolean) {
   return negRisk
     ? client.environment.negRiskAdapter
     : client.environment.conditionalTokens;

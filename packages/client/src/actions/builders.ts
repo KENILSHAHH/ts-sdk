@@ -8,7 +8,7 @@ import {
   PaginatedBuilderTradesSchema,
 } from '@polymarket/bindings/clob';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -72,7 +72,7 @@ export type ListBuilderTradesError =
  * ```
  */
 export function listBuilderTrades(
-  client: Client,
+  client: BaseClient,
   request: ListBuilderTradesRequest = {},
 ): Paginated<BuilderTrade> {
   const { cursor, ...params } = parseUserInput(

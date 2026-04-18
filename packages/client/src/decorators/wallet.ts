@@ -25,7 +25,11 @@ import {
   type SplitPositionWorkflow,
   type TradingApprovalsWorkflow,
 } from '../actions';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 
 export type PublicWalletActions = {
   /**
@@ -211,17 +215,17 @@ export type SecureWalletActions = Prettify<
   }
 >;
 
-function publicWalletActions(client: Client): PublicWalletActions {
+function publicWalletActions(client: BaseClient): PublicWalletActions {
   return {
     isGaslessReady: isGaslessReady.bind(null, client),
     prepareGaslessWallet: prepareGaslessWallet.bind(null, client),
   };
 }
 
-export function walletActions(client: PublicClient): PublicWalletActions;
-export function walletActions(client: SecureClient): SecureWalletActions;
+export function walletActions(client: BasePublicClient): PublicWalletActions;
+export function walletActions(client: BaseSecureClient): SecureWalletActions;
 export function walletActions(
-  client: Client,
+  client: BaseClient,
 ): PublicWalletActions | SecureWalletActions {
   const actions = publicWalletActions(client);
 

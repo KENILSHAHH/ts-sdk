@@ -16,7 +16,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -152,7 +152,7 @@ export type ListEventsError =
  * ```
  */
 export function listEvents(
-  client: Client,
+  client: BaseClient,
   request: ListEventsRequest = {},
 ): Paginated<Event> {
   const params = parseUserInput(request, ListEventsRequestSchema);
@@ -199,7 +199,7 @@ export type FetchEventError =
  * ```
  */
 export async function fetchEvent(
-  client: Client,
+  client: BaseClient,
   request: FetchEventRequest,
 ): Promise<Event> {
   const params = parseUserInput(request, FetchEventRequestSchema);
@@ -246,7 +246,7 @@ export type FetchEventTagsError =
  * ```
  */
 export async function fetchEventTags(
-  client: Client,
+  client: BaseClient,
   request: FetchEventTagsRequest,
 ): Promise<TagReference[]> {
   const params = parseUserInput(request, FetchEventTagsRequestSchema);
@@ -281,7 +281,7 @@ export type FetchEventLiveVolumeError =
  * ```
  */
 export async function fetchEventLiveVolume(
-  client: Client,
+  client: BaseClient,
   request: FetchEventLiveVolumeRequest,
 ): Promise<LiveVolume[]> {
   const params = parseUserInput(request, FetchEventLiveVolumeRequestSchema);

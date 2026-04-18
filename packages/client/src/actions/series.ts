@@ -6,7 +6,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -93,7 +93,7 @@ export type ListSeriesError =
  * ```
  */
 export function listSeries(
-  client: Client,
+  client: BaseClient,
   request: ListSeriesRequest = {},
 ): Paginated<Series> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -160,7 +160,7 @@ export type FetchSeriesError =
  * ```
  */
 export async function fetchSeries(
-  client: Client,
+  client: BaseClient,
   request: FetchSeriesRequest,
 ): Promise<Series> {
   const params = parseUserInput(request, FetchSeriesRequestSchema);

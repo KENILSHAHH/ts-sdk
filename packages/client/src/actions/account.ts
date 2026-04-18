@@ -30,7 +30,7 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { toSignatureType } from '../account';
-import type { SecureClient } from '../clients';
+import type { BaseSecureClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -62,7 +62,7 @@ export type FetchClosedOnlyModeError =
  * ```
  */
 export async function fetchClosedOnlyMode(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<boolean> {
   const response = await unwrap(
     client.secureClob
@@ -124,7 +124,7 @@ export type ListOpenOrdersError =
  * ```
  */
 export function listOpenOrders(
-  client: SecureClient,
+  client: BaseSecureClient,
   request?: ListOpenOrdersRequest,
 ): Paginated<OpenOrder> {
   const { cursor, ...params } = parseUserInput(
@@ -178,7 +178,7 @@ export type FetchOrderError =
  * ```
  */
 export async function fetchOrder(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: FetchOrderRequest,
 ): Promise<OpenOrder> {
   const params = parseUserInput(request, FetchOrderRequestSchema);
@@ -248,7 +248,7 @@ export type ListAccountTradesError =
  * ```
  */
 export function listAccountTrades(
-  client: SecureClient,
+  client: BaseSecureClient,
   request?: ListAccountTradesRequest,
 ): Paginated<ClobTrade> {
   const { cursor, ...params } = parseUserInput(
@@ -302,7 +302,7 @@ export type DropNotificationsRequest = z.input<
  * ```
  */
 export async function fetchNotifications(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<NotificationsResponse> {
   const signatureType = toSignatureType(client.account.walletType);
 
@@ -337,7 +337,7 @@ export type DropNotificationsError =
  * ```
  */
 export async function dropNotifications(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: DropNotificationsRequest,
 ): Promise<void> {
   const params = parseUserInput(request, DropNotificationsRequestSchema);
@@ -391,7 +391,7 @@ export type FetchBalanceAllowanceError =
  * ```
  */
 export async function fetchBalanceAllowance(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: FetchBalanceAllowanceRequest,
 ): Promise<BalanceAllowanceResponse> {
   const params = parseUserInput(request, FetchBalanceAllowanceRequestSchema);
@@ -446,7 +446,7 @@ export type UpdateBalanceAllowanceError =
  * ```
  */
 export async function updateBalanceAllowance(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: UpdateBalanceAllowanceRequest,
 ): Promise<BalanceAllowanceResponse> {
   const params = parseUserInput(request, UpdateBalanceAllowanceRequestSchema);
@@ -496,7 +496,7 @@ export type FetchOrderScoringError =
  * ```
  */
 export async function fetchOrderScoring(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: FetchOrderScoringRequest,
 ): Promise<boolean> {
   const params = parseUserInput(request, FetchOrderScoringRequestSchema);
@@ -539,7 +539,7 @@ export type FetchOrdersScoringError =
  * ```
  */
 export async function fetchOrdersScoring(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: FetchOrdersScoringRequest,
 ): Promise<OrdersScoringResponse> {
   const params = parseUserInput(request, FetchOrdersScoringRequestSchema);
@@ -603,7 +603,7 @@ export type ListUserEarningsForDayError =
  * ```
  */
 export function listUserEarningsForDay(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: ListUserEarningsForDayRequest,
 ): Paginated<UserEarning> {
   const { cursor, ...params } = parseUserInput(
@@ -663,7 +663,7 @@ export type FetchTotalEarningsForUserForDayError =
  * ```
  */
 export async function fetchTotalEarningsForUserForDay(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: FetchTotalEarningsForUserForDayRequest,
 ): Promise<TotalUserEarning[]> {
   const params = parseUserInput(request, ListUserEarningsForDayRequestSchema);
@@ -737,7 +737,7 @@ export type ListUserEarningsAndMarketsConfigError =
  * ```
  */
 export function listUserEarningsAndMarketsConfig(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: ListUserEarningsAndMarketsConfigRequest,
 ): Paginated<UserRewardsEarning> {
   const { cursor, ...params } = parseUserInput(
@@ -791,7 +791,7 @@ export type FetchRewardPercentagesError =
  * ```
  */
 export async function fetchRewardPercentages(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<RewardsPercentages> {
   const signatureType = toSignatureType(client.account.walletType);
 

@@ -52,7 +52,11 @@ import {
   type SearchRequest,
   search,
 } from '../actions';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 import type { Paginated } from '../pagination';
 
 export type DiscoveryActions = {
@@ -510,9 +514,9 @@ export type DiscoveryActions = {
   ): Paginated<Comment>;
 };
 
-export function discoveryActions(client: PublicClient): DiscoveryActions;
-export function discoveryActions(client: SecureClient): DiscoveryActions;
-export function discoveryActions(client: Client): DiscoveryActions {
+export function discoveryActions(client: BasePublicClient): DiscoveryActions;
+export function discoveryActions(client: BaseSecureClient): DiscoveryActions;
+export function discoveryActions(client: BaseClient): DiscoveryActions {
   return {
     listEvents: listEvents.bind(null, client),
     fetchEvent: fetchEvent.bind(null, client),

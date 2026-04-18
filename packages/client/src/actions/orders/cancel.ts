@@ -4,7 +4,7 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -63,7 +63,7 @@ export type CancelOrderError =
  * ```
  */
 export async function cancelOrder(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: CancelOrderRequest,
 ): Promise<CancelOrdersResponse> {
   const params = parseUserInput(request, CancelOrderRequestSchema);
@@ -98,7 +98,7 @@ export type CancelOrdersError =
  * ```
  */
 export async function cancelOrders(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: CancelOrdersRequest,
 ): Promise<CancelOrdersResponse> {
   const params = parseUserInput(request, CancelOrdersRequestSchema);
@@ -127,7 +127,7 @@ export type CancelAllError =
  * ```
  */
 export async function cancelAll(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<CancelOrdersResponse> {
   return cancel(client, '/cancel-all');
 }
@@ -160,7 +160,7 @@ export type CancelMarketOrdersError =
  * ```
  */
 export async function cancelMarketOrders(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: CancelMarketOrdersRequest,
 ): Promise<CancelOrdersResponse> {
   const params = parseUserInput(request, CancelMarketOrdersRequestSchema);
@@ -172,7 +172,7 @@ export async function cancelMarketOrders(
 }
 
 async function cancel(
-  client: SecureClient,
+  client: BaseSecureClient,
   path: string,
   payload?: unknown,
 ): Promise<CancelOrdersResponse> {

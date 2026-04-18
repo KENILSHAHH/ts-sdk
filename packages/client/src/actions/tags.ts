@@ -9,7 +9,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -128,7 +128,7 @@ export type ListTagsError =
  * ```
  */
 export function listTags(
-  client: Client,
+  client: BaseClient,
   request: ListTagsRequest = {},
 ): Paginated<Tag> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -192,7 +192,7 @@ export type FetchTagError =
  * ```
  */
 export async function fetchTag(
-  client: Client,
+  client: BaseClient,
   request: FetchTagRequest,
 ): Promise<Tag> {
   const params = parseUserInput(request, FetchTagRequestSchema);
@@ -253,7 +253,7 @@ export type FetchRelatedTagsError =
  * ```
  */
 export async function fetchRelatedTags(
-  client: Client,
+  client: BaseClient,
   request: FetchRelatedTagsRequest,
 ): Promise<RelatedTag[]> {
   if ('id' in request) {
@@ -308,7 +308,7 @@ export type FetchRelatedTagResourcesError =
  * ```
  */
 export async function fetchRelatedTagResources(
-  client: Client,
+  client: BaseClient,
   request: FetchRelatedTagResourcesRequest,
 ): Promise<Tag[]> {
   if ('id' in request) {

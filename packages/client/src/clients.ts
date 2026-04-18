@@ -51,8 +51,8 @@ export type ClientDecorator<
   TPublicActions extends ClientActions = ClientActions,
   TSecureActions extends ClientActions = TPublicActions,
 > = {
-  (client: PublicClient<ClientActions, ClientActions>): TPublicActions;
-  (client: SecureClient<ClientActions, ClientActions>): TSecureActions;
+  (client: BasePublicClient<ClientActions, ClientActions>): TPublicActions;
+  (client: BaseSecureClient<ClientActions, ClientActions>): TSecureActions;
 };
 
 type DecoratorPublicActions<TDecorator extends ClientDecorator> =
@@ -223,8 +223,8 @@ type PublicClientConfig = {
 };
 
 class BasePublicClient<
-  TPublicActions extends ClientActions,
-  TSecureActions extends ClientActions,
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
 > extends AbstractClient<PublicContext> {
   constructor(config: PublicClientConfig) {
     super({
@@ -253,7 +253,7 @@ class BasePublicClient<
    * }
    * ```
    */
-  isSecureClient(): this is SecureClient {
+  isSecureClient(): this is BaseSecureClient<TPublicActions, TSecureActions> {
     return false;
   }
 
@@ -267,7 +267,7 @@ class BasePublicClient<
    * }
    * ```
    */
-  isPublicClient(): this is PublicClient {
+  isPublicClient(): this is BasePublicClient<TPublicActions, TSecureActions> {
     return true;
   }
 
@@ -339,15 +339,12 @@ class BasePublicClient<
             timestamp,
           }),
         };
-        const credentials = await createOrDeriveApiKey(
-          this as unknown as PublicClient<TPublicActions, TSecureActions>,
-          {
-            address: signer,
-            nonce,
-            signature: expectEvmSignature(signature),
-            timestamp,
-          },
-        );
+        const credentials = await createOrDeriveApiKey(this, {
+          address: signer,
+          nonce,
+          signature: expectEvmSignature(signature),
+          timestamp,
+        });
 
         return this.#createSecureClient(credentials, identity);
       }.call(this as unknown as PublicClient<TPublicActions, TSecureActions>),
@@ -374,8 +371,8 @@ class BasePublicClient<
 }
 
 class BaseSecureClient<
-  TPublicActions extends ClientActions,
-  TSecureActions extends ClientActions,
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
 > extends AbstractClient<SecureContext> {
   #hasEndedAuthentication = false;
 
@@ -447,7 +444,7 @@ class BaseSecureClient<
    * }
    * ```
    */
-  isSecureClient(): this is SecureClient {
+  isSecureClient(): this is BaseSecureClient<TPublicActions, TSecureActions> {
     return true;
   }
 
@@ -461,7 +458,7 @@ class BaseSecureClient<
    * }
    * ```
    */
-  isPublicClient(): this is PublicClient {
+  isPublicClient(): this is BasePublicClient<TPublicActions, TSecureActions> {
     return false;
   }
 
@@ -566,6 +563,13 @@ export type SecureClient<
 > = BaseSecureClient<TPublicActions, TSecureActions> & TSecureActions;
 
 export { BasePublicClient, BaseSecureClient };
+
+export type BaseClient<
+  TPublicActions extends ClientActions = ClientActions,
+  TSecureActions extends ClientActions = TPublicActions,
+> =
+  | BasePublicClient<TPublicActions, TSecureActions>
+  | BaseSecureClient<TPublicActions, TSecureActions>;
 
 export type Client<
   TPublicActions extends ClientActions = ClientActions,

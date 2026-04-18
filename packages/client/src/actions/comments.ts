@@ -10,7 +10,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -106,7 +106,7 @@ export type ListCommentsError =
  * ```
  */
 export function listComments(
-  client: Client,
+  client: BaseClient,
   request: ListCommentsRequest,
 ): Paginated<Comment> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -175,7 +175,7 @@ export type FetchCommentsByIdError =
  * ```
  */
 export async function fetchCommentsById(
-  client: Client,
+  client: BaseClient,
   request: FetchCommentsByIdRequest,
 ): Promise<Comment[]> {
   const params = parseUserInput(request, FetchCommentsByIdRequestSchema);
@@ -239,7 +239,7 @@ export type ListCommentsByUserAddressError =
  * ```
  */
 export function listCommentsByUserAddress(
-  client: Client,
+  client: BaseClient,
   request: ListCommentsByUserAddressRequest,
 ): Paginated<Comment> {
   const { address, cursor, pageSize, ...params } = parseUserInput(

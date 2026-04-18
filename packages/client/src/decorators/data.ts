@@ -45,7 +45,11 @@ import {
   listOpenInterest,
   listTrades,
 } from '../actions';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 import type { Paginated } from '../pagination';
 
 export type DataActions = {
@@ -289,9 +293,9 @@ export type DataActions = {
   listTrades(request?: ListTradesRequest): Paginated<Trade>;
 };
 
-export function dataActions(client: PublicClient): DataActions;
-export function dataActions(client: SecureClient): DataActions;
-export function dataActions(client: Client): DataActions {
+export function dataActions(client: BasePublicClient): DataActions;
+export function dataActions(client: BaseSecureClient): DataActions;
+export function dataActions(client: BaseClient): DataActions {
   return {
     fetchEventLiveVolume: fetchEventLiveVolume.bind(null, client),
     fetchMidpoint: fetchMidpoint.bind(null, client),

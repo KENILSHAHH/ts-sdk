@@ -3,7 +3,7 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import type { EvmSignature } from '@polymarket/types';
 import { z } from 'zod';
 import { erc20TransferCall } from '../abis';
-import type { SecureClient } from '../clients';
+import type { BaseSecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
 import {
@@ -65,7 +65,7 @@ export type PrepareErc20TransferError = UserInputError;
  * Thrown on failure.
  */
 export async function prepareErc20Transfer(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareErc20TransferRequest,
 ): Promise<Erc20TransferWorkflow> {
   const params = parseUserInput(request, PrepareErc20TransferRequestSchema);

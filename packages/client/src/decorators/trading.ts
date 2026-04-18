@@ -26,7 +26,7 @@ import {
   prepareMarketOrder,
 } from '../actions';
 import type { SignedOrder } from '../actions/orders';
-import type { SecureClient } from '../clients';
+import type { BaseSecureClient } from '../clients';
 import type { Paginated } from '../pagination';
 
 type PostOrderMethod = {
@@ -218,8 +218,8 @@ export type TradingActions = {
   fetchOrder(request: FetchOrderRequest): Promise<OpenOrder>;
 };
 
-export function tradingActions(client: SecureClient): TradingActions;
-export function tradingActions(client: SecureClient): TradingActions {
+export function tradingActions(client: BaseSecureClient): TradingActions;
+export function tradingActions(client: BaseSecureClient): TradingActions {
   return {
     prepareMarketOrder: prepareMarketOrder.bind(null, client),
     prepareLimitOrder: prepareLimitOrder.bind(null, client),

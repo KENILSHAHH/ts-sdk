@@ -25,7 +25,11 @@ import {
   listUserEarningsAndMarketsConfig,
   listUserEarningsForDay,
 } from '../actions';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 import type { Paginated } from '../pagination';
 
 export type RewardsPublicActions = {
@@ -234,17 +238,17 @@ export type RewardsActions = Prettify<
   }
 >;
 
-function publicRewardsActions(client: Client): RewardsPublicActions {
+function publicRewardsActions(client: BaseClient): RewardsPublicActions {
   return {
     listCurrentRewards: listCurrentRewards.bind(null, client),
     listMarketRewards: listMarketRewards.bind(null, client),
   };
 }
 
-export function rewardsActions(client: PublicClient): RewardsPublicActions;
-export function rewardsActions(client: SecureClient): RewardsActions;
+export function rewardsActions(client: BasePublicClient): RewardsPublicActions;
+export function rewardsActions(client: BaseSecureClient): RewardsActions;
 export function rewardsActions(
-  client: Client,
+  client: BaseClient,
 ): RewardsPublicActions | RewardsActions {
   const actions = publicRewardsActions(client);
 

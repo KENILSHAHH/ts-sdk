@@ -19,7 +19,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -186,7 +186,7 @@ export type ListMarketsError =
  * ```
  */
 export function listMarkets(
-  client: Client,
+  client: BaseClient,
   request: ListMarketsRequest = {},
 ): Paginated<Market> {
   const params = parseUserInput(request, ListMarketsRequestSchema);
@@ -233,7 +233,7 @@ export type FetchMarketError =
  * ```
  */
 export async function fetchMarket(
-  client: Client,
+  client: BaseClient,
   request: FetchMarketRequest,
 ): Promise<Market> {
   const params = parseUserInput(request, FetchMarketRequestSchema);
@@ -268,7 +268,7 @@ export type FetchMarketTagsError =
  * ```
  */
 export async function fetchMarketTags(
-  client: Client,
+  client: BaseClient,
   request: FetchMarketTagsRequest,
 ): Promise<TagReference[]> {
   const params = parseUserInput(request, FetchMarketTagsRequestSchema);
@@ -304,7 +304,7 @@ export type ListMarketHoldersError =
  * ```
  */
 export async function listMarketHolders(
-  client: Client,
+  client: BaseClient,
   request: ListMarketHoldersRequest,
 ): Promise<MetaHolder[]> {
   const params = parseUserInput(request, ListMarketHoldersRequestSchema);
@@ -341,7 +341,7 @@ export type ListOpenInterestError =
  * ```
  */
 export async function listOpenInterest(
-  client: Client,
+  client: BaseClient,
   request: ListOpenInterestRequest = {},
 ): Promise<OpenInterest[]> {
   const params = parseUserInput(request, ListOpenInterestRequestSchema);
@@ -398,7 +398,7 @@ export type ListMarketPositionsError =
  * ```
  */
 export function listMarketPositions(
-  client: Client,
+  client: BaseClient,
   request: ListMarketPositionsRequest,
 ): Paginated<MetaMarketPositionV1> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -448,7 +448,7 @@ function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {
 }
 
 async function fetchMarketBySlug(
-  client: Client,
+  client: BaseClient,
   params: z.output<typeof FetchMarketBySlugRequestSchema>,
 ): Promise<Market> {
   return unwrap(
@@ -467,7 +467,7 @@ async function fetchMarketBySlug(
 }
 
 async function fetchMarketById(
-  client: Client,
+  client: BaseClient,
   params: z.output<typeof FetchMarketByIdRequestSchema>,
 ): Promise<Market> {
   return unwrap(

@@ -33,7 +33,11 @@ import {
   listMarketPositions,
   listPositions,
 } from '../actions';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 import type { Paginated } from '../pagination';
 
 export type AccountPublicActions = {
@@ -310,7 +314,7 @@ export type AccountActions = Prettify<
   }
 >;
 
-function publicAccountActions(client: Client): AccountPublicActions {
+function publicAccountActions(client: BaseClient): AccountPublicActions {
   return {
     listPositions: listPositions.bind(null, client),
     listClosedPositions: listClosedPositions.bind(null, client),
@@ -322,10 +326,10 @@ function publicAccountActions(client: Client): AccountPublicActions {
   };
 }
 
-export function accountActions(client: PublicClient): AccountPublicActions;
-export function accountActions(client: SecureClient): AccountActions;
+export function accountActions(client: BasePublicClient): AccountPublicActions;
+export function accountActions(client: BaseSecureClient): AccountActions;
 export function accountActions(
-  client: Client,
+  client: BaseClient,
 ): AccountPublicActions | AccountActions {
   const actions = publicAccountActions(client);
 

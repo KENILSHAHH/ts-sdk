@@ -10,7 +10,7 @@ import {
 } from '@polymarket/bindings/clob';
 import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import { fetchNegRisk, fetchTickSize } from '../clob';
 import {
   resolveExchangeAddress,
@@ -36,7 +36,7 @@ export type PrepareMarketOrderDraftParams = z.output<
 >;
 
 export async function prepareMarketOrderDraft(
-  client: SecureClient,
+  client: BaseSecureClient,
   params: PrepareMarketOrderDraftParams,
 ): Promise<OrderDraft> {
   const context = await resolveMarketOrderContext(client, params);
@@ -81,7 +81,7 @@ type MarketOrderContext = {
 };
 
 async function resolveMarketOrderContext(
-  client: SecureClient,
+  client: BaseSecureClient,
   params: ResolveMarketOrderContextParams,
 ): Promise<MarketOrderContext> {
   const account = client.account;

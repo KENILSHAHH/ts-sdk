@@ -7,7 +7,7 @@ import {
 } from '@polymarket/bindings/clob';
 import { invariant } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../../clients';
+import type { BaseClient } from '../../clients';
 import {
   InsufficientLiquidityError,
   type RateLimitError,
@@ -69,7 +69,7 @@ export type EstimateMarketPriceError =
  * Thrown on failure.
  */
 export async function estimateMarketPrice(
-  client: Client,
+  client: BaseClient,
   request: EstimateMarketPriceRequest,
 ): Promise<number> {
   const params = parseUserInput(request, EstimateMarketPriceRequestSchema);
@@ -88,7 +88,7 @@ export async function estimateMarketPrice(
 
 /** @internal */
 export async function resolveEstimatedMarketPrice(
-  client: Client,
+  client: BaseClient,
   params: {
     amount: number;
     orderType: OrderType;

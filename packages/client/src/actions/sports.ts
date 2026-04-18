@@ -5,7 +5,7 @@ import {
   type SportsMetadata,
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -33,7 +33,9 @@ export type ListSportsError =
  * // sports: SportsMetadata[]
  * ```
  */
-export async function listSports(client: Client): Promise<SportsMetadata[]> {
+export async function listSports(
+  client: BaseClient,
+): Promise<SportsMetadata[]> {
   return unwrap(
     client.gamma
       .get('/sports')
@@ -61,7 +63,7 @@ export type FetchSportsMarketTypesError =
  * ```
  */
 export async function fetchSportsMarketTypes(
-  client: Client,
+  client: BaseClient,
 ): Promise<SportsMarketTypesResponse> {
   return unwrap(
     client.gamma

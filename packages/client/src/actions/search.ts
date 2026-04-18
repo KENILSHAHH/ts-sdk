@@ -4,7 +4,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -62,7 +62,7 @@ export type SearchError =
  * ```
  */
 export async function search(
-  client: Client,
+  client: BaseClient,
   request: SearchRequest,
 ): Promise<PublicSearchResponse> {
   const params = parseUserInput(request, SearchRequestSchema);

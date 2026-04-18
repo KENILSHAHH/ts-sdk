@@ -1,7 +1,7 @@
 import type { TickSizeValue } from '@polymarket/bindings';
 import type { EvmAddress } from '@polymarket/types';
 import { invariant } from '@polymarket/types';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import { fetchFeeRate } from '../clob';
 
 export type RoundingConfig = {
@@ -26,7 +26,7 @@ export function resolveRoundingConfig(tickSize: TickSizeValue): RoundingConfig {
 }
 
 export async function resolveFeeRateBps(
-  client: SecureClient,
+  client: BaseSecureClient,
   tokenId: string,
 ): Promise<number> {
   return fetchFeeRate(client, {
@@ -35,7 +35,7 @@ export async function resolveFeeRateBps(
 }
 
 export function resolveExchangeAddress(
-  client: SecureClient,
+  client: BaseSecureClient,
   negRisk: boolean,
 ): EvmAddress {
   return negRisk

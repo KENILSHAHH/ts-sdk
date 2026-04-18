@@ -31,7 +31,7 @@ import {
 import { z } from 'zod';
 import { encodeSafeMultisendCall } from '../abis';
 import { deriveSafeWalletAddress } from '../account';
-import type { Client, SecureClient } from '../clients';
+import type { BaseClient, BaseSecureClient } from '../clients';
 import {
   type RateLimitError,
   type RequestRejectedError,
@@ -105,7 +105,7 @@ export type FetchExecuteParamsError =
  * Thrown on failure.
  */
 export async function fetchExecuteParams(
-  client: Client,
+  client: BaseClient,
   request: FetchExecuteParamsRequest,
 ): Promise<RelayerExecuteParams> {
   const params = parseUserInput(request, FetchExecuteParamsRequestSchema);
@@ -157,7 +157,7 @@ export type IsGaslessReadyError =
  * ```
  */
 export async function isGaslessReady(
-  client: Client,
+  client: BaseClient,
   request: IsGaslessReadyRequest,
 ): Promise<boolean> {
   const params = parseUserInput(request, IsGaslessReadyRequestSchema);
@@ -210,7 +210,7 @@ export type PrepareGaslessWalletError =
  * ```
  */
 export async function prepareGaslessWallet(
-  client: Client,
+  client: BaseClient,
 ): Promise<GaslessWalletWorkflow> {
   invariant(
     client.supportsGasless,
@@ -275,7 +275,7 @@ export async function prepareGaslessWallet(
  * Thrown on failure.
  */
 export async function fetchTransaction(
-  client: Client,
+  client: BaseClient,
   request: FetchGaslessTransactionRequest,
 ): Promise<GaslessTransaction> {
   const params = parseUserInput(request, FetchGaslessTransactionRequestSchema);
@@ -337,7 +337,7 @@ export type PrepareGaslessTransactionError =
  * Thrown on failure.
  */
 export async function prepareGaslessTransaction(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareGaslessTransactionRequest,
 ): Promise<GaslessWorkflow> {
   const params = parseUserInput(
@@ -410,7 +410,7 @@ type ExecuteGaslessError =
   | UserInputError;
 
 async function executeGasless(
-  client: Client,
+  client: BaseClient,
   request: ExecuteGaslessRequest,
 ): Promise<GaslessTransactionHandle> {
   const payload = parseUserInput(request, RelayerExecuteRequestSchema);
@@ -571,12 +571,12 @@ export type WaitForGaslessTransactionError =
   | TransactionFailedError;
 
 class GaslessTransactionHandle implements TransactionHandle {
-  readonly #client: Client;
+  readonly #client: BaseClient;
 
   readonly transactionHash;
   readonly transactionId;
 
-  constructor(client: Client, response: RelayerExecuteResponse) {
+  constructor(client: BaseClient, response: RelayerExecuteResponse) {
     this.#client = client;
     this.transactionHash = response.transactionHash;
     this.transactionId = response.transactionId;

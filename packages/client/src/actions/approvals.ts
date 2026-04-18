@@ -7,7 +7,7 @@ import {
   erc1155ApprovalForAllCall,
   MAX_UINT256,
 } from '../abis';
-import type { SecureClient } from '../clients';
+import type { BaseSecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
 import {
@@ -69,7 +69,7 @@ export type PrepareErc20ApprovalError = UserInputError;
  * Thrown on failure.
  */
 export async function prepareErc20Approval(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareErc20ApprovalRequest,
 ): Promise<Erc20ApprovalWorkflow> {
   const params = parseUserInput(request, PrepareErc20ApprovalRequestSchema);
@@ -142,7 +142,7 @@ export type PrepareErc1155ApprovalForAllError = UserInputError;
  * Thrown on failure.
  */
 export async function prepareErc1155ApprovalForAll(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareErc1155ApprovalForAllRequest,
 ): Promise<Erc1155ApprovalForAllWorkflow> {
   const params = parseUserInput(
@@ -212,7 +212,7 @@ export type PrepareTradingApprovalsError = UserInputError;
  * Thrown on failure.
  */
 export async function prepareTradingApprovals(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<TradingApprovalsWorkflow> {
   const calls = [
     erc20ApprovalCall(

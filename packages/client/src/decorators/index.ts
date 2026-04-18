@@ -1,5 +1,9 @@
 import type { Prettify } from '@polymarket/types';
-import type { Client, PublicClient, SecureClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 import {
   type AccountActions,
   type AccountPublicActions,
@@ -39,9 +43,9 @@ export type SecureActions = Prettify<
     TradingActions
 >;
 
-export function allActions(client: PublicClient): PublicActions;
-export function allActions(client: SecureClient): SecureActions;
-export function allActions(client: Client): PublicActions | SecureActions {
+export function allActions(client: BasePublicClient): PublicActions;
+export function allActions(client: BaseSecureClient): SecureActions;
+export function allActions(client: BaseClient): PublicActions | SecureActions {
   if (client.isSecureClient()) {
     return {
       ...accountActions(client),

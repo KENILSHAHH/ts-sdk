@@ -6,7 +6,7 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -50,13 +50,13 @@ export type PostOrdersError =
  * Thrown on failure.
  */
 export function postOrder(
-  client: SecureClient,
+  client: BaseSecureClient,
   order: SignedOrder,
 ): Promise<OrderResponse>;
 export function postOrder(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): (order: SignedOrder) => Promise<OrderResponse>;
-export function postOrder(client: SecureClient, order?: SignedOrder) {
+export function postOrder(client: BaseSecureClient, order?: SignedOrder) {
   if (order === undefined) {
     return (nextOrder: SignedOrder) => {
       return postOrder(client, nextOrder);
@@ -89,13 +89,16 @@ export function postOrder(client: SecureClient, order?: SignedOrder) {
  * Thrown on failure.
  */
 export function postOrders(
-  client: SecureClient,
+  client: BaseSecureClient,
   orders: PostOrdersRequest,
 ): Promise<OrderResponses>;
 export function postOrders(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): (orders: PostOrdersRequest) => Promise<OrderResponses>;
-export function postOrders(client: SecureClient, orders?: PostOrdersRequest) {
+export function postOrders(
+  client: BaseSecureClient,
+  orders?: PostOrdersRequest,
+) {
   if (orders === undefined) {
     return (nextOrders: PostOrdersRequest) => {
       return postOrders(client, nextOrders);
@@ -116,7 +119,7 @@ export function postOrders(client: SecureClient, orders?: PostOrdersRequest) {
   );
 }
 
-function createSendOrderPayload(client: SecureClient, order: SignedOrder) {
+function createSendOrderPayload(client: BaseSecureClient, order: SignedOrder) {
   return {
     deferExec: false,
     order: {

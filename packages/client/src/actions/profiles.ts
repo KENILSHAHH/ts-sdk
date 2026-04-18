@@ -4,7 +4,7 @@ import {
 } from '@polymarket/bindings/gamma';
 import { err, ok, unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import {
   type RateLimitError,
   RequestRejectedError,
@@ -47,7 +47,7 @@ export type FetchPublicProfileError =
  * ```
  */
 export async function fetchPublicProfile(
-  client: Client,
+  client: BaseClient,
   request: FetchPublicProfileRequest,
 ): Promise<PublicProfile | null> {
   const params = parseUserInput(request, FetchPublicProfileRequestSchema);

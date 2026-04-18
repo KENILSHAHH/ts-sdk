@@ -1,7 +1,7 @@
 import { PaginationCursorSchema } from '@polymarket/bindings';
 import { ListTeamsResponseSchema, type Team } from '@polymarket/bindings/gamma';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -76,7 +76,7 @@ export type ListTeamsError =
  * ```
  */
 export function listTeams(
-  client: Client,
+  client: BaseClient,
   request: ListTeamsRequest = {},
 ): Paginated<Team> {
   const { cursor, pageSize, ...params } = parseUserInput(

@@ -1,7 +1,7 @@
 import type { TokenId } from '@polymarket/bindings';
 import { AssetType, OrderSide } from '@polymarket/bindings/clob';
 import type { EvmAddress } from '@polymarket/types';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import { fetchBalanceAllowance } from '../account';
 
 export type ResolveCurrentAllowanceParams = {
@@ -12,7 +12,7 @@ export type ResolveCurrentAllowanceParams = {
 
 /* @internal */
 export async function resolveCurrentAllowance(
-  client: SecureClient,
+  client: BaseSecureClient,
   params: ResolveCurrentAllowanceParams,
 ): Promise<bigint> {
   const assetType =

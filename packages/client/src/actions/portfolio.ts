@@ -11,7 +11,7 @@ import {
 } from '@polymarket/bindings/data';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client } from '../clients';
+import type { BaseClient } from '../clients';
 import type {
   RateLimitError,
   RequestRejectedError,
@@ -157,7 +157,7 @@ export type ListPositionsError =
  * ```
  */
 export function listPositions(
-  client: Client,
+  client: BaseClient,
   request: ListPositionsRequest,
 ): Paginated<Position> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -237,7 +237,7 @@ export type ListClosedPositionsError =
  * ```
  */
 export function listClosedPositions(
-  client: Client,
+  client: BaseClient,
   request: ListClosedPositionsRequest,
 ): Paginated<ClosedPosition> {
   const { cursor, pageSize, ...params } = parseUserInput(
@@ -297,7 +297,7 @@ export type FetchPortfolioValueError =
  * ```
  */
 export async function fetchPortfolioValue(
-  client: Client,
+  client: BaseClient,
   request: FetchPortfolioValueRequest,
 ): Promise<Value[]> {
   const params = parseUserInput(request, FetchPortfolioValueRequestSchema);
@@ -334,7 +334,7 @@ export type FetchTradedMarketCountError =
  * ```
  */
 export async function fetchTradedMarketCount(
-  client: Client,
+  client: BaseClient,
   request: FetchTradedMarketCountRequest,
 ): Promise<Traded> {
   const params = parseUserInput(request, FetchTradedMarketCountRequestSchema);
@@ -371,7 +371,7 @@ export type DownloadAccountingSnapshotError =
  * ```
  */
 export async function downloadAccountingSnapshot(
-  client: Client,
+  client: BaseClient,
   request: DownloadAccountingSnapshotRequest,
 ): Promise<Blob> {
   const params = parseUserInput(

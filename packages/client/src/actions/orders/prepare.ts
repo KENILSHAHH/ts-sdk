@@ -4,7 +4,7 @@ import {
   type EvmSignature,
   expectEvmSignature,
 } from '@polymarket/types';
-import type { SecureClient } from '../../clients';
+import type { BaseSecureClient } from '../../clients';
 import type {
   InsufficientLiquidityError,
   RateLimitError,
@@ -68,7 +68,7 @@ export type PrepareMarketOrderError =
  * ```
  */
 export async function prepareMarketOrder(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareMarketOrderRequest,
 ): Promise<OrderWorkflow> {
   const params = parseUserInput(request, PrepareMarketOrderParamsSchema);
@@ -117,7 +117,7 @@ export type PrepareLimitOrderError =
  * ```
  */
 export async function prepareLimitOrder(
-  client: SecureClient,
+  client: BaseSecureClient,
   request: PrepareLimitOrderRequest,
 ): Promise<OrderWorkflow> {
   const params = parseUserInput(request, PrepareLimitOrderParamsSchema);
@@ -138,7 +138,7 @@ export async function prepareLimitOrder(
 }
 
 async function* ensureOrderApproval(
-  client: SecureClient,
+  client: BaseSecureClient,
   draft: OrderDraft,
 ): AsyncGenerator<
   Erc20ApprovalWorkflowRequest | Erc1155ApprovalForAllWorkflowRequest,

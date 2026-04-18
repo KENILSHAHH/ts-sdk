@@ -10,7 +10,7 @@ import {
 } from '@polymarket/bindings/clob';
 import { type EvmAddress, type EvmSignature, unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import type { Client, SecureClient } from '../clients';
+import type { BaseClient, BaseSecureClient } from '../clients';
 import {
   type RateLimitError,
   RequestRejectedError,
@@ -48,7 +48,7 @@ export type CreateApiKeyError =
  * Thrown on failure.
  */
 export async function createApiKey(
-  client: Client,
+  client: BaseClient,
   request: ApiKeyAuthRequest,
 ): Promise<ApiKeyCreds> {
   return unwrap(
@@ -81,7 +81,7 @@ export type DeriveApiKeyError =
  * Thrown on failure.
  */
 export async function deriveApiKey(
-  client: Client,
+  client: BaseClient,
   request: ApiKeyAuthRequest,
 ): Promise<ApiKeyCreds> {
   return unwrap(
@@ -114,7 +114,7 @@ export type CreateOrDeriveApiKeyError =
  * Thrown on failure.
  */
 export async function createOrDeriveApiKey(
-  client: Client,
+  client: BaseClient,
   request: ApiKeyAuthRequest,
 ): Promise<ApiKeyCreds> {
   try {
@@ -149,7 +149,9 @@ export type FetchApiKeysError =
  * @throws {@link FetchApiKeysError}
  * Thrown on failure.
  */
-export async function fetchApiKeys(client: SecureClient): Promise<ApiKey[]> {
+export async function fetchApiKeys(
+  client: BaseSecureClient,
+): Promise<ApiKey[]> {
   const response = await unwrap(
     client.secureClob
       .get('/auth/api-keys')
@@ -181,7 +183,7 @@ export type DeleteApiKeyError =
  * Thrown when request signing fails, or the request is rejected, rate limited,
  * interrupted by transport issues, or returns an unexpected response.
  */
-export async function deleteApiKey(client: SecureClient): Promise<void> {
+export async function deleteApiKey(client: BaseSecureClient): Promise<void> {
   await unwrap(
     client.secureClob
       .del('/auth/api-key')
@@ -212,7 +214,7 @@ export type CreateBuilderApiKeyError =
  * interrupted by transport issues, or returns an unexpected response.
  */
 export async function createBuilderApiKey(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<BuilderApiKeyCreds> {
   return unwrap(
     client.secureClob
@@ -244,7 +246,7 @@ export type FetchBuilderApiKeysError =
  * interrupted by transport issues, or returns an unexpected response.
  */
 export async function fetchBuilderApiKeys(
-  client: SecureClient,
+  client: BaseSecureClient,
 ): Promise<BuilderApiKey[]> {
   return unwrap(
     client.secureClob
@@ -275,7 +277,7 @@ export type RevokeBuilderApiKeyError =
  * Thrown when request signing fails, or the request is rejected, rate limited,
  * interrupted by transport issues, or returns an unexpected response.
  */
-export async function revokeBuilderApiKey(client: Client): Promise<void> {
+export async function revokeBuilderApiKey(client: BaseClient): Promise<void> {
   await unwrap(
     client.clob
       .del('/auth/builder-api-key')
