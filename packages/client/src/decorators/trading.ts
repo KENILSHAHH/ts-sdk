@@ -29,16 +29,6 @@ import type { SignedOrder } from '../actions/orders';
 import type { BaseSecureClient } from '../clients';
 import type { Paginated } from '../pagination';
 
-type PostOrderMethod = {
-  (order: SignedOrder): Promise<OrderResponse>;
-  (): (order: SignedOrder) => Promise<OrderResponse>;
-};
-
-type PostOrdersMethod = {
-  (orders: PostOrdersRequest): Promise<OrderResponses>;
-  (): (orders: PostOrdersRequest) => Promise<OrderResponses>;
-};
-
 export type TradingActions = {
   /**
    * Starts the market-order workflow.
@@ -94,7 +84,7 @@ export type TradingActions = {
    * const response = await client.postOrder(signedOrder);
    * ```
    */
-  postOrder: PostOrderMethod;
+  postOrder(order: SignedOrder): Promise<OrderResponse>;
   /**
    * Posts multiple signed orders for the authenticated account.
    *
@@ -109,7 +99,7 @@ export type TradingActions = {
    * const responses = await client.postOrders([firstSignedOrder, secondSignedOrder]);
    * ```
    */
-  postOrders: PostOrdersMethod;
+  postOrders(orders: PostOrdersRequest): Promise<OrderResponses>;
   /**
    * Cancels a single open order for the authenticated account.
    *
@@ -223,14 +213,8 @@ export function tradingActions(client: BaseSecureClient): TradingActions {
   return {
     prepareMarketOrder: prepareMarketOrder.bind(null, client),
     prepareLimitOrder: prepareLimitOrder.bind(null, client),
-    postOrder: ((order?: SignedOrder) =>
-      order === undefined
-        ? postOrder(client)
-        : postOrder(client, order)) as PostOrderMethod,
-    postOrders: ((orders?: PostOrdersRequest) =>
-      orders === undefined
-        ? postOrders(client)
-        : postOrders(client, orders)) as PostOrdersMethod,
+    postOrder: postOrder(client),
+    postOrders: postOrders(client),
     cancelOrder: cancelOrder.bind(null, client),
     cancelOrders: cancelOrders.bind(null, client),
     cancelAll: cancelAll.bind(null, client),

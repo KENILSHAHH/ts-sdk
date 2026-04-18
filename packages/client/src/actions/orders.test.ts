@@ -208,14 +208,10 @@ describe('Orders', () => {
 
   describe('postOrders', () => {
     it('posts multiple resting limit orders', async () => {
-      const [firstOrder, secondOrder] = await Promise.all([
+      const responses = await Promise.all([
         createSignedRestingLimitOrder(),
         createSignedRestingLimitOrder(),
-      ]);
-      const responses = await postOrders(secureClient, [
-        firstOrder,
-        secondOrder,
-      ]);
+      ]).then(postOrders(secureClient));
 
       expect(responses).toHaveLength(2);
       expect(responses.every((response) => response.ok)).toBe(true);

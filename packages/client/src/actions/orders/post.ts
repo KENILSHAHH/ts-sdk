@@ -43,7 +43,7 @@ export type PostOrdersError =
  *
  * @example
  * ```ts
- * const response = await postOrder(client, signedOrder);
+ * const response = await postOrder(client)(signedOrder);
  * ```
  *
  * @throws {@link PostOrderError}
@@ -51,27 +51,18 @@ export type PostOrdersError =
  */
 export function postOrder(
   client: BaseSecureClient,
-  order: SignedOrder,
-): Promise<OrderResponse>;
-export function postOrder(
-  client: BaseSecureClient,
-): (order: SignedOrder) => Promise<OrderResponse>;
-export function postOrder(client: BaseSecureClient, order?: SignedOrder) {
-  if (order === undefined) {
-    return (nextOrder: SignedOrder) => {
-      return postOrder(client, nextOrder);
-    };
-  }
+): (order: SignedOrder) => Promise<OrderResponse> {
+  return async function postSignedOrder(order: SignedOrder) {
+    const payload = createSendOrderPayload(client, order);
 
-  const payload = createSendOrderPayload(client, order);
-
-  return unwrap(
-    client.secureClob
-      .post('/order', {
-        json: payload,
-      })
-      .andThen(validateWith(OrderResponseSchema)),
-  );
+    return unwrap(
+      client.secureClob
+        .post('/order', {
+          json: payload,
+        })
+        .andThen(validateWith(OrderResponseSchema)),
+    );
+  };
 }
 
 /**
@@ -82,7 +73,7 @@ export function postOrder(client: BaseSecureClient, order?: SignedOrder) {
  *
  * @example
  * ```ts
- * const responses = await postOrders(client, [firstSignedOrder, secondSignedOrder]);
+ * const responses = await postOrders(client)([firstSignedOrder, secondSignedOrder]);
  * ```
  *
  * @throws {@link PostOrdersError}
@@ -90,33 +81,24 @@ export function postOrder(client: BaseSecureClient, order?: SignedOrder) {
  */
 export function postOrders(
   client: BaseSecureClient,
-  orders: PostOrdersRequest,
-): Promise<OrderResponses>;
-export function postOrders(
-  client: BaseSecureClient,
 ): (orders: PostOrdersRequest) => Promise<OrderResponses>;
 export function postOrders(
   client: BaseSecureClient,
-  orders?: PostOrdersRequest,
-) {
-  if (orders === undefined) {
-    return (nextOrders: PostOrdersRequest) => {
-      return postOrders(client, nextOrders);
-    };
-  }
+): (orders: PostOrdersRequest) => Promise<OrderResponses> {
+  return async function postSignedOrders(orders: PostOrdersRequest) {
+    const validatedOrders = parseUserInput(orders, PostOrdersRequestSchema);
+    const payload = validatedOrders.map((order) =>
+      createSendOrderPayload(client, order),
+    );
 
-  const validatedOrders = parseUserInput(orders, PostOrdersRequestSchema);
-  const payload = validatedOrders.map((order) =>
-    createSendOrderPayload(client, order),
-  );
-
-  return unwrap(
-    client.secureClob
-      .post('/orders', {
-        json: payload,
-      })
-      .andThen(validateWith(OrderResponsesSchema)),
-  );
+    return unwrap(
+      client.secureClob
+        .post('/orders', {
+          json: payload,
+        })
+        .andThen(validateWith(OrderResponsesSchema)),
+    );
+  };
 }
 
 function createSendOrderPayload(client: BaseSecureClient, order: SignedOrder) {
