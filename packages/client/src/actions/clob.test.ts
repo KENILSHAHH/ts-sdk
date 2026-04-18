@@ -225,7 +225,7 @@ describe('CLOB', () => {
     it('lists current active market rewards', async () => {
       await expect(
         listCurrentRewards(publicClient)
-          .first()
+          .firstPage()
           .catch(ignoreRewardsEndpointTimeout),
       ).resolves.toBeDefined();
     });
@@ -234,7 +234,7 @@ describe('CLOB', () => {
   describe('listMarketRewards', () => {
     it('fetches reward configurations for a market', async () => {
       const currentRewards = await listCurrentRewards(publicClient)
-        .first()
+        .firstPage()
         .catch(ignoreRewardsEndpointTimeout);
 
       if (currentRewards === undefined) {
@@ -250,7 +250,7 @@ describe('CLOB', () => {
       const result = await listMarketRewards(publicClient, {
         conditionId: currentReward.condition_id,
       })
-        .first()
+        .firstPage()
         .catch(ignoreRewardsEndpointTimeout);
 
       if (result === undefined) {
@@ -276,7 +276,7 @@ async function selectLiquidClobTokenId(): Promise<string> {
     order: 'volume24hr',
     ascending: false,
   })
-    .first()
+    .firstPage()
     .then((page) => page.items);
 
   for (const market of markets) {

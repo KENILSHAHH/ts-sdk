@@ -106,7 +106,7 @@ export type ListTagsError =
  *   pageSize: 12,
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {

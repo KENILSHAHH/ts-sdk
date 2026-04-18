@@ -12,7 +12,7 @@ describe('Leaderboards', () => {
       const result = await listTraderLeaderboard(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);
@@ -30,7 +30,7 @@ describe('Leaderboards', () => {
       const result = await listBuilderLeaderboard(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);

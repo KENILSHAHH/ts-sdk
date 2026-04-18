@@ -20,7 +20,7 @@ async function findPositionConditionId(): Promise<string> {
     user: TEST_USER,
     pageSize: 1,
   })
-    .first()
+    .firstPage()
     .then(expectNonEmptyPage);
 
   return expectPresent(position.conditionId);
@@ -33,7 +33,7 @@ describe('Markets', () => {
         closed: false,
         pageSize: 1,
       });
-      const firstPage = await paginator.first();
+      const firstPage = await paginator.firstPage();
 
       expect(firstPage.items).toHaveLength(1);
       expect(firstPage.nextCursor).toBeDefined();
@@ -58,7 +58,7 @@ describe('Markets', () => {
         closed: false,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const marketById = await fetchMarket(publicClient, {
@@ -82,7 +82,7 @@ describe('Markets', () => {
         closed: false,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const result = await fetchMarketTags(publicClient, {
@@ -145,7 +145,7 @@ describe('Markets', () => {
         market,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items.length).toBeGreaterThan(0);

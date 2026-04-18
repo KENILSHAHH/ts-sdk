@@ -14,7 +14,7 @@ const {
   closed: false,
   pageSize: 1,
 })
-  .first()
+  .firstPage()
   .then(expectNonEmptyPage);
 
 describe('Comments', () => {
@@ -23,7 +23,7 @@ describe('Comments', () => {
       const { items } = await listComments(publicClient, {
         parentEntityId: event.id,
         parentEntityType: 'Event',
-      }).first();
+      }).firstPage();
 
       expect(items).toEqual(expect.any(Array));
     });
@@ -37,7 +37,7 @@ describe('Comments', () => {
         parentEntityId: event.id,
         parentEntityType: 'Event',
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const commentsById = await fetchCommentsById(publicClient, {
@@ -49,7 +49,7 @@ describe('Comments', () => {
           address: expectPresent(comment.userAddress),
           pageSize: 1,
         },
-      ).first();
+      ).firstPage();
 
       expect(commentsById).toEqual(expect.any(Array));
       expect(commentsByUserAddress.items).toEqual(expect.any(Array));

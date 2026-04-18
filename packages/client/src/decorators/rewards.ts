@@ -40,7 +40,7 @@ export type RewardsPublicActions = {
    * ```ts
    * const paginator = client.listCurrentRewards();
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -75,7 +75,7 @@ export type RewardsPublicActions = {
    *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -144,7 +144,7 @@ export type RewardsActions = Prettify<
      *   date: '2026-04-16',
      * });
      *
-     * const firstPage = await paginator.first();
+     * const firstPage = await paginator.firstPage();
      *
      * // Optionally, fetch additional pages:
      * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -196,7 +196,7 @@ export type RewardsActions = Prettify<
      *   date: '2026-04-16',
      * });
      *
-     * const firstPage = await paginator.first();
+     * const firstPage = await paginator.firstPage();
      *
      * // Optionally, fetch additional pages:
      * for await (const page of paginator.from(firstPage.nextCursor)) {

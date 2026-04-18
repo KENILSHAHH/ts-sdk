@@ -22,8 +22,8 @@ describe('Account', () => {
       const [closedOnly, openOrders, trades, notifications, balanceAllowance] =
         await Promise.all([
           fetchClosedOnlyMode(secureClient),
-          listOpenOrders(secureClient).first(),
-          listAccountTrades(secureClient).first(),
+          listOpenOrders(secureClient).firstPage(),
+          listAccountTrades(secureClient).firstPage(),
           fetchNotifications(secureClient),
           fetchBalanceAllowance(secureClient, {
             assetType: AssetType.COLLATERAL,

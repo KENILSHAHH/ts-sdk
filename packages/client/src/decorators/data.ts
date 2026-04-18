@@ -265,7 +265,7 @@ export type DataActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {

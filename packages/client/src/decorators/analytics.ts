@@ -31,7 +31,7 @@ export type AnalyticsActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -69,7 +69,7 @@ export type AnalyticsActions = {
    *   timePeriod: 'DAY',
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -126,7 +126,7 @@ export type AnalyticsActions = {
    *   timePeriod: 'DAY',
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {

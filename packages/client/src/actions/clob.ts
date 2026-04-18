@@ -771,7 +771,7 @@ export type ListCurrentRewardsError =
  * ```ts
  * const result = listCurrentRewards(client);
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
@@ -855,7 +855,7 @@ export type ListMarketRewardsError =
  *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {

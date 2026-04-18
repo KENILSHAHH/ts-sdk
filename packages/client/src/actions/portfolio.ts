@@ -135,7 +135,7 @@ export type ListPositionsError =
  *   pageSize: 10,
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
@@ -215,7 +215,7 @@ export type ListClosedPositionsError =
  *   pageSize: 10,
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {

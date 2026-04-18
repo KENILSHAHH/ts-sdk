@@ -15,7 +15,7 @@ describe('Events', () => {
         closed: false,
         pageSize: 1,
       });
-      const firstPage = await paginator.first();
+      const firstPage = await paginator.firstPage();
 
       expect(firstPage.items).toHaveLength(1);
       expect(firstPage.nextCursor).toBeDefined();
@@ -40,7 +40,7 @@ describe('Events', () => {
         closed: false,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const eventById = await fetchEvent(publicClient, {
@@ -64,7 +64,7 @@ describe('Events', () => {
         closed: false,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const result = await fetchEventTags(publicClient, {
@@ -91,7 +91,7 @@ describe('Events', () => {
         closed: false,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const result = await fetchEventLiveVolume(publicClient, {

@@ -41,7 +41,7 @@ describe('Positions', () => {
         const positions = await listPositions(secureClient, {
           user: secureClient.account.wallet,
           market: [market.conditionId],
-        }).first();
+        }).firstPage();
         expect(positions.items).toHaveLength(2);
       },
       { timeout: 15_000 },
@@ -52,7 +52,7 @@ describe('Positions', () => {
     const positions = await listPositions(secureClient, {
       user: secureClient.account.wallet,
       market: [market.conditionId],
-    }).first();
+    }).firstPage();
 
     if (positions.items.length < 2) {
       skip('Not enough positions to merge');
@@ -70,7 +70,7 @@ describe('Positions', () => {
         const positions = await listPositions(secureClient, {
           user: secureClient.account.wallet,
           market: [market.conditionId],
-        }).first();
+        }).firstPage();
         expect(positions.items).toHaveLength(0);
       },
       { timeout: 15_000 },

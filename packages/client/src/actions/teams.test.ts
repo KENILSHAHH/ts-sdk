@@ -8,7 +8,7 @@ describe('Teams', () => {
       const result = await listTeams(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);

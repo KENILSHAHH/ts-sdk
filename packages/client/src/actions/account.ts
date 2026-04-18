@@ -103,7 +103,7 @@ export type ListOpenOrdersError =
  *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
@@ -227,7 +227,7 @@ export type ListAccountTradesError =
  *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
@@ -582,7 +582,7 @@ export type ListUserEarningsForDayError =
  *   date: '2026-04-16',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
@@ -716,7 +716,7 @@ export type ListUserEarningsAndMarketsConfigError =
  *   date: '2026-04-16',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {

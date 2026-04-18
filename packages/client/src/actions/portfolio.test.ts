@@ -17,7 +17,7 @@ describe('Portfolio', () => {
         user: TEST_USER,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);
@@ -36,7 +36,7 @@ describe('Portfolio', () => {
         user: TEST_USER,
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);

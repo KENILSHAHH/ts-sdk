@@ -14,7 +14,7 @@ describe('Tags', () => {
       const result = await listTags(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);
@@ -33,7 +33,7 @@ describe('Tags', () => {
       } = await listTags(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const tagById = await fetchTag(publicClient, { id: tag.id });
@@ -53,7 +53,7 @@ describe('Tags', () => {
       } = await listTags(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const relatedById = await fetchRelatedTags(publicClient, {
@@ -75,7 +75,7 @@ describe('Tags', () => {
       } = await listTags(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const relatedTagsById = await fetchRelatedTagResources(publicClient, {

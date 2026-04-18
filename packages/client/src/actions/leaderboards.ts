@@ -82,7 +82,7 @@ export type ListBuilderLeaderboardError =
  *   timePeriod: 'DAY',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
@@ -200,7 +200,7 @@ export type ListTraderLeaderboardError =
  *   timePeriod: 'DAY',
  * });
  *
- * const firstPage = await result.first();
+ * const firstPage = await result.firstPage();
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {

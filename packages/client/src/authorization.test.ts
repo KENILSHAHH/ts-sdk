@@ -70,15 +70,17 @@ describe('authorization', () => {
         }),
       });
 
-      await expect(client.listBuilderTrades().first()).resolves.toBeDefined();
+      await expect(
+        client.listBuilderTrades().firstPage(),
+      ).resolves.toBeDefined();
     });
 
     it('fails without builder authorization because the live CLOB endpoint returns 401', async () => {
       const client = createPublicClient();
 
-      await expect(client.listBuilderTrades().first()).rejects.toBeInstanceOf(
-        RequestRejectedError,
-      );
+      await expect(
+        client.listBuilderTrades().firstPage(),
+      ).rejects.toBeInstanceOf(RequestRejectedError);
     });
 
     it('fails when the remote signer returns invalid builder headers because the live CLOB endpoint returns 401', async () => {
@@ -96,9 +98,9 @@ describe('authorization', () => {
         apiKey: remoteBuilderSigning({ url: signerUrl }),
       });
 
-      await expect(client.listBuilderTrades().first()).rejects.toBeInstanceOf(
-        RequestRejectedError,
-      );
+      await expect(
+        client.listBuilderTrades().firstPage(),
+      ).rejects.toBeInstanceOf(RequestRejectedError);
     });
 
     it('throws SigningError when the remote signer rejects the request', async () => {

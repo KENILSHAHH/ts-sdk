@@ -16,7 +16,7 @@ export type Page<T> = {
 };
 
 export type Paginated<T> = AsyncIterable<Page<T>> & {
-  first(): Promise<Page<T>>;
+  firstPage(): Promise<Page<T>>;
   from(cursor?: PaginationCursor): Paginated<T>;
 };
 
@@ -39,7 +39,7 @@ export function paginate<T, TError>(
 ): Paginated<T> {
   function createEmptyPaginator(): Paginated<T> {
     return {
-      async first() {
+      async firstPage() {
         invariant(
           false,
           'Expected the paginated result to yield at least one page',
@@ -54,7 +54,7 @@ export function paginate<T, TError>(
 
   function createPaginator(cursor = initialCursor): Paginated<T> {
     return {
-      first() {
+      firstPage() {
         return unwrap(fetchPage(cursor));
       },
       from(nextCursor) {

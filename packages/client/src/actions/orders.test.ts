@@ -80,7 +80,7 @@ describe('Orders', () => {
         const positions = await listPositions(secureClient, {
           market: [market.id],
           user: secureClient.account.wallet,
-        }).first();
+        }).firstPage();
         const position = positions.items.find(
           (candidate) => candidate.asset && (candidate.size ?? 0) > 0,
         );
@@ -200,7 +200,7 @@ describe('Orders', () => {
 
       const { items } = await listOpenOrders(secureClient, {
         market: market.id,
-      }).first();
+      }).firstPage();
 
       expect(items.some((order) => order.id === orderId)).toBe(false);
     });

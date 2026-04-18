@@ -69,7 +69,7 @@ export type DiscoveryActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -135,7 +135,7 @@ export type DiscoveryActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -201,7 +201,7 @@ export type DiscoveryActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -251,7 +251,7 @@ export type DiscoveryActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -374,7 +374,7 @@ export type DiscoveryActions = {
    *   pageSize: 10,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -428,7 +428,7 @@ export type DiscoveryActions = {
    *   pageSize: 20,
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
@@ -483,7 +483,7 @@ export type DiscoveryActions = {
    *   order: 'DESC',
    * });
    *
-   * const firstPage = await paginator.first();
+   * const firstPage = await paginator.firstPage();
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {

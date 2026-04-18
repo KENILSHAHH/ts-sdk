@@ -93,7 +93,7 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
     ascending: false,
     sportsMarketTypes: ['moneyline', 'spreads', 'totals'],
   })
-    .first()
+    .firstPage()
     .then((page) => page.items);
   const market = candidateMarkets
     .filter(hasRequiredOrderFields)

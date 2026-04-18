@@ -212,7 +212,7 @@ export async function prepareMergePositions(
     market: [params.conditionId],
     sizeThreshold: 0,
   })
-    .first()
+    .firstPage()
     .then((page) => page.items);
   const binaryPositions = expectBinaryPositions(params.conditionId, positions);
   const negativeRisk = expectNegativeRiskFlag(
@@ -274,7 +274,7 @@ export async function prepareRedeemPositions(
     market: [params.conditionId],
     sizeThreshold: 0,
   })
-    .first()
+    .firstPage()
     .then((page) => page.items);
   const binaryPositions = expectBinaryPositions(params.conditionId, positions);
   const negativeRisk = expectNegativeRiskFlag(
@@ -349,7 +349,7 @@ async function resolveMarketNegativeRiskFlag(
   const page = await listMarkets(client, {
     conditionIds: [conditionId],
     pageSize: 2,
-  }).first();
+  }).firstPage();
   const markets = page.items;
 
   invariant(

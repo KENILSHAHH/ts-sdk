@@ -8,7 +8,7 @@ describe('Series', () => {
       const result = await listSeries(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       expect(result.items).toHaveLength(1);
@@ -27,7 +27,7 @@ describe('Series', () => {
       } = await listSeries(publicClient, {
         pageSize: 1,
       })
-        .first()
+        .firstPage()
         .then(expectNonEmptyPage);
 
       const result = await fetchSeries(publicClient, {
