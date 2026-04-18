@@ -1,11 +1,32 @@
+import type {
+  ClobTrade,
+  NotificationsResponse,
+} from '@polymarket/bindings/clob';
+import type {
+  Activity,
+  ClosedPosition,
+  MetaMarketPositionV1,
+  Position,
+  Traded,
+  Value,
+} from '@polymarket/bindings/data';
 import type { Prettify } from '@polymarket/types';
 import {
+  type DownloadAccountingSnapshotRequest,
+  type DropNotificationsRequest,
   downloadAccountingSnapshot,
   dropNotifications,
+  type FetchPortfolioValueRequest,
+  type FetchTradedMarketCountRequest,
   fetchClosedOnlyMode,
   fetchNotifications,
   fetchPortfolioValue,
   fetchTradedMarketCount,
+  type ListAccountTradesRequest,
+  type ListActivityRequest,
+  type ListClosedPositionsRequest,
+  type ListMarketPositionsRequest,
+  type ListPositionsRequest,
   listAccountTrades,
   listActivity,
   listClosedPositions,
@@ -13,73 +34,291 @@ import {
   listPositions,
 } from '../actions';
 import type { Client, PublicClient, SecureClient } from '../clients';
-import {
-  type BindActionParameters,
-  type BindActionResult,
-  bindAction,
-} from './shared';
+import type { Paginated } from '../pagination';
 
 export type AccountPublicActions = {
-  /** Lists current positions for a wallet. */
-  listPositions(
-    ...args: BindActionParameters<typeof listPositions>
-  ): BindActionResult<typeof listPositions>;
-  /** Lists closed positions for a wallet. */
+  /**
+   * Lists current positions for a wallet.
+   *
+   * @throws {@link ListPositionsError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listPositions({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Position[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listPositions({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Position[]
+   * }
+   * ```
+   */
+  listPositions(request: ListPositionsRequest): Paginated<Position>;
+  /**
+   * Lists closed positions for a wallet.
+   *
+   * @throws {@link ListClosedPositionsError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listClosedPositions({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: ClosedPosition[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listClosedPositions({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: ClosedPosition[]
+   * }
+   * ```
+   */
   listClosedPositions(
-    ...args: BindActionParameters<typeof listClosedPositions>
-  ): BindActionResult<typeof listClosedPositions>;
-  /** Fetches the total value for a wallet's positions. */
-  fetchPortfolioValue(
-    ...args: BindActionParameters<typeof fetchPortfolioValue>
-  ): BindActionResult<typeof fetchPortfolioValue>;
-  /** Fetches the total number of markets a wallet has traded. */
+    request: ListClosedPositionsRequest,
+  ): Paginated<ClosedPosition>;
+  /**
+   * Fetches the total value for a wallet's positions.
+   *
+   * @throws {@link FetchPortfolioValueError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const value = await client.fetchPortfolioValue({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   * });
+   * ```
+   */
+  fetchPortfolioValue(request: FetchPortfolioValueRequest): Promise<Value[]>;
+  /**
+   * Fetches the total number of markets a wallet has traded.
+   *
+   * @throws {@link FetchTradedMarketCountError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const traded = await client.fetchTradedMarketCount({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   * });
+   * ```
+   */
   fetchTradedMarketCount(
-    ...args: BindActionParameters<typeof fetchTradedMarketCount>
-  ): BindActionResult<typeof fetchTradedMarketCount>;
-  /** Downloads an accounting snapshot archive for a wallet. */
+    request: FetchTradedMarketCountRequest,
+  ): Promise<Traded>;
+  /**
+   * Downloads an accounting snapshot archive for a wallet.
+   *
+   * @throws {@link DownloadAccountingSnapshotError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const snapshot = await client.downloadAccountingSnapshot({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   * });
+   * ```
+   */
   downloadAccountingSnapshot(
-    ...args: BindActionParameters<typeof downloadAccountingSnapshot>
-  ): BindActionResult<typeof downloadAccountingSnapshot>;
-  /** Lists positions for a market. */
+    request: DownloadAccountingSnapshotRequest,
+  ): Promise<Blob>;
+  /**
+   * Lists positions for a market.
+   *
+   * @throws {@link ListMarketPositionsError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listMarketPositions({
+   *   market: '0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093',
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: MetaMarketPositionV1[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listMarketPositions({
+   *   market: '0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093',
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: MetaMarketPositionV1[]
+   * }
+   * ```
+   */
   listMarketPositions(
-    ...args: BindActionParameters<typeof listMarketPositions>
-  ): BindActionResult<typeof listMarketPositions>;
-  /** Lists wallet activity. */
-  listActivity(
-    ...args: BindActionParameters<typeof listActivity>
-  ): BindActionResult<typeof listActivity>;
+    request: ListMarketPositionsRequest,
+  ): Paginated<MetaMarketPositionV1>;
+  /**
+   * Lists wallet activity.
+   *
+   * @throws {@link ListActivityError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listActivity({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Activity[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listActivity({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Activity[]
+   * }
+   * ```
+   */
+  listActivity(request: ListActivityRequest): Paginated<Activity>;
 };
 
 export type AccountActions = Prettify<
   AccountPublicActions & {
-    /** Lists trades for the authenticated account across all pages. */
-    listAccountTrades(
-      ...args: BindActionParameters<typeof listAccountTrades>
-    ): BindActionResult<typeof listAccountTrades>;
-    /** Fetches notifications for the authenticated account. */
-    fetchNotifications(
-      ...args: BindActionParameters<typeof fetchNotifications>
-    ): BindActionResult<typeof fetchNotifications>;
-    /** Drops notifications for the authenticated account. */
-    dropNotifications(
-      ...args: BindActionParameters<typeof dropNotifications>
-    ): BindActionResult<typeof dropNotifications>;
-    /** Fetches whether the account is restricted to closed-only trading. */
-    fetchClosedOnlyMode(
-      ...args: BindActionParameters<typeof fetchClosedOnlyMode>
-    ): BindActionResult<typeof fetchClosedOnlyMode>;
+    /**
+     * Lists trades for the authenticated account across all pages.
+     *
+     * @throws {@link ListAccountTradesError}
+     * Thrown on failure.
+     *
+     * @example
+     * Fetch the first page of results:
+     * ```ts
+     * const paginator = client.listAccountTrades({
+     *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+     * });
+     *
+     * const firstPage = await paginator.first();
+     *
+     * // Optionally, fetch additional pages:
+     * for await (const page of paginator.from(firstPage.nextCursor)) {
+     *   // page.items: ClobTrade[]
+     * }
+     * ```
+     *
+     * @example
+     * Loop through all pages with `for await`:
+     * ```ts
+     * const paginator = client.listAccountTrades({
+     *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+     * });
+     *
+     * for await (const page of paginator) {
+     *   // page.items: ClobTrade[]
+     * }
+     * ```
+     */
+    listAccountTrades(request?: ListAccountTradesRequest): Paginated<ClobTrade>;
+    /**
+     * Fetches notifications for the authenticated account.
+     *
+     * @throws {@link FetchNotificationsError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const notifications = await client.fetchNotifications();
+     * ```
+     */
+    fetchNotifications(): Promise<NotificationsResponse>;
+    /**
+     * Drops notifications for the authenticated account.
+     *
+     * @throws {@link DropNotificationsError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * await client.dropNotifications({
+     *   ids: ['1', '2'],
+     * });
+     * ```
+     */
+    dropNotifications(request: DropNotificationsRequest): Promise<void>;
+    /**
+     * Fetches whether the account is restricted to closed-only trading.
+     *
+     * @throws {@link FetchClosedOnlyModeError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const closedOnly = await client.fetchClosedOnlyMode();
+     * ```
+     */
+    fetchClosedOnlyMode(): Promise<boolean>;
   }
 >;
 
 function publicAccountActions(client: Client): AccountPublicActions {
   return {
-    listPositions: bindAction(client, listPositions),
-    listClosedPositions: bindAction(client, listClosedPositions),
-    fetchPortfolioValue: bindAction(client, fetchPortfolioValue),
-    fetchTradedMarketCount: bindAction(client, fetchTradedMarketCount),
-    downloadAccountingSnapshot: bindAction(client, downloadAccountingSnapshot),
-    listMarketPositions: bindAction(client, listMarketPositions),
-    listActivity: bindAction(client, listActivity),
+    listPositions: listPositions.bind(null, client),
+    listClosedPositions: listClosedPositions.bind(null, client),
+    fetchPortfolioValue: fetchPortfolioValue.bind(null, client),
+    fetchTradedMarketCount: fetchTradedMarketCount.bind(null, client),
+    downloadAccountingSnapshot: downloadAccountingSnapshot.bind(null, client),
+    listMarketPositions: listMarketPositions.bind(null, client),
+    listActivity: listActivity.bind(null, client),
   };
 }
 
@@ -96,9 +335,9 @@ export function accountActions(
 
   return {
     ...actions,
-    listAccountTrades: bindAction(client, listAccountTrades),
-    fetchNotifications: bindAction(client, fetchNotifications),
-    dropNotifications: bindAction(client, dropNotifications),
-    fetchClosedOnlyMode: bindAction(client, fetchClosedOnlyMode),
+    listAccountTrades: listAccountTrades.bind(null, client),
+    fetchNotifications: fetchNotifications.bind(null, client),
+    dropNotifications: dropNotifications.bind(null, client),
+    fetchClosedOnlyMode: fetchClosedOnlyMode.bind(null, client),
   };
 }

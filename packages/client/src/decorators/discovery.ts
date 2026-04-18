@@ -1,5 +1,28 @@
+import type {
+  Comment,
+  Event,
+  Market,
+  PublicProfile,
+  PublicSearchResponse,
+  RelatedTag,
+  Series,
+  SportsMarketTypesResponse,
+  SportsMetadata,
+  Tag,
+  TagReference,
+  Team,
+} from '@polymarket/bindings/gamma';
 import {
+  type FetchCommentsByIdRequest,
   type FetchEventRequest,
+  type FetchEventTagsRequest,
+  type FetchMarketRequest,
+  type FetchMarketTagsRequest,
+  type FetchPublicProfileRequest,
+  type FetchRelatedTagResourcesRequest,
+  type FetchRelatedTagsRequest,
+  type FetchSeriesRequest,
+  type FetchTagRequest,
   fetchCommentsById,
   fetchEvent,
   fetchEventTags,
@@ -11,6 +34,13 @@ import {
   fetchSeries,
   fetchSportsMarketTypes,
   fetchTag,
+  type ListCommentsByUserAddressRequest,
+  type ListCommentsRequest,
+  type ListEventsRequest,
+  type ListMarketsRequest,
+  type ListSeriesRequest,
+  type ListTagsRequest,
+  type ListTeamsRequest,
   listComments,
   listCommentsByUserAddress,
   listEvents,
@@ -19,10 +49,11 @@ import {
   listSports,
   listTags,
   listTeams,
+  type SearchRequest,
   search,
 } from '../actions';
 import type { Client, PublicClient, SecureClient } from '../clients';
-import type { BindActionParameters, BindActionResult } from './shared';
+import type { Paginated } from '../pagination';
 
 export type DiscoveryActions = {
   /**
@@ -32,15 +63,33 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listEvents({
+   * const paginator = client.listEvents({
    *   pageSize: 10,
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Event[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listEvents({
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Event[]
+   * }
    * ```
    */
-  listEvents(
-    ...args: BindActionParameters<typeof listEvents>
-  ): BindActionResult<typeof listEvents>;
+  listEvents(request?: ListEventsRequest): Paginated<Event>;
 
   /**
    * Fetches an event.
@@ -55,7 +104,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchEvent(request: FetchEventRequest): BindActionResult<typeof fetchEvent>;
+  fetchEvent(request: FetchEventRequest): Promise<Event>;
 
   /**
    * Fetches an event's tags.
@@ -70,9 +119,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchEventTags(
-    ...args: BindActionParameters<typeof fetchEventTags>
-  ): BindActionResult<typeof fetchEventTags>;
+  fetchEventTags(request: FetchEventTagsRequest): Promise<TagReference[]>;
 
   /**
    * Lists markets.
@@ -81,16 +128,35 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listMarkets({
+   * const paginator = client.listMarkets({
    *   closed: false,
    *   pageSize: 10,
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Market[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listMarkets({
+   *   closed: false,
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Market[]
+   * }
    * ```
    */
-  listMarkets(
-    ...args: BindActionParameters<typeof listMarkets>
-  ): BindActionResult<typeof listMarkets>;
+  listMarkets(request?: ListMarketsRequest): Paginated<Market>;
 
   /**
    * Fetches a market.
@@ -105,9 +171,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchMarket(
-    ...args: BindActionParameters<typeof fetchMarket>
-  ): BindActionResult<typeof fetchMarket>;
+  fetchMarket(request: FetchMarketRequest): Promise<Market>;
 
   /**
    * Fetches a market's tags.
@@ -122,9 +186,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchMarketTags(
-    ...args: BindActionParameters<typeof fetchMarketTags>
-  ): BindActionResult<typeof fetchMarketTags>;
+  fetchMarketTags(request: FetchMarketTagsRequest): Promise<TagReference[]>;
 
   /**
    * Lists series.
@@ -133,15 +195,33 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listSeries({
+   * const paginator = client.listSeries({
    *   pageSize: 10,
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Series[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listSeries({
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Series[]
+   * }
    * ```
    */
-  listSeries(
-    ...args: BindActionParameters<typeof listSeries>
-  ): BindActionResult<typeof listSeries>;
+  listSeries(request?: ListSeriesRequest): Paginated<Series>;
 
   /**
    * Fetches a series.
@@ -156,9 +236,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchSeries(
-    ...args: BindActionParameters<typeof fetchSeries>
-  ): BindActionResult<typeof fetchSeries>;
+  fetchSeries(request: FetchSeriesRequest): Promise<Series>;
 
   /**
    * Lists tags.
@@ -167,15 +245,33 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listTags({
+   * const paginator = client.listTags({
    *   pageSize: 10,
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Tag[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listTags({
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Tag[]
+   * }
    * ```
    */
-  listTags(
-    ...args: BindActionParameters<typeof listTags>
-  ): BindActionResult<typeof listTags>;
+  listTags(request?: ListTagsRequest): Paginated<Tag>;
 
   /**
    * Fetches a tag by id or slug.
@@ -190,9 +286,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchTag(
-    ...args: BindActionParameters<typeof fetchTag>
-  ): BindActionResult<typeof fetchTag>;
+  fetchTag(request: FetchTagRequest): Promise<Tag>;
 
   /**
    * Fetches related tag relationships by id or slug.
@@ -207,9 +301,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchRelatedTags(
-    ...args: BindActionParameters<typeof fetchRelatedTags>
-  ): BindActionResult<typeof fetchRelatedTags>;
+  fetchRelatedTags(request: FetchRelatedTagsRequest): Promise<RelatedTag[]>;
 
   /**
    * Fetches resources linked from related tag relationships by id or slug.
@@ -225,8 +317,8 @@ export type DiscoveryActions = {
    * ```
    */
   fetchRelatedTagResources(
-    ...args: BindActionParameters<typeof fetchRelatedTagResources>
-  ): BindActionResult<typeof fetchRelatedTagResources>;
+    request: FetchRelatedTagResourcesRequest,
+  ): Promise<Tag[]>;
 
   /**
    * Runs a public full-text search.
@@ -241,9 +333,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  search(
-    ...args: BindActionParameters<typeof search>
-  ): BindActionResult<typeof search>;
+  search(request: SearchRequest): Promise<PublicSearchResponse>;
 
   /**
    * Lists available sports metadata.
@@ -256,9 +346,7 @@ export type DiscoveryActions = {
    * const sports = await client.listSports();
    * ```
    */
-  listSports(
-    ...args: BindActionParameters<typeof listSports>
-  ): BindActionResult<typeof listSports>;
+  listSports(): Promise<SportsMetadata[]>;
 
   /**
    * Fetches the available market types grouped by sport.
@@ -271,9 +359,7 @@ export type DiscoveryActions = {
    * const marketTypes = await client.fetchSportsMarketTypes();
    * ```
    */
-  fetchSportsMarketTypes(
-    ...args: BindActionParameters<typeof fetchSportsMarketTypes>
-  ): BindActionResult<typeof fetchSportsMarketTypes>;
+  fetchSportsMarketTypes(): Promise<SportsMarketTypesResponse>;
 
   /**
    * Lists teams.
@@ -282,13 +368,33 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const teams = await client.listTeams();
+   * const paginator = client.listTeams({
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Team[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listTeams({
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Team[]
+   * }
    * ```
    */
-  listTeams(
-    ...args: BindActionParameters<typeof listTeams>
-  ): BindActionResult<typeof listTeams>;
+  listTeams(request?: ListTeamsRequest): Paginated<Team>;
 
   /**
    * Fetches a public profile by wallet address.
@@ -304,8 +410,8 @@ export type DiscoveryActions = {
    * ```
    */
   fetchPublicProfile(
-    ...args: BindActionParameters<typeof fetchPublicProfile>
-  ): BindActionResult<typeof fetchPublicProfile>;
+    request: FetchPublicProfileRequest,
+  ): Promise<PublicProfile | null>;
 
   /**
    * Lists comments for an event or series.
@@ -314,17 +420,37 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listComments({
+   * const paginator = client.listComments({
    *   parentEntityId: '123',
    *   parentEntityType: 'Event',
    *   pageSize: 20,
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Comment[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listComments({
+   *   parentEntityId: '123',
+   *   parentEntityType: 'Event',
+   *   pageSize: 20,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Comment[]
+   * }
    * ```
    */
-  listComments(
-    ...args: BindActionParameters<typeof listComments>
-  ): BindActionResult<typeof listComments>;
+  listComments(request: ListCommentsRequest): Paginated<Comment>;
 
   /**
    * Fetches a comment thread by comment id.
@@ -340,9 +466,7 @@ export type DiscoveryActions = {
    * });
    * ```
    */
-  fetchCommentsById(
-    ...args: BindActionParameters<typeof fetchCommentsById>
-  ): BindActionResult<typeof fetchCommentsById>;
+  fetchCommentsById(request: FetchCommentsByIdRequest): Promise<Comment[]>;
 
   /**
    * Lists comments written by a wallet address.
@@ -351,17 +475,39 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listCommentsByUserAddress({
+   * const paginator = client.listCommentsByUserAddress({
    *   address: '0x1234...',
    *   pageSize: 10,
    *   order: 'DESC',
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Comment[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listCommentsByUserAddress({
+   *   address: '0x1234...',
+   *   pageSize: 10,
+   *   order: 'DESC',
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Comment[]
+   * }
    * ```
    */
   listCommentsByUserAddress(
-    ...args: BindActionParameters<typeof listCommentsByUserAddress>
-  ): BindActionResult<typeof listCommentsByUserAddress>;
+    request: ListCommentsByUserAddressRequest,
+  ): Paginated<Comment>;
 };
 
 export function discoveryActions(client: PublicClient): DiscoveryActions;

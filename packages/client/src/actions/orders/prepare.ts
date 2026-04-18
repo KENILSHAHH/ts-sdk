@@ -53,6 +53,19 @@ export type PrepareMarketOrderError =
  *
  * @throws {@link PrepareMarketOrderError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const order = await prepareMarketOrder(client, {
+ *   amount: 10,
+ *   side: OrderSide.BUY,
+ *   tokenId: '123',
+ * }).then(completeWith(wallet));
+ *
+ * const response = await postOrder(client, order);
+ *
+ * // response: OrderResponse
+ * ```
  */
 export async function prepareMarketOrder(
   client: SecureClient,
@@ -88,6 +101,20 @@ export type PrepareLimitOrderError =
  *
  * @throws {@link PrepareLimitOrderError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const order = await prepareLimitOrder(client, {
+ *   price: 0.52,
+ *   side: OrderSide.BUY,
+ *   size: 10,
+ *   tokenId: '123',
+ * }).then(completeWith(wallet));
+ *
+ * const response = await postOrder(client, order);
+ *
+ * // response: OrderResponse
+ * ```
  */
 export async function prepareLimitOrder(
   client: SecureClient,

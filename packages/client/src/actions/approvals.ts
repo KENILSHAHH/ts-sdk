@@ -54,11 +54,15 @@ export type PrepareErc20ApprovalError = UserInputError;
  *
  * @example
  * ```ts
- * const result = await prepareErc20Approval(client, {
+ * const handle = await prepareErc20Approval(client, {
  *   amount: 'max',
  *   spenderAddress: '0x1234…',
  *   tokenAddress: '0x5678…',
- * }).then(completeWith(walletClient));
+ * }).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareErc20ApprovalError}
@@ -124,10 +128,14 @@ export type PrepareErc1155ApprovalForAllError = UserInputError;
  *
  * @example
  * ```ts
- * const result = await prepareErc1155ApprovalForAll(client, {
+ * const handle = await prepareErc1155ApprovalForAll(client, {
  *   operatorAddress: '0x1234…',
  *   tokenAddress: '0x5678…',
- * }).then(completeWith(walletClient));
+ * }).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareErc1155ApprovalForAllError}
@@ -193,7 +201,11 @@ export type PrepareTradingApprovalsError = UserInputError;
  *
  * @example
  * ```ts
- * const result = await prepareTradingApprovals(client).then(completeWith(walletClient));
+ * const handle = await prepareTradingApprovals(client).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareTradingApprovalsError}

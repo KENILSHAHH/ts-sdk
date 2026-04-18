@@ -1,6 +1,6 @@
 import { InvariantError } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { fetchApiKeys, fetchPublicProfile } from './actions';
+import { fetchApiKeys } from './actions';
 import {
   createRandomWalletClient,
   publicClient,
@@ -98,7 +98,7 @@ describe('clients', () => {
         InvariantError,
       );
       await expect(
-        fetchPublicProfile(publicOnlyClient, { address: signer }),
+        publicOnlyClient.fetchPublicProfile({ address: signer }),
       ).resolves.toBeDefined();
     });
   });

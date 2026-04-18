@@ -1,15 +1,21 @@
+import type { BuilderTrade } from '@polymarket/bindings/clob';
+import type {
+  BuilderVolumeEntry,
+  LeaderboardEntry,
+  TraderLeaderboardEntry,
+} from '@polymarket/bindings/data';
 import {
+  type ListBuilderLeaderboardRequest,
+  type ListBuilderTradesRequest,
+  type ListBuilderVolumeRequest,
+  type ListTraderLeaderboardRequest,
   listBuilderLeaderboard,
   listBuilderTrades,
   listBuilderVolume,
   listTraderLeaderboard,
 } from '../actions';
 import type { Client, PublicClient, SecureClient } from '../clients';
-import {
-  type BindActionParameters,
-  type BindActionResult,
-  bindAction,
-} from './shared';
+import type { Paginated } from '../pagination';
 
 export type AnalyticsActions = {
   /**
@@ -19,13 +25,35 @@ export type AnalyticsActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listBuilderTrades();
+   * const paginator = client.listBuilderTrades({
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: BuilderTrade[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listBuilderTrades({
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: BuilderTrade[]
+   * }
    * ```
    */
   listBuilderTrades(
-    ...args: BindActionParameters<typeof listBuilderTrades>
-  ): BindActionResult<typeof listBuilderTrades>;
+    request?: ListBuilderTradesRequest,
+  ): Paginated<BuilderTrade>;
 
   /**
    * Lists builder leaderboard rankings.
@@ -34,16 +62,37 @@ export type AnalyticsActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listBuilderLeaderboard({
+   * const paginator = client.listBuilderLeaderboard({
    *   pageSize: 10,
    *   timePeriod: 'DAY',
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: LeaderboardEntry[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listBuilderLeaderboard({
+   *   pageSize: 10,
+   *   timePeriod: 'DAY',
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: LeaderboardEntry[]
+   * }
    * ```
    */
   listBuilderLeaderboard(
-    ...args: BindActionParameters<typeof listBuilderLeaderboard>
-  ): BindActionResult<typeof listBuilderLeaderboard>;
+    request?: ListBuilderLeaderboardRequest,
+  ): Paginated<LeaderboardEntry>;
 
   /**
    * Lists daily builder volume entries.
@@ -59,8 +108,8 @@ export type AnalyticsActions = {
    * ```
    */
   listBuilderVolume(
-    ...args: BindActionParameters<typeof listBuilderVolume>
-  ): BindActionResult<typeof listBuilderVolume>;
+    request?: ListBuilderVolumeRequest,
+  ): Promise<BuilderVolumeEntry[]>;
 
   /**
    * Lists trader leaderboard rankings.
@@ -69,26 +118,48 @@ export type AnalyticsActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const result = client.listTraderLeaderboard({
+   * const paginator = client.listTraderLeaderboard({
    *   orderBy: 'PNL',
    *   pageSize: 10,
    *   timePeriod: 'DAY',
    * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: TraderLeaderboardEntry[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listTraderLeaderboard({
+   *   orderBy: 'PNL',
+   *   pageSize: 10,
+   *   timePeriod: 'DAY',
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: TraderLeaderboardEntry[]
+   * }
    * ```
    */
   listTraderLeaderboard(
-    ...args: BindActionParameters<typeof listTraderLeaderboard>
-  ): BindActionResult<typeof listTraderLeaderboard>;
+    request?: ListTraderLeaderboardRequest,
+  ): Paginated<TraderLeaderboardEntry>;
 };
 
 export function analyticsActions(client: PublicClient): AnalyticsActions;
 export function analyticsActions(client: SecureClient): AnalyticsActions;
 export function analyticsActions(client: Client): AnalyticsActions {
   return {
-    listBuilderTrades: bindAction(client, listBuilderTrades),
-    listBuilderLeaderboard: bindAction(client, listBuilderLeaderboard),
-    listBuilderVolume: bindAction(client, listBuilderVolume),
-    listTraderLeaderboard: bindAction(client, listTraderLeaderboard),
+    listBuilderTrades: listBuilderTrades.bind(null, client),
+    listBuilderLeaderboard: listBuilderLeaderboard.bind(null, client),
+    listBuilderVolume: listBuilderVolume.bind(null, client),
+    listTraderLeaderboard: listTraderLeaderboard.bind(null, client),
   };
 }

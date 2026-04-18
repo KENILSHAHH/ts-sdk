@@ -52,6 +52,15 @@ export type CancelOrderError =
  *
  * @throws {@link CancelOrderError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await cancelOrder(client, {
+ *   orderId: '123',
+ * });
+ *
+ * // response.canceled: string[]
+ * ```
  */
 export async function cancelOrder(
   client: SecureClient,
@@ -78,6 +87,15 @@ export type CancelOrdersError =
  *
  * @throws {@link CancelOrdersError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await cancelOrders(client, {
+ *   orderIds: ['1', '2'],
+ * });
+ *
+ * // response.canceled: string[]
+ * ```
  */
 export async function cancelOrders(
   client: SecureClient,
@@ -100,6 +118,13 @@ export type CancelAllError =
  *
  * @throws {@link CancelAllError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await cancelAll(client);
+ *
+ * // response.canceled: string[]
+ * ```
  */
 export async function cancelAll(
   client: SecureClient,
@@ -124,6 +149,15 @@ export type CancelMarketOrdersError =
  *
  * @throws {@link CancelMarketOrdersError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await cancelMarketOrders(client, {
+ *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+ * });
+ *
+ * // response.canceled: string[]
+ * ```
  */
 export async function cancelMarketOrders(
   client: SecureClient,

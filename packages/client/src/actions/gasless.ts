@@ -148,6 +148,13 @@ export type IsGaslessReadyError =
  *
  * @throws {@link IsGaslessReadyError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const ready = await isGaslessReady(client, {
+ *   wallet: '0x1234...',
+ * });
+ * ```
  */
 export async function isGaslessReady(
   client: Client,
@@ -192,6 +199,15 @@ export type PrepareGaslessWalletError =
  *
  * @throws {@link PrepareGaslessWalletError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const handle = await prepareGaslessWallet(client).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
+ * ```
  */
 export async function prepareGaslessWallet(
   client: Client,

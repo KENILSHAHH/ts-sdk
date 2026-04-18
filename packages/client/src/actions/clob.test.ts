@@ -13,13 +13,13 @@ import {
   fetchOrderBook,
   fetchOrderBooks,
   fetchPrice,
+  fetchPriceHistory,
   fetchPrices,
   fetchSpread,
   fetchSpreads,
   fetchTickSize,
   listCurrentRewards,
   listMarketRewards,
-  listPriceHistory,
 } from './clob';
 import { listMarkets } from './markets';
 
@@ -201,11 +201,11 @@ describe('CLOB', () => {
     });
   });
 
-  describe('listPriceHistory', () => {
+  describe('fetchPriceHistory', () => {
     it('lists historical price points for a token', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await listPriceHistory(publicClient, {
+      const result = await fetchPriceHistory(publicClient, {
         tokenId,
         interval: PriceHistoryInterval.ONE_DAY,
         fidelity: 60,

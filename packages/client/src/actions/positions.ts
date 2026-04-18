@@ -138,11 +138,15 @@ export type PrepareRedeemPositionsError =
  *
  * @example
  * ```ts
- * const result = await prepareSplitPosition(client, {
+ * const handle = await prepareSplitPosition(client, {
  *   amount: 1n,
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
- * }).then(completeWith(walletClient));
+ * }).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareSplitPositionError}
@@ -184,11 +188,15 @@ export async function prepareSplitPosition(
  *
  * @example
  * ```ts
- * const result = await prepareMergePositions(client, {
+ * const handle = await prepareMergePositions(client, {
  *   amount: 'max',
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
- * }).then(completeWith(walletClient));
+ * }).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareMergePositionsError}
@@ -243,10 +251,14 @@ export async function prepareMergePositions(
  *
  * @example
  * ```ts
- * const result = await prepareRedeemPositions(client, {
+ * const handle = await prepareRedeemPositions(client, {
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
- * }).then(completeWith(walletClient));
+ * }).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareRedeemPositionsError}

@@ -55,6 +55,11 @@ export type FetchClosedOnlyModeError =
  * Fetches whether the account is restricted to closed-only trading.
  *
  * @throws {@link FetchClosedOnlyModeError}
+ *
+ * @example
+ * ```ts
+ * const closedOnly = await fetchClosedOnlyMode(client);
+ * ```
  */
 export async function fetchClosedOnlyMode(
   client: SecureClient,
@@ -164,6 +169,13 @@ export type FetchOrderError =
  * Fetches a single order for the authenticated account.
  *
  * @throws {@link FetchOrderError}
+ *
+ * @example
+ * ```ts
+ * const order = await fetchOrder(client, {
+ *   orderId: '123',
+ * });
+ * ```
  */
 export async function fetchOrder(
   client: SecureClient,
@@ -283,6 +295,11 @@ export type DropNotificationsRequest = z.input<
  * Fetches notifications for the authenticated account.
  *
  * @throws {@link FetchNotificationsError}
+ *
+ * @example
+ * ```ts
+ * const notifications = await fetchNotifications(client);
+ * ```
  */
 export async function fetchNotifications(
   client: SecureClient,
@@ -470,6 +487,13 @@ export type FetchOrderScoringError =
  * Fetches whether a single order is currently scoring.
  *
  * @throws {@link FetchOrderScoringError}
+ *
+ * @example
+ * ```ts
+ * const scoring = await fetchOrderScoring(client, {
+ *   orderId: '123',
+ * });
+ * ```
  */
 export async function fetchOrderScoring(
   client: SecureClient,
@@ -506,6 +530,13 @@ export type FetchOrdersScoringError =
  * Fetches scoring state for multiple orders.
  *
  * @throws {@link FetchOrdersScoringError}
+ *
+ * @example
+ * ```ts
+ * const scoring = await fetchOrdersScoring(client, {
+ *   orderIds: ['1', '2'],
+ * });
+ * ```
  */
 export async function fetchOrdersScoring(
   client: SecureClient,
@@ -623,6 +654,13 @@ export type FetchTotalEarningsForUserForDayError =
  * Fetches total earnings for the authenticated account on a given day.
  *
  * @throws {@link FetchTotalEarningsForUserForDayError}
+ *
+ * @example
+ * ```ts
+ * const earnings = await fetchTotalEarningsForUserForDay(client, {
+ *   date: '2026-04-16',
+ * });
+ * ```
  */
 export async function fetchTotalEarningsForUserForDay(
   client: SecureClient,
@@ -746,6 +784,11 @@ export type FetchRewardPercentagesError =
  * Fetches reward percentages for the authenticated account.
  *
  * @throws {@link FetchRewardPercentagesError}
+ *
+ * @example
+ * ```ts
+ * const percentages = await fetchRewardPercentages(client);
+ * ```
  */
 export async function fetchRewardPercentages(
   client: SecureClient,

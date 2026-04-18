@@ -50,11 +50,15 @@ export type PrepareErc20TransferError = UserInputError;
  *
  * @example
  * ```ts
- * const result = await prepareErc20Transfer(client, {
+ * const handle = await prepareErc20Transfer(client, {
  *   amount: 1n,
  *   recipientAddress: client.account.signer,
  *   tokenAddress: client.environment.collateralToken,
- * }).then(completeWith(walletClient));
+ * }).then(completeWith(wallet));
+ *
+ * const outcome = await handle.wait();
+ *
+ * // outcome.transactionHash: TxHash
  * ```
  *
  * @throws {@link PrepareErc20TransferError}

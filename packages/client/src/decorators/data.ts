@@ -1,5 +1,31 @@
+import type {
+  LastTradePrice,
+  LastTradePriceForToken,
+  OrderBook,
+  PriceHistoryPoint,
+  Prices,
+} from '@polymarket/bindings/clob';
+import type {
+  LiveVolume,
+  MetaHolder,
+  OpenInterest,
+  Trade,
+} from '@polymarket/bindings/data';
 import {
+  type EstimateMarketPriceRequest,
   estimateMarketPrice,
+  type FetchEventLiveVolumeRequest,
+  type FetchLastTradePriceRequest,
+  type FetchLastTradePricesRequest,
+  type FetchMidpointRequest,
+  type FetchMidpointsRequest,
+  type FetchOrderBookRequest,
+  type FetchOrderBooksRequest,
+  type FetchPriceHistoryRequest,
+  type FetchPriceRequest,
+  type FetchPricesRequest,
+  type FetchSpreadRequest,
+  type FetchSpreadsRequest,
   fetchEventLiveVolume,
   fetchLastTradePrice,
   fetchLastTradePrices,
@@ -8,24 +34,26 @@ import {
   fetchOrderBook,
   fetchOrderBooks,
   fetchPrice,
+  fetchPriceHistory,
   fetchPrices,
   fetchSpread,
   fetchSpreads,
+  type ListMarketHoldersRequest,
+  type ListOpenInterestRequest,
+  type ListTradesRequest,
   listMarketHolders,
   listOpenInterest,
-  listPriceHistory,
   listTrades,
 } from '../actions';
 import type { Client, PublicClient, SecureClient } from '../clients';
-import {
-  type BindActionParameters,
-  type BindActionResult,
-  bindAction,
-} from './shared';
+import type { Paginated } from '../pagination';
 
 export type DataActions = {
   /**
    * Fetches live volume for an event.
+   *
+   * @throws {@link FetchEventLiveVolumeError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
@@ -33,21 +61,25 @@ export type DataActions = {
    * ```
    */
   fetchEventLiveVolume(
-    ...args: BindActionParameters<typeof fetchEventLiveVolume>
-  ): BindActionResult<typeof fetchEventLiveVolume>;
+    request: FetchEventLiveVolumeRequest,
+  ): Promise<LiveVolume[]>;
   /**
    * Fetches the midpoint price for a token.
+   *
+   * @throws {@link FetchMidpointError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const midpoint = await client.fetchMidpoint({ tokenId: '123' });
    * ```
    */
-  fetchMidpoint(
-    ...args: BindActionParameters<typeof fetchMidpoint>
-  ): BindActionResult<typeof fetchMidpoint>;
+  fetchMidpoint(request: FetchMidpointRequest): Promise<string>;
   /**
    * Fetches midpoint prices for multiple tokens.
+   *
+   * @throws {@link FetchMidpointsError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
@@ -55,76 +87,85 @@ export type DataActions = {
    * ```
    */
   fetchMidpoints(
-    ...args: BindActionParameters<typeof fetchMidpoints>
-  ): BindActionResult<typeof fetchMidpoints>;
+    request: FetchMidpointsRequest,
+  ): Promise<Record<string, string>>;
   /**
    * Fetches the current quoted price for a token and side.
+   *
+   * @throws {@link FetchPriceError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const price = await client.fetchPrice({ tokenId: '123', side: OrderSide.BUY });
    * ```
    */
-  fetchPrice(
-    ...args: BindActionParameters<typeof fetchPrice>
-  ): BindActionResult<typeof fetchPrice>;
+  fetchPrice(request: FetchPriceRequest): Promise<string>;
   /**
    * Fetches quoted prices for multiple tokens.
+   *
+   * @throws {@link FetchPricesError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const prices = await client.fetchPrices([{ tokenId: '123', side: OrderSide.BUY }]);
    * ```
    */
-  fetchPrices(
-    ...args: BindActionParameters<typeof fetchPrices>
-  ): BindActionResult<typeof fetchPrices>;
+  fetchPrices(request: FetchPricesRequest): Promise<Prices>;
   /**
    * Fetches the current order book for a token.
+   *
+   * @throws {@link FetchOrderBookError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const book = await client.fetchOrderBook({ tokenId: '123' });
    * ```
    */
-  fetchOrderBook(
-    ...args: BindActionParameters<typeof fetchOrderBook>
-  ): BindActionResult<typeof fetchOrderBook>;
+  fetchOrderBook(request: FetchOrderBookRequest): Promise<OrderBook>;
   /**
    * Fetches order books for multiple tokens.
+   *
+   * @throws {@link FetchOrderBooksError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const books = await client.fetchOrderBooks([{ tokenId: '123' }]);
    * ```
    */
-  fetchOrderBooks(
-    ...args: BindActionParameters<typeof fetchOrderBooks>
-  ): BindActionResult<typeof fetchOrderBooks>;
+  fetchOrderBooks(request: FetchOrderBooksRequest): Promise<OrderBook[]>;
   /**
    * Fetches the spread for a token.
+   *
+   * @throws {@link FetchSpreadError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const spread = await client.fetchSpread({ tokenId: '123' });
    * ```
    */
-  fetchSpread(
-    ...args: BindActionParameters<typeof fetchSpread>
-  ): BindActionResult<typeof fetchSpread>;
+  fetchSpread(request: FetchSpreadRequest): Promise<string>;
   /**
    * Fetches spreads for multiple tokens.
+   *
+   * @throws {@link FetchSpreadsError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
    * const spreads = await client.fetchSpreads([{ tokenId: '123' }]);
    * ```
    */
-  fetchSpreads(
-    ...args: BindActionParameters<typeof fetchSpreads>
-  ): BindActionResult<typeof fetchSpreads>;
+  fetchSpreads(request: FetchSpreadsRequest): Promise<Record<string, string>>;
   /**
    * Fetches the last traded price for a token.
+   *
+   * @throws {@link FetchLastTradePriceError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
@@ -132,10 +173,13 @@ export type DataActions = {
    * ```
    */
   fetchLastTradePrice(
-    ...args: BindActionParameters<typeof fetchLastTradePrice>
-  ): BindActionResult<typeof fetchLastTradePrice>;
+    request: FetchLastTradePriceRequest,
+  ): Promise<LastTradePrice>;
   /**
    * Fetches last traded prices for multiple tokens.
+   *
+   * @throws {@link FetchLastTradePricesError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
@@ -143,24 +187,30 @@ export type DataActions = {
    * ```
    */
   fetchLastTradePrices(
-    ...args: BindActionParameters<typeof fetchLastTradePrices>
-  ): BindActionResult<typeof fetchLastTradePrices>;
+    request: FetchLastTradePricesRequest,
+  ): Promise<LastTradePriceForToken[]>;
   /**
-   * Lists historical price points for a token.
+   * Fetches historical price points for a token.
+   *
+   * @throws {@link FetchPriceHistoryError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
-   * const history = await client.listPriceHistory({ tokenId: '123', interval: '1d' });
+   * const history = await client.fetchPriceHistory({ tokenId: '123', interval: '1d' });
    * ```
    */
-  listPriceHistory(
-    ...args: BindActionParameters<typeof listPriceHistory>
-  ): BindActionResult<typeof listPriceHistory>;
+  fetchPriceHistory(
+    request: FetchPriceHistoryRequest,
+  ): Promise<PriceHistoryPoint[]>;
   /**
    * Estimates the price level a market order would cross at current book depth.
    *
    * For BUY orders, `amount` is the amount of collateral to spend. For SELL orders,
    * `amount` is the number of shares to sell.
+   *
+   * @throws {@link EstimateMarketPriceError}
+   * Thrown on failure.
    *
    * @example
    * ```ts
@@ -171,48 +221,93 @@ export type DataActions = {
    * });
    * ```
    */
-  estimateMarketPrice(
-    ...args: BindActionParameters<typeof estimateMarketPrice>
-  ): BindActionResult<typeof estimateMarketPrice>;
+  estimateMarketPrice(request: EstimateMarketPriceRequest): Promise<number>;
   /**
    * Lists open interest for one or more markets.
+   *
+   * @throws {@link ListOpenInterestError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const openInterest = await client.listOpenInterest({
+   *   market: ['0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093'],
+   * });
+   * ```
    */
-  listOpenInterest(
-    ...args: BindActionParameters<typeof listOpenInterest>
-  ): BindActionResult<typeof listOpenInterest>;
+  listOpenInterest(request?: ListOpenInterestRequest): Promise<OpenInterest[]>;
   /**
    * Lists the top holders for one or more markets.
+   *
+   * @throws {@link ListMarketHoldersError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const holders = await client.listMarketHolders({
+   *   market: ['0xe546672750517f62c45a5a00067481981e62b9c20fa8220203232c9dc8fd2093'],
+   *   limit: 5,
+   * });
+   * ```
    */
-  listMarketHolders(
-    ...args: BindActionParameters<typeof listMarketHolders>
-  ): BindActionResult<typeof listMarketHolders>;
+  listMarketHolders(request: ListMarketHoldersRequest): Promise<MetaHolder[]>;
   /**
    * Lists trades for a wallet, market, or event.
+   *
+   * @throws {@link ListTradesError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listTrades({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: Trade[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listTrades({
+   *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: Trade[]
+   * }
+   * ```
    */
-  listTrades(
-    ...args: BindActionParameters<typeof listTrades>
-  ): BindActionResult<typeof listTrades>;
+  listTrades(request?: ListTradesRequest): Paginated<Trade>;
 };
 
 export function dataActions(client: PublicClient): DataActions;
 export function dataActions(client: SecureClient): DataActions;
 export function dataActions(client: Client): DataActions {
   return {
-    fetchEventLiveVolume: bindAction(client, fetchEventLiveVolume),
-    fetchMidpoint: bindAction(client, fetchMidpoint),
-    fetchMidpoints: bindAction(client, fetchMidpoints),
-    fetchPrice: bindAction(client, fetchPrice),
-    fetchPrices: bindAction(client, fetchPrices),
-    fetchOrderBook: bindAction(client, fetchOrderBook),
-    fetchOrderBooks: bindAction(client, fetchOrderBooks),
-    fetchSpread: bindAction(client, fetchSpread),
-    fetchSpreads: bindAction(client, fetchSpreads),
-    fetchLastTradePrice: bindAction(client, fetchLastTradePrice),
-    fetchLastTradePrices: bindAction(client, fetchLastTradePrices),
-    listPriceHistory: bindAction(client, listPriceHistory),
-    estimateMarketPrice: bindAction(client, estimateMarketPrice),
-    listOpenInterest: bindAction(client, listOpenInterest),
-    listMarketHolders: bindAction(client, listMarketHolders),
-    listTrades: bindAction(client, listTrades),
+    fetchEventLiveVolume: fetchEventLiveVolume.bind(null, client),
+    fetchMidpoint: fetchMidpoint.bind(null, client),
+    fetchMidpoints: fetchMidpoints.bind(null, client),
+    fetchPrice: fetchPrice.bind(null, client),
+    fetchPrices: fetchPrices.bind(null, client),
+    fetchOrderBook: fetchOrderBook.bind(null, client),
+    fetchOrderBooks: fetchOrderBooks.bind(null, client),
+    fetchSpread: fetchSpread.bind(null, client),
+    fetchSpreads: fetchSpreads.bind(null, client),
+    fetchLastTradePrice: fetchLastTradePrice.bind(null, client),
+    fetchLastTradePrices: fetchLastTradePrices.bind(null, client),
+    fetchPriceHistory: fetchPriceHistory.bind(null, client),
+    estimateMarketPrice: estimateMarketPrice.bind(null, client),
+    listOpenInterest: listOpenInterest.bind(null, client),
+    listMarketHolders: listMarketHolders.bind(null, client),
+    listTrades: listTrades.bind(null, client),
   };
 }

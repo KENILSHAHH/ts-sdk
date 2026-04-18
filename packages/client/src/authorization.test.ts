@@ -3,7 +3,6 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { listBuilderTrades } from './actions/builders';
 import { remoteBuilderSigning } from './authorization';
 import { createPublicClient } from './clients';
 import { RequestRejectedError, SigningError } from './errors';
@@ -71,13 +70,13 @@ describe('authorization', () => {
         }),
       });
 
-      await expect(listBuilderTrades(client).first()).resolves.toBeDefined();
+      await expect(client.listBuilderTrades().first()).resolves.toBeDefined();
     });
 
     it('fails without builder authorization because the live CLOB endpoint returns 401', async () => {
       const client = createPublicClient();
 
-      await expect(listBuilderTrades(client).first()).rejects.toBeInstanceOf(
+      await expect(client.listBuilderTrades().first()).rejects.toBeInstanceOf(
         RequestRejectedError,
       );
     });
@@ -97,7 +96,7 @@ describe('authorization', () => {
         apiKey: remoteBuilderSigning({ url: signerUrl }),
       });
 
-      await expect(listBuilderTrades(client).first()).rejects.toBeInstanceOf(
+      await expect(client.listBuilderTrades().first()).rejects.toBeInstanceOf(
         RequestRejectedError,
       );
     });

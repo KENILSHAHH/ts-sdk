@@ -1,6 +1,18 @@
 import type { Prettify } from '@polymarket/types';
 import {
+  type Erc20ApprovalWorkflow,
+  type Erc20TransferWorkflow,
+  type Erc1155ApprovalForAllWorkflow,
+  type GaslessWalletWorkflow,
+  type IsGaslessReadyRequest,
   isGaslessReady,
+  type MergePositionsWorkflow,
+  type PrepareErc20ApprovalRequest,
+  type PrepareErc20TransferRequest,
+  type PrepareErc1155ApprovalForAllRequest,
+  type PrepareMergePositionsRequest,
+  type PrepareRedeemPositionsRequest,
+  type PrepareSplitPositionRequest,
   prepareErc20Approval,
   prepareErc20Transfer,
   prepareErc1155ApprovalForAll,
@@ -9,62 +21,200 @@ import {
   prepareRedeemPositions,
   prepareSplitPosition,
   prepareTradingApprovals,
+  type RedeemPositionsWorkflow,
+  type SplitPositionWorkflow,
+  type TradingApprovalsWorkflow,
 } from '../actions';
 import type { Client, PublicClient, SecureClient } from '../clients';
-import {
-  type BindActionParameters,
-  type BindActionResult,
-  bindAction,
-} from './shared';
 
 export type PublicWalletActions = {
-  /** Checks whether a wallet is ready for gasless transactions. */
-  isGaslessReady(
-    ...args: BindActionParameters<typeof isGaslessReady>
-  ): BindActionResult<typeof isGaslessReady>;
-  /** Starts preparing the wallet for gasless transactions. */
-  prepareGaslessWallet(
-    ...args: BindActionParameters<typeof prepareGaslessWallet>
-  ): BindActionResult<typeof prepareGaslessWallet>;
+  /**
+   * Checks whether a wallet is ready for gasless transactions.
+   *
+   * @throws {@link IsGaslessReadyError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const ready = await client.isGaslessReady({
+   *   wallet: '0x1234...',
+   * });
+   * ```
+   */
+  isGaslessReady(request: IsGaslessReadyRequest): Promise<boolean>;
+  /**
+   * Starts preparing the wallet for gasless transactions.
+   *
+   * @throws {@link PrepareGaslessWalletError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const handle = await client.prepareGaslessWallet().then(completeWith(wallet));
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
+   */
+  prepareGaslessWallet(): Promise<GaslessWalletWorkflow>;
 };
 
 export type SecureWalletActions = Prettify<
   PublicWalletActions & {
-    /** Starts a trading-setup approval workflow. */
-    prepareTradingApprovals(
-      ...args: BindActionParameters<typeof prepareTradingApprovals>
-    ): BindActionResult<typeof prepareTradingApprovals>;
-    /** Starts an ERC-20 approval workflow. */
+    /**
+     * Starts a trading-setup approval workflow.
+     *
+     * @throws {@link PrepareTradingApprovalsError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareTradingApprovals().then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
+    prepareTradingApprovals(): Promise<TradingApprovalsWorkflow>;
+    /**
+     * Starts an ERC-20 approval workflow.
+     *
+     * @throws {@link PrepareErc20ApprovalError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareErc20Approval({
+     *   amount: 'max',
+     *   spenderAddress: '0x1234…',
+     *   tokenAddress: '0x5678…',
+     * }).then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
     prepareErc20Approval(
-      ...args: BindActionParameters<typeof prepareErc20Approval>
-    ): BindActionResult<typeof prepareErc20Approval>;
-    /** Starts an ERC-1155 approval-for-all workflow. */
+      request: PrepareErc20ApprovalRequest,
+    ): Promise<Erc20ApprovalWorkflow>;
+    /**
+     * Starts an ERC-1155 approval-for-all workflow.
+     *
+     * @throws {@link PrepareErc1155ApprovalForAllError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareErc1155ApprovalForAll({
+     *   operatorAddress: '0x1234…',
+     *   tokenAddress: '0x5678…',
+     * }).then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
     prepareErc1155ApprovalForAll(
-      ...args: BindActionParameters<typeof prepareErc1155ApprovalForAll>
-    ): BindActionResult<typeof prepareErc1155ApprovalForAll>;
-    /** Starts an ERC-20 transfer workflow. */
+      request: PrepareErc1155ApprovalForAllRequest,
+    ): Promise<Erc1155ApprovalForAllWorkflow>;
+    /**
+     * Starts an ERC-20 transfer workflow.
+     *
+     * @throws {@link PrepareErc20TransferError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareErc20Transfer({
+     *   amount: 1n,
+     *   recipientAddress: client.account.signer,
+     *   tokenAddress: client.environment.collateralToken,
+     * }).then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
     prepareErc20Transfer(
-      ...args: BindActionParameters<typeof prepareErc20Transfer>
-    ): BindActionResult<typeof prepareErc20Transfer>;
-    /** Starts a split workflow for a market condition. */
+      request: PrepareErc20TransferRequest,
+    ): Promise<Erc20TransferWorkflow>;
+    /**
+     * Starts a split workflow for a market condition.
+     *
+     * @throws {@link PrepareSplitPositionError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareSplitPosition({
+     *   amount: 1n,
+     *   conditionId:
+     *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+     * }).then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
     prepareSplitPosition(
-      ...args: BindActionParameters<typeof prepareSplitPosition>
-    ): BindActionResult<typeof prepareSplitPosition>;
-    /** Starts a workflow to merge complementary positions in a market back into collateral. */
+      request: PrepareSplitPositionRequest,
+    ): Promise<SplitPositionWorkflow>;
+    /**
+     * Starts a workflow to merge complementary positions in a market back into collateral.
+     *
+     * @throws {@link PrepareMergePositionsError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareMergePositions({
+     *   amount: 'max',
+     *   conditionId:
+     *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+     * }).then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
     prepareMergePositions(
-      ...args: BindActionParameters<typeof prepareMergePositions>
-    ): BindActionResult<typeof prepareMergePositions>;
-    /** Starts a redemption workflow for resolved positions. */
+      request: PrepareMergePositionsRequest,
+    ): Promise<MergePositionsWorkflow>;
+    /**
+     * Starts a redemption workflow for resolved positions.
+     *
+     * @throws {@link PrepareRedeemPositionsError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const handle = await client.prepareRedeemPositions({
+     *   conditionId:
+     *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+     * }).then(completeWith(wallet));
+     *
+     * const outcome = await handle.wait();
+     *
+     * // outcome.transactionHash: TxHash
+     * ```
+     */
     prepareRedeemPositions(
-      ...args: BindActionParameters<typeof prepareRedeemPositions>
-    ): BindActionResult<typeof prepareRedeemPositions>;
+      request: PrepareRedeemPositionsRequest,
+    ): Promise<RedeemPositionsWorkflow>;
   }
 >;
 
 function publicWalletActions(client: Client): PublicWalletActions {
   return {
-    isGaslessReady: bindAction(client, isGaslessReady),
-    prepareGaslessWallet: bindAction(client, prepareGaslessWallet),
+    isGaslessReady: isGaslessReady.bind(null, client),
+    prepareGaslessWallet: prepareGaslessWallet.bind(null, client),
   };
 }
 
@@ -81,15 +231,15 @@ export function walletActions(
 
   return {
     ...actions,
-    prepareTradingApprovals: bindAction(client, prepareTradingApprovals),
-    prepareErc20Approval: bindAction(client, prepareErc20Approval),
-    prepareErc1155ApprovalForAll: bindAction(
+    prepareTradingApprovals: prepareTradingApprovals.bind(null, client),
+    prepareErc20Approval: prepareErc20Approval.bind(null, client),
+    prepareErc1155ApprovalForAll: prepareErc1155ApprovalForAll.bind(
+      null,
       client,
-      prepareErc1155ApprovalForAll,
     ),
-    prepareErc20Transfer: bindAction(client, prepareErc20Transfer),
-    prepareSplitPosition: bindAction(client, prepareSplitPosition),
-    prepareMergePositions: bindAction(client, prepareMergePositions),
-    prepareRedeemPositions: bindAction(client, prepareRedeemPositions),
+    prepareErc20Transfer: prepareErc20Transfer.bind(null, client),
+    prepareSplitPosition: prepareSplitPosition.bind(null, client),
+    prepareMergePositions: prepareMergePositions.bind(null, client),
+    prepareRedeemPositions: prepareRedeemPositions.bind(null, client),
   };
 }

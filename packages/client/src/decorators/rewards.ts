@@ -1,65 +1,243 @@
+import type {
+  CurrentReward,
+  MarketReward,
+  OrdersScoringResponse,
+  RewardsPercentages,
+  TotalUserEarning,
+  UserEarning,
+  UserRewardsEarning,
+} from '@polymarket/bindings/clob';
 import type { Prettify } from '@polymarket/types';
 import {
+  type FetchOrderScoringRequest,
+  type FetchOrdersScoringRequest,
+  type FetchTotalEarningsForUserForDayRequest,
   fetchOrderScoring,
   fetchOrdersScoring,
   fetchRewardPercentages,
   fetchTotalEarningsForUserForDay,
+  type ListCurrentRewardsRequest,
+  type ListMarketRewardsRequest,
+  type ListUserEarningsAndMarketsConfigRequest,
+  type ListUserEarningsForDayRequest,
   listCurrentRewards,
   listMarketRewards,
   listUserEarningsAndMarketsConfig,
   listUserEarningsForDay,
 } from '../actions';
 import type { Client, PublicClient, SecureClient } from '../clients';
-import {
-  type BindActionParameters,
-  type BindActionResult,
-  bindAction,
-} from './shared';
+import type { Paginated } from '../pagination';
 
 export type RewardsPublicActions = {
-  /** Lists current active market rewards. */
+  /**
+   * Lists current active market rewards.
+   *
+   * @throws {@link ListCurrentRewardsError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listCurrentRewards();
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: CurrentReward[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listCurrentRewards();
+   *
+   * for await (const page of paginator) {
+   *   // page.items: CurrentReward[]
+   * }
+   * ```
+   */
   listCurrentRewards(
-    ...args: BindActionParameters<typeof listCurrentRewards>
-  ): BindActionResult<typeof listCurrentRewards>;
-  /** Lists reward configurations for a market. */
-  listMarketRewards(
-    ...args: BindActionParameters<typeof listMarketRewards>
-  ): BindActionResult<typeof listMarketRewards>;
+    request?: ListCurrentRewardsRequest,
+  ): Paginated<CurrentReward>;
+  /**
+   * Lists reward configurations for a market.
+   *
+   * @throws {@link ListMarketRewardsError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listMarketRewards({
+   *   conditionId:
+   *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: MarketReward[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listMarketRewards({
+   *   conditionId:
+   *     '0xbd31dc8a20211944f6b70f31557f1001557b59905b7738480ca09bd4532f84af',
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: MarketReward[]
+   * }
+   * ```
+   */
+  listMarketRewards(request: ListMarketRewardsRequest): Paginated<MarketReward>;
 };
 
 export type RewardsActions = Prettify<
   RewardsPublicActions & {
-    /** Fetches whether a single order is currently scoring. */
-    fetchOrderScoring(
-      ...args: BindActionParameters<typeof fetchOrderScoring>
-    ): BindActionResult<typeof fetchOrderScoring>;
-    /** Fetches scoring state for multiple orders. */
+    /**
+     * Fetches whether a single order is currently scoring.
+     *
+     * @throws {@link FetchOrderScoringError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const scoring = await client.fetchOrderScoring({
+     *   orderId: '123',
+     * });
+     * ```
+     */
+    fetchOrderScoring(request: FetchOrderScoringRequest): Promise<boolean>;
+    /**
+     * Fetches scoring state for multiple orders.
+     *
+     * @throws {@link FetchOrdersScoringError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const scoring = await client.fetchOrdersScoring({
+     *   orderIds: ['1', '2'],
+     * });
+     * ```
+     */
     fetchOrdersScoring(
-      ...args: BindActionParameters<typeof fetchOrdersScoring>
-    ): BindActionResult<typeof fetchOrdersScoring>;
-    /** Lists per-market earnings for the authenticated account on a given day. */
+      request: FetchOrdersScoringRequest,
+    ): Promise<OrdersScoringResponse>;
+    /**
+     * Lists per-market earnings for the authenticated account on a given day.
+     *
+     * @throws {@link ListUserEarningsForDayError}
+     * Thrown on failure.
+     *
+     * @example
+     * Fetch the first page of results:
+     * ```ts
+     * const paginator = client.listUserEarningsForDay({
+     *   date: '2026-04-16',
+     * });
+     *
+     * const firstPage = await paginator.first();
+     *
+     * // Optionally, fetch additional pages:
+     * for await (const page of paginator.from(firstPage.nextCursor)) {
+     *   // page.items: UserEarning[]
+     * }
+     * ```
+     *
+     * @example
+     * Loop through all pages with `for await`:
+     * ```ts
+     * const paginator = client.listUserEarningsForDay({
+     *   date: '2026-04-16',
+     * });
+     *
+     * for await (const page of paginator) {
+     *   // page.items: UserEarning[]
+     * }
+     * ```
+     */
     listUserEarningsForDay(
-      ...args: BindActionParameters<typeof listUserEarningsForDay>
-    ): BindActionResult<typeof listUserEarningsForDay>;
-    /** Fetches total earnings for the authenticated account on a given day. */
+      request: ListUserEarningsForDayRequest,
+    ): Paginated<UserEarning>;
+    /**
+     * Fetches total earnings for the authenticated account on a given day.
+     *
+     * @throws {@link FetchTotalEarningsForUserForDayError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const earnings = await client.fetchTotalEarningsForUserForDay({
+     *   date: '2026-04-16',
+     * });
+     * ```
+     */
     fetchTotalEarningsForUserForDay(
-      ...args: BindActionParameters<typeof fetchTotalEarningsForUserForDay>
-    ): BindActionResult<typeof fetchTotalEarningsForUserForDay>;
-    /** Lists market reward configuration and earnings for the authenticated account on a given day. */
+      request: FetchTotalEarningsForUserForDayRequest,
+    ): Promise<TotalUserEarning[]>;
+    /**
+     * Lists market reward configuration and earnings for the authenticated account on a given day.
+     *
+     * @throws {@link ListUserEarningsAndMarketsConfigError}
+     * Thrown on failure.
+     *
+     * @example
+     * Fetch the first page of results:
+     * ```ts
+     * const paginator = client.listUserEarningsAndMarketsConfig({
+     *   date: '2026-04-16',
+     * });
+     *
+     * const firstPage = await paginator.first();
+     *
+     * // Optionally, fetch additional pages:
+     * for await (const page of paginator.from(firstPage.nextCursor)) {
+     *   // page.items: UserRewardsEarning[]
+     * }
+     * ```
+     *
+     * @example
+     * Loop through all pages with `for await`:
+     * ```ts
+     * const paginator = client.listUserEarningsAndMarketsConfig({
+     *   date: '2026-04-16',
+     * });
+     *
+     * for await (const page of paginator) {
+     *   // page.items: UserRewardsEarning[]
+     * }
+     * ```
+     */
     listUserEarningsAndMarketsConfig(
-      ...args: BindActionParameters<typeof listUserEarningsAndMarketsConfig>
-    ): BindActionResult<typeof listUserEarningsAndMarketsConfig>;
-    /** Fetches reward percentages for the authenticated account. */
-    fetchRewardPercentages(
-      ...args: BindActionParameters<typeof fetchRewardPercentages>
-    ): BindActionResult<typeof fetchRewardPercentages>;
+      request: ListUserEarningsAndMarketsConfigRequest,
+    ): Paginated<UserRewardsEarning>;
+    /**
+     * Fetches reward percentages for the authenticated account.
+     *
+     * @throws {@link FetchRewardPercentagesError}
+     * Thrown on failure.
+     *
+     * @example
+     * ```ts
+     * const percentages = await client.fetchRewardPercentages();
+     * ```
+     */
+    fetchRewardPercentages(): Promise<RewardsPercentages>;
   }
 >;
 
 function publicRewardsActions(client: Client): RewardsPublicActions {
   return {
-    listCurrentRewards: bindAction(client, listCurrentRewards),
-    listMarketRewards: bindAction(client, listMarketRewards),
+    listCurrentRewards: listCurrentRewards.bind(null, client),
+    listMarketRewards: listMarketRewards.bind(null, client),
   };
 }
 
@@ -76,17 +254,17 @@ export function rewardsActions(
 
   return {
     ...actions,
-    fetchOrderScoring: bindAction(client, fetchOrderScoring),
-    fetchOrdersScoring: bindAction(client, fetchOrdersScoring),
-    listUserEarningsForDay: bindAction(client, listUserEarningsForDay),
-    fetchTotalEarningsForUserForDay: bindAction(
+    fetchOrderScoring: fetchOrderScoring.bind(null, client),
+    fetchOrdersScoring: fetchOrdersScoring.bind(null, client),
+    listUserEarningsForDay: listUserEarningsForDay.bind(null, client),
+    fetchTotalEarningsForUserForDay: fetchTotalEarningsForUserForDay.bind(
+      null,
       client,
-      fetchTotalEarningsForUserForDay,
     ),
-    listUserEarningsAndMarketsConfig: bindAction(
+    listUserEarningsAndMarketsConfig: listUserEarningsAndMarketsConfig.bind(
+      null,
       client,
-      listUserEarningsAndMarketsConfig,
     ),
-    fetchRewardPercentages: bindAction(client, fetchRewardPercentages),
+    fetchRewardPercentages: fetchRewardPercentages.bind(null, client),
   };
 }

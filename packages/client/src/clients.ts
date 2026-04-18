@@ -115,9 +115,9 @@ abstract class AbstractClient<TContext extends PublicContext> {
     return this.context.apiKey?.supportGasless ?? false;
   }
 
-  constructor(context: TContext, decorators: readonly ClientDecorator[] = []) {
+  constructor(context: TContext) {
     this.#context = context;
-    this.#decorators = [...decorators];
+    this.#decorators = [];
   }
 
   protected async resolveClobHeaders(
@@ -226,27 +226,21 @@ class BasePublicClient<
   TPublicActions extends ClientActions,
   TSecureActions extends ClientActions,
 > extends AbstractClient<PublicContext> {
-  constructor(
-    config: PublicClientConfig,
-    decorators: readonly ClientDecorator[] = [],
-  ) {
-    super(
-      {
-        apiKey: config.apiKey,
-        environment: config.environment,
-        data: new ServiceClient({ root: config.environment.data }),
-        gamma: new ServiceClient({ root: config.environment.gamma }),
-        clob: new ServiceClient({
-          root: config.environment.clob,
-          resolveHeaders: (request) => this.resolveClobHeaders(request),
-        }),
-        relayer: new ServiceClient({
-          root: config.environment.relayer,
-          resolveHeaders: (request) => this.resolveRelayerHeaders(request),
-        }),
-      },
-      decorators,
-    );
+  constructor(config: PublicClientConfig) {
+    super({
+      apiKey: config.apiKey,
+      environment: config.environment,
+      data: new ServiceClient({ root: config.environment.data }),
+      gamma: new ServiceClient({ root: config.environment.gamma }),
+      clob: new ServiceClient({
+        root: config.environment.clob,
+        resolveHeaders: (request) => this.resolveClobHeaders(request),
+      }),
+      relayer: new ServiceClient({
+        root: config.environment.relayer,
+        resolveHeaders: (request) => this.resolveRelayerHeaders(request),
+      }),
+    });
   }
 
   /**
@@ -364,15 +358,18 @@ class BasePublicClient<
     credentials: ApiKeyCreds,
     account: AccountIdentity,
   ): SecureClient<TPublicActions, TSecureActions> {
-    return new BaseSecureClient(
-      {
-        account: account,
-        apiKey: this.context.apiKey,
-        credentials,
-        environment: this.environment,
-      },
-      this.decorators,
-    ) as SecureClient<TPublicActions, TSecureActions>;
+    const client = new BaseSecureClient({
+      account: account,
+      apiKey: this.context.apiKey,
+      credentials,
+      environment: this.environment,
+    });
+
+    for (const decorator of this.decorators) {
+      client.extend(decorator);
+    }
+
+    return client as SecureClient<TPublicActions, TSecureActions>;
   }
 }
 
@@ -399,36 +396,30 @@ class BaseSecureClient<
     this.#hasEndedAuthentication = true;
   }
 
-  constructor(
-    config: SecureClientConfig,
-    decorators: readonly ClientDecorator[] = [],
-  ) {
-    super(
-      {
-        account: config.account,
-        credentials: config.credentials,
-        apiKey: config.apiKey,
-        environment: config.environment,
-        clob: new ServiceClient({
-          root: config.environment.clob,
-          resolveHeaders: (request) => this.resolveClobHeaders(request),
+  constructor(config: SecureClientConfig) {
+    super({
+      account: config.account,
+      credentials: config.credentials,
+      apiKey: config.apiKey,
+      environment: config.environment,
+      clob: new ServiceClient({
+        root: config.environment.clob,
+        resolveHeaders: (request) => this.resolveClobHeaders(request),
+      }),
+      relayer: new ServiceClient({
+        root: config.environment.relayer,
+        resolveHeaders: (request) => this.resolveRelayerHeaders(request),
+      }),
+      gamma: new ServiceClient({ root: config.environment.gamma }),
+      data: new ServiceClient({ root: config.environment.data }),
+      secureClob: new ServiceClient({
+        resolveHeaders: async (request) => ({
+          ...(await this.resolveClobHeaders(request)),
+          ...(await this.#createL2Headers(request)),
         }),
-        relayer: new ServiceClient({
-          root: config.environment.relayer,
-          resolveHeaders: (request) => this.resolveRelayerHeaders(request),
-        }),
-        gamma: new ServiceClient({ root: config.environment.gamma }),
-        data: new ServiceClient({ root: config.environment.data }),
-        secureClob: new ServiceClient({
-          resolveHeaders: async (request) => ({
-            ...(await this.resolveClobHeaders(request)),
-            ...(await this.#createL2Headers(request)),
-          }),
-          root: config.environment.clob,
-        }),
-      },
-      decorators,
-    );
+        root: config.environment.clob,
+      }),
+    });
   }
 
   /** @internal */
@@ -512,13 +503,16 @@ class BaseSecureClient<
     await deleteApiKey(this);
     this.endAuthenticationLifecycle();
 
-    return new BasePublicClient(
-      {
-        apiKey,
-        environment,
-      },
-      this.decorators,
-    ) as PublicClient<TPublicActions, TSecureActions>;
+    const client = new BasePublicClient({
+      apiKey,
+      environment,
+    });
+
+    for (const decorator of this.decorators) {
+      client.extend(decorator);
+    }
+
+    return client as PublicClient<TPublicActions, TSecureActions>;
   }
 
   async #createL2Headers(request: ServiceRequest): Promise<HeadersInit> {

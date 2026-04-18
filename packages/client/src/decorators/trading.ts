@@ -1,12 +1,25 @@
-import type { OrderResponse, OrderResponses } from '@polymarket/bindings/clob';
+import type {
+  CancelOrdersResponse,
+  OpenOrder,
+  OrderResponse,
+  OrderResponses,
+} from '@polymarket/bindings/clob';
+import type { OrderWorkflow } from '../actions';
 import {
+  type CancelMarketOrdersRequest,
+  type CancelOrderRequest,
+  type CancelOrdersRequest,
   cancelAll,
   cancelMarketOrders,
   cancelOrder,
   cancelOrders,
+  type FetchOrderRequest,
   fetchOrder,
+  type ListOpenOrdersRequest,
   listOpenOrders,
   type PostOrdersRequest,
+  type PrepareLimitOrderRequest,
+  type PrepareMarketOrderRequest,
   postOrder,
   postOrders,
   prepareLimitOrder,
@@ -14,11 +27,7 @@ import {
 } from '../actions';
 import type { SignedOrder } from '../actions/orders';
 import type { SecureClient } from '../clients';
-import {
-  type BindActionParameters,
-  type BindActionResult,
-  bindAction,
-} from './shared';
+import type { Paginated } from '../pagination';
 
 type PostOrderMethod = {
   (order: SignedOrder): Promise<OrderResponse>;
@@ -31,49 +40,189 @@ type PostOrdersMethod = {
 };
 
 export type TradingActions = {
-  /** Starts the market-order workflow. */
+  /**
+   * Starts the market-order workflow.
+   *
+   * @throws {@link PrepareMarketOrderError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const order = await client.prepareMarketOrder({
+   *   amount: 10,
+   *   side: OrderSide.BUY,
+   *   tokenId: '123',
+   * }).then(completeWith(wallet));
+   *
+   * const response = await client.postOrder(order);
+   *
+   * // response: OrderResponse
+   * ```
+   */
   prepareMarketOrder(
-    ...args: BindActionParameters<typeof prepareMarketOrder>
-  ): BindActionResult<typeof prepareMarketOrder>;
-  /** Starts the limit-order workflow. */
-  prepareLimitOrder(
-    ...args: BindActionParameters<typeof prepareLimitOrder>
-  ): BindActionResult<typeof prepareLimitOrder>;
-  /** Posts a signed order for the authenticated account. */
+    request: PrepareMarketOrderRequest,
+  ): Promise<OrderWorkflow>;
+  /**
+   * Starts the limit-order workflow.
+   *
+   * @throws {@link PrepareLimitOrderError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const order = await client.prepareLimitOrder({
+   *   price: 0.52,
+   *   side: OrderSide.BUY,
+   *   size: 10,
+   *   tokenId: '123',
+   * }).then(completeWith(wallet));
+   *
+   * const response = await client.postOrder(order);
+   *
+   * // response: OrderResponse
+   * ```
+   */
+  prepareLimitOrder(request: PrepareLimitOrderRequest): Promise<OrderWorkflow>;
+  /**
+   * Posts a signed order for the authenticated account.
+   *
+   * @throws {@link PostOrderError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.postOrder(signedOrder);
+   * ```
+   */
   postOrder: PostOrderMethod;
-  /** Posts multiple signed orders for the authenticated account. */
+  /**
+   * Posts multiple signed orders for the authenticated account.
+   *
+   * @remarks
+   * Accepts between 1 and 15 orders, matching the current service limit.
+   *
+   * @throws {@link PostOrdersError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const responses = await client.postOrders([firstSignedOrder, secondSignedOrder]);
+   * ```
+   */
   postOrders: PostOrdersMethod;
-  /** Cancels a single open order for the authenticated account. */
-  cancelOrder(
-    ...args: BindActionParameters<typeof cancelOrder>
-  ): BindActionResult<typeof cancelOrder>;
-  /** Cancels multiple open orders for the authenticated account. */
-  cancelOrders(
-    ...args: BindActionParameters<typeof cancelOrders>
-  ): BindActionResult<typeof cancelOrders>;
-  /** Cancels all open orders for the authenticated account. */
-  cancelAll(
-    ...args: BindActionParameters<typeof cancelAll>
-  ): BindActionResult<typeof cancelAll>;
-  /** Cancels all open orders for the authenticated account that match the market or asset filter. */
+  /**
+   * Cancels a single open order for the authenticated account.
+   *
+   * @throws {@link CancelOrderError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.cancelOrder({ orderId: '123' });
+   *
+   * // response.canceled: string[]
+   * ```
+   */
+  cancelOrder(request: CancelOrderRequest): Promise<CancelOrdersResponse>;
+  /**
+   * Cancels multiple open orders for the authenticated account.
+   *
+   * @throws {@link CancelOrdersError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.cancelOrders({ orderIds: ['1', '2'] });
+   *
+   * // response.canceled: string[]
+   * ```
+   */
+  cancelOrders(request: CancelOrdersRequest): Promise<CancelOrdersResponse>;
+  /**
+   * Cancels all open orders for the authenticated account.
+   *
+   * @throws {@link CancelAllError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.cancelAll();
+   *
+   * // response.canceled: string[]
+   * ```
+   */
+  cancelAll(): Promise<CancelOrdersResponse>;
+  /**
+   * Cancels all open orders for the authenticated account that match the market or asset filter.
+   *
+   * @throws {@link CancelMarketOrdersError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.cancelMarketOrders({
+   *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+   * });
+   *
+   * // response.canceled: string[]
+   * ```
+   */
   cancelMarketOrders(
-    ...args: BindActionParameters<typeof cancelMarketOrders>
-  ): BindActionResult<typeof cancelMarketOrders>;
-  /** Lists open orders for the authenticated account across all pages. */
-  listOpenOrders(
-    ...args: BindActionParameters<typeof listOpenOrders>
-  ): BindActionResult<typeof listOpenOrders>;
-  /** Fetches a single order for the authenticated account. */
-  fetchOrder(
-    ...args: BindActionParameters<typeof fetchOrder>
-  ): BindActionResult<typeof fetchOrder>;
+    request: CancelMarketOrdersRequest,
+  ): Promise<CancelOrdersResponse>;
+  /**
+   * Lists open orders for the authenticated account across all pages.
+   *
+   * @throws {@link ListOpenOrdersError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listOpenOrders({
+   *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+   * });
+   *
+   * const firstPage = await paginator.first();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: OpenOrder[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listOpenOrders({
+   *   market: '0x0000000000000000000000000000000000000000000000000000000000000001',
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: OpenOrder[]
+   * }
+   * ```
+   */
+  listOpenOrders(request?: ListOpenOrdersRequest): Paginated<OpenOrder>;
+  /**
+   * Fetches a single order for the authenticated account.
+   *
+   * @throws {@link FetchOrderError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const order = await client.fetchOrder({ orderId: '123' });
+   * ```
+   */
+  fetchOrder(request: FetchOrderRequest): Promise<OpenOrder>;
 };
 
 export function tradingActions(client: SecureClient): TradingActions;
 export function tradingActions(client: SecureClient): TradingActions {
   return {
-    prepareMarketOrder: bindAction(client, prepareMarketOrder),
-    prepareLimitOrder: bindAction(client, prepareLimitOrder),
+    prepareMarketOrder: prepareMarketOrder.bind(null, client),
+    prepareLimitOrder: prepareLimitOrder.bind(null, client),
     postOrder: ((order?: SignedOrder) =>
       order === undefined
         ? postOrder(client)
@@ -82,11 +231,11 @@ export function tradingActions(client: SecureClient): TradingActions {
       orders === undefined
         ? postOrders(client)
         : postOrders(client, orders)) as PostOrdersMethod,
-    cancelOrder: bindAction(client, cancelOrder),
-    cancelOrders: bindAction(client, cancelOrders),
-    cancelAll: bindAction(client, cancelAll),
-    cancelMarketOrders: bindAction(client, cancelMarketOrders),
-    listOpenOrders: bindAction(client, listOpenOrders),
-    fetchOrder: bindAction(client, fetchOrder),
+    cancelOrder: cancelOrder.bind(null, client),
+    cancelOrders: cancelOrders.bind(null, client),
+    cancelAll: cancelAll.bind(null, client),
+    cancelMarketOrders: cancelMarketOrders.bind(null, client),
+    listOpenOrders: listOpenOrders.bind(null, client),
+    fetchOrder: fetchOrder.bind(null, client),
   };
 }

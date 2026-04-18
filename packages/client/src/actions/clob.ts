@@ -690,11 +690,11 @@ const ListPriceHistoryRequestSchema = z.object({
   interval: PriceHistoryIntervalSchema.optional(),
 });
 
-export type ListPriceHistoryRequest = z.input<
+export type FetchPriceHistoryRequest = z.input<
   typeof ListPriceHistoryRequestSchema
 >;
 
-export type ListPriceHistoryError =
+export type FetchPriceHistoryError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
@@ -702,27 +702,27 @@ export type ListPriceHistoryError =
   | UserInputError;
 
 /**
- * Lists historical price points for a token.
+ * Fetches historical price points for a token.
  *
- * @throws {@link ListPriceHistoryError}
+ * @throws {@link FetchPriceHistoryError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const history = await listPriceHistory(client, {
+ * const history = await fetchPriceHistory(client, {
  *   tokenId:
  *     '8501497159083948713316135768103773293754490207922884688769443031624417212426',
  *   interval: PriceHistoryInterval.ONE_DAY,
  *   fidelity: 60,
  * });
  *
- * // history[0] === { t: 1775653225, p: 0.535 }
+ * // history === PriceHistoryPoint[]
  * ```
  *
  */
-export async function listPriceHistory(
+export async function fetchPriceHistory(
   client: Client,
-  request: ListPriceHistoryRequest,
+  request: FetchPriceHistoryRequest,
 ): Promise<PriceHistoryPoint[]> {
   const params = parseUserInput(request, ListPriceHistoryRequestSchema);
   const response = await unwrap(
