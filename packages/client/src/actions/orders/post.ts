@@ -43,7 +43,13 @@ export type PostOrdersError =
  *
  * @example
  * ```ts
- * const response = await postOrder(client)(signedOrder);
+ * const response = await prepareMarketOrder(client, {
+ *   amount: 10,
+ *   side: OrderSide.BUY,
+ *   tokenId: '123',
+ * })
+ *   .then(completeWith(wallet))
+ *   .then(postOrder(client));
  * ```
  *
  * @throws {@link PostOrderError}

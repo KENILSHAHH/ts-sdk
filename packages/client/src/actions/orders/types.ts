@@ -1,5 +1,6 @@
 import type { TokenId } from '@polymarket/bindings';
 import type {
+  OrderResponse,
   OrderSide,
   OrderType,
   SignatureType,
@@ -132,6 +133,12 @@ export type OrderWorkflowRequest =
 export type OrderWorkflow = AsyncGenerator<
   OrderWorkflowRequest,
   SignedOrder,
+  EvmAddress | EvmSignature | TransactionHandle
+>;
+
+export type OrderPostingWorkflow = AsyncGenerator<
+  OrderWorkflowRequest,
+  OrderResponse,
   EvmAddress | EvmSignature | TransactionHandle
 >;
 

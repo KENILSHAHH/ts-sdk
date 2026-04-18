@@ -29,7 +29,9 @@ import {
   postOrder,
   postOrders,
   prepareLimitOrder,
+  prepareLimitOrderPosting,
   prepareMarketOrder,
+  prepareMarketOrderPosting,
 } from './orders';
 import { listPositions } from './portfolio';
 
@@ -191,6 +193,40 @@ describe('Orders', () => {
     });
   });
 
+  describe('prepareLimitOrderPosting', () => {
+    const [yesTokenId] = expectPresent(market.clobTokenIds);
+    const minPrice = expectPresent(market.orderPriceMinTickSize);
+    const minSize = expectPresent(market.orderMinSize);
+
+    it('creates, signs, and posts a limit order in one workflow', async () => {
+      const response = await prepareLimitOrderPosting(secureClient, {
+        orderType: OrderType.GTC,
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      }).then(completeWith(walletClient));
+
+      expect(response.ok).toBe(true);
+    });
+  });
+
+  describe('prepareMarketOrderPosting', () => {
+    it.runIf(runMeteredTests)(
+      'creates, signs, and posts a market order in one workflow',
+      async () => {
+        const [yesTokenId] = expectPresent(market.clobTokenIds);
+        const response = await prepareMarketOrderPosting(secureClient, {
+          amount: expectPresent(market.orderMinSize),
+          side: OrderSide.BUY,
+          tokenId: yesTokenId,
+        }).then(completeWith(walletClient));
+
+        expect(response.ok).toBe(true);
+      },
+    );
+  });
+
   describe('cancelOrder', () => {
     it('cancels a single open order', async () => {
       const { orderId } = await createRestingLimitOrder();
@@ -264,9 +300,16 @@ async function createRestingLimitOrder(): Promise<{
   tokenId: string;
   orderId: string;
 }> {
-  const response = await createSignedRestingLimitOrder().then(
-    postOrder(secureClient),
-  );
+  const [yesTokenId] = expectPresent(market.clobTokenIds);
+  const tickSize = expectPresent(market.orderPriceMinTickSize);
+  const size = expectPresent(market.orderMinSize);
+  const response = await prepareLimitOrderPosting(secureClient, {
+    orderType: OrderType.GTC,
+    price: tickSize,
+    side: OrderSide.BUY,
+    size,
+    tokenId: yesTokenId,
+  }).then(completeWith(walletClient));
   expect(response.ok).toBe(true);
   const acceptedResponse = expectAcceptedOrderResponse(response);
 

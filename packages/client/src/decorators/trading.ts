@@ -17,13 +17,16 @@ import {
   fetchOrder,
   type ListOpenOrdersRequest,
   listOpenOrders,
+  type OrderPostingWorkflow,
   type PostOrdersRequest,
   type PrepareLimitOrderRequest,
   type PrepareMarketOrderRequest,
   postOrder,
   postOrders,
   prepareLimitOrder,
+  prepareLimitOrderPosting,
   prepareMarketOrder,
+  prepareMarketOrderPosting,
 } from '../actions';
 import type { SignedOrder } from '../actions/orders';
 import type { BaseSecureClient } from '../clients';
@@ -53,6 +56,26 @@ export type TradingActions = {
     request: PrepareMarketOrderRequest,
   ): Promise<OrderWorkflow>;
   /**
+   * Starts and posts a market-order workflow.
+   *
+   * @throws {@link PrepareMarketOrderPostingError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.prepareMarketOrderPosting({
+   *   amount: 10,
+   *   side: OrderSide.BUY,
+   *   tokenId: '123',
+   * }).then(completeWith(wallet));
+   *
+   * // response: OrderResponse
+   * ```
+   */
+  prepareMarketOrderPosting(
+    request: PrepareMarketOrderRequest,
+  ): Promise<OrderPostingWorkflow>;
+  /**
    * Starts the limit-order workflow.
    *
    * @throws {@link PrepareLimitOrderError}
@@ -73,6 +96,27 @@ export type TradingActions = {
    * ```
    */
   prepareLimitOrder(request: PrepareLimitOrderRequest): Promise<OrderWorkflow>;
+  /**
+   * Starts and posts a limit-order workflow.
+   *
+   * @throws {@link PrepareLimitOrderPostingError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.prepareLimitOrderPosting({
+   *   price: 0.52,
+   *   side: OrderSide.BUY,
+   *   size: 10,
+   *   tokenId: '123',
+   * }).then(completeWith(wallet));
+   *
+   * // response: OrderResponse
+   * ```
+   */
+  prepareLimitOrderPosting(
+    request: PrepareLimitOrderRequest,
+  ): Promise<OrderPostingWorkflow>;
   /**
    * Posts a signed order for the authenticated account.
    *
@@ -212,7 +256,9 @@ export function tradingActions(client: BaseSecureClient): TradingActions;
 export function tradingActions(client: BaseSecureClient): TradingActions {
   return {
     prepareMarketOrder: prepareMarketOrder.bind(null, client),
+    prepareMarketOrderPosting: prepareMarketOrderPosting.bind(null, client),
     prepareLimitOrder: prepareLimitOrder.bind(null, client),
+    prepareLimitOrderPosting: prepareLimitOrderPosting.bind(null, client),
     postOrder: postOrder(client),
     postOrders: postOrders(client),
     cancelOrder: cancelOrder.bind(null, client),

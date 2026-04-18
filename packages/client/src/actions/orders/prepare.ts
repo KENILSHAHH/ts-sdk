@@ -30,9 +30,11 @@ import {
   prepareMarketOrderDraft,
 } from './market';
 import { createSignedOrder, createUnsignedOrder } from './orders';
+import { postOrder } from './post';
 import { createOrderTypedDataPayload } from './typed-data';
 import {
   type OrderDraft,
+  type OrderPostingWorkflow,
   type OrderWorkflow,
   type PrepareLimitOrderRequest,
   type PrepareMarketOrderRequest,
@@ -56,13 +58,13 @@ export type PrepareMarketOrderError =
  *
  * @example
  * ```ts
- * const order = await prepareMarketOrder(client, {
+ * const response = await prepareMarketOrder(client, {
  *   amount: 10,
  *   side: OrderSide.BUY,
  *   tokenId: '123',
- * }).then(completeWith(wallet));
- *
- * const response = await postOrder(client, order);
+ * })
+ *   .then(completeWith(wallet))
+ *   .then(postOrder(client));
  *
  * // response: OrderResponse
  * ```
@@ -109,9 +111,8 @@ export type PrepareLimitOrderError =
  *   side: OrderSide.BUY,
  *   size: 10,
  *   tokenId: '123',
- * }).then(completeWith(wallet));
- *
- * const response = await postOrder(client, order);
+ * }).then(completeWith(wallet))
+ *   .then(postOrder(client));
  *
  * // response: OrderResponse
  * ```
@@ -134,6 +135,75 @@ export async function prepareLimitOrder(
     );
 
     return createSignedOrder(unsignedOrder, signature);
+  }.call(null);
+}
+
+export type PrepareMarketOrderPostingError = PrepareMarketOrderError;
+
+/**
+ * Starts and posts a market-order workflow.
+ *
+ * @throws {@link PrepareMarketOrderPostingError}
+ * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await prepareMarketOrderPosting(client, {
+ *   amount: 10,
+ *   side: OrderSide.BUY,
+ *   tokenId: '123',
+ * }).then(completeWith(wallet));
+ *
+ * // response: OrderResponse
+ * ```
+ */
+export async function prepareMarketOrderPosting(
+  client: BaseSecureClient,
+  request: PrepareMarketOrderRequest,
+): Promise<OrderPostingWorkflow> {
+  return createOrderPostingWorkflow(
+    client,
+    prepareMarketOrder(client, request),
+  );
+}
+
+export type PrepareLimitOrderPostingError = PrepareLimitOrderError;
+
+/**
+ * Starts and posts a limit-order workflow.
+ *
+ * @throws {@link PrepareLimitOrderPostingError}
+ * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await prepareLimitOrderPosting(client, {
+ *   price: 0.52,
+ *   side: OrderSide.BUY,
+ *   size: 10,
+ *   tokenId: '123',
+ * }).then(completeWith(wallet));
+ *
+ * // response: OrderResponse
+ * ```
+ */
+export async function prepareLimitOrderPosting(
+  client: BaseSecureClient,
+  request: PrepareLimitOrderRequest,
+): Promise<OrderPostingWorkflow> {
+  return createOrderPostingWorkflow(client, prepareLimitOrder(client, request));
+}
+
+async function createOrderPostingWorkflow(
+  client: BaseSecureClient,
+  workflowPromise: Promise<OrderWorkflow>,
+): Promise<OrderPostingWorkflow> {
+  const workflow = await workflowPromise;
+
+  return async function* (): OrderPostingWorkflow {
+    const order = yield* workflow;
+
+    return postOrder(client)(order);
   }.call(null);
 }
 
