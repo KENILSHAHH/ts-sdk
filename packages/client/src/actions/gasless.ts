@@ -51,7 +51,12 @@ import type {
   TypedDataField,
   TypedDataPayload,
 } from '../types';
-import { type RequestAddressRequest, requestAddress } from '../workflow';
+import {
+  type RequestAddressRequest,
+  requestAddress,
+  type SignGaslessMessageRequest,
+  type SignGaslessTypedDataRequest,
+} from '../workflow';
 
 const EIP712_DOMAIN: readonly TypedDataField[] = [
   { name: 'chainId', type: 'uint256' },
@@ -173,11 +178,6 @@ export async function isGaslessReady(
       .map(({ deployed }) => deployed),
   );
 }
-
-export type SignGaslessTypedDataRequest = {
-  kind: 'signGaslessTypedData';
-  payload: TypedDataPayload;
-};
 
 export type GaslessWalletWorkflowRequest =
   | RequestAddressRequest
@@ -306,11 +306,6 @@ const PrepareGaslessTransactionRequestSchema = z.object({
 export type PrepareGaslessTransactionRequest = z.input<
   typeof PrepareGaslessTransactionRequestSchema
 >;
-
-export type SignGaslessMessageRequest = {
-  kind: 'signGaslessMessage';
-  payload: TypedDataPayload;
-};
 
 export type GaslessWorkflowRequest =
   | RequestAddressRequest

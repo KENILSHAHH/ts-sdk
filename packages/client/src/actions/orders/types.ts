@@ -7,6 +7,7 @@ import type {
 } from '@polymarket/bindings/clob';
 import type { EvmAddress, EvmSignature } from '@polymarket/types';
 import type { TransactionHandle, TypedDataPayload } from '../../types';
+import type { SignOrderRequest } from '../../workflow';
 import type {
   Erc20ApprovalWorkflowRequest,
   Erc1155ApprovalForAllWorkflowRequest,
@@ -118,11 +119,6 @@ export type SignedOrder = {
   takerAmount: string;
   tokenId: TokenId;
   signature: EvmSignature;
-};
-
-export type SignOrderRequest = {
-  kind: 'signOrder';
-  payload: TypedDataPayload;
 };
 
 export type OrderWorkflowRequest =

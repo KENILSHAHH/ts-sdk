@@ -25,11 +25,13 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import {
-  expectTransactionHandle,
-  type SignerTransactionRequest,
-  type TransactionHandle,
-} from '../types';
+import { expectTransactionHandle, type TransactionHandle } from '../types';
+import type {
+  SendMergePositionsTransactionRequest,
+  SendRedeemPositionsTransactionRequest,
+  SendSplitPositionTransactionRequest,
+  SignerTransactionRequest,
+} from '../workflow';
 import {
   GaslessTransactionMetadataSchema,
   type GaslessWorkflowRequest,
@@ -61,21 +63,6 @@ const PrepareRedeemPositionsRequestSchema = z.object({
   conditionId: ConditionIdSchema,
   metadata: GaslessTransactionMetadataSchema.optional(),
 });
-
-export type SendSplitPositionTransactionRequest = {
-  kind: 'sendSplitPositionTransaction';
-  request: SignerTransactionRequest;
-};
-
-export type SendMergePositionsTransactionRequest = {
-  kind: 'sendMergePositionsTransaction';
-  request: SignerTransactionRequest;
-};
-
-export type SendRedeemPositionsTransactionRequest = {
-  kind: 'sendRedeemPositionsTransaction';
-  request: SignerTransactionRequest;
-};
 
 export type SplitPositionWorkflowRequest =
   | GaslessWorkflowRequest

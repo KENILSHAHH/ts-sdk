@@ -6,21 +6,16 @@ import { erc20TransferCall } from '../abis';
 import type { BaseSecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
-import {
-  expectTransactionHandle,
-  type SignerTransactionRequest,
-  type TransactionHandle,
-} from '../types';
+import { expectTransactionHandle, type TransactionHandle } from '../types';
+import type {
+  SendErc20TransferTransactionRequest,
+  SignerTransactionRequest,
+} from '../workflow';
 import {
   GaslessTransactionMetadataSchema,
   type GaslessWorkflowRequest,
   prepareGaslessTransaction,
 } from './gasless';
-
-export type SendErc20TransferTransactionRequest = {
-  kind: 'sendErc20TransferTransaction';
-  request: SignerTransactionRequest;
-};
 
 export type Erc20TransferWorkflowRequest =
   | GaslessWorkflowRequest

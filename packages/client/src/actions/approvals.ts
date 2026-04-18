@@ -10,21 +10,17 @@ import {
 import type { BaseSecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
-import {
-  expectTransactionHandle,
-  type SignerTransactionRequest,
-  type TransactionHandle,
-} from '../types';
+import { expectTransactionHandle, type TransactionHandle } from '../types';
+import type {
+  SendErc20ApprovalTransactionRequest,
+  SendErc1155ApprovalForAllTransactionRequest,
+  SignerTransactionRequest,
+} from '../workflow';
 import {
   GaslessTransactionMetadataSchema,
   type GaslessWorkflowRequest,
   prepareGaslessTransaction,
 } from './gasless';
-
-export type SendErc20ApprovalTransactionRequest = {
-  kind: 'sendErc20ApprovalTransaction';
-  request: SignerTransactionRequest;
-};
 
 export type Erc20ApprovalWorkflowRequest =
   | GaslessWorkflowRequest
@@ -94,11 +90,6 @@ export async function prepareErc20Approval(
     });
   }.call(null);
 }
-
-export type SendErc1155ApprovalForAllTransactionRequest = {
-  kind: 'sendErc1155ApprovalForAllTransaction';
-  request: SignerTransactionRequest;
-};
 
 export type Erc1155ApprovalForAllWorkflowRequest =
   | GaslessWorkflowRequest

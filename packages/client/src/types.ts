@@ -35,12 +35,6 @@ export type TransactionCall = {
   value?: bigint;
 };
 
-export type SignerTransactionRequest = {
-  data?: HexString;
-  to: EvmAddress;
-  value?: bigint;
-};
-
 /** @internal */
 export type ApiKeyAuthorizationRequest = {
   method: 'DELETE' | 'GET' | 'POST';

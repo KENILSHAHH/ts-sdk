@@ -27,11 +27,7 @@ import {
   TransportError,
 } from '../errors';
 import type { TransactionHandle } from '../types';
-import type {
-  AuthenticationWorkflow,
-  CompleteWorkflowNext,
-  CompleteWorkflowRequest,
-} from '../workflow';
+import type { AuthenticateWith, CompleteWith } from '../workflow';
 
 function isWalletClientWithAccount(
   walletClient: WalletClient,
@@ -45,7 +41,7 @@ function isWalletClientWithAccount(
  * @throws {@link AuthenticateWithError}
  * Thrown when the required wallet signature is rejected or cannot be produced.
  */
-export function authenticateWith(walletClient: WalletClient) {
+export function authenticateWith(walletClient: WalletClient): AuthenticateWith {
   invariant(
     isWalletClientWithAccount(walletClient),
     'Wallet client with account is required',
@@ -58,9 +54,7 @@ export function authenticateWith(walletClient: WalletClient) {
       : walletClient.account.address,
   );
 
-  return async function authenticate<TReturn>(
-    workflow: AuthenticationWorkflow<TReturn>,
-  ): Promise<TReturn> {
+  return async function authenticate(workflow) {
     let result = await workflow.next();
 
     while (!result.done) {
@@ -98,7 +92,7 @@ export function authenticateWith(walletClient: WalletClient) {
  * @throws {@link CompleteWithError}
  * Thrown when the required wallet signature or submission is rejected or cannot be produced.
  */
-export function completeWith(walletClient: WalletClient) {
+export function completeWith(walletClient: WalletClient): CompleteWith {
   invariant(
     isWalletClientWithAccount(walletClient),
     'Wallet client with account is required',
@@ -111,12 +105,7 @@ export function completeWith(walletClient: WalletClient) {
       : walletClient.account.address,
   );
 
-  return async function complete<
-    TRequest extends CompleteWorkflowRequest,
-    TReturn,
-  >(
-    workflow: AsyncGenerator<TRequest, TReturn, CompleteWorkflowNext>,
-  ): Promise<TReturn> {
+  return async function complete(workflow) {
     let result = await workflow.next();
 
     while (!result.done) {
