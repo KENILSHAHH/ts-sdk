@@ -64,15 +64,38 @@ describe('clients', () => {
       const initialClient = await publicClient
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
+      const snapshot = initialClient.getSessionSnapshot();
 
       const secureClient = await publicClient
-        .beginAuthentication({
-          credentials: initialClient.credentials,
-          wallet: safeWalletAddress,
-        })
+        .beginAuthentication(snapshot)
         .then(authenticateWith(walletClient));
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
+    });
+
+    it('falls back to fresh authentication when a stored session snapshot has been revoked', async () => {
+      const controlClient = await publicClient
+        .beginAuthentication({ nonce: 1997, wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+      const secureClient = await publicClient
+        .beginAuthentication({ nonce: 1998, wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+      const snapshot = secureClient.getSessionSnapshot();
+      const revokedKey = snapshot.credentials.key;
+
+      await expect(fetchApiKeys(controlClient)).resolves.toContain(revokedKey);
+
+      await secureClient.endAuthentication();
+
+      const resumedClient = await publicClient
+        .beginAuthentication(snapshot)
+        .then(authenticateWith(walletClient));
+      const remainingApiKeys = await fetchApiKeys(controlClient);
+
+      expect(resumedClient.credentials.key).not.toBe(revokedKey);
+      expect(remainingApiKeys).toContain(controlClient.credentials.key);
+      expect(remainingApiKeys).toContain(resumedClient.credentials.key);
+      expect(remainingApiKeys).not.toContain(revokedKey);
     });
   });
 

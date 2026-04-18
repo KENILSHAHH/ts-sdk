@@ -149,37 +149,45 @@ const BeginAuthenticationCredentialsSchema = z.object({
   secret: z.string(),
 });
 
+/**
+ * Persistable authenticated session state that can later be passed to
+ * {@link PublicClient.beginAuthentication}.
+ */
+export type SessionSnapshot = {
+  /**
+   * Wallet address to authenticate as.
+   *
+   * Pass the signer address itself to authenticate as an EOA account.
+   */
+  wallet: string;
+
+  /**
+   * Existing API credentials to reuse when they remain valid.
+   */
+  credentials: ApiKeyCreds;
+  nonce?: never;
+};
+
+export type FreshAuthenticationRequest = {
+  /**
+   * Wallet address to authenticate as.
+   *
+   * Pass the signer address itself to authenticate as an EOA account.
+   */
+  wallet: string;
+
+  /**
+   * Nonce used when creating or deriving fresh credentials.
+   *
+   * @defaultValue 0
+   */
+  nonce?: number;
+  credentials?: never;
+};
+
 export type BeginAuthenticationRequest =
-  | {
-      /**
-       * Wallet address to authenticate as.
-       *
-       * Pass the signer address itself to authenticate as an EOA account.
-       */
-      wallet: string;
-
-      /**
-       * Existing API credentials to reuse when they remain valid.
-       */
-      credentials: ApiKeyCreds;
-      nonce?: never;
-    }
-  | {
-      /**
-       * Wallet address to authenticate as.
-       *
-       * Pass the signer address itself to authenticate as an EOA account.
-       */
-      wallet: string;
-
-      /**
-       * Nonce used when creating or deriving fresh credentials.
-       *
-       * @defaultValue 0
-       */
-      nonce?: number;
-      credentials?: never;
-    };
+  | SessionSnapshot
+  | FreshAuthenticationRequest;
 
 const BeginAuthenticationRequestSchema: z.ZodType<BeginAuthenticationRequest> =
   z
@@ -290,6 +298,11 @@ class BasePublicClient<
 
   /**
    * Begins an authentication workflow that produces a {@link SecureClient}.
+   *
+   * @remarks
+   * Pass a {@link SessionSnapshot} to reuse stored credentials when they remain
+   * valid. If the stored credential is no longer valid, the workflow falls back
+   * to fresh authentication.
    */
   beginAuthentication(
     request: BeginAuthenticationRequest,
@@ -478,6 +491,28 @@ class BaseSecureClient<
       TPublicActions,
       Prettify<TSecureActions & DecoratorSecureActions<TDecorator>>
     >;
+  }
+
+  /**
+   * Returns a persistable snapshot of the current authenticated session.
+   *
+   * @remarks
+   * Pass the returned snapshot to {@link PublicClient.beginAuthentication} to
+   * reuse the current session in a later authentication attempt. Capture the
+   * snapshot before calling {@link endAuthentication}; ending authentication
+   * revokes the current credential, so reusing an older snapshot will fall back
+   * to fresh authentication.
+   *
+   * @example
+   * ```ts
+   * const snapshot = secureClient.getSessionSnapshot();
+   * ```
+   */
+  getSessionSnapshot(): SessionSnapshot {
+    return {
+      wallet: this.account.wallet,
+      credentials: this.credentials,
+    };
   }
 
   /**
