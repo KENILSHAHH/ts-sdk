@@ -8,6 +8,7 @@ export default defineConfig(() => [
       'src/index.ts',
       'src/actions/index.ts',
       'src/decorators/index.ts',
+      'src/ethers-v5.ts',
       'src/viem/index.ts',
     ],
     outDir: 'dist',

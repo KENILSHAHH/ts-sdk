@@ -22,6 +22,10 @@
       "types": "./dist/decorators/index.d.ts",
       "default": "./dist/decorators/index.js"
     },
+    "./ethers-v5": {
+      "types": "./dist/ethers-v5.d.ts",
+      "default": "./dist/ethers-v5.js"
+    },
     "./viem": {
       "types": "./dist/viem/index.d.ts",
       "default": "./dist/viem/index.js"
@@ -38,6 +42,9 @@
       "decorators": [
         "./dist/decorators/index.d.ts"
       ],
+      "ethers-v5": [
+        "./dist/ethers-v5.d.ts"
+      ],
       "viem": [
         "./dist/viem/index.d.ts"
       ]
@@ -52,6 +59,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "ethers-v5": "npm:ethers@^5.8.0",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "viem": "^2.46.3"
@@ -61,9 +69,13 @@
     "access": "public"
   },
   "peerDependencies": {
+    "ethers-v5": "^5.8.0",
     "viem": "^2.46.3"
   },
   "peerDependenciesMeta": {
+    "ethers-v5": {
+      "optional": true
+    },
     "viem": {
       "optional": true
     }

@@ -15,6 +15,7 @@
       "@polymarket/client/node": ["./packages/client/src/node.ts"],
       "@polymarket/client/actions": ["./packages/client/src/actions"],
       "@polymarket/client/decorators": ["./packages/client/src/decorators"],
+      "@polymarket/client/ethers-v5": ["./packages/client/src/ethers-v5.ts"],
       "@polymarket/client/viem": ["./packages/client/src/viem"],
       "@polymarket/types": ["./packages/types/src"]
     }

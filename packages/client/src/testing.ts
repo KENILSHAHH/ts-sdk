@@ -59,6 +59,8 @@ function loadTestPrivateKey(): PrivateKey {
   return value;
 }
 
+export const testPrivateKey = loadTestPrivateKey();
+
 function loadTestSafeWallet(): EvmAddress {
   const value = process.env.POLYMARKET_TEST_SAFE_WALLET;
 
@@ -70,7 +72,7 @@ function loadTestSafeWallet(): EvmAddress {
 export const safeWalletAddress = loadTestSafeWallet();
 
 export const walletClient = createWalletClient({
-  account: privateKeyToAccount(loadTestPrivateKey()),
+  account: privateKeyToAccount(testPrivateKey),
   chain: polygon,
   transport: http(),
 });
