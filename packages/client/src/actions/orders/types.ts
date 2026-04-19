@@ -62,17 +62,15 @@ export type PrepareLimitOrderRequest = {
    */
   postOnly?: boolean;
 
-  /** Timestamp after which the order is expired. Required for GTD orders. */
-  expiration?: number;
-
   /**
-   * Specifies the type of order execution.
-   * - GTC (Good-Til-Cancelled): rests on the book until filled or cancelled
-   * - GTD (Good-Til-Date): active until the specified expiration timestamp
+   * Unix timestamp in seconds after which the order expires.
    *
-   * @defaultValue OrderType.GTC
+   * When provided, the SDK prepares a Good-Til-Date (GTD) limit order that
+   * expires at the given timestamp.
+   *
+   * When omitted, the SDK prepares a Good-Til-Cancelled (GTC) limit order.
    */
-  orderType?: OrderType.GTC | OrderType.GTD;
+  expiration?: number;
 };
 
 export type OrderDraft = {

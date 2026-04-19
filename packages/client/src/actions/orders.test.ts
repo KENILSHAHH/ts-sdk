@@ -143,7 +143,6 @@ describe('Orders', () => {
 
     it('allows to place a limit order for the desired size and price', async () => {
       const result = await prepareLimitOrder(secureClient, {
-        orderType: OrderType.GTC,
         price: minPrice,
         side: OrderSide.BUY,
         size: minSize,
@@ -157,7 +156,6 @@ describe('Orders', () => {
 
     it('carries post-only submission options onto the prepared order', async () => {
       const order = await prepareLimitOrder(secureClient, {
-        orderType: OrderType.GTC,
         postOnly: true,
         price: minPrice,
         side: OrderSide.BUY,
@@ -186,7 +184,6 @@ describe('Orders', () => {
         .then((handle) => handle.wait());
 
       const response = await prepareLimitOrder(gaslessClient, {
-        orderType: OrderType.GTC,
         price: minPrice,
         side: OrderSide.BUY,
         size: minSize,
@@ -213,7 +210,6 @@ describe('Orders', () => {
 
     it('creates, signs, and posts a limit order in one workflow', async () => {
       const response = await prepareLimitOrderPosting(secureClient, {
-        orderType: OrderType.GTC,
         postOnly: true,
         price: minPrice,
         side: OrderSide.BUY,
@@ -321,7 +317,6 @@ async function createRestingLimitOrder(): Promise<{
   const tickSize = expectPresent(market.orderPriceMinTickSize);
   const size = expectPresent(market.orderMinSize);
   const response = await prepareLimitOrderPosting(secureClient, {
-    orderType: OrderType.GTC,
     price: tickSize,
     side: OrderSide.BUY,
     size,
@@ -345,7 +340,6 @@ async function createSignedRestingLimitOrder() {
   const size = expectPresent(market.orderMinSize);
 
   return prepareLimitOrder(secureClient, {
-    orderType: OrderType.GTC,
     price: tickSize,
     side: OrderSide.BUY,
     size,

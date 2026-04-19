@@ -28,7 +28,7 @@ import {
 import type { OrderDraft, PrepareLimitOrderRequest } from './types';
 
 export const PrepareLimitOrderParamsSchema = z
-  .object({
+  .strictObject({
     tokenId: TokenIdSchema,
     price: z.number().positive(),
     size: z.number().positive(),
@@ -36,40 +36,18 @@ export const PrepareLimitOrderParamsSchema = z
     taker: EvmAddressSchema.optional(),
     postOnly: z.boolean().default(false),
     expiration: z.number().int().nonnegative().optional(),
-    orderType: z
-      .union([z.literal(OrderType.GTC), z.literal(OrderType.GTD)])
-      .default(OrderType.GTC),
   })
   .superRefine((params, context) => {
-    if (params.orderType === OrderType.GTD) {
-      if (params.expiration === undefined) {
-        context.addIssue({
-          code: 'custom',
-          message: 'GTD orders require an expiration timestamp.',
-          path: ['expiration'],
-        });
-        return;
-      }
-
+    if (params.expiration !== undefined) {
       const minimumExpiration = Math.floor(Date.now() / 1000) + 60;
 
       if (params.expiration <= minimumExpiration) {
         context.addIssue({
           code: 'custom',
-          message: 'GTD expiration must be at least 60 seconds in the future.',
+          message: 'Expiration must be at least 60 seconds in the future.',
           path: ['expiration'],
         });
       }
-
-      return;
-    }
-
-    if (params.expiration !== undefined) {
-      context.addIssue({
-        code: 'custom',
-        message: 'Expiration is only supported for GTD orders.',
-        path: ['expiration'],
-      });
     }
   }) satisfies z.ZodType<PrepareLimitOrderRequest>;
 
@@ -104,7 +82,7 @@ export async function prepareLimitOrderDraft(
     feeRateBps: context.feeRateBps,
     funderAddress: context.funderAddress,
     offeredAmount: amounts.offeredAmount,
-    orderType: params.orderType,
+    orderType: params.expiration === undefined ? OrderType.GTC : OrderType.GTD,
     side: params.side,
     signer: context.signerAddress,
     allowedTaker: params.taker,

@@ -1,7 +1,6 @@
 import {
   type AcceptedOrderResponse,
   OrderSide,
-  OrderType,
 } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { ethers } from 'ethers-v5';
@@ -60,7 +59,6 @@ describe('ethers-v5', () => {
         .then(authenticateWith(signer));
 
       const response = await prepareLimitOrderPosting(secureClient, {
-        orderType: OrderType.GTC,
         price,
         size,
         side: OrderSide.BUY,
