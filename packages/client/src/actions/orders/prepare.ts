@@ -107,6 +107,7 @@ export type PrepareLimitOrderError =
  * @example
  * ```ts
  * const order = await prepareLimitOrder(client, {
+ *   postOnly: true,
  *   price: 0.52,
  *   side: OrderSide.BUY,
  *   size: 10,
@@ -134,7 +135,9 @@ export async function prepareLimitOrder(
       yield signOrder(createOrderTypedDataPayload(unsignedOrder)),
     );
 
-    return createSignedOrder(unsignedOrder, signature);
+    const order = createSignedOrder(unsignedOrder, signature);
+
+    return params.postOnly === true ? { ...order, postOnly: true } : order;
   }.call(null);
 }
 
@@ -178,6 +181,7 @@ export type PrepareLimitOrderPostingError = PrepareLimitOrderError;
  * @example
  * ```ts
  * const response = await prepareLimitOrderPosting(client, {
+ *   postOnly: true,
  *   price: 0.52,
  *   side: OrderSide.BUY,
  *   size: 10,

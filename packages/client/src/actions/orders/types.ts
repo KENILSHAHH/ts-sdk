@@ -55,6 +55,13 @@ export type PrepareLimitOrderRequest = {
   /** Taker address. Omit for public orders (zero address is equivalent). */
   taker?: string;
 
+  /**
+   * Posts the prepared order as post-only when submitted.
+   *
+   * @defaultValue false
+   */
+  postOnly?: boolean;
+
   /** Timestamp after which the order is expired. Required for GTD orders. */
   expiration?: number;
 
@@ -119,6 +126,7 @@ export type SignedOrder = {
   takerAmount: string;
   tokenId: TokenId;
   signature: EvmSignature;
+  postOnly?: boolean;
 };
 
 export type OrderWorkflowRequest =

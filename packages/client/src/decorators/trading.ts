@@ -84,6 +84,7 @@ export type TradingActions = {
    * @example
    * ```ts
    * const order = await client.prepareLimitOrder({
+   *   postOnly: true,
    *   price: 0.52,
    *   side: OrderSide.BUY,
    *   size: 10,
@@ -105,6 +106,7 @@ export type TradingActions = {
    * @example
    * ```ts
    * const response = await client.prepareLimitOrderPosting({
+   *   postOnly: true,
    *   price: 0.52,
    *   side: OrderSide.BUY,
    *   size: 10,

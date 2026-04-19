@@ -3,8 +3,9 @@ import {
   OrderResponseSchema,
   type OrderResponses,
   OrderResponsesSchema,
+  OrderType,
 } from '@polymarket/bindings/clob';
-import { unwrap } from '@polymarket/types';
+import { invariant, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
 import type {
@@ -108,6 +109,13 @@ export function postOrders(
 }
 
 function createSendOrderPayload(client: BaseSecureClient, order: SignedOrder) {
+  invariant(
+    order.postOnly !== true ||
+      order.orderType === OrderType.GTC ||
+      order.orderType === OrderType.GTD,
+    'Post-only orders are only supported for GTC and GTD order types.',
+  );
+
   return {
     deferExec: false,
     order: {
@@ -127,5 +135,6 @@ function createSendOrderPayload(client: BaseSecureClient, order: SignedOrder) {
     },
     orderType: order.orderType,
     owner: client.credentials.key,
+    ...(order.postOnly === true ? { postOnly: true } : {}),
   };
 }

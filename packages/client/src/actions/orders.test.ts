@@ -155,6 +155,19 @@ describe('Orders', () => {
       expect(result.ok).toBe(true);
     });
 
+    it('carries post-only submission options onto the prepared order', async () => {
+      const order = await prepareLimitOrder(secureClient, {
+        orderType: OrderType.GTC,
+        postOnly: true,
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      }).then(completeWith(walletClient));
+
+      expect(order.postOnly).toBe(true);
+    });
+
     it('requests a collateral approval if necessary', async () => {
       const gaslessClient = await publicClientWithRelayerKey
         .beginAuthentication({ wallet: safeWalletAddress })
@@ -201,6 +214,7 @@ describe('Orders', () => {
     it('creates, signs, and posts a limit order in one workflow', async () => {
       const response = await prepareLimitOrderPosting(secureClient, {
         orderType: OrderType.GTC,
+        postOnly: true,
         price: minPrice,
         side: OrderSide.BUY,
         size: minSize,
@@ -208,6 +222,9 @@ describe('Orders', () => {
       }).then(completeWith(walletClient));
 
       expect(response.ok).toBe(true);
+      const acceptedResponse = expectAcceptedOrderResponse(response);
+
+      expect(acceptedResponse.status).toBe(OrderPostStatus.LIVE);
     });
   });
 

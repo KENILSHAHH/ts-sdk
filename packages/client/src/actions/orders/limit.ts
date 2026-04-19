@@ -34,6 +34,7 @@ export const PrepareLimitOrderParamsSchema = z
     size: z.number().positive(),
     side: OrderSideSchema,
     taker: EvmAddressSchema.optional(),
+    postOnly: z.boolean().default(false),
     expiration: z.number().int().nonnegative().optional(),
     orderType: z
       .union([z.literal(OrderType.GTC), z.literal(OrderType.GTD)])
