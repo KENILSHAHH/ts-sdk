@@ -117,9 +117,11 @@ export function completeWith(walletClient: WalletClient): CompleteWith {
           case 'sendMergePositionsTransaction':
           case 'sendRedeemPositionsTransaction':
           case 'sendSplitPositionTransaction': {
+            const { chainId, ...request } = result.value.request;
+            await assertChainId(walletClient, chainId);
             const hash = await sendTransaction(walletClient, {
               account,
-              ...result.value.request,
+              ...request,
             });
             result = await workflow.next(
               new DirectTransactionHandle(hash, walletClient),
@@ -180,6 +182,29 @@ async function sendTransaction<
     return expectTxHash(hash);
   } catch (error) {
     throwSigningWorkflowError(error);
+  }
+}
+
+async function assertChainId(
+  walletClient: WalletClient,
+  expectedChainId: number,
+): Promise<void> {
+  try {
+    const actualChainId =
+      walletClient.chain?.id ?? (await walletClient.getChainId());
+
+    if (actualChainId !== expectedChainId) {
+      throw new SigningError(
+        `Wallet client is connected to chain ${actualChainId}, expected ${expectedChainId}`,
+      );
+    }
+  } catch (error) {
+    throw error instanceof SigningError
+      ? error
+      : SigningError.fromError(
+          error,
+          'Could not resolve wallet client chain ID',
+        );
   }
 }
 

@@ -23,7 +23,7 @@ export default defineConfig(() => [
     format: ['esm'],
   },
   {
-    entry: ['src/node.ts'],
+    entry: ['src/node.ts', 'src/privy.ts'],
     outDir: 'dist',
     sourcemap: true,
     treeshake: true,

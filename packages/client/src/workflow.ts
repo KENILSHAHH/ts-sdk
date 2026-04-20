@@ -1,8 +1,13 @@
 import type { EvmAddress, EvmSignature, HexString } from '@polymarket/types';
 import type { CancelledSigningError, SigningError } from './errors';
-import type { TransactionHandle, TypedDataPayload } from './types';
+import type {
+  TransactionCall,
+  TransactionHandle,
+  TypedDataPayload,
+} from './types';
 
 export type SignerTransactionRequest = {
+  chainId: number;
   data?: HexString;
   to: EvmAddress;
   value?: bigint;
@@ -103,5 +108,15 @@ export type CompleteWith = <TRequest extends CompleteWorkflowRequest, TReturn>(
 export function requestAddress(): RequestAddressRequest {
   return {
     kind: 'requestAddress',
+  };
+}
+
+export function signerTransactionRequest(
+  chainId: number,
+  call: TransactionCall,
+): SignerTransactionRequest {
+  return {
+    chainId,
+    ...call,
   };
 }

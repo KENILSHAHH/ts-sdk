@@ -11,10 +11,11 @@ import type { BaseSecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
 import { expectTransactionHandle, type TransactionHandle } from '../types';
-import type {
-  SendErc20ApprovalTransactionRequest,
-  SendErc1155ApprovalForAllTransactionRequest,
-  SignerTransactionRequest,
+import type { SignerTransactionRequest } from '../workflow';
+import {
+  type SendErc20ApprovalTransactionRequest,
+  type SendErc1155ApprovalForAllTransactionRequest,
+  signerTransactionRequest,
 } from '../workflow';
 import {
   GaslessTransactionMetadataSchema,
@@ -75,7 +76,14 @@ export async function prepareErc20Approval(
     if (client.account.walletType === WalletType.EOA) {
       return expectTransactionHandle(
         yield sendErc20ApprovalTransaction(
-          erc20ApprovalCall(params.tokenAddress, params.spenderAddress, amount),
+          signerTransactionRequest(
+            client.environment.chainId,
+            erc20ApprovalCall(
+              params.tokenAddress,
+              params.spenderAddress,
+              amount,
+            ),
+          ),
         ),
       );
     }
@@ -145,10 +153,13 @@ export async function prepareErc1155ApprovalForAll(
     if (client.account.walletType === WalletType.EOA) {
       return expectTransactionHandle(
         yield sendErc1155ApprovalForAllTransaction(
-          erc1155ApprovalForAllCall(
-            params.tokenAddress,
-            params.operatorAddress,
-            params.approved,
+          signerTransactionRequest(
+            client.environment.chainId,
+            erc1155ApprovalForAllCall(
+              params.tokenAddress,
+              params.operatorAddress,
+              params.approved,
+            ),
           ),
         ),
       );
@@ -241,32 +252,44 @@ export async function prepareTradingApprovals(
   return async function* (): TradingApprovalsWorkflow {
     if (client.account.walletType === WalletType.EOA) {
       const collateralStandardApproval = expectTransactionHandle(
-        yield sendErc20ApprovalTransaction(calls[0]),
+        yield sendErc20ApprovalTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[0]),
+        ),
       );
       await collateralStandardApproval.wait();
 
       const collateralNegRiskApproval = expectTransactionHandle(
-        yield sendErc20ApprovalTransaction(calls[1]),
+        yield sendErc20ApprovalTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[1]),
+        ),
       );
       await collateralNegRiskApproval.wait();
 
       const collateralNegRiskAdapterApproval = expectTransactionHandle(
-        yield sendErc20ApprovalTransaction(calls[2]),
+        yield sendErc20ApprovalTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[2]),
+        ),
       );
       await collateralNegRiskAdapterApproval.wait();
 
       const conditionalStandardApproval = expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(calls[3]),
+        yield sendErc1155ApprovalForAllTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[3]),
+        ),
       );
       await conditionalStandardApproval.wait();
 
       const conditionalNegRiskApproval = expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(calls[4]),
+        yield sendErc1155ApprovalForAllTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[4]),
+        ),
       );
       await conditionalNegRiskApproval.wait();
 
       return expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(calls[5]),
+        yield sendErc1155ApprovalForAllTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[5]),
+        ),
       );
     }
 

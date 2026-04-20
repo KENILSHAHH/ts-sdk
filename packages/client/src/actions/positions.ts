@@ -26,11 +26,12 @@ import {
 } from '../errors';
 import { parseUserInput } from '../input';
 import { expectTransactionHandle, type TransactionHandle } from '../types';
-import type {
-  SendMergePositionsTransactionRequest,
-  SendRedeemPositionsTransactionRequest,
-  SendSplitPositionTransactionRequest,
-  SignerTransactionRequest,
+import type { SignerTransactionRequest } from '../workflow';
+import {
+  type SendMergePositionsTransactionRequest,
+  type SendRedeemPositionsTransactionRequest,
+  type SendSplitPositionTransactionRequest,
+  signerTransactionRequest,
 } from '../workflow';
 import {
   GaslessTransactionMetadataSchema,
@@ -158,7 +159,11 @@ export async function prepareSplitPosition(
 
   return async function* (): SplitPositionWorkflow {
     if (client.account.walletType === WalletType.EOA) {
-      return expectTransactionHandle(yield sendSplitPositionTransaction(call));
+      return expectTransactionHandle(
+        yield sendSplitPositionTransaction(
+          signerTransactionRequest(client.environment.chainId, call),
+        ),
+      );
     }
 
     return yield* await prepareGaslessTransaction(client, {
@@ -221,7 +226,11 @@ export async function prepareMergePositions(
 
   return async function* (): MergePositionsWorkflow {
     if (client.account.walletType === WalletType.EOA) {
-      return expectTransactionHandle(yield sendMergePositionsTransaction(call));
+      return expectTransactionHandle(
+        yield sendMergePositionsTransaction(
+          signerTransactionRequest(client.environment.chainId, call),
+        ),
+      );
     }
 
     return yield* await prepareGaslessTransaction(client, {
@@ -283,7 +292,9 @@ export async function prepareRedeemPositions(
   return async function* (): RedeemPositionsWorkflow {
     if (client.account.walletType === WalletType.EOA) {
       return expectTransactionHandle(
-        yield sendRedeemPositionsTransaction(call),
+        yield sendRedeemPositionsTransaction(
+          signerTransactionRequest(client.environment.chainId, call),
+        ),
       );
     }
 

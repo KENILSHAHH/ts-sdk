@@ -26,6 +26,10 @@
       "types": "./dist/ethers-v5.d.ts",
       "default": "./dist/ethers-v5.js"
     },
+    "./privy": {
+      "types": "./dist/privy.d.ts",
+      "default": "./dist/privy.js"
+    },
     "./viem": {
       "types": "./dist/viem/index.d.ts",
       "default": "./dist/viem/index.js"
@@ -45,6 +49,9 @@
       "ethers-v5": [
         "./dist/ethers-v5.d.ts"
       ],
+      "privy": [
+        "./dist/privy.d.ts"
+      ],
       "viem": [
         "./dist/viem/index.d.ts"
       ]
@@ -59,6 +66,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@privy-io/node": "^0.15.0",
     "ethers-v5": "npm:ethers@^5.8.0",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
@@ -69,10 +77,14 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@privy-io/node": "^0.15.0",
     "ethers-v5": "^5.8.0",
     "viem": "^2.46.3"
   },
   "peerDependenciesMeta": {
+    "@privy-io/node": {
+      "optional": true
+    },
     "ethers-v5": {
       "optional": true
     },

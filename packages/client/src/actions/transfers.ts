@@ -7,9 +7,10 @@ import type { BaseSecureClient } from '../clients';
 import type { UserInputError } from '../errors';
 import { parseUserInput } from '../input';
 import { expectTransactionHandle, type TransactionHandle } from '../types';
-import type {
-  SendErc20TransferTransactionRequest,
-  SignerTransactionRequest,
+import type { SignerTransactionRequest } from '../workflow';
+import {
+  type SendErc20TransferTransactionRequest,
+  signerTransactionRequest,
 } from '../workflow';
 import {
   GaslessTransactionMetadataSchema,
@@ -69,10 +70,13 @@ export async function prepareErc20Transfer(
     if (client.account.walletType === WalletType.EOA) {
       return expectTransactionHandle(
         yield sendErc20TransferTransaction(
-          erc20TransferCall(
-            params.tokenAddress,
-            params.recipientAddress,
-            params.amount,
+          signerTransactionRequest(
+            client.environment.chainId,
+            erc20TransferCall(
+              params.tokenAddress,
+              params.recipientAddress,
+              params.amount,
+            ),
           ),
         ),
       );

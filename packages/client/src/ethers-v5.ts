@@ -124,10 +124,11 @@ async function getAddress(signer: EthersV5Signer) {
 
 async function sendTransaction(
   signer: EthersV5Signer,
-  request: { data?: HexString; to: string; value?: bigint },
+  request: { chainId: number; data?: HexString; to: string; value?: bigint },
 ): Promise<ethers.providers.TransactionResponse> {
   try {
     return await signer.sendTransaction({
+      chainId: request.chainId,
       data: request.data,
       to: request.to,
       value: request.value?.toString(),
@@ -187,7 +188,9 @@ function removeEip712Domain(
 
 function throwSigningWorkflowError(error: unknown): never {
   if (isUserRejectedError(error)) {
-    throw CancelledSigningError.fromError(toError(error));
+    throw new CancelledSigningError('User rejected the signing request', {
+      cause: error,
+    });
   }
 
   throw SigningError.fromError(error);
@@ -236,12 +239,6 @@ function hasErrorCode(error: unknown, code: string): error is Error {
     'code' in error &&
     (error as { code?: unknown }).code === code
   );
-}
-
-function toError(error: unknown): Error {
-  return error instanceof Error
-    ? error
-    : new Error('Wallet action was rejected');
 }
 
 class DirectTransactionHandle implements TransactionHandle {
