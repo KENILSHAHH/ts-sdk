@@ -6,9 +6,10 @@ import {
   OrderType,
 } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { InsufficientLiquidityError } from '../errors';
 import {
+  findHighVolumeLowPriceMarket,
   publicClient,
   publicClientWithRelayerKey,
   runMeteredTests,
@@ -16,30 +17,10 @@ import {
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
-import { listOpenOrders } from './account';
 import { prepareErc20Approval } from './approvals';
 import { fetchNegRisk } from './clob';
-import { fetchMarket } from './markets';
-import {
-  cancelAll,
-  cancelMarketOrders,
-  cancelOrder,
-  cancelOrders,
-  estimateMarketPrice,
-  postOrder,
-  postOrders,
-  prepareLimitOrder,
-  prepareLimitOrderPosting,
-  prepareMarketOrder,
-  prepareMarketOrderPosting,
-} from './orders';
-import { listPositions } from './portfolio';
 
-const TEST_MARKET_SLUG = 'eth-flipped-in-2026';
-
-const market = await fetchMarket(publicClient, {
-  slug: TEST_MARKET_SLUG,
-});
+const market = await findHighVolumeLowPriceMarket();
 
 const secureClient = await publicClient
   .beginAuthentication({ wallet: safeWalletAddress })
@@ -50,7 +31,7 @@ describe('Orders', () => {
     it('calculates the price for a market buy at the minimum size', async () => {
       const [yesTokenId] = expectPresent(market.clobTokenIds);
 
-      const result = await estimateMarketPrice(publicClient, {
+      const result = await publicClient.estimateMarketPrice({
         amount: expectPresent(market.orderMinSize),
         orderType: OrderType.FAK,
         side: OrderSide.BUY,
@@ -66,7 +47,8 @@ describe('Orders', () => {
       const [yesTokenId] = expectPresent(market.clobTokenIds);
 
       await expect(
-        estimateMarketPrice(publicClient, {
+        publicClient.estimateMarketPrice({
+          orderType: OrderType.FOK,
           amount: Number.MAX_SAFE_INTEGER,
           side: OrderSide.BUY,
           tokenId: yesTokenId,
@@ -76,62 +58,81 @@ describe('Orders', () => {
   });
 
   describe('prepareMarketOrder', () => {
+    afterAll(async () => {
+      const page = await secureClient
+        .listPositions({
+          user: secureClient.account.wallet,
+        })
+        .firstPage();
+
+      if (page.items.length === 0) {
+        return;
+      }
+
+      const position = page.items.find(
+        (candidate) => candidate.asset === market.clobTokenIds?.[0],
+      );
+
+      await secureClient
+        .prepareMarketOrderPosting({
+          amount: expectPresent(position?.size),
+          side: OrderSide.SELL,
+          tokenId: expectPresent(position?.asset),
+        })
+        .then(completeWith(walletClient))
+        .then(expectAcceptedOrderResponse);
+    });
+
     it.runIf(runMeteredTests)(
       'closes leftover inventory or round-trips a minimum-size market order',
-      async () => {
-        const positions = await listPositions(secureClient, {
-          market: [market.id],
-          user: secureClient.account.wallet,
-        }).firstPage();
+      async ({ annotate }) => {
+        const positions = await secureClient
+          .listPositions({
+            user: secureClient.account.wallet,
+          })
+          .firstPage();
         const position = positions.items.find(
           (candidate) => candidate.asset && (candidate.size ?? 0) > 0,
         );
 
         if (position !== undefined) {
+          annotate(
+            `Found existing position in condition ${position.conditionId} with size ${position.size} and asset ${position.asset}, closing with market order…`,
+          );
+
           // Recover from a previous partially executed test run by selling any
           // leftover inventory, and use that cleanup path to exercise market
           // order posting.
-          const result = await prepareMarketOrder(secureClient, {
-            amount: expectPresent(position.size),
-            side: OrderSide.SELL,
-            tokenId: expectPresent(position.asset),
-          })
+          const result = await secureClient
+            .prepareMarketOrder({
+              amount: expectPresent(position.size),
+              side: OrderSide.SELL,
+              tokenId: expectPresent(position.asset),
+            })
             .then(completeWith(walletClient))
-            .then(postOrder(secureClient));
-          expect(result.ok).toBe(true);
-          const acceptedResult = expectAcceptedOrderResponse(result);
+            .then(secureClient.postOrder)
+            .then(expectAcceptedOrderResponse);
 
-          expect(acceptedResult.orderId).not.toBe('');
+          expect(result.orderId).not.toBe('');
           return;
         }
 
+        annotate(
+          'No existing positions found, placing a minimum-size buy market order…',
+        );
+
         const [yesTokenId] = expectPresent(market.clobTokenIds);
-        const buyResult = await prepareMarketOrder(secureClient, {
-          amount: expectPresent(market.orderMinSize),
-          side: OrderSide.BUY,
-          tokenId: yesTokenId,
-        })
+        const buyResult = await secureClient
+          .prepareMarketOrder({
+            amount: expectPresent(1),
+            side: OrderSide.BUY,
+            tokenId: yesTokenId,
+          })
           .then(completeWith(walletClient))
-          .then(postOrder(secureClient));
-        expect(buyResult.ok).toBe(true);
-        const acceptedBuyResult = expectAcceptedOrderResponse(buyResult);
+          .then(secureClient.postOrder)
+          .then(expectAcceptedOrderResponse);
 
-        expect(acceptedBuyResult.orderId).not.toBe('');
-
-        // When the test starts flat, buy a minimum-sized position and sell it
-        // immediately after so we still exercise market orders while minimizing
-        // inventory risk from the test itself.
-        const sellResult = await prepareMarketOrder(secureClient, {
-          amount: Number.parseInt(acceptedBuyResult.takingAmount, 10),
-          side: OrderSide.SELL,
-          tokenId: yesTokenId,
-        })
-          .then(completeWith(walletClient))
-          .then(postOrder(secureClient));
-        expect(sellResult.ok).toBe(true);
-        const acceptedSellResult = expectAcceptedOrderResponse(sellResult);
-
-        expect(acceptedSellResult.orderId).not.toBe('');
+        expect(buyResult.orderId).not.toBe('');
       },
     );
   });
@@ -142,26 +143,29 @@ describe('Orders', () => {
     const minSize = expectPresent(market.orderMinSize);
 
     it('allows to place a limit order for the desired size and price', async () => {
-      const result = await prepareLimitOrder(secureClient, {
-        price: minPrice,
-        side: OrderSide.BUY,
-        size: minSize,
-        tokenId: yesTokenId,
-      })
+      const result = await secureClient
+        .prepareLimitOrder({
+          price: minPrice,
+          side: OrderSide.BUY,
+          size: minSize,
+          tokenId: yesTokenId,
+        })
         .then(completeWith(walletClient))
-        .then(postOrder(secureClient));
+        .then(secureClient.postOrder);
 
       expect(result.ok).toBe(true);
     });
 
     it('carries post-only submission options onto the prepared order', async () => {
-      const order = await prepareLimitOrder(secureClient, {
-        postOnly: true,
-        price: minPrice,
-        side: OrderSide.BUY,
-        size: minSize,
-        tokenId: yesTokenId,
-      }).then(completeWith(walletClient));
+      const order = await secureClient
+        .prepareLimitOrder({
+          postOnly: true,
+          price: minPrice,
+          side: OrderSide.BUY,
+          size: minSize,
+          tokenId: yesTokenId,
+        })
+        .then(completeWith(walletClient));
 
       expect(order.postOnly).toBe(true);
     });
@@ -183,20 +187,21 @@ describe('Orders', () => {
         .then(completeWith(walletClient))
         .then((handle) => handle.wait());
 
-      const response = await prepareLimitOrder(gaslessClient, {
-        price: minPrice,
-        side: OrderSide.BUY,
-        size: minSize,
-        tokenId: yesTokenId,
-      })
+      const response = await gaslessClient
+        .prepareLimitOrder({
+          price: minPrice,
+          side: OrderSide.BUY,
+          size: minSize,
+          tokenId: yesTokenId,
+        })
         .then(completeWith(walletClient))
-        .then(postOrder(gaslessClient));
+        .then((order) => gaslessClient.postOrder(order));
 
       expect(response.ok).toBe(true);
       const acceptedResponse = expectAcceptedOrderResponse(response);
 
       // cleanup
-      const cancelResult = await cancelOrder(gaslessClient, {
+      const cancelResult = await gaslessClient.cancelOrder({
         orderId: acceptedResponse.orderId,
       });
       expect(cancelResult.canceled).toContain(acceptedResponse.orderId);
@@ -209,13 +214,15 @@ describe('Orders', () => {
     const minSize = expectPresent(market.orderMinSize);
 
     it('creates, signs, and posts a limit order in one workflow', async () => {
-      const response = await prepareLimitOrderPosting(secureClient, {
-        postOnly: true,
-        price: minPrice,
-        side: OrderSide.BUY,
-        size: minSize,
-        tokenId: yesTokenId,
-      }).then(completeWith(walletClient));
+      const response = await secureClient
+        .prepareLimitOrderPosting({
+          postOnly: true,
+          price: minPrice,
+          side: OrderSide.BUY,
+          size: minSize,
+          tokenId: yesTokenId,
+        })
+        .then(completeWith(walletClient));
 
       expect(response.ok).toBe(true);
       const acceptedResponse = expectAcceptedOrderResponse(response);
@@ -224,32 +231,18 @@ describe('Orders', () => {
     });
   });
 
-  describe('prepareMarketOrderPosting', () => {
-    it.runIf(runMeteredTests)(
-      'creates, signs, and posts a market order in one workflow',
-      async () => {
-        const [yesTokenId] = expectPresent(market.clobTokenIds);
-        const response = await prepareMarketOrderPosting(secureClient, {
-          amount: expectPresent(market.orderMinSize),
-          side: OrderSide.BUY,
-          tokenId: yesTokenId,
-        }).then(completeWith(walletClient));
-
-        expect(response.ok).toBe(true);
-      },
-    );
-  });
-
   describe('cancelOrder', () => {
     it('cancels a single open order', async () => {
       const { orderId } = await createRestingLimitOrder();
-      const result = await cancelOrder(secureClient, { orderId });
+      const result = await secureClient.cancelOrder({ orderId });
 
       expect(result.canceled).toContain(orderId);
 
-      const { items } = await listOpenOrders(secureClient, {
-        market: market.id,
-      }).firstPage();
+      const { items } = await secureClient
+        .listOpenOrders({
+          market: market.id,
+        })
+        .firstPage();
 
       expect(items.some((order) => order.id === orderId)).toBe(false);
     });
@@ -260,7 +253,7 @@ describe('Orders', () => {
       const responses = await Promise.all([
         createSignedRestingLimitOrder(),
         createSignedRestingLimitOrder(),
-      ]).then(postOrders(secureClient));
+      ]).then((orders) => secureClient.postOrders(orders));
 
       expect(responses).toHaveLength(2);
       expect(responses.every((response) => response.ok)).toBe(true);
@@ -272,7 +265,7 @@ describe('Orders', () => {
         expect(acceptedResponse.status).toBe(OrderPostStatus.LIVE);
       }
 
-      await cancelAll(secureClient);
+      await secureClient.cancelAll();
     });
   });
 
@@ -280,7 +273,7 @@ describe('Orders', () => {
     it('cancels multiple open orders', async () => {
       const firstOrder = await createRestingLimitOrder();
       const secondOrder = await createRestingLimitOrder();
-      const result = await cancelOrders(secureClient, {
+      const result = await secureClient.cancelOrders({
         orderIds: [firstOrder.orderId, secondOrder.orderId],
       });
 
@@ -293,7 +286,7 @@ describe('Orders', () => {
   describe('cancelAll', () => {
     it('cancels all open orders', async () => {
       const order = await createRestingLimitOrder();
-      const result = await cancelAll(secureClient);
+      const result = await secureClient.cancelAll();
 
       expect(result.canceled).toContain(order.orderId);
     });
@@ -316,12 +309,14 @@ async function createRestingLimitOrder(): Promise<{
   const [yesTokenId] = expectPresent(market.clobTokenIds);
   const tickSize = expectPresent(market.orderPriceMinTickSize);
   const size = expectPresent(market.orderMinSize);
-  const response = await prepareLimitOrderPosting(secureClient, {
-    price: tickSize,
-    side: OrderSide.BUY,
-    size,
-    tokenId: yesTokenId,
-  }).then(completeWith(walletClient));
+  const response = await secureClient
+    .prepareLimitOrderPosting({
+      price: tickSize,
+      side: OrderSide.BUY,
+      size,
+      tokenId: yesTokenId,
+    })
+    .then(completeWith(walletClient));
   expect(response.ok).toBe(true);
   const acceptedResponse = expectAcceptedOrderResponse(response);
 
@@ -339,12 +334,14 @@ async function createSignedRestingLimitOrder() {
   const tickSize = expectPresent(market.orderPriceMinTickSize);
   const size = expectPresent(market.orderMinSize);
 
-  return prepareLimitOrder(secureClient, {
-    price: tickSize,
-    side: OrderSide.BUY,
-    size,
-    tokenId: yesTokenId,
-  }).then(completeWith(walletClient));
+  return secureClient
+    .prepareLimitOrder({
+      price: tickSize,
+      side: OrderSide.BUY,
+      size,
+      tokenId: yesTokenId,
+    })
+    .then(completeWith(walletClient));
 }
 
 async function resolveExchangeAddressForToken(
@@ -367,7 +364,7 @@ async function cancelMarketOrderWithRetry(order: {
   const conditionId = expectPresent(market.conditionId);
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const result = await cancelMarketOrders(secureClient, {
+    const result = await secureClient.cancelMarketOrders({
       assetId: order.tokenId,
       market: conditionId,
     });
@@ -379,7 +376,7 @@ async function cancelMarketOrderWithRetry(order: {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  return cancelMarketOrders(secureClient, {
+  return secureClient.cancelMarketOrders({
     assetId: order.tokenId,
     market: conditionId,
   });

@@ -6,11 +6,11 @@ import {
   expectPresent,
   invariant,
   isPrivateKey,
+  never,
 } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
-import { listMarkets } from './actions/markets';
 import { relayerApiKey } from './authorization';
 import { createPublicClient } from './clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
@@ -88,36 +88,49 @@ export function createRandomWalletClient() {
 }
 
 export async function findHighVolumeLowPriceMarket(): Promise<Market> {
-  const candidateMarkets = await listMarkets(publicClient, {
+  const paginator = publicClient.listMarkets({
     closed: false,
+    liquidityNumMin: 1000,
     pageSize: 1000,
-    order: 'volume24hr',
+    order: 'liquidityNum',
     ascending: false,
     sportsMarketTypes: ['moneyline', 'spreads', 'totals'],
-  })
-    .firstPage()
-    .then((page) => page.items);
-  const market = candidateMarkets
-    .filter(hasRequiredOrderFields)
-    .sort(
-      (left, right) =>
-        (left.orderMinSize ?? Number.POSITIVE_INFINITY) -
-        (right.orderMinSize ?? Number.POSITIVE_INFINITY),
-    )[0];
+  });
 
-  invariant(
-    market !== undefined,
+  for await (const page of paginator) {
+    for (const candidate of page.items) {
+      if (!isEligibleTradeCandidate(candidate)) {
+        continue;
+      }
+
+      return candidate;
+    }
+  }
+
+  never(
     'Could not find an active high-volume market with a very low tradable price',
   );
-
-  return market;
 }
 
 function hasRequiredOrderFields(candidate: Market) {
   return (
     candidate.acceptingOrders !== false &&
+    candidate.orderMinSize !== null &&
+    candidate.orderMinSize !== undefined &&
     candidate.clobTokenIds !== null &&
     candidate.clobTokenIds !== undefined
+  );
+}
+
+function isEligibleTradeCandidate(candidate: Market) {
+  return hasRequiredOrderFields(candidate) && hasTradableBestAsk(candidate);
+}
+
+function hasTradableBestAsk(candidate: Market) {
+  return (
+    candidate.bestAsk !== null &&
+    candidate.bestAsk !== undefined &&
+    candidate.bestAsk < 1
   );
 }
 
