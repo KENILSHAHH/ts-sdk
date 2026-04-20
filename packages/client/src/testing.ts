@@ -114,6 +114,7 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
 
 function hasRequiredOrderFields(candidate: Market) {
   return (
+    candidate.enableOrderBook === true &&
     candidate.acceptingOrders !== false &&
     candidate.orderMinSize !== null &&
     candidate.orderMinSize !== undefined &&
@@ -123,7 +124,12 @@ function hasRequiredOrderFields(candidate: Market) {
 }
 
 function isEligibleTradeCandidate(candidate: Market) {
-  return hasRequiredOrderFields(candidate) && hasTradableBestAsk(candidate);
+  return (
+    hasRequiredOrderFields(candidate) &&
+    hasTradableBestAsk(candidate) &&
+    hasTradableBestBid(candidate) &&
+    hasClobLiquidity(candidate)
+  );
 }
 
 function hasTradableBestAsk(candidate: Market) {
@@ -132,6 +138,18 @@ function hasTradableBestAsk(candidate: Market) {
     candidate.bestAsk !== undefined &&
     candidate.bestAsk < 1
   );
+}
+
+function hasTradableBestBid(candidate: Market) {
+  return (
+    candidate.bestBid !== null &&
+    candidate.bestBid !== undefined &&
+    candidate.bestBid > 0
+  );
+}
+
+function hasClobLiquidity(candidate: Market) {
+  return (candidate.liquidityClob ?? candidate.liquidityNum ?? 0) > 0;
 }
 
 export function expectNonEmptyPage<T>(
