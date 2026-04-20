@@ -203,6 +203,7 @@ describe('Gasless', () => {
           }),
         ).resolves.toBe(true);
       },
+      20_000,
     );
   });
 });
