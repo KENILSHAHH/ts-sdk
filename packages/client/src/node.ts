@@ -1,9 +1,6 @@
 import process from 'node:process';
 import { invariant } from '@polymarket/types';
 
-export type { PublicClientOptions } from './clients';
-export { createPublicClient } from './clients';
-
 import { SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
 import type { ApiKeyAuthorization, ApiKeyAuthorizationRequest } from './types';
