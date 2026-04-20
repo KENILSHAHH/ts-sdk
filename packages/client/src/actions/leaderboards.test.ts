@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
 import {
+  fetchBuilderVolume,
   listBuilderLeaderboard,
-  listBuilderVolume,
   listTraderLeaderboard,
 } from './leaderboards';
 
@@ -43,9 +43,9 @@ describe('Leaderboards', () => {
     });
   });
 
-  describe('listBuilderVolume', () => {
+  describe('fetchBuilderVolume', () => {
     it('lists builder volume entries', async () => {
-      const result = await listBuilderVolume(publicClient, {
+      const result = await fetchBuilderVolume(publicClient, {
         timePeriod: 'DAY',
       });
 

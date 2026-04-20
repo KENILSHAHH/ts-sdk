@@ -5,13 +5,13 @@ import type {
   TraderLeaderboardEntry,
 } from '@polymarket/bindings/data';
 import {
+  fetchBuilderVolume,
   type ListBuilderLeaderboardRequest,
   type ListBuilderTradesRequest,
   type ListBuilderVolumeRequest,
   type ListTraderLeaderboardRequest,
   listBuilderLeaderboard,
   listBuilderTrades,
-  listBuilderVolume,
   listTraderLeaderboard,
 } from '../actions';
 import type {
@@ -106,12 +106,12 @@ export type AnalyticsActions = {
    *
    * @example
    * ```ts
-   * const volume = await client.listBuilderVolume({
+   * const volume = await client.fetchBuilderVolume({
    *   timePeriod: 'DAY',
    * });
    * ```
    */
-  listBuilderVolume(
+  fetchBuilderVolume(
     request?: ListBuilderVolumeRequest,
   ): Promise<BuilderVolumeEntry[]>;
 
@@ -163,7 +163,7 @@ export function analyticsActions(client: BaseClient): AnalyticsActions {
   return {
     listBuilderTrades: listBuilderTrades.bind(null, client),
     listBuilderLeaderboard: listBuilderLeaderboard.bind(null, client),
-    listBuilderVolume: listBuilderVolume.bind(null, client),
+    fetchBuilderVolume: fetchBuilderVolume.bind(null, client),
     listTraderLeaderboard: listTraderLeaderboard.bind(null, client),
   };
 }

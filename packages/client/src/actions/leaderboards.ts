@@ -156,14 +156,14 @@ export type ListBuilderVolumeError =
  *
  * @example
  * ```ts
- * const volume = await listBuilderVolume(client, {
+ * const volume = await fetchBuilderVolume(client, {
  *   timePeriod: 'DAY',
  * });
  *
  * // volume: BuilderVolumeEntry[]
  * ```
  */
-export async function listBuilderVolume(
+export async function fetchBuilderVolume(
   client: BaseClient,
   request: ListBuilderVolumeRequest = {},
 ): Promise<BuilderVolumeEntry[]> {
