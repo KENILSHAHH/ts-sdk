@@ -31,8 +31,8 @@
       "default": "./dist/privy.js"
     },
     "./viem": {
-      "types": "./dist/viem/index.d.ts",
-      "default": "./dist/viem/index.js"
+      "types": "./dist/viem.d.ts",
+      "default": "./dist/viem.js"
     }
   },
   "typesVersions": {
@@ -53,7 +53,7 @@
         "./dist/privy.d.ts"
       ],
       "viem": [
-        "./dist/viem/index.d.ts"
+        "./dist/viem.d.ts"
       ]
     }
   },

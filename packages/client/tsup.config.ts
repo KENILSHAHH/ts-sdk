@@ -9,7 +9,7 @@ export default defineConfig(() => [
       'src/actions/index.ts',
       'src/decorators/index.ts',
       'src/ethers-v5.ts',
-      'src/viem/index.ts',
+      'src/viem.ts',
     ],
     outDir: 'dist',
     sourcemap: true,

@@ -25,9 +25,9 @@ import {
   TimeoutError,
   TransactionFailedError,
   TransportError,
-} from '../errors';
-import type { TransactionHandle } from '../types';
-import type { AuthenticateWith, CompleteWith } from '../workflow';
+} from './errors';
+import type { TransactionHandle } from './types';
+import type { AuthenticateWith, CompleteWith } from './workflow';
 
 function isWalletClientWithAccount(
   walletClient: WalletClient,
