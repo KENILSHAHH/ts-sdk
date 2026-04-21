@@ -73,9 +73,6 @@
     "viem": "^2.46.3"
   },
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
   "peerDependencies": {
     "@privy-io/node": "^0.15.0",
     "ethers-v5": "^5.8.0",
@@ -98,5 +95,8 @@
     "ky": "^1.14.3",
     "ox": "^0.14.16",
     "zod": "^4.3.6"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
