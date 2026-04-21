@@ -56,6 +56,20 @@ The root scripts are:
 - `pnpm build` - build all workspace packages that expose a build script
 - `pnpm clean` - remove package build output from `packages/*/dist`
 
+## Publishing
+
+The current pre-release approach is to publish canary builds for every commit on `main` that passes the `Verify` workflow.
+
+Current workflow:
+
+1. Push a commit to `main`.
+2. The `Verify` workflow runs blocking verification checks.
+3. The `Tests` workflow runs the broader test suite.
+4. After `Verify` succeeds on `main`, the `Release` workflow runs the `version:canary` and `release:canary` package scripts and publishes the packages to the npm `canary` dist-tag.
+5. Consumers can install the latest canary with `@polymarket/<package>@canary`.
+
+This flow does not currently require adding a changeset file for each PR.
+
 ## Design Notes
 
 - [`docs/sdk-direction.md`](./docs/sdk-direction.md) - current direction for `@polymarket/client`, package scope, and how the SDK should relate to Polymarket's existing API surfaces

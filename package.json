@@ -14,18 +14,23 @@
   },
   "scripts": {
     "build": "pnpm -r --sort --if-present run build",
+    "changeset": "changeset",
     "clean": "rimraf packages/*/dist",
     "dev:react": "pnpm --filter @polymarket/examples-react dev",
+    "release:canary": "changeset publish --tag canary",
     "test:bindings": "vitest --project bindings --passWithNoTests",
     "test:client": "vitest --project client",
     "test:types": "vitest --project types --passWithNoTests",
     "test": "pnpm test:types && pnpm test:bindings && pnpm test:client",
     "typecheck": "pnpm -r --sort --if-present run typecheck",
+    "version:bump": "changeset version",
+    "version:canary": "changeset version --snapshot canary",
     "lint": "biome check",
     "lint:fix": "biome check --write"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.9",
+    "@changesets/cli": "^2.31.0",
     "@types/node": "^25.5.0",
     "msw": "^2.11.5",
     "rimraf": "^6.1.3",
