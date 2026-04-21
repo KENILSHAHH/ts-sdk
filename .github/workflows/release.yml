@@ -36,6 +36,9 @@ jobs:
       - name: Set Up Repository
         uses: ./.github/actions/setup
 
+      - name: Build
+        run: pnpm build
+
       - name: Version Packages For Canary
         run: pnpm version:canary
 
