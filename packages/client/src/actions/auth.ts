@@ -12,11 +12,12 @@ import { type EvmAddress, type EvmSignature, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient, BaseSecureClient } from '../clients';
 import {
-  type RateLimitError,
+  makeErrorGuard,
+  RateLimitError,
   RequestRejectedError,
-  type SigningError,
-  type TransportError,
-  type UnexpectedResponseError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
 } from '../errors';
 import { validateWith } from '../response';
 
@@ -32,6 +33,12 @@ export type CreateApiKeyError =
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError;
+export const CreateApiKeyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Creates a new API key from a signed L1 auth payload.
@@ -65,6 +72,12 @@ export type DeriveApiKeyError =
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError;
+export const DeriveApiKeyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Derives an existing API key from a signed L1 auth payload.
@@ -98,6 +111,12 @@ export type CreateOrDeriveApiKeyError =
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError;
+export const CreateOrDeriveApiKeyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Creates an API key and falls back to derivation when it already exists.
@@ -134,6 +153,13 @@ export type FetchApiKeysError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const FetchApiKeysError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Fetches all API keys associated with the authenticated client.
@@ -167,6 +193,13 @@ export type DeleteApiKeyError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const DeleteApiKeyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Deletes the authenticated API key.
@@ -197,6 +230,13 @@ export type CreateBuilderApiKeyError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const CreateBuilderApiKeyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Creates a new builder API key for the authenticated client.
@@ -229,6 +269,13 @@ export type FetchBuilderApiKeysError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const FetchBuilderApiKeysError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Fetches builder API keys associated with the authenticated client.
@@ -261,6 +308,13 @@ export type RevokeBuilderApiKeyError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const RevokeBuilderApiKeyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Revokes a builder API key.

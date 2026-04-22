@@ -9,7 +9,8 @@ import {
 } from '@polymarket/bindings/clob';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -41,6 +42,13 @@ export type ListBuilderTradesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListBuilderTradesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists builder-attributed trades.

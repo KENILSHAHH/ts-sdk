@@ -164,3 +164,16 @@ export class SigningError extends PolymarketError {
     return new SigningError(msg, { cause: error });
   }
 }
+
+export function makeErrorGuard<
+  // biome-ignore lint/suspicious/noExplicitAny: constructor rest args require any[]
+  TClasses extends ReadonlyArray<new (...args: any[]) => unknown>,
+>(
+  ...classes: TClasses
+): { isError(error: unknown): error is InstanceType<TClasses[number]> } {
+  return {
+    isError(error: unknown): error is InstanceType<TClasses[number]> {
+      return classes.some((c) => error instanceof c);
+    },
+  };
+}

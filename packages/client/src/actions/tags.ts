@@ -10,7 +10,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -91,6 +92,13 @@ export type ListTagsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListTagsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists tags.
@@ -174,6 +182,13 @@ export type FetchTagError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchTagError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a tag by id or slug.
@@ -234,6 +249,13 @@ export type FetchRelatedTagsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchRelatedTagsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches related tag relationships by id or slug.
@@ -289,6 +311,13 @@ export type FetchRelatedTagResourcesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchRelatedTagResourcesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches resources linked from related tag relationships by id or slug.

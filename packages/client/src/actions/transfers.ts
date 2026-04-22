@@ -4,7 +4,7 @@ import type { EvmSignature } from '@polymarket/types';
 import { z } from 'zod';
 import { erc20TransferCall } from '../abis';
 import type { BaseSecureClient } from '../clients';
-import type { UserInputError } from '../errors';
+import { makeErrorGuard, UserInputError } from '../errors';
 import { parseUserInput } from '../input';
 import { expectTransactionHandle, type TransactionHandle } from '../types';
 import type { SignerTransactionRequest } from '../workflow';
@@ -40,6 +40,7 @@ export type PrepareErc20TransferRequest = z.input<
 >;
 
 export type PrepareErc20TransferError = UserInputError;
+export const PrepareErc20TransferError = makeErrorGuard(UserInputError);
 
 /**
  * Starts an ERC-20 transfer workflow.

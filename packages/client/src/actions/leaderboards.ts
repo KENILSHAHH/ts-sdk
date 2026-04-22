@@ -13,7 +13,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -67,6 +68,13 @@ export type ListBuilderLeaderboardError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListBuilderLeaderboardError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists builder leaderboard rankings.
@@ -147,6 +155,13 @@ export type ListBuilderVolumeError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListBuilderVolumeError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists daily builder volume entries.
@@ -184,6 +199,13 @@ export type ListTraderLeaderboardError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListTraderLeaderboardError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists trader leaderboard rankings.

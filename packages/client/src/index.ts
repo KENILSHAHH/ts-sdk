@@ -7,6 +7,7 @@ export { WalletType } from '@polymarket/bindings/gamma';
 export type * from '@polymarket/bindings/relayer';
 export * from './abis';
 export type { AccountIdentity } from './account';
+export * from './actions';
 export type {
   RelayerApiKeyConfig,
   RemoteBuilderSigningConfig,
@@ -21,8 +22,7 @@ export * from './hmac';
 export type * from './pagination';
 export * from './types';
 export type {
-  AuthenticateWithError,
   AuthenticationWorkflow,
   AuthenticationWorkflowRequest,
-  CompleteWithError,
 } from './workflow';
+export { AuthenticateWithError, CompleteWithError } from './workflow';

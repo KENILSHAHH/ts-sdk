@@ -2,7 +2,8 @@ import { PaginationCursorSchema } from '@polymarket/bindings';
 import { ListTeamsResponseSchema, type Team } from '@polymarket/bindings/gamma';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -39,6 +40,13 @@ export type ListTeamsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListTeamsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists teams.

@@ -5,7 +5,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -46,6 +47,14 @@ export type CancelOrderError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const CancelOrderError = makeErrorGuard(
+  RequestRejectedError,
+  RateLimitError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Cancels a single open order for the authenticated account.
@@ -81,6 +90,14 @@ export type CancelOrdersError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const CancelOrdersError = makeErrorGuard(
+  RequestRejectedError,
+  RateLimitError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Cancels multiple open orders for the authenticated account.
@@ -112,6 +129,13 @@ export type CancelAllError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const CancelAllError = makeErrorGuard(
+  RequestRejectedError,
+  RateLimitError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Cancels all open orders for the authenticated account.
@@ -142,6 +166,14 @@ export type CancelMarketOrdersError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const CancelMarketOrdersError = makeErrorGuard(
+  RequestRejectedError,
+  RateLimitError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Cancels all open orders for the authenticated account that match the market

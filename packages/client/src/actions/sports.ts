@@ -6,7 +6,8 @@ import {
 } from '@polymarket/bindings/gamma';
 import { unwrap } from '@polymarket/types';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -19,6 +20,12 @@ export type ListSportsError =
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError;
+export const ListSportsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Lists available sports metadata.
@@ -48,6 +55,12 @@ export type FetchSportsMarketTypesError =
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError;
+export const FetchSportsMarketTypesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Fetches the available market types grouped by sport.

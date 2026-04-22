@@ -20,7 +20,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -149,6 +150,13 @@ export type ListMarketsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListMarketsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists markets.
@@ -216,6 +224,13 @@ export type FetchMarketError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchMarketError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a market.
@@ -251,6 +266,13 @@ export type FetchMarketTagsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchMarketTagsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a market's tags.
@@ -286,6 +308,13 @@ export type ListMarketHoldersError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListMarketHoldersError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists the top holders for one or more markets.
@@ -324,6 +353,13 @@ export type ListOpenInterestError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListOpenInterestError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists open interest for one or more markets.
@@ -361,6 +397,13 @@ export type ListMarketPositionsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListMarketPositionsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists positions for a market.
