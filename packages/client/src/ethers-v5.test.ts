@@ -1,7 +1,5 @@
-import {
-  type AcceptedOrderResponse,
-  OrderSide,
-} from '@polymarket/bindings/clob';
+import { OrderSide } from '@polymarket/bindings';
+import type { AcceptedOrderResponse } from '@polymarket/bindings/clob';
 import { expectPresent } from '@polymarket/types';
 import { ethers } from 'ethers-v5';
 import { polygon } from 'viem/chains';

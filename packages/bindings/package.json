@@ -25,6 +25,10 @@
     "./relayer": {
       "types": "./dist/relayer/index.d.ts",
       "default": "./dist/relayer/index.js"
+    },
+    "./subscriptions": {
+      "types": "./dist/subscriptions/index.d.ts",
+      "default": "./dist/subscriptions/index.js"
     }
   },
   "typesVersions": {
@@ -40,6 +44,9 @@
       ],
       "relayer": [
         "./dist/relayer/index.d.ts"
+      ],
+      "subscriptions": [
+        "./dist/subscriptions/index.d.ts"
       ]
     }
   },

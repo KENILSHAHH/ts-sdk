@@ -1,3 +1,4 @@
+import { CommentParentEntityType } from '@polymarket/bindings';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
@@ -22,7 +23,7 @@ describe('Comments', () => {
     it('fetches comments for an event', async () => {
       const { items } = await listComments(publicClient, {
         parentEntityId: event.id,
-        parentEntityType: 'Event',
+        parentEntityType: CommentParentEntityType.Event,
       }).firstPage();
 
       expect(items).toEqual(expect.any(Array));
@@ -35,7 +36,7 @@ describe('Comments', () => {
         items: [comment],
       } = await listComments(publicClient, {
         parentEntityId: event.id,
-        parentEntityType: 'Event',
+        parentEntityType: CommentParentEntityType.Event,
       })
         .firstPage()
         .then(expectNonEmptyPage);

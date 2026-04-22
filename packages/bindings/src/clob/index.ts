@@ -5,7 +5,6 @@ export * from './cancel';
 export * from './fee-rate';
 export * from './market-data';
 export * from './neg-risk';
-export * from './order';
 export * from './order-book';
 export * from './order-response';
 export * from './pagination';

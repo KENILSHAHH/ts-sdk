@@ -1,5 +1,6 @@
 import {
   ConditionIdSchema,
+  OrderSideSchema,
   PaginationCursorSchema,
   type TickSizeValue,
   toPaginationCursor,
@@ -20,7 +21,6 @@ import {
   MidpointsSchema,
   type OrderBook,
   OrderBooksSchema,
-  OrderSideSchema,
   PaginatedCurrentRewardsSchema,
   PaginatedMarketRewardsSchema,
   PriceHistoryIntervalSchema,

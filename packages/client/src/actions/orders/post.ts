@@ -1,9 +1,9 @@
+import { OrderType } from '@polymarket/bindings';
 import {
   type OrderResponse,
   OrderResponseSchema,
   type OrderResponses,
   OrderResponsesSchema,
-  OrderType,
 } from '@polymarket/bindings/clob';
 import { invariant, unwrap } from '@polymarket/types';
 import { z } from 'zod';

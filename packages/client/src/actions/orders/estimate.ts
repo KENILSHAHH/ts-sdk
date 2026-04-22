@@ -1,10 +1,6 @@
 import type { TickSizeValue } from '@polymarket/bindings';
-import {
-  type OrderBookLevel,
-  OrderSide,
-  OrderSideSchema,
-  OrderType,
-} from '@polymarket/bindings/clob';
+import { OrderSide, OrderSideSchema, OrderType } from '@polymarket/bindings';
+import type { OrderBookLevel } from '@polymarket/bindings/clob';
 import { invariant } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../../clients';

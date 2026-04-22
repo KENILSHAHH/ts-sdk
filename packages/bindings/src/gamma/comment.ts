@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { CommentIdSchema, EventIdSchema, TokenIdSchema } from '../shared';
+import {
+  CommentIdSchema,
+  CommentParentEntityTypeSchema,
+  EventIdSchema,
+  TokenIdSchema,
+} from '../shared';
 import { ImageOptimizationSchema } from './common';
 import { SeriesIdSchema } from './event';
 
@@ -22,10 +27,16 @@ export const CommentProfileSchema = z.looseObject({
   positions: z.array(CommentPositionSchema).nullish(),
 });
 
+export enum ReactionType {
+  Heart = 'HEART',
+}
+
+export const ReactionTypeSchema = z.enum(ReactionType);
+
 export const ReactionSchema = z.looseObject({
   id: z.string(),
   commentID: z.number().int().nullish(),
-  reactionType: z.string().nullish(),
+  reactionType: ReactionTypeSchema.nullish(),
   icon: z.string().nullish(),
   userAddress: z.string().nullish(),
   createdAt: z.string().nullish(),
@@ -46,9 +57,7 @@ export const CommentMediaSchema = z.looseObject({
 export const CommentSchema = z.looseObject({
   id: CommentIdSchema,
   body: z.string().nullish(),
-  parentEntityType: z
-    .union([z.literal('Event'), z.literal('Series')])
-    .nullish(),
+  parentEntityType: CommentParentEntityTypeSchema.nullish(),
   parentEntityID: z.union([EventIdSchema, SeriesIdSchema]).nullish(),
   parentCommentID: CommentIdSchema.nullish(),
   userAddress: z.string().nullish(),

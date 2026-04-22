@@ -10,6 +10,23 @@ import { z } from 'zod';
 
 type Tagged<T, Tag extends string> = T & { readonly __tag: Tag };
 
+export enum CommentParentEntityType {
+  Event = 'Event',
+  Series = 'Series',
+}
+
+export enum OrderSide {
+  BUY = 'BUY',
+  SELL = 'SELL',
+}
+
+export enum OrderType {
+  GTC = 'GTC',
+  FOK = 'FOK',
+  GTD = 'GTD',
+  FAK = 'FAK',
+}
+
 function toTaggedString<T extends string>(value: string): T {
   return value as T;
 }
@@ -191,6 +208,9 @@ export const NotificationIdSchema = z
   .number()
   .int()
   .transform(toNotificationId);
+export const CommentParentEntityTypeSchema = z.enum(CommentParentEntityType);
+export const OrderSideSchema = z.enum(OrderSide);
+export const OrderTypeSchema = z.enum(OrderType);
 export const PaginationCursorSchema = z
   .string()
   .min(1)

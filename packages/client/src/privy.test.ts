@@ -1,7 +1,7 @@
+import { OrderSide } from '@polymarket/bindings';
 import {
   type AcceptedOrderResponse,
   AssetType,
-  OrderSide,
 } from '@polymarket/bindings/clob';
 import { expectEvmAddress, expectPresent } from '@polymarket/types';
 // biome-ignore lint/style/noRestrictedImports: @privy-io/node is the intentional external adapter target for this entrypoint.

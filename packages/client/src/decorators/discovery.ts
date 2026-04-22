@@ -428,7 +428,7 @@ export type DiscoveryActions = {
    * ```ts
    * const paginator = client.listComments({
    *   parentEntityId: '123',
-   *   parentEntityType: 'Event',
+   *   parentEntityType: CommentParentEntityType.Event,
    *   pageSize: 20,
    * });
    *
@@ -445,7 +445,7 @@ export type DiscoveryActions = {
    * ```ts
    * const paginator = client.listComments({
    *   parentEntityId: '123',
-   *   parentEntityType: 'Event',
+   *   parentEntityType: CommentParentEntityType.Event,
    *   pageSize: 20,
    * });
    *

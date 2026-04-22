@@ -1,4 +1,5 @@
-import { OrderSide, PriceHistoryInterval } from '@polymarket/bindings/clob';
+import { OrderSide } from '@polymarket/bindings';
+import { PriceHistoryInterval } from '@polymarket/bindings/clob';
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { RequestRejectedError } from '../errors';

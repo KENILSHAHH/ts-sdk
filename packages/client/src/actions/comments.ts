@@ -1,5 +1,6 @@
 import {
   CommentIdSchema,
+  CommentParentEntityTypeSchema,
   EventIdSchema,
   PaginationCursorSchema,
 } from '@polymarket/bindings';
@@ -37,7 +38,7 @@ const ListCommentsRequestSchema = z.object({
   holdersOnly: z.boolean().optional(),
   order: z.string().optional(),
   parentEntityId: z.union([EventIdSchema, SeriesIdSchema]),
-  parentEntityType: z.enum(['Event', 'Series']),
+  parentEntityType: CommentParentEntityTypeSchema,
 });
 
 const FetchCommentsByIdRequestSchema = z.object({
@@ -79,7 +80,7 @@ export type ListCommentsError =
  * ```ts
  * const result = listComments(client, {
  *   parentEntityId: '123',
- *   parentEntityType: 'Event',
+ *   parentEntityType: CommentParentEntityType.Event,
  *   pageSize: 20,
  * });
  *
@@ -96,7 +97,7 @@ export type ListCommentsError =
  * ```ts
  * const result = listComments(client, {
  *   parentEntityId: '123',
- *   parentEntityType: 'Event',
+ *   parentEntityType: CommentParentEntityType.Event,
  *   pageSize: 20,
  * });
  *

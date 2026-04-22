@@ -1,13 +1,11 @@
 import {
   EvmAddressSchema,
-  type TickSizeValue,
-  TokenIdSchema,
-} from '@polymarket/bindings';
-import {
   OrderSide,
   OrderSideSchema,
   OrderType,
-} from '@polymarket/bindings/clob';
+  type TickSizeValue,
+  TokenIdSchema,
+} from '@polymarket/bindings';
 import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';

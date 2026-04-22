@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { TokenIdSchema } from '../shared';
-import { OrderSideSchema } from './order';
+import { OrderSideSchema, TokenIdSchema } from '../shared';
 
 export const BuilderTradeSchema = z.looseObject({
   id: z.string(),

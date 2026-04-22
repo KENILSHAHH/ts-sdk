@@ -1,5 +1,5 @@
-import type { TokenId } from '@polymarket/bindings';
-import { AssetType, OrderSide } from '@polymarket/bindings/clob';
+import { OrderSide, type TokenId } from '@polymarket/bindings';
+import { AssetType } from '@polymarket/bindings/clob';
 import type { EvmAddress } from '@polymarket/types';
 import type { BaseSecureClient } from '../../clients';
 import { fetchBalanceAllowance } from '../account';

@@ -1,10 +1,5 @@
-import type { TokenId } from '@polymarket/bindings';
-import type {
-  OrderResponse,
-  OrderSide,
-  OrderType,
-  SignatureType,
-} from '@polymarket/bindings/clob';
+import type { OrderSide, OrderType, TokenId } from '@polymarket/bindings';
+import type { OrderResponse, SignatureType } from '@polymarket/bindings/clob';
 import type { EvmAddress, EvmSignature } from '@polymarket/types';
 import type { TransactionHandle, TypedDataPayload } from '../../types';
 import type { SignOrderRequest } from '../../workflow';

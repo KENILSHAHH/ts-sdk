@@ -1,4 +1,5 @@
-import { AssetType, OrderSide } from '@polymarket/bindings/clob';
+import { OrderSide } from '@polymarket/bindings';
+import { AssetType } from '@polymarket/bindings/clob';
 import {
   type EvmAddress,
   type EvmSignature,

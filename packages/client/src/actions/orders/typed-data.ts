@@ -1,4 +1,4 @@
-import { OrderSide } from '@polymarket/bindings/clob';
+import { OrderSide } from '@polymarket/bindings';
 import type { EvmAddress } from '@polymarket/types';
 import type { TypedDataField, TypedDataPayload } from '../../types';
 import type { UnsignedOrder } from './types';
