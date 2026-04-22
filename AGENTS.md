@@ -26,6 +26,7 @@
 - The SDK should present one cohesive consumer interface, follow developer workflows, and hide service boundaries where possible.
 - When you discover a real boundary inconsistency between underlying CLOB, Gamma, Data, and relayer APIs, append a concise note to `docs/api-boundary-notes.md`.
 - Future work includes `@polymarket/react`, which should build on the same core model with a higher-level frontend-oriented surface.
+- Each action in `packages/client/src/actions/` has a corresponding bound method in a decorator under `packages/client/src/decorators/`. When you change an action — its signature, parameter types, TSDoc, or examples — verify the matching decorator method is also updated. The decorator method is the public surface most consumers see.
 - Do not leak `ky` details outside of `ServiceClient`. Keep `ky` instances, types, and option shapes internal, and expose Polymarket-specific abstractions instead.
 - Wallet-library integrations must stay isolated to their entry points and optional peer dependencies. If `viem` is an optional peer tied to the `viem` entry point, non-`viem` code paths must not import `viem`. Apply the same rule to future entry points for other wallet libraries such as Ethers, Privy, Safe SDK, or Turnkey.
 
@@ -45,6 +46,7 @@
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
 - Shape abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
 - When translating one public error into another at an action boundary, prefer `ResultAsync.mapErr(...)` on the request pipeline over `try`/`catch` around `unwrap(...)` when the remap can stay inside the result chain.
+- Prefer TypeScript enums with `z.enum(MyEnum)` over `z.union([z.literal(...), ...])` for string-valued sets. This gives consumers dot-notation access, keeps the schema and type in sync, and avoids `z.nativeEnum` which is deprecated in Zod v4.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 - Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.
 - For any public SDK function export, including actions and client methods, document the public thrown-error surface explicitly. Export a flattened `...Error` union of the concrete public error types the function can throw through its public contract, dedupe the union, and do not include internal assertion-style errors such as `InvariantError` in that union.
@@ -54,6 +56,7 @@
 
 - Default client tests to integration-style coverage.
 - Do not mock API responses unless explicitly requested or unless mocking is necessary to isolate a boundary under test.
+
 
 ## Response contract
 
