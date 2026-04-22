@@ -1,8 +1,10 @@
-import { InvariantError } from '@polymarket/types';
+import { WalletType } from '@polymarket/bindings/gamma';
+import { expectEvmAddress, InvariantError } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { fetchApiKeys } from './actions';
 import {
   createRandomWalletClient,
+  deriveProxyAddress,
   publicClient,
   safeWalletAddress,
   walletClient,
@@ -39,6 +41,21 @@ describe('clients', () => {
         .then(authenticateWith(walletClient));
 
       await expect(fetchApiKeys(secondClient)).resolves.toBeDefined();
+    });
+
+    it('classifies a deterministic proxy wallet as POLY_PROXY', async () => {
+      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const proxyWallet = deriveProxyAddress(signerAddress);
+
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: proxyWallet })
+        .then(authenticateWith(walletClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.POLY_PROXY);
+      expect(secureClient.account.wallet).toBe(proxyWallet);
+      expect(secureClient.account.signer).toBe(signerAddress);
+
+      await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
     it('authenticates as EOA when wallet equals signer address', async () => {

@@ -28,6 +28,9 @@ const NEG_RISK_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
   'function redeemPositions(bytes32 _conditionId, uint256[] _amounts)',
 );
 const SAFE_MULTISEND_FUNCTION = AbiFunction.from('function multiSend(bytes)');
+const PROXY_FACTORY_FUNCTION = AbiFunction.from(
+  'function proxy((uint8 typeCode, address to, uint256 value, bytes data)[] calls) returns (bytes[])',
+);
 const BINARY_OUTCOME_PARTITION = [1n, 2n] as const;
 const BINARY_OUTCOME_INDEX_SETS = [1n, 2n] as const;
 
@@ -296,6 +299,18 @@ function expectUint256(value: bigint, label: string): bigint {
   }
 
   return value;
+}
+
+/** @internal */
+export function encodeProxyCall(calls: readonly TransactionCall[]): HexString {
+  return AbiFunction.encodeData(PROXY_FACTORY_FUNCTION, [
+    calls.map((call) => ({
+      typeCode: 1,
+      to: call.to,
+      value: call.value ?? 0n,
+      data: call.data,
+    })),
+  ]);
 }
 
 /** @internal */

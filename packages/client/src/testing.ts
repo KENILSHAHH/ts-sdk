@@ -11,6 +11,7 @@ import {
 import { createWalletClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
+import { deriveProxyWalletAddress } from './account';
 import { relayerApiKey } from './authorization';
 import { createPublicClient } from './clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
@@ -70,6 +71,13 @@ function loadTestSafeWallet(): EvmAddress {
 }
 
 export const safeWalletAddress = loadTestSafeWallet();
+
+export function deriveProxyAddress(signerAddress: EvmAddress): EvmAddress {
+  return deriveProxyWalletAddress(
+    signerAddress,
+    publicClient.environment.walletDerivation,
+  );
+}
 
 export const walletClient = createWalletClient({
   account: privateKeyToAccount(testPrivateKey),

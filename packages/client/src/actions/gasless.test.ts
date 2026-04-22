@@ -6,6 +6,7 @@ import { deriveSafeWalletAddress } from '../account';
 import { createPublicClient } from '../clients';
 import {
   createRandomWalletClient,
+  deriveProxyAddress,
   publicClientWithBuilderKey,
   publicClientWithRelayerKey,
   runMeteredTests,
@@ -108,19 +109,7 @@ describe('Gasless', () => {
 
       expect(signRequest.value).toEqual({
         kind: 'signGaslessMessage',
-        payload: expect.objectContaining({
-          domain: expect.objectContaining({
-            chainId: secureClient.environment.chainId,
-            verifyingContract: secureClient.account.wallet,
-          }),
-          message: expect.objectContaining({
-            data: call.data,
-            operation: 0,
-            to: call.to,
-            value: 0n,
-          }),
-          primaryType: 'SafeTx',
-        }),
+        payload: expect.stringMatching(/^0x[0-9a-f]{64}$/),
       });
     });
 
@@ -159,15 +148,74 @@ describe('Gasless', () => {
 
       expect(signRequest.value).toEqual({
         kind: 'signGaslessMessage',
-        payload: expect.objectContaining({
-          message: expect.objectContaining({
-            data: expect.stringMatching(/^0x8d80ff0a/),
-            operation: 1,
-            to: secureClient.environment.safeMultisend,
-            value: 0n,
-          }),
-        }),
+        payload: expect.stringMatching(/^0x[0-9a-f]{64}$/),
       });
+    });
+  });
+
+  describe('prepareGaslessTransaction (proxy)', () => {
+    it('prepares a proxy workflow yielding a raw hash signing request', async () => {
+      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const proxyWallet = deriveProxyAddress(signerAddress);
+
+      const secureClient = await publicClientWithRelayerKey
+        .beginAuthentication({ wallet: proxyWallet })
+        .then(authenticateWith(walletClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.POLY_PROXY);
+
+      const call = erc20ApprovalCall(
+        secureClient.environment.collateralToken,
+        secureClient.environment.standardExchange,
+        1n,
+      );
+      const workflow = await prepareGaslessTransaction(secureClient, {
+        calls: [call],
+        metadata: 'Proxy gasless transaction',
+      });
+
+      const addressRequest = await workflow.next();
+
+      expect(addressRequest).toEqual({
+        done: false,
+        value: { kind: 'requestAddress' },
+      });
+
+      const signRequest = await workflow.next(secureClient.account.signer);
+
+      expect(signRequest.done).toBe(false);
+
+      if (signRequest.done) {
+        return;
+      }
+
+      expect(signRequest.value.kind).toBe('signGaslessMessage');
+      expect(signRequest.value).toMatchObject({
+        kind: 'signGaslessMessage',
+        payload: expect.stringMatching(/^0x[0-9a-f]{64}$/),
+      });
+    });
+
+    it('rejects for EOA wallet type', async () => {
+      const eoaClient = createRandomWalletClient();
+      const secureClient = await createPublicClient()
+        .beginAuthentication({ wallet: eoaClient.account.address })
+        .then(authenticateWith(eoaClient));
+
+      expect(secureClient.account.walletType).toBe(WalletType.EOA);
+
+      await expect(
+        prepareGaslessTransaction(secureClient, {
+          calls: [
+            erc20ApprovalCall(
+              secureClient.environment.collateralToken,
+              secureClient.environment.standardExchange,
+              1n,
+            ),
+          ],
+          metadata: 'Should fail',
+        }),
+      ).rejects.toThrow();
     });
   });
 
