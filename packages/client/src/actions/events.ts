@@ -17,7 +17,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -115,6 +116,13 @@ export type ListEventsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListEventsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists events.
@@ -182,6 +190,13 @@ export type FetchEventError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchEventError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches an event.
@@ -229,6 +244,13 @@ export type FetchEventTagsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchEventTagsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches an event's tags.
@@ -264,6 +286,13 @@ export type FetchEventLiveVolumeError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchEventLiveVolumeError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches live volume for an event.

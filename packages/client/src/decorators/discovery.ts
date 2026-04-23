@@ -540,3 +540,29 @@ export function discoveryActions(client: BaseClient): DiscoveryActions {
     listCommentsByUserAddress: listCommentsByUserAddress.bind(null, client),
   };
 }
+
+// Error unions and runtime `isError` guards for every action bound above.
+// Surfaced at the root entry point through `export * from './decorators'`.
+// Keep this list in sync with the methods on DiscoveryActions.
+export {
+  FetchCommentsByIdError,
+  FetchEventError,
+  FetchEventTagsError,
+  FetchMarketError,
+  FetchMarketTagsError,
+  FetchPublicProfileError,
+  FetchRelatedTagResourcesError,
+  FetchRelatedTagsError,
+  FetchSeriesError,
+  FetchSportsMarketTypesError,
+  FetchTagError,
+  ListCommentsByUserAddressError,
+  ListCommentsError,
+  ListEventsError,
+  ListMarketsError,
+  ListSeriesError,
+  ListSportsError,
+  ListTagsError,
+  ListTeamsError,
+  SearchError,
+} from '../actions';

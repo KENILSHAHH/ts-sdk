@@ -345,3 +345,20 @@ export function accountActions(
     fetchClosedOnlyMode: fetchClosedOnlyMode.bind(null, client),
   };
 }
+
+// Error unions and runtime `isError` guards for every action bound above.
+// Surfaced at the root entry point through `export * from './decorators'`.
+// Keep this list in sync with the methods on AccountPublicActions / AccountActions.
+export {
+  DownloadAccountingSnapshotError,
+  DropNotificationsError,
+  FetchClosedOnlyModeError,
+  FetchNotificationsError,
+  FetchPortfolioValueError,
+  FetchTradedMarketCountError,
+  ListAccountTradesError,
+  ListActivityError,
+  ListClosedPositionsError,
+  ListMarketPositionsError,
+  ListPositionsError,
+} from '../actions';

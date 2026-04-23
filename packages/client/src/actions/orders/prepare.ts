@@ -6,8 +6,9 @@ import {
   expectEvmSignature,
 } from '@polymarket/types';
 import type { BaseSecureClient } from '../../clients';
-import type {
+import {
   InsufficientLiquidityError,
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -50,6 +51,15 @@ export type PrepareMarketOrderError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const PrepareMarketOrderError = makeErrorGuard(
+  InsufficientLiquidityError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Starts the market-order workflow.
@@ -98,6 +108,14 @@ export type PrepareLimitOrderError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const PrepareLimitOrderError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Starts the limit-order workflow.
@@ -143,6 +161,7 @@ export async function prepareLimitOrder(
 }
 
 export type PrepareMarketOrderPostingError = PrepareMarketOrderError;
+export const PrepareMarketOrderPostingError = PrepareMarketOrderError;
 
 /**
  * Starts and posts a market-order workflow.
@@ -172,6 +191,7 @@ export async function prepareMarketOrderPosting(
 }
 
 export type PrepareLimitOrderPostingError = PrepareLimitOrderError;
+export const PrepareLimitOrderPostingError = PrepareLimitOrderError;
 
 /**
  * Starts and posts a limit-order workflow.

@@ -31,7 +31,8 @@ import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import { toSignatureType } from '../account';
 import type { BaseSecureClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -50,6 +51,13 @@ export type FetchClosedOnlyModeError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const FetchClosedOnlyModeError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Fetches whether the account is restricted to closed-only trading.
@@ -90,6 +98,14 @@ export type ListOpenOrdersError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListOpenOrdersError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists open orders for the authenticated account across all pages.
@@ -164,6 +180,14 @@ export type FetchOrderError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchOrderError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a single order for the authenticated account.
@@ -214,6 +238,14 @@ export type ListAccountTradesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListAccountTradesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists trades for the authenticated account across all pages.
@@ -282,6 +314,13 @@ export type FetchNotificationsError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const FetchNotificationsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 const DropNotificationsRequestSchema = z.object({
   ids: z.array(z.string()).min(1),
@@ -322,6 +361,14 @@ export type DropNotificationsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const DropNotificationsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Drops notifications for the authenticated account.
@@ -373,6 +420,14 @@ export type FetchBalanceAllowanceError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchBalanceAllowanceError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches balance and allowance for the authenticated account.
@@ -428,6 +483,14 @@ export type UpdateBalanceAllowanceError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const UpdateBalanceAllowanceError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Refreshes balance and allowance for the authenticated account.
@@ -482,6 +545,14 @@ export type FetchOrderScoringError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchOrderScoringError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches whether a single order is currently scoring.
@@ -525,6 +596,14 @@ export type FetchOrdersScoringError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchOrdersScoringError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches scoring state for multiple orders.
@@ -569,6 +648,14 @@ export type ListUserEarningsForDayError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListUserEarningsForDayError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists per-market earnings for the authenticated account on a given day.
@@ -649,6 +736,14 @@ export type FetchTotalEarningsForUserForDayError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchTotalEarningsForUserForDayError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches total earnings for the authenticated account on a given day.
@@ -703,6 +798,14 @@ export type ListUserEarningsAndMarketsConfigError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListUserEarningsAndMarketsConfigError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists market reward configuration and earnings for the authenticated account on a given day.
@@ -779,6 +882,13 @@ export type FetchRewardPercentagesError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const FetchRewardPercentagesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 /**
  * Fetches reward percentages for the authenticated account.

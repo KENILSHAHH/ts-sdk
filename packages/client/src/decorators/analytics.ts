@@ -167,3 +167,13 @@ export function analyticsActions(client: BaseClient): AnalyticsActions {
     listTraderLeaderboard: listTraderLeaderboard.bind(null, client),
   };
 }
+
+// Error unions and runtime `isError` guards for every action bound above.
+// Surfaced at the root entry point through `export * from './decorators'`.
+// Keep this list in sync with the methods on AnalyticsActions.
+export {
+  ListBuilderLeaderboardError,
+  ListBuilderTradesError,
+  ListBuilderVolumeError,
+  ListTraderLeaderboardError,
+} from '../actions';

@@ -1,5 +1,5 @@
 import type { EvmAddress, EvmSignature, HexString } from '@polymarket/types';
-import type { CancelledSigningError, SigningError } from './errors';
+import { CancelledSigningError, makeErrorGuard, SigningError } from './errors';
 import type {
   TransactionCall,
   TransactionHandle,
@@ -82,7 +82,15 @@ export type AuthenticateWith = <TReturn>(
 ) => Promise<TReturn>;
 
 export type AuthenticateWithError = CancelledSigningError | SigningError;
+export const AuthenticateWithError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+);
 export type CompleteWithError = CancelledSigningError | SigningError;
+export const CompleteWithError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+);
 
 export type CompleteWorkflowRequest =
   | RequestAddressRequest

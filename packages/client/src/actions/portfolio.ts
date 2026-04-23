@@ -12,7 +12,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -120,6 +121,13 @@ export type ListPositionsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListPositionsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists current positions for a wallet.
@@ -200,6 +208,13 @@ export type ListClosedPositionsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListClosedPositionsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists closed positions for a wallet.
@@ -280,6 +295,13 @@ export type FetchPortfolioValueError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchPortfolioValueError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the total value for a wallet's positions.
@@ -317,6 +339,13 @@ export type FetchTradedMarketCountError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchTradedMarketCountError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the total number of markets a wallet has traded.
@@ -354,6 +383,13 @@ export type DownloadAccountingSnapshotError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const DownloadAccountingSnapshotError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Downloads an accounting snapshot archive for a wallet.

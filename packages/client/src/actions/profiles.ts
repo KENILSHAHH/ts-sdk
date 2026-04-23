@@ -6,11 +6,12 @@ import { err, ok, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
 import {
-  type RateLimitError,
+  makeErrorGuard,
+  RateLimitError,
   RequestRejectedError,
-  type TransportError,
-  type UnexpectedResponseError,
-  type UserInputError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
@@ -30,6 +31,13 @@ export type FetchPublicProfileError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchPublicProfileError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a public profile by wallet address.

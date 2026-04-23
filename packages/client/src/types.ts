@@ -6,6 +6,16 @@ import {
   type TxHash,
 } from '@polymarket/types';
 import type { WaitForGaslessTransactionError } from './actions';
+import {
+  makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
+  TimeoutError,
+  TransactionFailedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from './errors';
 
 export type TypedDataField = {
   name: string;
@@ -66,6 +76,15 @@ export type TransactionOutcome = {
 };
 
 export type WaitForTransactionError = WaitForGaslessTransactionError;
+export const WaitForTransactionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TimeoutError,
+  TransactionFailedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 export interface TransactionHandle {
   /**

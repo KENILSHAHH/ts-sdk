@@ -34,11 +34,12 @@ import { encodeProxyCall, encodeSafeMultisendCall } from '../abis';
 import { deriveSafeWalletAddress } from '../account';
 import type { BaseClient, BaseSecureClient } from '../clients';
 import {
-  type RateLimitError,
-  type RequestRejectedError,
+  makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
   TimeoutError,
   TransactionFailedError,
-  type TransportError,
+  TransportError,
   UnexpectedResponseError,
   UserInputError,
 } from '../errors';
@@ -100,6 +101,13 @@ export type FetchExecuteParamsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchExecuteParamsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the parameters needed to prepare a low-level transaction submission.
@@ -148,6 +156,13 @@ export type IsGaslessReadyError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const IsGaslessReadyError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Checks whether a wallet is ready for gasless transactions.
@@ -194,6 +209,13 @@ export type PrepareGaslessWalletError =
   | ExecuteGaslessError
   | IsGaslessReadyError
   | UserInputError;
+export const PrepareGaslessWalletError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Starts preparing the wallet for gasless transactions.
@@ -322,6 +344,13 @@ export type PrepareGaslessTransactionError =
   | ExecuteGaslessError
   | FetchExecuteParamsError
   | UserInputError;
+export const PrepareGaslessTransactionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Starts preparing a low-level transaction workflow from one or more calls.
@@ -654,6 +683,15 @@ export type WaitForGaslessTransactionError =
   | UserInputError
   | TimeoutError
   | TransactionFailedError;
+export const WaitForGaslessTransactionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+  TimeoutError,
+  TransactionFailedError,
+);
 
 class GaslessTransactionHandle implements TransactionHandle {
   readonly #client: BaseClient;

@@ -12,7 +12,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -68,6 +69,13 @@ export type ListCommentsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListCommentsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists comments for an event or series.
@@ -158,6 +166,13 @@ export type FetchCommentsByIdError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchCommentsByIdError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a comment thread by comment id.
@@ -201,6 +216,13 @@ export type ListCommentsByUserAddressError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListCommentsByUserAddressError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists comments written by a wallet address.

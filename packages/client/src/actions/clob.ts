@@ -35,7 +35,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -59,6 +60,13 @@ export type FetchMidpointError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchMidpointError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the midpoint price for a token.
@@ -109,6 +117,13 @@ export type FetchMidpointsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchMidpointsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches midpoint prices for multiple tokens.
@@ -156,6 +171,13 @@ export type FetchTickSizeError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchTickSizeError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the minimum price tick size for a token's order book.
@@ -204,6 +226,13 @@ export type FetchNegRiskError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchNegRiskError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches whether a token is in a negative-risk market.
@@ -252,6 +281,13 @@ export type FetchFeeRateError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchFeeRateError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the base fee rate, in basis points, for a token's order book.
@@ -301,6 +337,13 @@ export type FetchPriceError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchPriceError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the current quoted price for a token and side.
@@ -353,6 +396,13 @@ export type FetchPricesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchPricesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches quoted prices for multiple tokens.
@@ -401,6 +451,13 @@ export type FetchOrderBookError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchOrderBookError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the current order book for a token.
@@ -451,6 +508,13 @@ export type FetchOrderBooksError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchOrderBooksError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches order books for multiple tokens.
@@ -497,6 +561,13 @@ export type FetchSpreadError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchSpreadError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the spread for a token.
@@ -547,6 +618,13 @@ export type FetchSpreadsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchSpreadsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches spreads for multiple tokens.
@@ -596,6 +674,13 @@ export type FetchLastTradePriceError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchLastTradePriceError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches the last traded price for a token.
@@ -647,6 +732,13 @@ export type FetchLastTradePricesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchLastTradePricesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches last traded prices for multiple tokens.
@@ -700,6 +792,13 @@ export type FetchPriceHistoryError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchPriceHistoryError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches historical price points for a token.
@@ -759,6 +858,13 @@ export type ListCurrentRewardsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListCurrentRewardsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists current active market rewards.
@@ -840,6 +946,13 @@ export type ListMarketRewardsError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListMarketRewardsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists reward configurations for a market.

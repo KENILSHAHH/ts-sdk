@@ -9,7 +9,8 @@ import {
 } from '@polymarket/bindings/data';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -84,6 +85,13 @@ export type ListTradesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListTradesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists trades for a wallet, market, or event.
@@ -164,6 +172,13 @@ export type ListActivityError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListActivityError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists wallet activity.

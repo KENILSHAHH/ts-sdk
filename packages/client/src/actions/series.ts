@@ -7,7 +7,8 @@ import {
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -56,6 +57,13 @@ export type ListSeriesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const ListSeriesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Lists series.
@@ -142,6 +150,13 @@ export type FetchSeriesError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const FetchSeriesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Fetches a series.

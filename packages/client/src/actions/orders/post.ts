@@ -8,7 +8,8 @@ import {
 import { invariant, unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
-import type {
+import {
+  makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -30,6 +31,13 @@ export type PostOrderError =
   | SigningError
   | TransportError
   | UnexpectedResponseError;
+export const PostOrderError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+);
 
 export type PostOrdersError =
   | RateLimitError
@@ -38,6 +46,14 @@ export type PostOrdersError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const PostOrdersError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Posts a signed order for the authenticated account.

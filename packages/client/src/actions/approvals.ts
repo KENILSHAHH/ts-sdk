@@ -8,7 +8,7 @@ import {
   MAX_UINT256,
 } from '../abis';
 import type { BaseSecureClient } from '../clients';
-import type { UserInputError } from '../errors';
+import { makeErrorGuard, UserInputError } from '../errors';
 import { parseUserInput } from '../input';
 import { expectTransactionHandle, type TransactionHandle } from '../types';
 import type { SignerTransactionRequest } from '../workflow';
@@ -45,6 +45,7 @@ export type PrepareErc20ApprovalRequest = z.input<
 >;
 
 export type PrepareErc20ApprovalError = UserInputError;
+export const PrepareErc20ApprovalError = makeErrorGuard(UserInputError);
 
 /**
  * Starts an ERC-20 approval workflow.
@@ -121,6 +122,7 @@ export type PrepareErc1155ApprovalForAllRequest = z.input<
 >;
 
 export type PrepareErc1155ApprovalForAllError = UserInputError;
+export const PrepareErc1155ApprovalForAllError = makeErrorGuard(UserInputError);
 
 /**
  * Starts an ERC-1155 approval-for-all workflow.
@@ -192,6 +194,7 @@ export type TradingApprovalsWorkflow = AsyncGenerator<
 >;
 
 export type PrepareTradingApprovalsError = UserInputError;
+export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
 
 /**
  * Starts a trading-setup approval workflow.

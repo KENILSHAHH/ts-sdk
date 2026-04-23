@@ -18,10 +18,11 @@ import {
 } from '../abis';
 import type { BaseSecureClient } from '../clients';
 import {
-  type RateLimitError,
-  type RequestRejectedError,
-  type TransportError,
-  type UnexpectedResponseError,
+  makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
@@ -108,18 +109,33 @@ export type PrepareRedeemPositionsRequest = z.input<
 >;
 
 export type PrepareSplitPositionError = UserInputError;
+export const PrepareSplitPositionError = makeErrorGuard(UserInputError);
 export type PrepareMergePositionsError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const PrepareMergePositionsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 export type PrepareRedeemPositionsError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const PrepareRedeemPositionsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Starts a split workflow for a market condition.

@@ -6,11 +6,12 @@ import { z } from 'zod';
 import type { BaseClient } from '../../clients';
 import {
   InsufficientLiquidityError,
-  type RateLimitError,
-  type RequestRejectedError,
-  type TransportError,
-  type UnexpectedResponseError,
-  type UserInputError,
+  makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
 import { fetchOrderBook, fetchTickSize } from '../clob';
@@ -35,6 +36,14 @@ export type EstimateMarketPriceError =
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
+export const EstimateMarketPriceError = makeErrorGuard(
+  InsufficientLiquidityError,
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Estimates the price level a market order would cross at current book depth.

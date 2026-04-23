@@ -22,8 +22,7 @@ export * from './hmac';
 export type * from './pagination';
 export * from './types';
 export type {
-  AuthenticateWithError,
   AuthenticationWorkflow,
   AuthenticationWorkflowRequest,
-  CompleteWithError,
 } from './workflow';
+export { AuthenticateWithError, CompleteWithError } from './workflow';

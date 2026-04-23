@@ -1,7 +1,7 @@
 import type { ConditionId } from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
-import { UserInputError } from './errors';
+import { makeErrorGuard, UserInputError } from './errors';
 import type { TransactionCall } from './types';
 
 const ZERO_BYTES32 =
@@ -38,6 +38,7 @@ const BINARY_OUTCOME_INDEX_SETS = [1n, 2n] as const;
 export const MAX_UINT256 = (1n << 256n) - 1n;
 
 export type Erc20ApprovalCallError = UserInputError;
+export const Erc20ApprovalCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `approve(address,uint256)` on an ERC-20 token.
@@ -79,6 +80,7 @@ export function erc1155ApprovalForAllCall(
 }
 
 export type Erc20TransferCallError = UserInputError;
+export const Erc20TransferCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `transfer(address,uint256)` on an ERC-20 token.
@@ -106,8 +108,10 @@ export function erc20TransferCall(
 }
 
 export type CtfRedeemPositionsCallError = UserInputError;
+export const CtfRedeemPositionsCallError = makeErrorGuard(UserInputError);
 
 export type SplitPositionCallError = UserInputError;
+export const SplitPositionCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `splitPosition(address,bytes32,bytes32,uint256[],uint256)`.
@@ -138,6 +142,7 @@ export function splitPositionCall(
 }
 
 export type MergePositionsCallError = UserInputError;
+export const MergePositionsCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `mergePositions(address,bytes32,bytes32,uint256[],uint256)`.
@@ -189,6 +194,7 @@ export function ctfRedeemPositionsCall(
 }
 
 export type NegRiskRedeemPositionsCallError = UserInputError;
+export const NegRiskRedeemPositionsCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `redeemPositions(bytes32,uint256[])` on the
