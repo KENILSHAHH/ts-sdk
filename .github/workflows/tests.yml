@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   run:
+    name: Run
     runs-on: ubuntu-latest
 
     steps:
