@@ -71,17 +71,43 @@ const PriceUpdatePayloadSchema = z.looseObject({
 
 export type PriceUpdatePayload = z.infer<typeof PriceUpdatePayloadSchema>;
 
-export const CryptoPricesEventSchema = z.looseObject({
-  topic: z.literal('crypto_prices'),
+const CRYPTO_PRICES_BINANCE_TOPIC = 'prices.crypto.binance' as const;
+const CRYPTO_PRICES_CHAINLINK_TOPIC = 'prices.crypto.chainlink' as const;
+
+export type CryptoPricesBinanceTopic = typeof CRYPTO_PRICES_BINANCE_TOPIC;
+export type CryptoPricesChainlinkTopic = typeof CRYPTO_PRICES_CHAINLINK_TOPIC;
+export type CryptoPricesTopic =
+  | CryptoPricesBinanceTopic
+  | CryptoPricesChainlinkTopic;
+
+const RawCryptoPricesBinanceTopicSchema = z.literal('crypto_prices');
+const RawCryptoPricesChainlinkTopicSchema = z.literal(
+  'crypto_prices_chainlink',
+);
+
+const CryptoPricesBinanceTopicSchema: z.ZodType<CryptoPricesBinanceTopic> =
+  RawCryptoPricesBinanceTopicSchema.transform(() => {
+    return CRYPTO_PRICES_BINANCE_TOPIC;
+  });
+
+const CryptoPricesChainlinkTopicSchema: z.ZodType<CryptoPricesChainlinkTopic> =
+  RawCryptoPricesChainlinkTopicSchema.transform(() => {
+    return CRYPTO_PRICES_CHAINLINK_TOPIC;
+  });
+
+export const CryptoPricesBinanceEventSchema = z.looseObject({
+  topic: CryptoPricesBinanceTopicSchema,
   type: z.literal('update'),
   timestamp: z.number(),
   payload: PriceUpdatePayloadSchema,
 });
 
-export type CryptoPricesEvent = z.infer<typeof CryptoPricesEventSchema>;
+export type CryptoPricesBinanceEvent = z.infer<
+  typeof CryptoPricesBinanceEventSchema
+>;
 
 export const CryptoPricesChainlinkEventSchema = z.looseObject({
-  topic: z.literal('crypto_prices_chainlink'),
+  topic: CryptoPricesChainlinkTopicSchema,
   type: z.literal('update'),
   timestamp: z.number(),
   payload: PriceUpdatePayloadSchema,
@@ -90,6 +116,13 @@ export const CryptoPricesChainlinkEventSchema = z.looseObject({
 export type CryptoPricesChainlinkEvent = z.infer<
   typeof CryptoPricesChainlinkEventSchema
 >;
+
+export const CryptoPricesEventSchema = z.discriminatedUnion('topic', [
+  CryptoPricesBinanceEventSchema,
+  CryptoPricesChainlinkEventSchema,
+]);
+
+export type CryptoPricesEvent = z.infer<typeof CryptoPricesEventSchema>;
 
 const EquityPriceUpdatePayloadSchema = z.looseObject({
   symbol: z.string(),
@@ -122,8 +155,19 @@ export type EquityPriceSubscribePayload = z.infer<
   typeof EquityPriceSubscribePayloadSchema
 >;
 
+const RawEquityPricesTopicSchema = z.literal('equity_prices');
+
+const EQUITY_PRICES_TOPIC = 'prices.equity.pyth' as const;
+
+export type EquityPricesTopic = typeof EQUITY_PRICES_TOPIC;
+
+const EquityPricesTopicSchema: z.ZodType<EquityPricesTopic> =
+  RawEquityPricesTopicSchema.transform(() => {
+    return EQUITY_PRICES_TOPIC;
+  });
+
 export const EquityPricesUpdateEventSchema = z.looseObject({
-  topic: z.literal('equity_prices'),
+  topic: EquityPricesTopicSchema,
   type: z.literal('update'),
   timestamp: z.number(),
   payload: EquityPriceUpdatePayloadSchema,
@@ -134,7 +178,7 @@ export type EquityPricesUpdateEvent = z.infer<
 >;
 
 export const EquityPricesSubscribeEventSchema = z.looseObject({
-  topic: z.literal('equity_prices'),
+  topic: EquityPricesTopicSchema,
   type: z.literal('subscribe'),
   timestamp: z.number(),
   payload: EquityPriceSubscribePayloadSchema,
@@ -144,7 +188,14 @@ export type EquityPricesSubscribeEvent = z.infer<
   typeof EquityPricesSubscribeEventSchema
 >;
 
-export const CommentsEventSchema = z.union([
+export const EquityPricesEventSchema = z.discriminatedUnion('type', [
+  EquityPricesUpdateEventSchema,
+  EquityPricesSubscribeEventSchema,
+]);
+
+export type EquityPricesEvent = z.infer<typeof EquityPricesEventSchema>;
+
+export const CommentsEventSchema = z.discriminatedUnion('type', [
   CommentCreatedEventSchema,
   CommentRemovedEventSchema,
   ReactionCreatedEventSchema,
@@ -153,12 +204,10 @@ export const CommentsEventSchema = z.union([
 
 export type CommentsEvent = z.infer<typeof CommentsEventSchema>;
 
-export const RealtimeEventSchema = z.union([
+export const RealtimeEventSchema = z.discriminatedUnion('topic', [
   CommentsEventSchema,
   CryptoPricesEventSchema,
-  CryptoPricesChainlinkEventSchema,
-  EquityPricesUpdateEventSchema,
-  EquityPricesSubscribeEventSchema,
+  EquityPricesEventSchema,
 ]);
 
 export type RealtimeEvent = z.infer<typeof RealtimeEventSchema>;

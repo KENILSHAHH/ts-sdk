@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SportsResultEventSchema = z.looseObject({
+const SportsResultPayloadSchema = z.looseObject({
   gameId: z.number().int(),
   sportradarGameId: z.string().nullish(),
   slug: z.string().nullish(),
@@ -16,5 +16,17 @@ export const SportsResultEventSchema = z.looseObject({
   finished_timestamp: z.string().nullish(),
   turn: z.string().nullish(),
 });
+
+export const SportsResultEventSchema = SportsResultPayloadSchema.transform(
+  (payload) => {
+    return {
+      // Normalize to the shared subscription event envelope so mixed-stream
+      // consumers can discriminate by `event.topic` and `event.type`.
+      topic: 'sports' as const,
+      type: 'sport_result' as const,
+      payload,
+    };
+  },
+);
 
 export type SportsResultEvent = z.infer<typeof SportsResultEventSchema>;
