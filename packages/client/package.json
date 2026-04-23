@@ -92,6 +92,8 @@
   "dependencies": {
     "@polymarket/bindings": "workspace:*",
     "@polymarket/types": "workspace:*",
+    "it-merge": "^3.0.14",
+    "it-pushable": "^3.2.3",
     "ky": "^1.14.3",
     "ox": "^0.14.16",
     "zod": "^4.3.6"

@@ -69,8 +69,20 @@ export function subscriptionsActions(
 ): PublicSubscriptionsActions | SecureSubscriptionsActions {
   // Wrap instead of `bind` so the method preserves its generic type parameter
   // and can narrow the resolved event type per call site.
+  if (client.isSecureClient()) {
+    return {
+      subscribe<const TSubscriptions extends readonly SecureSubscriptionSpec[]>(
+        subscriptions: TSubscriptions,
+      ): Promise<
+        SubscriptionHandle<EventForSubscriptionSpecs<TSubscriptions>>
+      > {
+        return subscribe(client, subscriptions);
+      },
+    };
+  }
+
   return {
-    subscribe<const TSubscriptions extends readonly SecureSubscriptionSpec[]>(
+    subscribe<const TSubscriptions extends readonly PublicSubscriptionSpec[]>(
       subscriptions: TSubscriptions,
     ): Promise<SubscriptionHandle<EventForSubscriptionSpecs<TSubscriptions>>> {
       return subscribe(client, subscriptions);

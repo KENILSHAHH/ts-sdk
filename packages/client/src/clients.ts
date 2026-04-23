@@ -1,5 +1,9 @@
 import { ApiKeySchema, EvmAddressSchema } from '@polymarket/bindings';
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
+import type {
+  MarketEvent,
+  UserEvent,
+} from '@polymarket/bindings/subscriptions';
 import {
   expectEvmAddress,
   expectEvmSignature,
@@ -14,6 +18,10 @@ import {
   deleteApiKey,
   fetchApiKeys,
 } from './actions/auth';
+import type {
+  MarketSubscription,
+  UserSubscription,
+} from './actions/subscriptions';
 import { createApiKeyAuthTypedDataPayload } from './authentication';
 import {
   allActions,
@@ -27,6 +35,13 @@ import { parseUserInput } from './input';
 import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization } from './types';
+import {
+  ClobWebSocketManager,
+  type PublicWebSocketManagers,
+  RtdsWebSocketManager,
+  type SecureWebSocketManagers,
+  SportsWebSocketManager,
+} from './websockets';
 import { type AuthenticationWorkflow, requestAddress } from './workflow';
 
 type PublicContext = {
@@ -42,6 +57,8 @@ type PublicContext = {
   gamma: ServiceClient;
   /** @internal */
   data: ServiceClient;
+  /** @internal */
+  webSockets: PublicWebSocketManagers;
 };
 
 // biome-ignore lint/complexity/noBannedTypes: intentional
@@ -108,6 +125,11 @@ abstract class AbstractClient<TContext extends PublicContext> {
   /** @internal */
   get data(): ServiceClient {
     return this.context.data;
+  }
+
+  /** @internal */
+  get webSockets(): PublicWebSocketManagers {
+    return this.context.webSockets;
   }
 
   /** @internal */
@@ -248,6 +270,11 @@ class BasePublicClient<
         root: config.environment.relayer,
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
+      webSockets: {
+        clobMarket: new ClobWebSocketManager<MarketSubscription, MarketEvent>(),
+        sports: new SportsWebSocketManager(),
+        rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
+      },
     });
   }
 
@@ -429,6 +456,12 @@ class BaseSecureClient<
         }),
         root: config.environment.clob,
       }),
+      webSockets: {
+        clobMarket: new ClobWebSocketManager<MarketSubscription, MarketEvent>(),
+        clobUser: new ClobWebSocketManager<UserSubscription, UserEvent>(),
+        sports: new SportsWebSocketManager(),
+        rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
+      },
     });
   }
 
@@ -445,6 +478,11 @@ class BaseSecureClient<
   /** @internal */
   get secureClob(): ServiceClient {
     return this.context.secureClob;
+  }
+
+  /** @internal */
+  override get webSockets(): SecureWebSocketManagers {
+    return this.context.webSockets;
   }
 
   /**
@@ -580,6 +618,8 @@ type SecureContext = PublicContext & {
   credentials: ApiKeyCreds;
   /** @internal */
   secureClob: ServiceClient;
+  /** @internal */
+  webSockets: SecureWebSocketManagers;
 };
 
 type SecureClientConfig = PublicClientConfig & {

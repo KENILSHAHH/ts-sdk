@@ -10,9 +10,14 @@ import type {
   SportsEvent,
   UserEvent,
 } from '@polymarket/bindings/subscriptions';
-import type { Prettify } from '@polymarket/types';
-import type { BaseClient } from '../clients';
-import { TransportError } from '../errors';
+import { invariant, type Prettify } from '@polymarket/types';
+import merge from 'it-merge';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
+import type { TransportError } from '../errors';
 
 // Event types — re-exported from bindings for consumer convenience.
 export type {
@@ -121,8 +126,12 @@ export type EventForSubscriptionSpecs<
 > = EventForSubscriptionSpec<TSubscriptions[number]>;
 
 export type SubscriptionHandle<TEvent> = {
+  /**
+   * Closes the subscription. Idempotent: subsequent calls resolve without
+   * effect. Best-effort — errors from the first call propagate, later calls
+   * are no-ops.
+   */
   close(): Promise<void>;
-  readonly closed: Promise<void>;
 } & AsyncIterable<TEvent>;
 
 export type SubscribeError = TransportError;
@@ -145,10 +154,74 @@ export type SubscribeError = TransportError;
  * ```
  */
 export async function subscribe<
+  const TSubscriptions extends readonly PublicSubscriptionSpec[],
+>(
+  client: BasePublicClient,
+  subscriptions: TSubscriptions,
+): Promise<SubscriptionHandle<EventForSubscriptionSpecs<TSubscriptions>>>;
+export async function subscribe<
   const TSubscriptions extends readonly SecureSubscriptionSpec[],
 >(
-  _client: BaseClient,
-  _subscriptions: TSubscriptions,
-): Promise<SubscriptionHandle<EventForSubscriptionSpecs<TSubscriptions>>> {
-  throw new TransportError('Realtime subscriptions are not implemented yet.');
+  client: BaseSecureClient,
+  subscriptions: TSubscriptions,
+): Promise<SubscriptionHandle<EventForSubscriptionSpecs<TSubscriptions>>>;
+export async function subscribe(
+  client: BaseClient,
+  subscriptions: readonly SecureSubscriptionSpec[],
+): Promise<SubscriptionHandle<unknown>> {
+  const handles = await Promise.all(
+    subscriptions.map((spec) => subscribeOne(client, spec)),
+  );
+  return mergedSubscription(handles);
+}
+
+function subscribeOne(
+  client: BaseClient,
+  spec: SecureSubscriptionSpec,
+): Promise<SubscriptionHandle<unknown>> {
+  switch (spec.topic) {
+    case 'market':
+      return client.webSockets.clobMarket.subscribe(spec);
+    case 'sports':
+      return client.webSockets.sports.subscribe(spec);
+    case 'comments':
+    case 'prices.crypto.binance':
+    case 'prices.crypto.chainlink':
+    case 'prices.equity.pyth':
+      return client.webSockets.rtds.subscribe(spec);
+    case 'user':
+      invariant(
+        client.isSecureClient(),
+        "A 'user' subscription requires a secure client instance.",
+      );
+      return client.webSockets.clobUser.subscribe(spec);
+  }
+}
+
+function mergedSubscription<TEvent>(
+  children: readonly SubscriptionHandle<TEvent>[],
+): SubscriptionHandle<TEvent> {
+  // Cache the in-flight or settled close so subsequent `close()` calls are
+  // idempotent: concurrent callers share the same underlying teardown, and
+  // callers after settlement observe the original result (including any
+  // rejection) instead of re-invoking child teardowns.
+  let closing: Promise<void> | undefined;
+
+  async function close(): Promise<void> {
+    if (closing === undefined) {
+      closing = Promise.all(children.map((child) => child.close())).then(
+        () => undefined,
+      );
+    }
+    await closing;
+  }
+
+  const iterable = merge(...children);
+
+  return {
+    close,
+    [Symbol.asyncIterator]() {
+      return iterable[Symbol.asyncIterator]();
+    },
+  };
 }
