@@ -247,3 +247,18 @@ export function walletActions(
     prepareRedeemPositions: prepareRedeemPositions.bind(null, client),
   };
 }
+
+// Error unions and runtime `isError` guards for every action bound above.
+// Surfaced at the root entry point through `export * from './decorators'`.
+// Keep this list in sync with the methods on PublicWalletActions / SecureWalletActions.
+export {
+  IsGaslessReadyError,
+  PrepareErc20ApprovalError,
+  PrepareErc20TransferError,
+  PrepareErc1155ApprovalForAllError,
+  PrepareGaslessWalletError,
+  PrepareMergePositionsError,
+  PrepareRedeemPositionsError,
+  PrepareSplitPositionError,
+  PrepareTradingApprovalsError,
+} from '../actions';

@@ -315,3 +315,25 @@ export function dataActions(client: BaseClient): DataActions {
     listTrades: listTrades.bind(null, client),
   };
 }
+
+// Error unions and runtime `isError` guards for every action bound above.
+// Surfaced at the root entry point through `export * from './decorators'`.
+// Keep this list in sync with the methods on DataActions.
+export {
+  EstimateMarketPriceError,
+  FetchEventLiveVolumeError,
+  FetchLastTradePriceError,
+  FetchLastTradePricesError,
+  FetchMidpointError,
+  FetchMidpointsError,
+  FetchOrderBookError,
+  FetchOrderBooksError,
+  FetchPriceError,
+  FetchPriceHistoryError,
+  FetchPricesError,
+  FetchSpreadError,
+  FetchSpreadsError,
+  ListMarketHoldersError,
+  ListOpenInterestError,
+  ListTradesError,
+} from '../actions';
