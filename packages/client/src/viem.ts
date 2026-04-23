@@ -9,7 +9,6 @@ import {
   type Account,
   type Chain,
   type Hash,
-  hashTypedData,
   type SendTransactionParameters,
   type SendTransactionRequest,
   TransactionExecutionError,
@@ -150,9 +149,7 @@ export function completeWith(walletClient: WalletClient): CompleteWith {
               expectEvmSignature(
                 await signMessage(walletClient, {
                   account,
-                  message: {
-                    raw: hashTypedData(result.value.payload as never),
-                  },
+                  message: { raw: result.value.payload },
                 }),
               ),
             );

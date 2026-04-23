@@ -155,16 +155,10 @@ async function signTypedData(
   }
 }
 
-async function signMessage(signer: EthersV5Signer, payload: TypedDataPayload) {
+async function signMessage(signer: EthersV5Signer, message: HexString) {
   try {
-    const digest = ethers.utils._TypedDataEncoder.hash(
-      payload.domain,
-      removeEip712Domain(payload.types),
-      payload.message,
-    );
-
     return expectEvmSignature(
-      await signer.signMessage(ethers.utils.arrayify(digest)),
+      await signer.signMessage(ethers.utils.arrayify(message)),
     );
   } catch (error) {
     throwSigningWorkflowError(error);

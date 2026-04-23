@@ -53,7 +53,8 @@ function proxyWalletBytecodeHash(config: WalletDerivationConfig): HexString {
   return expectHexString(Hash.keccak256(`0x${bytecode}`));
 }
 
-function deriveProxyWalletAddress(
+/** @internal */
+export function deriveProxyWalletAddress(
   signer: EvmAddress,
   config: WalletDerivationConfig,
 ): EvmAddress {

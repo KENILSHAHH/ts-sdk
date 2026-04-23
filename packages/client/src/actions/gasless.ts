@@ -28,8 +28,9 @@ import {
   unwrap,
   ZERO_ADDRESS,
 } from '@polymarket/types';
+import { Bytes, Hash, TypedData as OxTypedData } from 'ox';
 import { z } from 'zod';
-import { encodeSafeMultisendCall } from '../abis';
+import { encodeProxyCall, encodeSafeMultisendCall } from '../abis';
 import { deriveSafeWalletAddress } from '../account';
 import type { BaseClient, BaseSecureClient } from '../clients';
 import {
@@ -345,8 +346,9 @@ export async function prepareGaslessTransaction(
     'Gasless transactions require a Relayer API Key or Builder API Key in the client configuration.',
   );
   invariant(
-    client.account.walletType === WalletType.POLY_GNOSIS_SAFE,
-    'Gasless transaction preparation currently supports Safe-backed accounts only',
+    client.account.walletType === WalletType.POLY_GNOSIS_SAFE ||
+      client.account.walletType === WalletType.POLY_PROXY,
+    'Gasless transaction preparation supports Safe-backed and proxy-backed accounts',
   );
 
   return async function* (): GaslessWorkflow {
@@ -357,6 +359,60 @@ export async function prepareGaslessTransaction(
       'Wallet client address does not match the authenticated signer',
     );
 
+    if (client.account.walletType === WalletType.POLY_PROXY) {
+      const executeParams = await fetchExecuteParams(client, {
+        address: client.account.signer,
+        type: RelayerTransactionType.PROXY,
+      });
+
+      const to = client.environment.walletDerivation.proxyFactory;
+      const data = encodeProxyCall(params.calls);
+      const relayerFee = '0';
+      // gasPrice is included in the signed hash but the relayer only validates
+      // that it is non-empty — it does not use this value when submitting the
+      // transaction on-chain (it applies its own gas pricing). Any non-empty
+      // string satisfies the protocol.
+      const gasPrice = '0';
+      // gasLimit is likewise part of the signed hash but is not used by the
+      // relayer when executing the transaction — the relayer applies its own
+      // gas estimation at submission time. The validator only checks non-empty.
+      const gasLimit = '10000000';
+      const relayHub = client.environment.relayHub;
+      const relay = ZERO_ADDRESS;
+
+      const hash = buildProxyTransactionHash(
+        client.account.signer,
+        to,
+        data,
+        relayerFee,
+        gasPrice,
+        gasLimit,
+        executeParams.nonce,
+        relayHub,
+        relay,
+      );
+
+      const signature = expectEvmSignature(yield signGaslessMessage(hash));
+
+      return executeGasless(client, {
+        data,
+        from: client.account.signer,
+        metadata: params.metadata,
+        nonce: executeParams.nonce,
+        proxyWallet: client.account.wallet,
+        signature,
+        signatureParams: {
+          gasLimit,
+          gasPrice,
+          relay,
+          relayHub,
+          relayerFee,
+        },
+        to,
+        type: RelayerTransactionType.PROXY,
+      });
+    }
+
     const executeParams = await fetchExecuteParams(client, {
       address: client.account.signer,
       type: RelayerTransactionType.SAFE,
@@ -366,17 +422,23 @@ export async function prepareGaslessTransaction(
       client.environment.safeMultisend,
     );
 
+    const safePayload = createSafeTypedDataPayload({
+      chainId: client.environment.chainId,
+      data: transaction.data,
+      nonce: executeParams.nonce,
+      operation: transaction.operation,
+      safeAddress: client.account.wallet,
+      to: transaction.to,
+      value: transaction.value,
+    });
+
     const signature = expectEvmSignature(
       yield signGaslessMessage(
-        createSafeTypedDataPayload({
-          chainId: client.environment.chainId,
-          data: transaction.data,
-          nonce: executeParams.nonce,
-          operation: transaction.operation,
-          safeAddress: client.account.wallet,
-          to: transaction.to,
-          value: transaction.value,
-        }),
+        expectHexString(
+          OxTypedData.getSignPayload(
+            safePayload as Parameters<typeof OxTypedData.getSignPayload>[0],
+          ),
+        ),
       ),
     );
 
@@ -535,13 +597,41 @@ function signGaslessTypedData(
   };
 }
 
-function signGaslessMessage(
-  payload: TypedDataPayload,
-): SignGaslessMessageRequest {
+function signGaslessMessage(payload: HexString): SignGaslessMessageRequest {
   return {
     kind: 'signGaslessMessage',
     payload,
   };
+}
+
+function buildProxyTransactionHash(
+  from: EvmAddress,
+  to: EvmAddress,
+  data: HexString,
+  relayerFee: string,
+  gasPrice: string,
+  gasLimit: string,
+  nonce: string,
+  relayHub: EvmAddress,
+  relay: EvmAddress,
+): HexString {
+  return expectHexString(
+    Hash.keccak256(
+      Bytes.concat(
+        Bytes.fromString('rlx:'),
+        Bytes.fromHex(from),
+        Bytes.fromHex(to),
+        Bytes.fromHex(data),
+        Bytes.fromNumber(BigInt(relayerFee), { size: 32 }),
+        Bytes.fromNumber(BigInt(gasPrice), { size: 32 }),
+        Bytes.fromNumber(BigInt(gasLimit), { size: 32 }),
+        Bytes.fromNumber(BigInt(nonce), { size: 32 }),
+        Bytes.fromHex(relayHub),
+        Bytes.fromHex(relay),
+      ),
+      { as: 'Hex' },
+    ),
+  );
 }
 
 function packSafeSignature(signature: EvmSignature): HexString {

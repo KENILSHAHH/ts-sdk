@@ -4,13 +4,14 @@ import {
   expectEvmAddress,
   expectEvmSignature,
   expectTxHash,
+  type HexString,
   invariant,
   never,
   type TxHash,
 } from '@polymarket/types';
 // biome-ignore lint/style/noRestrictedImports: @privy-io/node is the intentional external adapter target for this entrypoint.
 import type { AuthorizationContext, PrivyClient } from '@privy-io/node';
-import { TypedData } from 'ox';
+import { Hex } from 'ox';
 import {
   type Chain,
   createPublicClient,
@@ -205,17 +206,14 @@ async function signTypedData(
   }
 }
 
-async function signMessage(
-  config: PrivyWalletConfig,
-  payload: TypedDataPayload,
-) {
+async function signMessage(config: PrivyWalletConfig, message: HexString) {
   try {
     const response = await config.privy
       .wallets()
       .ethereum()
       .signMessage(config.walletId, {
         authorization_context: config.authorizationContext,
-        message: TypedData.getSignPayload(payload as never),
+        message: Hex.toBytes(message as `0x${string}`),
       });
 
     return expectEvmSignature(response.signature);

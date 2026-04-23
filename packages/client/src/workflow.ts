@@ -44,7 +44,7 @@ export type SignGaslessTypedDataRequest = {
 
 export type SignGaslessMessageRequest = {
   kind: 'signGaslessMessage';
-  payload: TypedDataPayload;
+  payload: HexString;
 };
 
 export type SendSplitPositionTransactionRequest = {
