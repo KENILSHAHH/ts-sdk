@@ -18,6 +18,12 @@ jobs:
     name: Verify
     uses: ./.github/workflows/verify.yml
 
+  test:
+    name: Tests
+    needs: verify
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+
   release:
     name: Publish Canary
     runs-on: ubuntu-latest
