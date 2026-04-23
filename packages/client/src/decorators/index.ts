@@ -17,6 +17,11 @@ import {
   type RewardsPublicActions,
   rewardsActions,
 } from './rewards';
+import {
+  type PublicSubscriptionsActions,
+  type SecureSubscriptionsActions,
+  subscriptionsActions,
+} from './subscriptions';
 import { type TradingActions, tradingActions } from './trading';
 import {
   type PublicWalletActions,
@@ -30,6 +35,7 @@ export type PublicActions = Prettify<
     AnalyticsActions &
     AccountPublicActions &
     RewardsPublicActions &
+    PublicSubscriptionsActions &
     PublicWalletActions
 >;
 
@@ -39,6 +45,7 @@ export type SecureActions = Prettify<
     AnalyticsActions &
     AccountActions &
     RewardsActions &
+    SecureSubscriptionsActions &
     SecureWalletActions &
     TradingActions
 >;
@@ -53,6 +60,7 @@ export function allActions(client: BaseClient): PublicActions | SecureActions {
       ...dataActions(client),
       ...discoveryActions(client),
       ...rewardsActions(client),
+      ...subscriptionsActions(client),
       ...tradingActions(client),
       ...walletActions(client),
     };
@@ -64,6 +72,7 @@ export function allActions(client: BaseClient): PublicActions | SecureActions {
     ...dataActions(client),
     ...discoveryActions(client),
     ...rewardsActions(client),
+    ...subscriptionsActions(client),
     ...walletActions(client),
   };
 }
@@ -73,5 +82,6 @@ export * from './analytics';
 export * from './data';
 export * from './discovery';
 export * from './rewards';
+export * from './subscriptions';
 export * from './trading';
 export * from './wallet';

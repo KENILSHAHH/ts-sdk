@@ -35,6 +35,11 @@ export default defineConfig({
           include: ['packages/client/**/*.test.ts'],
           environment: 'node',
           testTimeout: 10_000,
+          typecheck: {
+            enabled: true,
+            include: ['packages/client/**/*.test-d.ts'],
+            tsconfig: 'packages/client/tsconfig.build.json',
+          },
         },
       },
     ],

@@ -51,7 +51,7 @@ export const MarketBookEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -81,7 +81,7 @@ export const MarketPriceChangeEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -106,7 +106,7 @@ export const MarketLastTradePriceEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -128,7 +128,7 @@ export const MarketTickSizeChangeEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -151,7 +151,7 @@ export const MarketBestBidAskEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -197,7 +197,7 @@ export const NewMarketEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -220,7 +220,7 @@ export const MarketResolvedEventSchema = z
   .transform(({ event_type, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'market',
+      topic: 'market' as const,
       type: event_type,
       payload: event,
     };
@@ -261,7 +261,7 @@ export const UserOrderEventSchema = z
   .transform(({ event_type, type: orderEventType, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'user',
+      topic: 'user' as const,
       type: event_type,
       payload: {
         ...event,
@@ -316,7 +316,7 @@ export const UserTradeEventSchema = z
   .transform(({ event_type, type: _, ...event }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
-      topic: 'user',
+      topic: 'user' as const,
       type: event_type,
       payload: event,
     };

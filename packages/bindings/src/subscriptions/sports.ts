@@ -29,4 +29,4 @@ export const SportsResultEventSchema = SportsResultPayloadSchema.transform(
   },
 );
 
-export type SportsResultEvent = z.infer<typeof SportsResultEventSchema>;
+export type SportsEvent = z.infer<typeof SportsResultEventSchema>;

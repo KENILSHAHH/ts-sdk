@@ -16,6 +16,7 @@ export * from './profiles';
 export * from './search';
 export * from './series';
 export * from './sports';
+export * from './subscriptions';
 export * from './tags';
 export * from './teams';
 export * from './transfers';
