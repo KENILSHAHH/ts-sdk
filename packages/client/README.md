@@ -12,11 +12,10 @@ pnpm add @polymarket/client
 
 ```ts
 import { createPublicClient } from '@polymarket/client';
-import { listMarkets } from '@polymarket/client/actions';
 
 const client = createPublicClient();
 
-const result = listMarkets(client, {
+const result = client.listMarkets({
   closed: false,
   pageSize: 3,
 });
