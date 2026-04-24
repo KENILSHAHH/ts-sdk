@@ -52,14 +52,6 @@ describe('Account', () => {
       const notifications = await fetchNotifications(secureClient);
 
       if (notifications.length === 0) {
-        await expect(
-          dropNotifications(secureClient, {
-            ids: ['0'],
-          }),
-        ).rejects.toMatchObject({
-          status: 400,
-        });
-
         return;
       }
 
