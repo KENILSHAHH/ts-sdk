@@ -52,6 +52,7 @@ export class RtdsWebSocketManager
   readonly #url: string;
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocket> | undefined;
+  #closing: Promise<void> | undefined;
   #heartbeat: ReturnType<typeof setInterval> | undefined;
   // Subscribers grouped by topic. The map both tracks which topics currently
   // have a server-side subscription (key presence) and the set of per-handle
@@ -112,7 +113,42 @@ export class RtdsWebSocketManager
   }
 
   async close(): Promise<void> {
-    // TODO(followup): terminate the shared socket and end all active handles.
+    if (this.#closing === undefined) {
+      this.#closing = this.#closeCurrentSocket().finally(() => {
+        this.#closing = undefined;
+      });
+    }
+    await this.#closing;
+  }
+
+  async #closeCurrentSocket(): Promise<void> {
+    this.#stopHeartbeat();
+    this.#endSubscribers();
+
+    const socket = await this.#takeCurrentSocket();
+    if (socket === undefined || socket.readyState === WebSocket.CLOSED) {
+      return;
+    }
+    if (socket.readyState === WebSocket.CLOSING) {
+      await waitForSocketClose(socket);
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      socket.addEventListener('close', () => resolve(), { once: true });
+      socket.close();
+    });
+  }
+
+  async #takeCurrentSocket(): Promise<WebSocket | undefined> {
+    const socket = this.#socket;
+    const connecting = this.#connecting;
+
+    this.#socket = undefined;
+    this.#connecting = undefined;
+
+    if (socket !== undefined) return socket;
+    return connecting?.catch(() => undefined);
   }
 
   #ensureSocket(): Promise<WebSocket> {
@@ -168,9 +204,13 @@ export class RtdsWebSocketManager
     // active handle's iterator so callers observe the drop.
     this.#stopHeartbeat();
     this.#socket = undefined;
+    this.#endSubscribers();
+  }
+
+  #endSubscribers(error?: Error): void {
     for (const subscribers of this.#subscribersByTopic.values()) {
       for (const subscriber of subscribers) {
-        subscriber.queue.end();
+        subscriber.queue.end(error);
       }
     }
     this.#subscribersByTopic.clear();
@@ -194,12 +234,14 @@ export class RtdsWebSocketManager
 
   #onSocketError(): void {
     // TODO(followup): classify errors and reconnect when appropriate.
-    for (const subscribers of this.#subscribersByTopic.values()) {
-      for (const subscriber of subscribers) {
-        subscriber.queue.end(new Error('RTDS WebSocket connection errored.'));
-      }
-    }
+    this.#endSubscribers(new Error('RTDS WebSocket connection errored.'));
   }
+}
+
+function waitForSocketClose(socket: WebSocket): Promise<void> {
+  return new Promise((resolve) => {
+    socket.addEventListener('close', () => resolve(), { once: true });
+  });
 }
 
 function buildSubscribeMessage(subscription: RtdsSpec): unknown {

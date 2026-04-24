@@ -30,12 +30,13 @@ async function collectEvents(
 }
 
 describe('subscribe', () => {
-  describe('RDTS websocket', () => {
+  describe('RTDS websocket', () => {
     beforeAll(() => {
       server.listen({ onUnhandledRequest: 'bypass' });
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+      await publicClient.webSockets.rtds.close();
       server.resetHandlers();
     });
 
@@ -110,6 +111,7 @@ describe('subscribe', () => {
     }, async () => {
       const clientFrames: string[] = [];
       const serverFrames: string[] = [];
+      const client = createPublicClient({ environment: production });
 
       server.use(
         rtds.addEventListener('connection', ({ client, server }) => {
@@ -125,14 +127,25 @@ describe('subscribe', () => {
 
       try {
         vi.useFakeTimers();
-        const client = createPublicClient({ environment: production });
         const handle = await client.subscribe([
           { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
         ]);
         await vi.advanceTimersByTimeAsync(5_000);
-        expect([...clientFrames, ...serverFrames]).toContain('PING');
+        const pingCountAfterHeartbeat = [
+          ...clientFrames,
+          ...serverFrames,
+        ].filter((frame) => frame === 'PING').length;
+        expect(pingCountAfterHeartbeat).toBeGreaterThan(0);
         await handle.close();
+        await client.webSockets.rtds.close();
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(
+          [...clientFrames, ...serverFrames].filter(
+            (frame) => frame === 'PING',
+          ),
+        ).toHaveLength(pingCountAfterHeartbeat);
       } finally {
+        await client.webSockets.rtds.close();
         vi.useRealTimers();
       }
     });
