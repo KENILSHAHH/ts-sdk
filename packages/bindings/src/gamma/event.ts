@@ -20,7 +20,6 @@ import {
   RelatedMarketSchema,
   TagReferenceSchema,
 } from './common';
-import { createPageSchema } from './pagination';
 
 const BestLineIdSchema = z.string().transform(toBestLineId);
 const ChatIdSchema = z.string().transform(toChatId);
@@ -324,18 +323,15 @@ export const EventSchema = z
   }));
 
 export const ListEventsResponseSchema = z.array(EventSchema);
-const EventsPageSchema = createPageSchema(EventSchema);
 export const ListEventsKeysetResponseSchema = z
   .object({
     events: z.array(EventSchema),
     next_cursor: PaginationCursorSchema.optional(),
   })
-  .transform(({ events, next_cursor }) =>
-    EventsPageSchema.parse({
-      items: events,
-      next_cursor,
-    }),
-  );
+  .transform(({ events, next_cursor }) => ({
+    items: events,
+    nextCursor: next_cursor,
+  }));
 export const FetchEventTagsResponseSchema = z.array(TagReferenceSchema);
 
 export type Event = z.infer<typeof EventSchema>;

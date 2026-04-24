@@ -16,7 +16,6 @@ import {
   RelatedMarketSchema,
   TagReferenceSchema,
 } from './common';
-import { createPageSchema } from './pagination';
 
 const StringPairSchema = z.tuple([z.string(), z.string()]);
 const TokenIdPairValueSchema = z.tuple([TokenIdSchema, TokenIdSchema]);
@@ -207,18 +206,15 @@ export const MarketSchema = z
   }));
 
 export const ListMarketsResponseSchema = z.array(MarketSchema);
-const MarketsPageSchema = createPageSchema(MarketSchema);
 export const ListMarketsKeysetResponseSchema = z
   .object({
     markets: z.array(MarketSchema),
     next_cursor: PaginationCursorSchema.optional(),
   })
-  .transform(({ markets, next_cursor }) =>
-    MarketsPageSchema.parse({
-      items: markets,
-      next_cursor,
-    }),
-  );
+  .transform(({ markets, next_cursor }) => ({
+    items: markets,
+    nextCursor: next_cursor,
+  }));
 export const FetchMarketTagsResponseSchema = z.array(TagReferenceSchema);
 
 export type Market = z.infer<typeof MarketSchema>;
