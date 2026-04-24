@@ -17,7 +17,7 @@
     "changeset": "changeset",
     "clean": "rimraf packages/*/dist",
     "dev:react": "pnpm --filter @polymarket/examples-react dev",
-    "release:canary": "changeset publish --tag canary",
+    "release:canary": "changeset publish --tag canary --no-git-tag",
     "test:bindings": "vitest --project bindings --passWithNoTests",
     "test:client": "vitest --project client",
     "test:types": "vitest --project types --passWithNoTests",

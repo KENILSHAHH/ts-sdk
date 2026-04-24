@@ -65,8 +65,9 @@ Current workflow:
 1. Push a commit to `main`.
 2. The `Verify` workflow runs blocking verification checks.
 3. The `Tests` workflow runs the broader test suite.
-4. After `Verify` succeeds on `main`, the `Release` workflow runs the `version:canary` and `release:canary` package scripts and publishes the packages to the npm `canary` dist-tag.
-5. Consumers can install the latest canary with `@polymarket/<package>@canary`.
+4. After `Verify` succeeds on `main`, the `Release` workflow runs the `version:canary` and `release:canary` package scripts and publishes the packages to the npm `canary` dist-tag without creating git tags.
+5. The workflow updates the npm `latest` dist-tag to point to the same published canary versions.
+6. Consumers can install the latest canary with `@polymarket/<package>@canary` or the default `@polymarket/<package>` specifier while canary is the only released channel.
 
 This flow does not currently require adding a changeset file for each PR.
 

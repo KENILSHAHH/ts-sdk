@@ -44,3 +44,6 @@ jobs:
 
       - name: Publish Canary Packages
         run: pnpm release:canary
+
+      - name: Update Latest Dist Tags
+        run: pnpm --filter './packages/*' -r exec sh -c 'npm dist-tag add "$npm_package_name@$npm_package_version" latest'
