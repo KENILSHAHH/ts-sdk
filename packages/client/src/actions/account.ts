@@ -143,7 +143,7 @@ export function listOpenOrders(
   client: BaseSecureClient,
   request?: ListOpenOrdersRequest,
 ): Paginated<OpenOrder> {
-  const { cursor, ...params } = parseUserInput(
+  const { cursor, tokenId, ...params } = parseUserInput(
     request,
     ListOpenOrdersRequestSchema,
   );
@@ -152,7 +152,10 @@ export function listOpenOrders(
     (nextCursor) =>
       client.secureClob
         .get('/data/orders', {
-          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+          params: toSearchParams(
+            { ...params, nextCursor, assetId: tokenId },
+            snakeCase(),
+          ),
         })
         .andThen(validateWith(OpenOrdersPageSchema))
         .map((response) => ({
@@ -283,7 +286,7 @@ export function listAccountTrades(
   client: BaseSecureClient,
   request?: ListAccountTradesRequest,
 ): Paginated<ClobTrade> {
-  const { cursor, ...params } = parseUserInput(
+  const { cursor, tokenId, ...params } = parseUserInput(
     request,
     ListAccountTradesRequestSchema,
   );
@@ -292,7 +295,10 @@ export function listAccountTrades(
     (nextCursor) =>
       client.secureClob
         .get('/data/trades', {
-          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+          params: toSearchParams(
+            { ...params, nextCursor, assetId: tokenId },
+            snakeCase(),
+          ),
         })
         .andThen(validateWith(ClobTradesPageSchema))
         .map((response) => ({
@@ -449,7 +455,10 @@ export async function fetchBalanceAllowance(
   client: BaseSecureClient,
   request: FetchBalanceAllowanceRequest,
 ): Promise<BalanceAllowanceResponse> {
-  const params = parseUserInput(request, FetchBalanceAllowanceRequestSchema);
+  const { tokenId, ...params } = parseUserInput(
+    request,
+    FetchBalanceAllowanceRequestSchema,
+  );
   const signatureType = toSignatureType(client.account.walletType);
 
   return unwrap(
@@ -458,6 +467,7 @@ export async function fetchBalanceAllowance(
         params: toSearchParams(
           {
             ...params,
+            assetId: tokenId,
             signatureType,
           },
           snakeCase(),
@@ -512,11 +522,15 @@ export async function updateBalanceAllowance(
   client: BaseSecureClient,
   request: UpdateBalanceAllowanceRequest,
 ): Promise<BalanceAllowanceResponse> {
-  const params = parseUserInput(request, UpdateBalanceAllowanceRequestSchema);
+  const { tokenId, ...params } = parseUserInput(
+    request,
+    UpdateBalanceAllowanceRequestSchema,
+  );
   const signatureType = toSignatureType(client.account.walletType);
   const searchParams = toSearchParams(
     {
       ...params,
+      assetId: tokenId,
       signatureType,
     },
     snakeCase(),
@@ -528,7 +542,7 @@ export async function updateBalanceAllowance(
     }),
   );
 
-  return fetchBalanceAllowance(client, params);
+  return fetchBalanceAllowance(client, { ...params, tokenId });
 }
 
 const FetchOrderScoringRequestSchema = z.object({
