@@ -12,7 +12,10 @@ export const HolderSchema = z.looseObject({
   name: z.string().nullish(),
   profileImage: z.string().nullish(),
   profileImageOptimized: z.string().nullish(),
-});
+}).transform(({ asset, ...rest }) => ({
+  ...rest,
+  tokenId: asset,
+}));
 
 export const MetaHolderSchema = z.looseObject({
   token: z.string().nullish(),

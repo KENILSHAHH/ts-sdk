@@ -22,7 +22,10 @@ export const TradeSchema = z.looseObject({
   profileImage: z.string().nullish(),
   profileImageOptimized: z.string().nullish(),
   transactionHash: z.string().nullish(),
-});
+}).transform(({ asset, ...rest }) => ({
+  ...rest,
+  tokenId: asset,
+}));
 
 export const ActivitySchema = z.looseObject({
   proxyWallet: AddressSchema.nullish(),
@@ -46,7 +49,10 @@ export const ActivitySchema = z.looseObject({
   bio: z.string().nullish(),
   profileImage: z.string().nullish(),
   profileImageOptimized: z.string().nullish(),
-});
+}).transform(({ asset, ...rest }) => ({
+  ...rest,
+  tokenId: asset,
+}));
 
 export const TradedSchema = z.looseObject({
   user: AddressSchema.nullish(),

@@ -231,7 +231,7 @@ export const NewMarketEventSchema = z
       type: event_type,
       payload: {
         ...rest,
-        assetsIds: assets_ids,
+        tokenIds: assets_ids,
         eventMessage: event_message,
         conditionId: condition_id,
         clobTokenIds: clob_token_ids,
@@ -267,7 +267,7 @@ export const MarketResolvedEventSchema = z
       type: event_type,
       payload: {
         ...rest,
-        assetsIds: assets_ids,
+        tokenIds: assets_ids,
         winningAssetId: winning_asset_id,
         winningOutcome: winning_outcome,
         eventMessage: event_message,

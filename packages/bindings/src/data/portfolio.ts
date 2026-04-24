@@ -29,7 +29,10 @@ export const PositionSchema = z.looseObject({
   oppositeAsset: z.string().nullish(),
   endDate: z.string().nullish(),
   negativeRisk: z.boolean().nullish(),
-});
+}).transform(({ asset, ...rest }) => ({
+  ...rest,
+  tokenId: asset,
+}));
 
 export const ClosedPositionSchema = z.looseObject({
   proxyWallet: AddressSchema.nullish(),
@@ -49,7 +52,10 @@ export const ClosedPositionSchema = z.looseObject({
   oppositeOutcome: z.string().nullish(),
   oppositeAsset: z.string().nullish(),
   endDate: z.string().nullish(),
-});
+}).transform(({ asset, ...rest }) => ({
+  ...rest,
+  tokenId: asset,
+}));
 
 export const ValueSchema = z.looseObject({
   user: AddressSchema.nullish(),
@@ -73,7 +79,10 @@ export const MarketPositionV1Schema = z.looseObject({
   totalPnl: z.number().nullish(),
   outcome: z.string().nullish(),
   outcomeIndex: z.number().int().nullish(),
-});
+}).transform(({ asset, ...rest }) => ({
+  ...rest,
+  tokenId: asset,
+}));
 
 export const MetaMarketPositionV1Schema = z.looseObject({
   token: z.string().nullish(),

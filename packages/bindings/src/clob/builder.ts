@@ -25,8 +25,9 @@ export const BuilderTradeSchema = z.looseObject({
   err_msg: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-}).transform(({ err_msg, ...rest }) => ({
+}).transform(({ err_msg, assetId, ...rest }) => ({
   ...rest,
+  tokenId: assetId,
   errMsg: err_msg,
 }));
 export type BuilderTrade = z.infer<typeof BuilderTradeSchema>;

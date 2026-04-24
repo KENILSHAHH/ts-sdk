@@ -83,7 +83,7 @@ export async function fetchClosedOnlyMode(
 
 const ListOpenOrdersRequestSchema = z
   .object({
-    assetId: z.string().optional(),
+    tokenId: z.string().optional(),
     cursor: PaginationCursorSchema.optional(),
     id: z.string().optional(),
     market: z.string().optional(),
@@ -216,7 +216,7 @@ export async function fetchOrder(
 
 const ListAccountTradesRequestFields = {
   after: z.string().optional(),
-  assetId: z.string().optional(),
+  tokenId: z.string().optional(),
   before: z.string().optional(),
   cursor: PaginationCursorSchema.optional(),
   id: z.string().optional(),
