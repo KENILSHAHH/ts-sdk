@@ -48,12 +48,19 @@ export const MarketBookEventSchema = z
     neg_risk: z.boolean().nullish(),
     last_trade_price: z.string().nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, asset_id, min_order_size, tick_size, neg_risk, last_trade_price, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        tokenId: asset_id,
+        minOrderSize: min_order_size,
+        tickSize: tick_size,
+        negRisk: neg_risk,
+        lastTradePrice: last_trade_price,
+      },
     };
   });
 
@@ -67,7 +74,12 @@ const PriceChangeSchema = z.looseObject({
   hash: z.string().nullish(),
   best_bid: z.string().nullish(),
   best_ask: z.string().nullish(),
-});
+}).transform(({ asset_id, best_bid, best_ask, ...rest }) => ({
+  ...rest,
+  tokenId: asset_id,
+  bestBid: best_bid,
+  bestAsk: best_ask,
+}));
 
 export type PriceChange = z.infer<typeof PriceChangeSchema>;
 
@@ -78,12 +90,15 @@ export const MarketPriceChangeEventSchema = z
     price_changes: z.array(PriceChangeSchema),
     timestamp: z.string().nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, price_changes, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        priceChanges: price_changes,
+      },
     };
   });
 
@@ -103,12 +118,17 @@ export const MarketLastTradePriceEventSchema = z
     timestamp: z.string().nullish(),
     transaction_hash: z.string().nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, asset_id, fee_rate_bps, transaction_hash, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        tokenId: asset_id,
+        feeRateBps: fee_rate_bps,
+        transactionHash: transaction_hash,
+      },
     };
   });
 
@@ -125,12 +145,17 @@ export const MarketTickSizeChangeEventSchema = z
     new_tick_size: z.string(),
     timestamp: z.string().nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, asset_id, old_tick_size, new_tick_size, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        tokenId: asset_id,
+        oldTickSize: old_tick_size,
+        newTickSize: new_tick_size,
+      },
     };
   });
 
@@ -148,12 +173,17 @@ export const MarketBestBidAskEventSchema = z
     spread: z.string().nullish(),
     timestamp: z.string().nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, asset_id, best_bid, best_ask, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        tokenId: asset_id,
+        bestBid: best_bid,
+        bestAsk: best_ask,
+      },
     };
   });
 
@@ -194,12 +224,25 @@ export const NewMarketEventSchema = z
     fees_enabled: z.boolean().nullish(),
     fee_schedule: z.unknown().nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, assets_ids, event_message, condition_id, clob_token_ids, sports_market_type, game_start_time, order_price_min_tick_size, group_item_title, taker_base_fee, fees_enabled, fee_schedule, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        assetsIds: assets_ids,
+        eventMessage: event_message,
+        conditionId: condition_id,
+        clobTokenIds: clob_token_ids,
+        sportsMarketType: sports_market_type,
+        gameStartTime: game_start_time,
+        orderPriceMinTickSize: order_price_min_tick_size,
+        groupItemTitle: group_item_title,
+        takerBaseFee: taker_base_fee,
+        feesEnabled: fees_enabled,
+        feeSchedule: fee_schedule,
+      },
     };
   });
 
@@ -217,12 +260,18 @@ export const MarketResolvedEventSchema = z
     timestamp: z.string().nullish(),
     tags: z.array(z.string()).nullish(),
   })
-  .transform(({ event_type, ...event }) => {
+  .transform(({ event_type, assets_ids, winning_asset_id, winning_outcome, event_message, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'market' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        assetsIds: assets_ids,
+        winningAssetId: winning_asset_id,
+        winningOutcome: winning_outcome,
+        eventMessage: event_message,
+      },
     };
   });
 
@@ -258,14 +307,22 @@ export const UserOrderEventSchema = z
     maker_address: z.string().nullish(),
     timestamp: z.string(),
   })
-  .transform(({ event_type, type: orderEventType, ...event }) => {
+  .transform(({ event_type, type: orderEventType, asset_id, order_owner, original_size, size_matched, associate_trades, created_at, order_type, maker_address, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'user' as const,
       type: event_type,
       payload: {
-        ...event,
+        ...rest,
         orderEventType,
+        tokenId: asset_id,
+        orderOwner: order_owner,
+        originalSize: original_size,
+        sizeMatched: size_matched,
+        associateTrades: associate_trades,
+        createdAt: created_at,
+        orderType: order_type,
+        makerAddress: maker_address,
       },
     };
   });
@@ -283,7 +340,15 @@ const TradeMakerOrderSchema = z.looseObject({
   outcome: z.string().nullish(),
   outcome_index: z.number().int().nullish(),
   side: NormalizedOrderSideSchema,
-});
+}).transform(({ order_id, maker_address, matched_amount, fee_rate_bps, asset_id, outcome_index, ...rest }) => ({
+  ...rest,
+  orderId: order_id,
+  makerAddress: maker_address,
+  matchedAmount: matched_amount,
+  feeRateBps: fee_rate_bps,
+  tokenId: asset_id,
+  outcomeIndex: outcome_index,
+}));
 
 export type TradeMakerOrder = z.infer<typeof TradeMakerOrderSchema>;
 
@@ -313,12 +378,25 @@ export const UserTradeEventSchema = z
     trader_side: z.union([z.literal('TAKER'), z.literal('MAKER')]).nullish(),
     timestamp: z.string(),
   })
-  .transform(({ event_type, type: _, ...event }) => {
+  .transform(({ event_type, type: _, taker_order_id, asset_id, fee_rate_bps, match_time, last_update, trade_owner, maker_address, transaction_hash, bucket_index, maker_orders, trader_side, ...rest }) => {
     return {
       // Normalize to a consistent event envelope: `topic`, `type`, and `payload`.
       topic: 'user' as const,
       type: event_type,
-      payload: event,
+      payload: {
+        ...rest,
+        takerOrderId: taker_order_id,
+        tokenId: asset_id,
+        feeRateBps: fee_rate_bps,
+        matchTime: match_time,
+        lastUpdate: last_update,
+        tradeOwner: trade_owner,
+        makerAddress: maker_address,
+        transactionHash: transaction_hash,
+        bucketIndex: bucket_index,
+        makerOrders: maker_orders,
+        traderSide: trader_side,
+      },
     };
   });
 
