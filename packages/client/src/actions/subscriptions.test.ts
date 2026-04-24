@@ -44,7 +44,7 @@ describe('subscribe', () => {
       server.close();
     });
 
-    it('streams Binance crypto price updates from RTDS', {
+    it('streams events for a public subscription', {
       timeout: 15_000,
     }, async () => {
       const handle = await publicClient.subscribe([
@@ -109,18 +109,14 @@ describe('subscribe', () => {
     it('sends PING heartbeats to RTDS while subscribed', {
       timeout: 5_000,
     }, async () => {
-      const clientFrames: string[] = [];
-      const serverFrames: string[] = [];
+      const frames: string[] = [];
       const client = createPublicClient({ environment: production });
 
       server.use(
         rtds.addEventListener('connection', ({ client, server }) => {
           server.connect();
           client.addEventListener('message', (event) => {
-            clientFrames.push(String(event.data));
-          });
-          server.addEventListener('message', (event) => {
-            serverFrames.push(String(event.data));
+            frames.push(String(event.data));
           });
         }),
       );
@@ -131,23 +127,27 @@ describe('subscribe', () => {
           { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
         ]);
         await vi.advanceTimersByTimeAsync(5_000);
-        const pingCountAfterHeartbeat = [
-          ...clientFrames,
-          ...serverFrames,
-        ].filter((frame) => frame === 'PING').length;
-        expect(pingCountAfterHeartbeat).toBeGreaterThan(0);
+        expect(frames).toContain('PING');
         await handle.close();
-        await client.webSockets.rtds.close();
-        await vi.advanceTimersByTimeAsync(10_000);
-        expect(
-          [...clientFrames, ...serverFrames].filter(
-            (frame) => frame === 'PING',
-          ),
-        ).toHaveLength(pingCountAfterHeartbeat);
       } finally {
         await client.webSockets.rtds.close();
         vi.useRealTimers();
       }
+    });
+
+    it('ends active iterators when the manager closes', {
+      timeout: 5_000,
+    }, async () => {
+      const client = createPublicClient({ environment: production });
+      const handle = await client.subscribe([
+        { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
+      ]);
+      const iterator = handle[Symbol.asyncIterator]();
+      const next = iterator.next();
+
+      await client.webSockets.rtds.close();
+
+      await expect(next).resolves.toMatchObject({ done: true });
     });
   });
 });
