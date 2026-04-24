@@ -4,7 +4,7 @@ import {
   type EquityPricesEvent,
   RealtimeEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { invariant } from '@polymarket/types';
+import { invariant, setNonBlockingInterval } from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import type {
   CommentsSubscription,
@@ -28,6 +28,10 @@ type RtdsSubscriber = {
   queue: Pushable<RtdsEvent>;
 };
 
+// RTDS requires clients to send `PING` roughly every 5 seconds to keep the
+// socket from being idled out by the server.
+const HEARTBEAT_INTERVAL_MS = 5_000;
+
 /**
  * Realtime Data Service (RTDS) WebSocket manager.
  *
@@ -48,6 +52,7 @@ export class RtdsWebSocketManager
   readonly #url: string;
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocket> | undefined;
+  #heartbeat: ReturnType<typeof setInterval> | undefined;
   // Subscribers grouped by topic. The map both tracks which topics currently
   // have a server-side subscription (key presence) and the set of per-handle
   // queues receiving events for that topic (value).
@@ -121,6 +126,7 @@ export class RtdsWebSocketManager
         socket.removeEventListener('error', onOpenError);
         this.#socket = socket;
         this.#connecting = undefined;
+        this.#startHeartbeat(socket);
         resolve(socket);
       };
       const onOpenError = () => {
@@ -160,6 +166,7 @@ export class RtdsWebSocketManager
   #onSocketClose(): void {
     // TODO(followup): reconnect + resubscribe. For now, terminate every
     // active handle's iterator so callers observe the drop.
+    this.#stopHeartbeat();
     this.#socket = undefined;
     for (const subscribers of this.#subscribersByTopic.values()) {
       for (const subscriber of subscribers) {
@@ -167,6 +174,22 @@ export class RtdsWebSocketManager
       }
     }
     this.#subscribersByTopic.clear();
+  }
+
+  #startHeartbeat(socket: WebSocket): void {
+    this.#stopHeartbeat();
+    this.#heartbeat = setNonBlockingInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send('PING');
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  #stopHeartbeat(): void {
+    if (this.#heartbeat !== undefined) {
+      clearInterval(this.#heartbeat);
+      this.#heartbeat = undefined;
+    }
   }
 
   #onSocketError(): void {

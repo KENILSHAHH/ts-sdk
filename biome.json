@@ -85,11 +85,7 @@
               "options": {
                 "patterns": [
                   {
-                    "group": [
-                      "**/node",
-                      "**/node.ts",
-                      "@polymarket/client/node"
-                    ],
+                    "group": ["./node", "./node.ts", "@polymarket/client/node"],
                     "message": "Import shared client modules directly instead of routing through the Node-only entrypoint."
                   }
                 ]

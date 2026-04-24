@@ -41,3 +41,22 @@ export function never(message = 'Unexpected call to never()'): never {
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function unrefTimer(timer: unknown): void {
+  const maybeUnref = (timer as { unref?: () => void }).unref;
+  if (typeof maybeUnref === 'function') maybeUnref.call(timer);
+}
+
+/**
+ * Runs `callback` on an interval without forcing Node processes to stay alive
+ * solely because the timer exists. In browsers, this behaves exactly like
+ * `setInterval`.
+ */
+export function setNonBlockingInterval(
+  callback: () => void,
+  ms: number,
+): ReturnType<typeof setInterval> {
+  const timer = setInterval(callback, ms);
+  unrefTimer(timer);
+  return timer;
+}
