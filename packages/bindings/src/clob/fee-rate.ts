@@ -4,7 +4,8 @@ export const FeeRateSchema = z
   .looseObject({
     base_fee: z.number(),
   })
-  .transform(({ base_fee }) => ({
+  .transform(({ base_fee, ...rest }) => ({
+    ...rest,
     baseFee: base_fee,
   }));
 

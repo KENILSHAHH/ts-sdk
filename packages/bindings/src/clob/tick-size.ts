@@ -5,7 +5,8 @@ export const TickSizeSchema = z
   .looseObject({
     minimum_tick_size: TickSizeValueSchema,
   })
-  .transform(({ minimum_tick_size }) => ({
+  .transform(({ minimum_tick_size, ...rest }) => ({
+    ...rest,
     minimumTickSize: minimum_tick_size,
   }));
 

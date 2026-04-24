@@ -4,7 +4,8 @@ export const NegRiskSchema = z
   .looseObject({
     neg_risk: z.boolean(),
   })
-  .transform(({ neg_risk }) => ({
+  .transform(({ neg_risk, ...rest }) => ({
+    ...rest,
     negRisk: neg_risk,
   }));
 
