@@ -9,7 +9,6 @@ import {
   it,
   vi,
 } from 'vitest';
-import { createPublicClient } from '../clients';
 import { production } from '../environments';
 import { publicClient } from '../testing';
 import type { CryptoPricesBinanceEvent } from './subscriptions';
@@ -27,6 +26,16 @@ async function collectEvents(
     if (events.length >= count) break;
   }
   return events;
+}
+
+function parseJsonFrames(frames: readonly string[]): unknown[] {
+  return frames.flatMap((frame) => {
+    try {
+      return [JSON.parse(frame) as unknown];
+    } catch {
+      return [];
+    }
+  });
 }
 
 describe('subscribe', () => {
@@ -110,7 +119,6 @@ describe('subscribe', () => {
       timeout: 5_000,
     }, async () => {
       const frames: string[] = [];
-      const client = createPublicClient({ environment: production });
 
       server.use(
         rtds.addEventListener('connection', ({ client, server }) => {
@@ -123,14 +131,16 @@ describe('subscribe', () => {
 
       try {
         vi.useFakeTimers();
-        const handle = await client.subscribe([
+        const handle = await publicClient.subscribe([
           { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
         ]);
+
         await vi.advanceTimersByTimeAsync(5_000);
+
         expect(frames).toContain('PING');
         await handle.close();
       } finally {
-        await client.webSockets.rtds.close();
+        await publicClient.webSockets.rtds.close();
         vi.useRealTimers();
       }
     });
@@ -138,16 +148,86 @@ describe('subscribe', () => {
     it('ends active iterators when the manager closes', {
       timeout: 5_000,
     }, async () => {
-      const client = createPublicClient({ environment: production });
-      const handle = await client.subscribe([
+      const handle = await publicClient.subscribe([
         { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
       ]);
       const iterator = handle[Symbol.asyncIterator]();
       const next = iterator.next();
 
-      await client.webSockets.rtds.close();
+      await publicClient.webSockets.rtds.close();
 
       await expect(next).resolves.toMatchObject({ done: true });
+    });
+
+    it('unsubscribes from a server entry only after the last handle closes', async () => {
+      const frames: string[] = [];
+
+      server.use(
+        rtds.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const btcHandle = await publicClient.subscribe([
+        { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
+      ]);
+      const ethHandle = await publicClient.subscribe([
+        { topic: 'prices.crypto.binance', symbols: ['ethusdt'] },
+      ]);
+
+      try {
+        frames.length = 0;
+        await btcHandle.close();
+        expect(parseJsonFrames(frames)).toEqual([]);
+
+        await ethHandle.close();
+        expect(parseJsonFrames(frames)).toEqual([
+          {
+            action: 'unsubscribe',
+            subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
+          },
+        ]);
+      } finally {
+        await publicClient.webSockets.rtds.close();
+      }
+    });
+
+    it('unsubscribes only the unshared server entry for an overlapping comments handle', async () => {
+      const frames: string[] = [];
+
+      server.use(
+        rtds.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const mixedHandle = await publicClient.subscribe([
+        {
+          topic: 'comments',
+          types: ['comment_created', 'reaction_created'],
+        },
+      ]);
+      const reactionHandle = await publicClient.subscribe([
+        { topic: 'comments', types: ['reaction_created'] },
+      ]);
+
+      try {
+        frames.length = 0;
+        await mixedHandle.close();
+        expect(parseJsonFrames(frames)).toEqual([
+          {
+            action: 'unsubscribe',
+            subscriptions: [{ topic: 'comments', type: 'comment_created' }],
+          },
+        ]);
+      } finally {
+        await reactionHandle.close();
+        await publicClient.webSockets.rtds.close();
+      }
     });
   });
 });

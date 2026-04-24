@@ -28,6 +28,12 @@ type RtdsSubscriber = {
   queue: Pushable<RtdsEvent>;
 };
 
+type RtdsServerSubscription = {
+  key: string;
+  topic: string;
+  type: string;
+};
+
 // RTDS requires clients to send `PING` roughly every 5 seconds to keep the
 // socket from being idled out by the server.
 const HEARTBEAT_INTERVAL_MS = 5_000;
@@ -54,10 +60,10 @@ export class RtdsWebSocketManager
   #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
   #heartbeat: ReturnType<typeof setInterval> | undefined;
-  // Subscribers grouped by topic. The map both tracks which topics currently
-  // have a server-side subscription (key presence) and the set of per-handle
-  // queues receiving events for that topic (value).
+  // Topic buckets drive client-side fan-out of parsed events. Server buckets
+  // drive refcounted subscribe/unsubscribe frames keyed by RTDS `(topic,type)`.
   readonly #subscribersByTopic = new Map<RtdsTopic, Set<RtdsSubscriber>>();
+  readonly #subscribersByServerKey = new Map<string, Set<RtdsSubscriber>>();
 
   constructor(url: string) {
     this.#url = url;
@@ -70,39 +76,64 @@ export class RtdsWebSocketManager
       matches: matcherFor(subscription),
       queue: pushable<RtdsEvent>({ objectMode: true }),
     };
-    await this.#registerSubscriber(subscription, subscriber);
-    return this.#createHandle(subscription.topic, subscriber);
+    const serverSubscriptions = serverSubscriptionsFor(subscription);
+    await this.#registerSubscriber(
+      subscription,
+      subscriber,
+      serverSubscriptions,
+    );
+    return this.#createHandle(
+      subscription.topic,
+      serverSubscriptions,
+      subscriber,
+    );
   }
 
   async #registerSubscriber(
     subscription: RtdsSpec,
     subscriber: RtdsSubscriber,
+    serverSubscriptions: readonly RtdsServerSubscription[],
   ): Promise<void> {
-    const existing = this.#subscribersByTopic.get(subscription.topic);
-    if (existing !== undefined) {
-      existing.add(subscriber);
-      return;
-    }
+    const topicSubscribers = this.#subscribersByTopic.get(subscription.topic);
+    if (topicSubscribers !== undefined) topicSubscribers.add(subscriber);
+    else
+      this.#subscribersByTopic.set(subscription.topic, new Set([subscriber]));
 
-    // First subscriber on this topic: open the server-side subscription.
-    // RTDS keeps one subscription per topic per connection, so later
-    // subscribers on the same topic reuse this one.
     const socket = await this.#ensureSocket();
-    socket.send(JSON.stringify(buildSubscribeMessage(subscription)));
-    this.#subscribersByTopic.set(subscription.topic, new Set([subscriber]));
+    const subscriptionsToOpen: RtdsServerSubscription[] = [];
+    for (const serverSubscription of serverSubscriptions) {
+      const serverSubscribers = this.#subscribersByServerKey.get(
+        serverSubscription.key,
+      );
+      if (serverSubscribers !== undefined) {
+        serverSubscribers.add(subscriber);
+        continue;
+      }
+      this.#subscribersByServerKey.set(
+        serverSubscription.key,
+        new Set([subscriber]),
+      );
+      subscriptionsToOpen.push(serverSubscription);
+    }
+    if (subscriptionsToOpen.length > 0) {
+      socket.send(JSON.stringify(buildSubscribeMessage(subscriptionsToOpen)));
+    }
   }
 
   #createHandle(
     topic: RtdsTopic,
+    serverSubscriptions: readonly RtdsServerSubscription[],
     subscriber: RtdsSubscriber,
   ): SubscriptionHandle<RtdsEvent> {
     let closing: Promise<void> | undefined;
     return {
       close: () => {
         if (closing === undefined) {
-          this.#subscribersByTopic.get(topic)?.delete(subscriber);
-          subscriber.queue.end();
-          closing = Promise.resolve();
+          closing = this.#closeSubscriber(
+            topic,
+            serverSubscriptions,
+            subscriber,
+          );
         }
         return closing;
       },
@@ -110,6 +141,37 @@ export class RtdsWebSocketManager
         return subscriber.queue[Symbol.asyncIterator]();
       },
     };
+  }
+
+  async #closeSubscriber(
+    topic: RtdsTopic,
+    serverSubscriptions: readonly RtdsServerSubscription[],
+    subscriber: RtdsSubscriber,
+  ): Promise<void> {
+    this.#subscribersByTopic.get(topic)?.delete(subscriber);
+    subscriber.queue.end();
+
+    const subscriptionsToClose: RtdsServerSubscription[] = [];
+    for (const serverSubscription of serverSubscriptions) {
+      const serverSubscribers = this.#subscribersByServerKey.get(
+        serverSubscription.key,
+      );
+      if (serverSubscribers === undefined) continue;
+      serverSubscribers.delete(subscriber);
+      if (serverSubscribers.size === 0) {
+        this.#subscribersByServerKey.delete(serverSubscription.key);
+        subscriptionsToClose.push(serverSubscription);
+      }
+    }
+
+    if (subscriptionsToClose.length > 0) {
+      this.#socket?.send(
+        JSON.stringify(buildUnsubscribeMessage(subscriptionsToClose)),
+      );
+    }
+    if (this.#subscribersByServerKey.size === 0) {
+      await this.close();
+    }
   }
 
   async close(): Promise<void> {
@@ -214,6 +276,7 @@ export class RtdsWebSocketManager
       }
     }
     this.#subscribersByTopic.clear();
+    this.#subscribersByServerKey.clear();
   }
 
   #startHeartbeat(socket: WebSocket): void {
@@ -244,55 +307,69 @@ function waitForSocketClose(socket: WebSocket): Promise<void> {
   });
 }
 
-function buildSubscribeMessage(subscription: RtdsSpec): unknown {
+function buildSubscribeMessage(
+  subscriptions: readonly RtdsServerSubscription[],
+): unknown {
+  return {
+    action: 'subscribe',
+    subscriptions: subscriptions.map(({ topic, type }) => ({ topic, type })),
+  };
+}
+
+function buildUnsubscribeMessage(
+  subscriptions: readonly RtdsServerSubscription[],
+): unknown {
+  return {
+    action: 'unsubscribe',
+    subscriptions: subscriptions.map(({ topic, type }) => ({ topic, type })),
+  };
+}
+
+function serverSubscriptionsFor(
+  subscription: RtdsSpec,
+): RtdsServerSubscription[] {
   switch (subscription.topic) {
     case 'comments':
       // RTDS tracks subscription state per (topic, type): different comment
       // event types coexist independently on the same socket, so one entry
       // per requested type. No server-side filters — any narrowing by
       // parentEntityID/parentEntityType happens client-side via matcherFor.
-      return {
-        action: 'subscribe',
-        subscriptions: (subscription.types ?? ['comment_created']).map(
-          (type) => ({
-            topic: 'comments',
-            type,
-          }),
-        ),
-      };
+      return (subscription.types ?? ['comment_created']).map((type) =>
+        serverSubscription('comments', type),
+      );
     case 'prices.crypto.binance':
       // Subscribe broadly and filter client-side. Sending a second subscribe
       // frame with a different `filters` value on the same socket causes the
       // server to replace the prior subscription rather than add one, so
       // multiple subscribers on the same manager cannot share a socket while
       // using server-side filters. See docs/api-boundary-notes.md.
-      return {
-        action: 'subscribe',
-        subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
-      };
+      return [serverSubscription('crypto_prices', 'update')];
     case 'prices.crypto.chainlink':
       // RTDS tracks one filter per topic per connection, so a second subscribe
       // with a different filter replaces the first. Subscribe broadly and
       // filter client-side — see docs/api-boundary-notes.md.
-      return {
-        action: 'subscribe',
-        subscriptions: [
-          { topic: 'crypto_prices_chainlink', type: '*', filters: '' },
-        ],
-      };
+      return [serverSubscription('crypto_prices_chainlink', 'update')];
     case 'prices.equity.pyth':
       // Same per-topic replace-on-resubscribe constraint as crypto_prices. A
       // single unfiltered subscribe covers every active equity symbol; the
       // client-side matcher narrows to the caller's requested symbol.
-      return {
-        action: 'subscribe',
-        subscriptions: [{ topic: 'equity_prices', type: 'update' }],
-      };
+      return [serverSubscription('equity_prices', 'update')];
     default: {
       const neverSpec: never = subscription;
       invariant(false, `Unknown RTDS topic: ${String(neverSpec)}`);
     }
   }
+}
+
+function serverSubscription(
+  topic: string,
+  type: string,
+): RtdsServerSubscription {
+  return {
+    key: `${topic}:${type}`,
+    topic,
+    type,
+  };
 }
 
 function matcherFor(subscription: RtdsSpec): (event: RtdsEvent) => boolean {
