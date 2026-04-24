@@ -15,7 +15,10 @@ const SportsResultPayloadSchema = z.looseObject({
   elapsed: z.string().nullish(),
   finished_timestamp: z.string().nullish(),
   turn: z.string().nullish(),
-});
+}).transform(({ finished_timestamp, ...rest }) => ({
+  ...rest,
+  finishedTimestamp: finished_timestamp,
+}));
 
 export const SportsResultEventSchema = SportsResultPayloadSchema.transform(
   (payload) => {
