@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const NegRiskSchema = z.looseObject({
   neg_risk: z.boolean(),
-});
+}).transform(({ neg_risk }) => ({
+  negRisk: neg_risk,
+}));
 
 export const FetchNegRiskResponseSchema = NegRiskSchema;
 

@@ -211,7 +211,7 @@ export async function fetchTickSize(
       .andThen(validateWith(FetchTickSizeResponseSchema)),
   );
 
-  return response.minimum_tick_size;
+  return response.minimumTickSize;
 }
 
 const FetchNegRiskRequestSchema = z.object({
@@ -266,7 +266,7 @@ export async function fetchNegRisk(
       .andThen(validateWith(FetchNegRiskResponseSchema)),
   );
 
-  return response.neg_risk;
+  return response.negRisk;
 }
 
 const FetchFeeRateRequestSchema = z.object({
@@ -321,7 +321,7 @@ export async function fetchFeeRate(
       .andThen(validateWith(FetchFeeRateResponseSchema)),
   );
 
-  return response.base_fee;
+  return response.baseFee;
 }
 
 const FetchPriceRequestSchema = z.object({
@@ -919,11 +919,11 @@ export function listCurrentRewards(
         .andThen(validateWith(PaginatedCurrentRewardsSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -1013,11 +1013,11 @@ export function listMarketRewards(
         .andThen(validateWith(PaginatedMarketRewardsSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,

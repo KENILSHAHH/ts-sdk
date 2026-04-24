@@ -102,11 +102,11 @@ export function listBuilderTrades(
         .andThen(validateWith(PaginatedBuilderTradesSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,

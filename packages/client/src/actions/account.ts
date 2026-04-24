@@ -78,7 +78,7 @@ export async function fetchClosedOnlyMode(
       .andThen(validateWith(ClosedOnlyModeSchema)),
   );
 
-  return response.closed_only;
+  return response.closedOnly;
 }
 
 const ListOpenOrdersRequestSchema = z
@@ -157,11 +157,11 @@ export function listOpenOrders(
         .andThen(validateWith(OpenOrdersPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -297,11 +297,11 @@ export function listAccountTrades(
         .andThen(validateWith(ClobTradesPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -715,11 +715,11 @@ export function listUserEarningsForDay(
         .andThen(validateWith(UserEarningsPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -865,11 +865,11 @@ export function listUserEarningsAndMarketsConfig(
         .andThen(validateWith(UserRewardsEarningsPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,

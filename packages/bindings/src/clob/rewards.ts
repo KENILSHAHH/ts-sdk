@@ -8,7 +8,14 @@ const CurrentRewardConfigSchema = z.looseObject({
   end_date: z.string().optional(),
   rate_per_day: z.number(),
   total_rewards: z.number().optional(),
-});
+}).transform(({ asset_address, start_date, end_date, rate_per_day, total_rewards, ...rest }) => ({
+  ...rest,
+  assetAddress: asset_address,
+  startDate: start_date,
+  endDate: end_date,
+  ratePerDay: rate_per_day,
+  totalRewards: total_rewards,
+}));
 export type CurrentRewardConfig = z.infer<typeof CurrentRewardConfigSchema>;
 
 export const CurrentRewardSchema = z.looseObject({
@@ -20,7 +27,17 @@ export const CurrentRewardSchema = z.looseObject({
   sponsors_count: z.number().int().optional(),
   native_daily_rate: z.number().optional(),
   total_daily_rate: z.number().optional(),
-});
+}).transform(({ condition_id, rewards_max_spread, rewards_min_size, rewards_config, sponsored_daily_rate, sponsors_count, native_daily_rate, total_daily_rate, ...rest }) => ({
+  ...rest,
+  conditionId: condition_id,
+  rewardsMaxSpread: rewards_max_spread,
+  rewardsMinSize: rewards_min_size,
+  rewardsConfig: rewards_config,
+  sponsoredDailyRate: sponsored_daily_rate,
+  sponsorsCount: sponsors_count,
+  nativeDailyRate: native_daily_rate,
+  totalDailyRate: total_daily_rate,
+}));
 export type CurrentReward = z.infer<typeof CurrentRewardSchema>;
 
 export const PaginatedCurrentRewardsSchema = z.object({
@@ -28,7 +45,10 @@ export const PaginatedCurrentRewardsSchema = z.object({
   count: z.number().int(),
   next_cursor: z.string(),
   data: z.array(CurrentRewardSchema),
-});
+}).transform(({ next_cursor, ...rest }) => ({
+  ...rest,
+  nextCursor: next_cursor,
+}));
 export type PaginatedCurrentRewards = z.infer<
   typeof PaginatedCurrentRewardsSchema
 >;
@@ -37,7 +57,10 @@ const RewardTokenSchema = z.object({
   token_id: TokenIdSchema,
   outcome: z.string(),
   price: z.number(),
-});
+}).transform(({ token_id, ...rest }) => ({
+  ...rest,
+  tokenId: token_id,
+}));
 export type RewardToken = z.infer<typeof RewardTokenSchema>;
 
 const RewardConfigSchema = z.looseObject({
@@ -46,7 +69,14 @@ const RewardConfigSchema = z.looseObject({
   end_date: z.string().optional(),
   rate_per_day: z.number(),
   total_rewards: z.number().optional(),
-});
+}).transform(({ asset_address, start_date, end_date, rate_per_day, total_rewards, ...rest }) => ({
+  ...rest,
+  assetAddress: asset_address,
+  startDate: start_date,
+  endDate: end_date,
+  ratePerDay: rate_per_day,
+  totalRewards: total_rewards,
+}));
 export type RewardConfig = z.infer<typeof RewardConfigSchema>;
 
 export const MarketRewardSchema = z.looseObject({
@@ -60,7 +90,16 @@ export const MarketRewardSchema = z.looseObject({
   market_competitiveness: z.number().optional(),
   tokens: z.array(RewardTokenSchema),
   rewards_config: z.array(RewardConfigSchema).optional(),
-});
+}).transform(({ condition_id, market_slug, event_slug, rewards_max_spread, rewards_min_size, market_competitiveness, rewards_config, ...rest }) => ({
+  ...rest,
+  conditionId: condition_id,
+  marketSlug: market_slug,
+  eventSlug: event_slug,
+  rewardsMaxSpread: rewards_max_spread,
+  rewardsMinSize: rewards_min_size,
+  marketCompetitiveness: market_competitiveness,
+  rewardsConfig: rewards_config,
+}));
 export type MarketReward = z.infer<typeof MarketRewardSchema>;
 
 export const PaginatedMarketRewardsSchema = z.object({
@@ -68,7 +107,10 @@ export const PaginatedMarketRewardsSchema = z.object({
   count: z.number().int(),
   next_cursor: z.string(),
   data: z.array(MarketRewardSchema),
-});
+}).transform(({ next_cursor, ...rest }) => ({
+  ...rest,
+  nextCursor: next_cursor,
+}));
 export type PaginatedMarketRewards = z.infer<
   typeof PaginatedMarketRewardsSchema
 >;

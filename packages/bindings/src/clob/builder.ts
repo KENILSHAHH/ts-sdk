@@ -25,7 +25,10 @@ export const BuilderTradeSchema = z.looseObject({
   err_msg: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-});
+}).transform(({ err_msg, ...rest }) => ({
+  ...rest,
+  errMsg: err_msg,
+}));
 export type BuilderTrade = z.infer<typeof BuilderTradeSchema>;
 
 export const PaginatedBuilderTradesSchema = z.object({
@@ -33,7 +36,10 @@ export const PaginatedBuilderTradesSchema = z.object({
   count: z.number().int(),
   next_cursor: z.string(),
   data: z.array(BuilderTradeSchema),
-});
+}).transform(({ next_cursor, ...rest }) => ({
+  ...rest,
+  nextCursor: next_cursor,
+}));
 export type PaginatedBuilderTrades = z.infer<
   typeof PaginatedBuilderTradesSchema
 >;
