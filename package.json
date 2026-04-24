@@ -18,6 +18,7 @@
     "clean": "rimraf packages/*/dist",
     "dev:react": "pnpm --filter @polymarket/examples-react dev",
     "release:canary": "changeset publish --tag canary --no-git-tag",
+    "release:latest": "node scripts/update-latest-dist-tags.mjs",
     "test:bindings": "vitest --project bindings --passWithNoTests",
     "test:client": "vitest --project client",
     "test:types": "vitest --project types --passWithNoTests",
