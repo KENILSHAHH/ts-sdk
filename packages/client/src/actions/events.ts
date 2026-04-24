@@ -177,8 +177,8 @@ export function listEvents(
         .andThen(validateWith(ListEventsKeysetResponseSchema))
         .map((response) => ({
           items: response.items,
-          hasMore: response.next_cursor !== undefined,
-          nextCursor: response.next_cursor,
+          hasMore: response.nextCursor !== undefined,
+          nextCursor: response.nextCursor,
         })),
     params.cursor,
   );

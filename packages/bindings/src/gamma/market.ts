@@ -199,7 +199,10 @@ export const MarketSchema = z.looseObject({
   feeExponent: z.number().nullish(),
   feeType: z.string().nullish(),
   feeSchedule: FeeScheduleSchema.nullish(),
-});
+}).transform(({ submitted_by, ...rest }) => ({
+  ...rest,
+  submittedBy: submitted_by,
+}));
 
 export const ListMarketsResponseSchema = z.array(MarketSchema);
 const MarketsPageSchema = createPageSchema(MarketSchema);

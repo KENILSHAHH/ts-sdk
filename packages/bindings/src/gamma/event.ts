@@ -314,7 +314,12 @@ export const EventSchema = z.looseObject({
   teams: z.array(TeamSchema).nullish(),
   sport: SportsMetadataSchema.nullish(),
   externalPartners: z.array(EventExternalPartnerMappingSchema).nullish(),
-});
+}).transform(({ published_at, tag_labels, tag_slugs, ...rest }) => ({
+  ...rest,
+  publishedAt: published_at,
+  tagLabels: tag_labels,
+  tagSlugs: tag_slugs,
+}));
 
 export const ListEventsResponseSchema = z.array(EventSchema);
 const EventsPageSchema = createPageSchema(EventSchema);

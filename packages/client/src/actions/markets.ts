@@ -211,8 +211,8 @@ export function listMarkets(
         .andThen(validateWith(ListMarketsKeysetResponseSchema))
         .map((response) => ({
           items: response.items,
-          hasMore: response.next_cursor !== undefined,
-          nextCursor: response.next_cursor,
+          hasMore: response.nextCursor !== undefined,
+          nextCursor: response.nextCursor,
         })),
     params.cursor,
   );
