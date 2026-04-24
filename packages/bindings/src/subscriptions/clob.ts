@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { type OrderSide, OrderSideSchema, OrderTypeSchema } from '../shared';
+import {
+  type OrderSide,
+  OrderSideSchema,
+  OrderTypeSchema,
+  TokenIdSchema,
+} from '../shared';
 
 const NormalizedOrderSideSchema: z.ZodType<OrderSide> = z.preprocess(
   (value) => (typeof value === 'string' ? value.toUpperCase() : value),
@@ -38,7 +43,7 @@ export const MarketBookEventSchema = z
   .looseObject({
     event_type: z.literal('book'),
     market: z.string(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     bids: z.array(OrderBookLevelSchema),
     asks: z.array(OrderBookLevelSchema),
     hash: z.string().nullish(),
@@ -78,7 +83,7 @@ export type MarketBookEvent = z.infer<typeof MarketBookEventSchema>;
 
 const PriceChangeSchema = z
   .looseObject({
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     price: z.string(),
     size: z.string(),
     side: NormalizedOrderSideSchema,
@@ -122,7 +127,7 @@ export const MarketLastTradePriceEventSchema = z
   .looseObject({
     event_type: z.literal('last_trade_price'),
     market: z.string(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     price: z.string(),
     size: z.string().nullish(),
     fee_rate_bps: z.string().nullish(),
@@ -154,7 +159,7 @@ export const MarketTickSizeChangeEventSchema = z
   .looseObject({
     event_type: z.literal('tick_size_change'),
     market: z.string(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     old_tick_size: z.string().nullish(),
     new_tick_size: z.string(),
     timestamp: z.string().nullish(),
@@ -183,7 +188,7 @@ export const MarketBestBidAskEventSchema = z
   .looseObject({
     event_type: z.literal('best_bid_ask'),
     market: z.string(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     best_bid: z.string().nullish(),
     best_ask: z.string().nullish(),
     spread: z.string().nullish(),
@@ -223,7 +228,7 @@ export const NewMarketEventSchema = z
     market: z.string(),
     slug: z.string().nullish(),
     description: z.string().nullish(),
-    assets_ids: z.array(z.string()).nullish(),
+    assets_ids: z.array(TokenIdSchema).nullish(),
     outcomes: z.array(z.string()).nullish(),
     event_message: MarketEventMessageSchema.nullish(),
     timestamp: z.string().nullish(),
@@ -285,8 +290,8 @@ export const MarketResolvedEventSchema = z
     event_type: z.literal('market_resolved'),
     id: z.string(),
     market: z.string(),
-    assets_ids: z.array(z.string()).nullish(),
-    winning_asset_id: z.string().nullish(),
+    assets_ids: z.array(TokenIdSchema).nullish(),
+    winning_asset_id: TokenIdSchema.nullish(),
     winning_outcome: z.string().nullish(),
     event_message: MarketEventMessageSchema.nullish(),
     timestamp: z.string().nullish(),
@@ -332,7 +337,7 @@ export const UserOrderEventSchema = z
     id: z.string(),
     owner: z.string(),
     market: z.string(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     side: NormalizedOrderSideSchema,
     order_owner: z.string().nullish(),
     original_size: z.string(),
@@ -392,7 +397,7 @@ const TradeMakerOrderSchema = z
     matched_amount: z.string(),
     price: z.string(),
     fee_rate_bps: z.string().nullish(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     outcome: z.string().nullish(),
     outcome_index: z.number().int().nullish(),
     side: NormalizedOrderSideSchema,
@@ -426,7 +431,7 @@ export const UserTradeEventSchema = z
     id: z.string(),
     taker_order_id: z.string(),
     market: z.string(),
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     side: NormalizedOrderSideSchema,
     size: z.string(),
     fee_rate_bps: z.string().nullish(),

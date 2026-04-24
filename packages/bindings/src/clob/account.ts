@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { EvmAddressSchema, NotificationIdSchema } from '../shared';
+import {
+  EvmAddressSchema,
+  NotificationIdSchema,
+  TokenIdSchema,
+} from '../shared';
 
 function createCursorPageSchema<TItem extends z.ZodTypeAny>(item: TItem) {
   return z
@@ -27,7 +31,7 @@ export type ClosedOnlyMode = z.infer<typeof ClosedOnlyModeSchema>;
 
 export const OpenOrderSchema = z
   .object({
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     associate_trades: z.array(z.string()),
     created_at: z.number(),
     expiration: z.string(),
@@ -73,7 +77,7 @@ export type OpenOrdersPage = z.infer<typeof OpenOrdersPageSchema>;
 
 export const MakerOrderSchema = z
   .object({
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     fee_rate_bps: z.string(),
     maker_address: z.string(),
     matched_amount: z.string(),
@@ -103,7 +107,7 @@ export const MakerOrderSchema = z
 
 export const ClobTradeSchema = z
   .object({
-    asset_id: z.string(),
+    asset_id: TokenIdSchema,
     bucket_index: z.number(),
     fee_rate_bps: z.string(),
     id: z.string(),
@@ -252,7 +256,7 @@ export const TokenSchema = z
   .object({
     outcome: z.string(),
     price: z.number(),
-    token_id: z.string(),
+    token_id: TokenIdSchema,
   })
   .transform(({ token_id, ...rest }) => ({
     ...rest,

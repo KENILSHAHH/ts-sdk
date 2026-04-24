@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { ConditionIdSchema } from '../shared';
+import { ConditionIdSchema, TokenIdSchema } from '../shared';
 import { AddressSchema } from './common';
 
 export const PositionSchema = z
   .looseObject({
     proxyWallet: AddressSchema.nullish(),
-    asset: z.string().nullish(),
+    asset: TokenIdSchema.nullish(),
     conditionId: ConditionIdSchema.nullish(),
     size: z.number().nullish(),
     avgPrice: z.number().nullish(),
@@ -39,7 +39,7 @@ export const PositionSchema = z
 export const ClosedPositionSchema = z
   .looseObject({
     proxyWallet: AddressSchema.nullish(),
-    asset: z.string().nullish(),
+    asset: TokenIdSchema.nullish(),
     conditionId: ConditionIdSchema.nullish(),
     avgPrice: z.number().nullish(),
     totalBought: z.number().nullish(),
@@ -72,7 +72,7 @@ export const MarketPositionV1Schema = z
     name: z.string().nullish(),
     profileImage: z.string().nullish(),
     verified: z.boolean().nullish(),
-    asset: z.string().nullish(),
+    asset: TokenIdSchema.nullish(),
     conditionId: ConditionIdSchema.nullish(),
     avgPrice: z.number().nullish(),
     size: z.number().nullish(),
