@@ -131,7 +131,12 @@ const EquityPriceUpdatePayloadSchema = z.looseObject({
   timestamp: z.number(),
   received_at: z.number().nullish(),
   is_carried_forward: z.boolean().nullish(),
-});
+}).transform(({ full_accuracy_value, received_at, is_carried_forward, ...rest }) => ({
+  ...rest,
+  fullAccuracyValue: full_accuracy_value,
+  receivedAt: received_at,
+  isCarriedForward: is_carried_forward,
+}));
 
 export type EquityPriceUpdatePayload = z.infer<
   typeof EquityPriceUpdatePayloadSchema
