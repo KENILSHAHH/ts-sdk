@@ -23,8 +23,6 @@ type RtdsSpec =
   | CryptoPricesSubscription
   | EquityPricesSubscription;
 
-type RtdsTopic = RtdsSpec['topic'];
-
 type RtdsEvent = CommentsEvent | CryptoPricesEvent | EquityPricesEvent;
 
 type RtdsSubscriber = {
@@ -32,15 +30,15 @@ type RtdsSubscriber = {
   queue: Pushable<RtdsEvent>;
 };
 
+type RtdsSubscriptionEntry = {
+  subscription: RtdsSpec;
+  subscriber: RtdsSubscriber;
+};
+
 type RtdsServerSubscription = {
   key: string;
   topic: string;
   type: string;
-};
-
-type RtdsServerSubscriptionState = {
-  subscription: RtdsServerSubscription;
-  subscribers: Set<RtdsSubscriber>;
 };
 
 // RTDS requires clients to send `PING` roughly every 5 seconds to keep the
@@ -50,71 +48,25 @@ const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
 class RtdsSubscriptionRegistry {
-  readonly #subscribersByTopic = new Map<RtdsTopic, Set<RtdsSubscriber>>();
-  readonly #serverSubscriptionsByKey = new Map<
-    string,
-    RtdsServerSubscriptionState
-  >();
+  readonly #entries = new Set<RtdsSubscriptionEntry>();
 
-  add(
-    subscription: RtdsSpec,
-    subscriber: RtdsSubscriber,
-    serverSubscriptions: readonly RtdsServerSubscription[],
-  ): RtdsServerSubscription[] {
-    const topicSubscribers = this.#subscribersByTopic.get(subscription.topic);
-    if (topicSubscribers !== undefined) topicSubscribers.add(subscriber);
-    else
-      this.#subscribersByTopic.set(subscription.topic, new Set([subscriber]));
-
-    const subscriptionsToOpen: RtdsServerSubscription[] = [];
-    for (const serverSubscription of serverSubscriptions) {
-      const serverState = this.#serverSubscriptionsByKey.get(
-        serverSubscription.key,
-      );
-      if (serverState !== undefined) {
-        serverState.subscribers.add(subscriber);
-        continue;
-      }
-      this.#serverSubscriptionsByKey.set(serverSubscription.key, {
-        subscription: serverSubscription,
-        subscribers: new Set([subscriber]),
-      });
-      subscriptionsToOpen.push(serverSubscription);
-    }
-    return subscriptionsToOpen;
+  add(entry: RtdsSubscriptionEntry): RtdsServerSubscription[] {
+    const activeBefore = this.#activeServerSubscriptionsByKey();
+    this.#entries.add(entry);
+    const activeAfter = this.#activeServerSubscriptionsByKey();
+    return serverSubscriptionsAdded(activeBefore, activeAfter);
   }
 
-  remove(
-    topic: RtdsTopic,
-    subscriber: RtdsSubscriber,
-    serverSubscriptions: readonly RtdsServerSubscription[],
-  ): RtdsServerSubscription[] {
-    const topicSubscribers = this.#subscribersByTopic.get(topic);
-    topicSubscribers?.delete(subscriber);
-    if (topicSubscribers !== undefined && topicSubscribers.size === 0) {
-      this.#subscribersByTopic.delete(topic);
-    }
-    subscriber.queue.end();
-
-    const subscriptionsToClose: RtdsServerSubscription[] = [];
-    for (const serverSubscription of serverSubscriptions) {
-      const serverState = this.#serverSubscriptionsByKey.get(
-        serverSubscription.key,
-      );
-      if (serverState === undefined) continue;
-      serverState.subscribers.delete(subscriber);
-      if (serverState.subscribers.size === 0) {
-        this.#serverSubscriptionsByKey.delete(serverSubscription.key);
-        subscriptionsToClose.push(serverSubscription);
-      }
-    }
-    return subscriptionsToClose;
+  remove(entry: RtdsSubscriptionEntry): RtdsServerSubscription[] {
+    const activeBefore = this.#activeServerSubscriptionsByKey();
+    this.#entries.delete(entry);
+    entry.subscriber.queue.end();
+    const activeAfter = this.#activeServerSubscriptionsByKey();
+    return serverSubscriptionsRemoved(activeBefore, activeAfter);
   }
 
   dispatch(event: RtdsEvent): void {
-    const subscribers = this.#subscribersByTopic.get(event.topic);
-    if (subscribers === undefined) return;
-    for (const subscriber of subscribers) {
+    for (const { subscriber } of this.#entries) {
       if (subscriber.matches(event)) {
         subscriber.queue.push(event);
       }
@@ -122,24 +74,30 @@ class RtdsSubscriptionRegistry {
   }
 
   activeServerSubscriptions(): RtdsServerSubscription[] {
-    return Array.from(
-      this.#serverSubscriptionsByKey.values(),
-      ({ subscription }) => subscription,
-    );
+    return Array.from(this.#activeServerSubscriptionsByKey().values());
   }
 
   hasActiveServerSubscriptions(): boolean {
-    return this.#serverSubscriptionsByKey.size > 0;
+    return this.#entries.size > 0;
   }
 
   endAll(error?: Error): void {
-    for (const subscribers of this.#subscribersByTopic.values()) {
-      for (const subscriber of subscribers) {
-        subscriber.queue.end(error);
+    for (const { subscriber } of this.#entries) {
+      subscriber.queue.end(error);
+    }
+    this.#entries.clear();
+  }
+
+  #activeServerSubscriptionsByKey(): Map<string, RtdsServerSubscription> {
+    const activeByKey = new Map<string, RtdsServerSubscription>();
+    for (const { subscription } of this.#entries) {
+      for (const serverSubscription of serverSubscriptionsFor(subscription)) {
+        if (!activeByKey.has(serverSubscription.key)) {
+          activeByKey.set(serverSubscription.key, serverSubscription);
+        }
       }
     }
-    this.#subscribersByTopic.clear();
-    this.#serverSubscriptionsByKey.clear();
+    return activeByKey;
   }
 }
 
@@ -172,46 +130,28 @@ export class RtdsWebSocketManager
   async subscribe(
     subscription: RtdsSpec,
   ): Promise<SubscriptionHandle<RtdsEvent>> {
-    const subscriber: RtdsSubscriber = {
-      matches: matcherFor(subscription),
-      queue: pushable<RtdsEvent>({ objectMode: true }),
-    };
-    const serverSubscriptions = serverSubscriptionsFor(subscription);
-    await this.#registerSubscriber(
+    const entry: RtdsSubscriptionEntry = {
       subscription,
-      subscriber,
-      serverSubscriptions,
-    );
-    return this.#createHandle(
-      subscription.topic,
-      serverSubscriptions,
-      subscriber,
-    );
+      subscriber: {
+        matches: matcherFor(subscription),
+        queue: pushable<RtdsEvent>({ objectMode: true }),
+      },
+    };
+    await this.#registerSubscriber(entry);
+    return this.#createHandle(entry);
   }
 
   // Subscription handle lifecycle.
 
-  async #registerSubscriber(
-    subscription: RtdsSpec,
-    subscriber: RtdsSubscriber,
-    serverSubscriptions: readonly RtdsServerSubscription[],
-  ): Promise<void> {
+  async #registerSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
     const shouldSendIncrementalSubscribe = this.#hasOpenSocket();
-    const subscriptionsToOpen = this.#subscriptions.add(
-      subscription,
-      subscriber,
-      serverSubscriptions,
-    );
+    const subscriptionsToOpen = this.#subscriptions.add(entry);
 
     let socket: WebSocket;
     try {
       socket = await this.#ensureSocket();
     } catch (error) {
-      await this.#closeSubscriber(
-        subscription.topic,
-        serverSubscriptions,
-        subscriber,
-      );
+      await this.#closeSubscriber(entry);
       throw error;
     }
     if (shouldSendIncrementalSubscribe) {
@@ -219,39 +159,23 @@ export class RtdsWebSocketManager
     }
   }
 
-  #createHandle(
-    topic: RtdsTopic,
-    serverSubscriptions: readonly RtdsServerSubscription[],
-    subscriber: RtdsSubscriber,
-  ): SubscriptionHandle<RtdsEvent> {
+  #createHandle(entry: RtdsSubscriptionEntry): SubscriptionHandle<RtdsEvent> {
     let closing: Promise<void> | undefined;
     return {
       close: () => {
         if (closing === undefined) {
-          closing = this.#closeSubscriber(
-            topic,
-            serverSubscriptions,
-            subscriber,
-          );
+          closing = this.#closeSubscriber(entry);
         }
         return closing;
       },
       [Symbol.asyncIterator]() {
-        return subscriber.queue[Symbol.asyncIterator]();
+        return entry.subscriber.queue[Symbol.asyncIterator]();
       },
     };
   }
 
-  async #closeSubscriber(
-    topic: RtdsTopic,
-    serverSubscriptions: readonly RtdsServerSubscription[],
-    subscriber: RtdsSubscriber,
-  ): Promise<void> {
-    const subscriptionsToClose = this.#subscriptions.remove(
-      topic,
-      subscriber,
-      serverSubscriptions,
-    );
+  async #closeSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
+    const subscriptionsToClose = this.#subscriptions.remove(entry);
     this.#sendUnsubscribeFrame(subscriptionsToClose);
     if (!this.#subscriptions.hasActiveServerSubscriptions()) {
       await this.close();
@@ -462,6 +386,24 @@ function reconnectDelay(attempt: number): number {
     RECONNECT_MAX_DELAY_MS,
   );
   return Math.random() * exponentialDelay;
+}
+
+function serverSubscriptionsAdded(
+  before: ReadonlyMap<string, RtdsServerSubscription>,
+  after: ReadonlyMap<string, RtdsServerSubscription>,
+): RtdsServerSubscription[] {
+  return Array.from(after).flatMap(([key, subscription]) =>
+    before.has(key) ? [] : [subscription],
+  );
+}
+
+function serverSubscriptionsRemoved(
+  before: ReadonlyMap<string, RtdsServerSubscription>,
+  after: ReadonlyMap<string, RtdsServerSubscription>,
+): RtdsServerSubscription[] {
+  return Array.from(before).flatMap(([key, subscription]) =>
+    after.has(key) ? [] : [subscription],
+  );
 }
 
 function waitForSocketClose(socket: WebSocket): Promise<void> {
