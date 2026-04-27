@@ -1,4 +1,4 @@
-export { ClobWebSocketManager } from './clob';
+export { ClobMarketWebSocketManager, ClobUserWebSocketManager } from './clob';
 export { RtdsWebSocketManager } from './rtds';
 export { SportsWebSocketManager } from './sports';
 export type {

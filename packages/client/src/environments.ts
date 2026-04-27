@@ -30,6 +30,8 @@ export type EnvironmentConfig = {
   /** @internal */
   clob: string;
   /** @internal */
+  clobMarketWs: string;
+  /** @internal */
   relayer: string;
   /** @internal */
   gamma: string;
@@ -78,6 +80,7 @@ export const production: EnvironmentConfig = {
   safeMultisend: expectEvmAddress('0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761'),
   relayHub: expectEvmAddress('0xD216153c06E857cD7f72665E0aF1d7D82172F494'),
   clob: 'https://clob.polymarket.com',
+  clobMarketWs: 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
   relayer: 'https://relayer-v2.polymarket.com',
   gamma: 'https://gamma-api.polymarket.com',
   data: 'https://data-api.polymarket.com',

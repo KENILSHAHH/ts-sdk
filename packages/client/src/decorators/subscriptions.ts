@@ -25,7 +25,7 @@ export type PublicSubscriptionsActions = {
    * ]);
    *
    * for await (const event of handle) {
-   *   // event: MarketEvent
+   *   // event: StandardMarketEvent
    * }
    * ```
    */
@@ -49,7 +49,7 @@ export type SecureSubscriptionsActions = {
    * ]);
    *
    * for await (const event of handle) {
-   *   // event: MarketEvent | UserEvent
+   *   // event: StandardMarketEvent | UserEvent
    * }
    * ```
    */

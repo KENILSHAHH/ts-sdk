@@ -1,3 +1,4 @@
+import type { MarketEvent } from '@polymarket/bindings/subscriptions';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -13,14 +14,15 @@ import { production } from '../environments';
 import { publicClient } from '../testing';
 import type { CryptoPricesBinanceEvent } from './subscriptions';
 
+const clobMarket = ws.link(production.clobMarketWs);
 const rtds = ws.link(production.rtdsWs);
 const server = setupServer();
 
-async function collectEvents(
-  handle: AsyncIterable<CryptoPricesBinanceEvent>,
+async function collectEvents<TEvent>(
+  handle: AsyncIterable<TEvent>,
   count: number,
-): Promise<CryptoPricesBinanceEvent[]> {
-  const events: CryptoPricesBinanceEvent[] = [];
+): Promise<TEvent[]> {
+  const events: TEvent[] = [];
   for await (const event of handle) {
     events.push(event);
     if (events.length >= count) break;
@@ -39,20 +41,334 @@ function parseJsonFrames(frames: readonly string[]): unknown[] {
 }
 
 describe('subscribe', () => {
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' });
+  });
+
+  afterEach(async () => {
+    await publicClient.webSockets.clobMarket.close();
+    await publicClient.webSockets.rtds.close();
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  describe('CLOB websocket', () => {
+    it('subscribes to CLOB market assets with server-side asset filters', async () => {
+      const frames: string[] = [];
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const handle = await publicClient.subscribe([
+        {
+          customFeatureEnabled: true,
+          tokenIds: ['token-a'],
+          topic: 'market',
+        },
+      ]);
+
+      try {
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(frames)).toEqual([
+            {
+              assets_ids: ['token-a'],
+              custom_feature_enabled: true,
+              type: 'market',
+            },
+          ]);
+        });
+      } finally {
+        await handle.close();
+      }
+    });
+
+    it('adds and removes CLOB market assets on the shared socket', async () => {
+      const frames: string[] = [];
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const firstHandle = await publicClient.subscribe([
+        { tokenIds: ['token-a'], topic: 'market' },
+      ]);
+      const secondHandle = await publicClient.subscribe([
+        { tokenIds: ['token-b'], topic: 'market' },
+      ]);
+
+      try {
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(frames)).toEqual([
+            {
+              assets_ids: ['token-a'],
+              custom_feature_enabled: false,
+              type: 'market',
+            },
+            {
+              assets_ids: ['token-b'],
+              custom_feature_enabled: false,
+              operation: 'subscribe',
+            },
+          ]);
+        });
+
+        frames.length = 0;
+        await firstHandle.close();
+        expect(parseJsonFrames(frames)).toEqual([
+          { assets_ids: ['token-a'], operation: 'unsubscribe' },
+        ]);
+      } finally {
+        await secondHandle.close();
+      }
+    });
+
+    it('updates CLOB market custom feature flag on the shared socket', async () => {
+      const frames: string[] = [];
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const standardHandle = await publicClient.subscribe([
+        { tokenIds: ['token-a'], topic: 'market' },
+      ]);
+      const customHandle = await publicClient.subscribe([
+        {
+          customFeatureEnabled: true,
+          tokenIds: ['token-a'],
+          topic: 'market',
+        },
+      ]);
+
+      try {
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(frames)).toEqual([
+            {
+              assets_ids: ['token-a'],
+              custom_feature_enabled: false,
+              type: 'market',
+            },
+            {
+              assets_ids: ['token-a'],
+              custom_feature_enabled: true,
+              operation: 'subscribe',
+            },
+          ]);
+        });
+
+        frames.length = 0;
+        await customHandle.close();
+        expect(parseJsonFrames(frames)).toEqual([
+          {
+            assets_ids: ['token-a'],
+            custom_feature_enabled: false,
+            operation: 'subscribe',
+          },
+        ]);
+      } finally {
+        await customHandle.close();
+        await standardHandle.close();
+      }
+    });
+
+    it('fans out CLOB market events to matching token handles', async () => {
+      let clientConnection: { send: (data: string) => void } | undefined;
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          clientConnection = client;
+        }),
+      );
+
+      const handle = await publicClient.subscribe([
+        { tokenIds: ['token-a'], topic: 'market' },
+      ]);
+      const next = (handle as AsyncIterable<MarketEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+
+      try {
+        clientConnection?.send(
+          JSON.stringify({
+            asks: [],
+            asset_id: 'token-a',
+            bids: [],
+            event_type: 'book',
+            market: '0xmarket',
+          }),
+        );
+
+        await expect(next).resolves.toMatchObject({
+          done: false,
+          value: {
+            payload: { asset_id: 'token-a' },
+            topic: 'market',
+            type: 'book',
+          },
+        });
+      } finally {
+        await handle.close();
+      }
+    });
+
+    it('delivers custom CLOB market events only to custom-enabled handles', async () => {
+      let clientConnection: { send: (data: string) => void } | undefined;
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          clientConnection = client;
+        }),
+      );
+
+      const standardHandle = await publicClient.subscribe([
+        { tokenIds: ['token-a'], topic: 'market' },
+      ]);
+      const customHandle = await publicClient.subscribe([
+        {
+          customFeatureEnabled: true,
+          tokenIds: ['token-a'],
+          topic: 'market',
+        },
+      ]);
+      const standardNext = (standardHandle as AsyncIterable<MarketEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+      const customNext = (customHandle as AsyncIterable<MarketEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+
+      try {
+        clientConnection?.send(
+          JSON.stringify({
+            asset_id: 'token-a',
+            best_ask: '0.51',
+            best_bid: '0.49',
+            event_type: 'best_bid_ask',
+            market: '0xmarket',
+          }),
+        );
+
+        await expect(customNext).resolves.toMatchObject({
+          done: false,
+          value: {
+            payload: { asset_id: 'token-a' },
+            topic: 'market',
+            type: 'best_bid_ask',
+          },
+        });
+
+        await standardHandle.close();
+        await expect(standardNext).resolves.toMatchObject({ done: true });
+      } finally {
+        await standardHandle.close();
+        await customHandle.close();
+      }
+    });
+
+    it('sends CLOB PING heartbeats and treats PONG as freshness', {
+      timeout: 5_000,
+    }, async () => {
+      const frames: string[] = [];
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+            if (event.data === 'PING') client.send('PONG');
+          });
+        }),
+      );
+
+      try {
+        vi.useFakeTimers();
+        const handle = await publicClient.subscribe([
+          { tokenIds: ['token-a'], topic: 'market' },
+        ]);
+
+        await vi.advanceTimersByTimeAsync(10_000);
+
+        expect(frames).toContain('PING');
+        await handle.close();
+      } finally {
+        await publicClient.webSockets.clobMarket.close();
+        vi.useRealTimers();
+      }
+    });
+
+    it('reconnects and resubscribes active CLOB market assets after an unexpected close', {
+      timeout: 5_000,
+    }, async () => {
+      const connectionFrames: string[][] = [];
+      let firstClient: { close: () => void } | undefined;
+
+      server.use(
+        clobMarket.addEventListener('connection', ({ client }) => {
+          const frames: string[] = [];
+          connectionFrames.push(frames);
+          if (connectionFrames.length === 1) firstClient = client;
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const random = vi.spyOn(Math, 'random').mockReturnValue(1);
+      vi.useFakeTimers();
+
+      try {
+        const handle = await publicClient.subscribe([
+          { tokenIds: ['token-a'], topic: 'market' },
+        ]);
+
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(connectionFrames[0] ?? [])).toEqual([
+            {
+              assets_ids: ['token-a'],
+              custom_feature_enabled: false,
+              type: 'market',
+            },
+          ]);
+        });
+
+        firstClient?.close();
+        await vi.advanceTimersByTimeAsync(250);
+
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(connectionFrames[1] ?? [])).toEqual([
+            {
+              assets_ids: ['token-a'],
+              custom_feature_enabled: false,
+              type: 'market',
+            },
+          ]);
+        });
+
+        await handle.close();
+      } finally {
+        random.mockRestore();
+        await publicClient.webSockets.clobMarket.close();
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('RTDS websocket', () => {
-    beforeAll(() => {
-      server.listen({ onUnhandledRequest: 'bypass' });
-    });
-
-    afterEach(async () => {
-      await publicClient.webSockets.rtds.close();
-      server.resetHandlers();
-    });
-
-    afterAll(() => {
-      server.close();
-    });
-
     it('streams events for a public subscription', {
       timeout: 15_000,
     }, async () => {

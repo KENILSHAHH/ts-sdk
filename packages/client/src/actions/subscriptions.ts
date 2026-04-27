@@ -4,10 +4,12 @@ import type {
   CryptoPricesChainlinkEvent,
   CryptoPricesEvent,
   CryptoPricesTopic,
+  CustomMarketEvent,
   EquityPricesEvent,
   EquityPricesTopic,
   MarketEvent,
   SportsEvent,
+  StandardMarketEvent,
   UserEvent,
 } from '@polymarket/bindings/subscriptions';
 import { invariant, type Prettify } from '@polymarket/types';
@@ -25,9 +27,11 @@ export type {
   CryptoPricesBinanceEvent,
   CryptoPricesChainlinkEvent,
   CryptoPricesEvent,
+  CustomMarketEvent,
   EquityPricesEvent,
   MarketEvent,
   SportsEvent,
+  StandardMarketEvent,
   UserEvent,
 };
 
@@ -97,17 +101,14 @@ export type SecureRealtimeEvent = PublicRealtimeEvent | UserEvent;
 export type PublicRealtimeTopic = Prettify<PublicRealtimeEvent['topic']>;
 export type SecureRealtimeTopic = Prettify<SecureRealtimeEvent['topic']>;
 
-// Spec-to-event mapping keyed by the shared `topic` discriminant. Each arm
-// resolves to a named event type so hover shows the alias (e.g. `MarketEvent`)
-// rather than an expanded structural shape. Adding a new topic to a
-// subscription spec requires adding the matching entry here; the
-// `TTopic extends keyof EventByTopic` constraint turns a missing entry into a
-// compile error.
+// Spec-to-event mapping keyed by the shared `topic` discriminant. Each simple
+// topic resolves to a named event type so hover shows the alias rather than an
+// expanded structural shape. Market subscriptions are handled separately
+// because `customFeatureEnabled` contributes to the event union.
 //
 // Relies on `subscribe` declaring `TSubscriptions` with the `const` modifier
 // so that literal topics survive inference from object literals.
 type EventByTopic = {
-  market: MarketEvent;
   user: UserEvent;
   sports: SportsEvent;
   comments: CommentsEvent;
@@ -116,10 +117,19 @@ type EventByTopic = {
   'prices.equity.pyth': EquityPricesEvent;
 };
 
+type EventForMarketSubscription<TSpec extends MarketSubscription> =
+  'customFeatureEnabled' extends keyof TSpec
+    ? true extends TSpec['customFeatureEnabled']
+      ? MarketEvent
+      : StandardMarketEvent
+    : StandardMarketEvent;
+
 export type EventForSubscriptionSpec<TSpec extends SecureSubscriptionSpec> =
-  TSpec extends { topic: infer TTopic extends keyof EventByTopic }
-    ? EventByTopic[TTopic]
-    : never;
+  TSpec extends MarketSubscription
+    ? EventForMarketSubscription<TSpec>
+    : TSpec extends { topic: infer TTopic extends keyof EventByTopic }
+      ? EventByTopic[TTopic]
+      : never;
 
 export type EventForSubscriptionSpecs<
   TSubscriptions extends readonly SecureSubscriptionSpec[],
@@ -149,7 +159,7 @@ export type SubscribeError = TransportError;
  * ]);
  *
  * for await (const event of handle) {
- *   // event: MarketEvent
+ *   // event: StandardMarketEvent
  * }
  * ```
  */

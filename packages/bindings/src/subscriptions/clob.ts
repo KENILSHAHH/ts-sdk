@@ -492,7 +492,24 @@ export const UserTradeEventSchema = z
 
 export type UserTradeEvent = z.infer<typeof UserTradeEventSchema>;
 
-export const MarketEventSchema = z.discriminatedUnion('type', [
+export const StandardMarketEventSchema = z.discriminatedUnion('event_type', [
+  MarketBookEventSchema,
+  MarketPriceChangeEventSchema,
+  MarketLastTradePriceEventSchema,
+  MarketTickSizeChangeEventSchema,
+]);
+
+export type StandardMarketEvent = z.infer<typeof StandardMarketEventSchema>;
+
+export const CustomMarketEventSchema = z.discriminatedUnion('event_type', [
+  MarketBestBidAskEventSchema,
+  NewMarketEventSchema,
+  MarketResolvedEventSchema,
+]);
+
+export type CustomMarketEvent = z.infer<typeof CustomMarketEventSchema>;
+
+export const MarketEventSchema = z.discriminatedUnion('event_type', [
   MarketBookEventSchema,
   MarketPriceChangeEventSchema,
   MarketLastTradePriceEventSchema,
@@ -502,9 +519,9 @@ export const MarketEventSchema = z.discriminatedUnion('type', [
   MarketResolvedEventSchema,
 ]);
 
-export type MarketEvent = z.infer<typeof MarketEventSchema>;
+export type MarketEvent = StandardMarketEvent | CustomMarketEvent;
 
-export const UserEventSchema = z.discriminatedUnion('type', [
+export const UserEventSchema = z.discriminatedUnion('event_type', [
   UserOrderEventSchema,
   UserTradeEventSchema,
 ]);

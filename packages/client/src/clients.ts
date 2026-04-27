@@ -1,9 +1,5 @@
 import { ApiKeySchema, EvmAddressSchema } from '@polymarket/bindings';
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
-import type {
-  MarketEvent,
-  UserEvent,
-} from '@polymarket/bindings/subscriptions';
 import {
   expectEvmAddress,
   expectEvmSignature,
@@ -18,10 +14,6 @@ import {
   deleteApiKey,
   fetchApiKeys,
 } from './actions/auth';
-import type {
-  MarketSubscription,
-  UserSubscription,
-} from './actions/subscriptions';
 import { createApiKeyAuthTypedDataPayload } from './authentication';
 import {
   allActions,
@@ -36,7 +28,8 @@ import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization } from './types';
 import {
-  ClobWebSocketManager,
+  ClobMarketWebSocketManager,
+  ClobUserWebSocketManager,
   type PublicWebSocketManagers,
   RtdsWebSocketManager,
   type SecureWebSocketManagers,
@@ -271,7 +264,9 @@ class BasePublicClient<
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
       webSockets: {
-        clobMarket: new ClobWebSocketManager<MarketSubscription, MarketEvent>(),
+        clobMarket: new ClobMarketWebSocketManager({
+          url: config.environment.clobMarketWs,
+        }),
         sports: new SportsWebSocketManager(),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
       },
@@ -457,8 +452,10 @@ class BaseSecureClient<
         root: config.environment.clob,
       }),
       webSockets: {
-        clobMarket: new ClobWebSocketManager<MarketSubscription, MarketEvent>(),
-        clobUser: new ClobWebSocketManager<UserSubscription, UserEvent>(),
+        clobMarket: new ClobMarketWebSocketManager({
+          url: config.environment.clobMarketWs,
+        }),
+        clobUser: new ClobUserWebSocketManager(),
         sports: new SportsWebSocketManager(),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
       },
