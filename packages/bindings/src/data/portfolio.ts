@@ -27,13 +27,14 @@ export const PositionSchema = z
     outcome: z.string().nullish(),
     outcomeIndex: z.number().int().nullish(),
     oppositeOutcome: z.string().nullish(),
-    oppositeAsset: z.string().nullish(),
+    oppositeAsset: TokenIdSchema.nullish(),
     endDate: z.string().nullish(),
     negativeRisk: z.boolean().nullish(),
   })
-  .transform(({ asset, ...rest }) => ({
+  .transform(({ asset, oppositeAsset, ...rest }) => ({
     ...rest,
     tokenId: asset,
+    oppositeTokenId: oppositeAsset,
   }));
 
 export const ClosedPositionSchema = z
@@ -53,12 +54,13 @@ export const ClosedPositionSchema = z
     outcome: z.string().nullish(),
     outcomeIndex: z.number().int().nullish(),
     oppositeOutcome: z.string().nullish(),
-    oppositeAsset: z.string().nullish(),
+    oppositeAsset: TokenIdSchema.nullish(),
     endDate: z.string().nullish(),
   })
-  .transform(({ asset, ...rest }) => ({
+  .transform(({ asset, oppositeAsset, ...rest }) => ({
     ...rest,
     tokenId: asset,
+    oppositeTokenId: oppositeAsset,
   }));
 
 export const ValueSchema = z.looseObject({

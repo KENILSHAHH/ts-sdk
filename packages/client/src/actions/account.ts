@@ -461,10 +461,7 @@ export async function fetchBalanceAllowance(
   return unwrap(
     client.secureClob
       .get('/balance-allowance', {
-        params: toSearchParams(
-          { ...params, signatureType },
-          snakeCase({ tokenId: 'asset_id' }),
-        ),
+        params: toSearchParams({ ...params, signatureType }, snakeCase()),
       })
       .andThen(validateWith(BalanceAllowanceResponseSchema)),
   );
@@ -519,7 +516,7 @@ export async function updateBalanceAllowance(
   const signatureType = toSignatureType(client.account.walletType);
   const searchParams = toSearchParams(
     { ...params, signatureType },
-    snakeCase({ tokenId: 'asset_id' }),
+    snakeCase(),
   );
 
   await unwrap(

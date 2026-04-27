@@ -177,7 +177,7 @@ export const CancelMarketOrdersError = makeErrorGuard(
 
 /**
  * Cancels all open orders for the authenticated account that match the market
- * or asset filter.
+ * or token filter.
  *
  * @throws {@link CancelMarketOrdersError}
  * Thrown on failure.
