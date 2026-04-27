@@ -313,7 +313,7 @@ export const MarketResolvedEventSchema = z
         payload: {
           ...rest,
           tokenIds: assets_ids,
-          winningAssetId: winning_asset_id,
+          winningTokenId: winning_asset_id,
           winningOutcome: winning_outcome,
           eventMessage: event_message,
         },
