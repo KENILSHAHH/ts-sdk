@@ -141,5 +141,18 @@ describe('clients', () => {
         publicOnlyClient.fetchPublicProfile({ address: signer }),
       ).resolves.toBeDefined();
     });
+
+    it('closes active subscription iterators before ending authentication', async () => {
+      const secureClient = await publicClient
+        .beginAuthentication({ nonce: 999, wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+      const handle = await secureClient.subscribe([{ topic: 'user' }]);
+
+      await secureClient.endAuthentication();
+
+      await expect(
+        handle[Symbol.asyncIterator]().next(),
+      ).resolves.toMatchObject({ done: true });
+    });
   });
 });

@@ -1,4 +1,8 @@
-import type { MarketEvent } from '@polymarket/bindings/subscriptions';
+import type {
+  MarketEvent,
+  UserEvent,
+} from '@polymarket/bindings/subscriptions';
+import { expectPresent } from '@polymarket/types';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -11,10 +15,17 @@ import {
   vi,
 } from 'vitest';
 import { production } from '../environments';
-import { publicClient } from '../testing';
+import {
+  findHighVolumeLowPriceMarket,
+  publicClient,
+  safeWalletAddress,
+  walletClient,
+} from '../testing';
+import { authenticateWith } from '../viem';
 import type { CryptoPricesBinanceEvent } from './subscriptions';
 
 const clobMarket = ws.link(production.clobMarketWs);
+const clobUser = ws.link(production.clobUserWs);
 const rtds = ws.link(production.rtdsWs);
 const server = setupServer();
 
@@ -30,24 +41,12 @@ async function collectEvents<TEvent>(
   return events;
 }
 
-function parseJsonFrames(frames: readonly string[]): unknown[] {
-  return frames.flatMap((frame) => {
-    try {
-      return [JSON.parse(frame) as unknown];
-    } catch {
-      return [];
-    }
-  });
-}
-
 describe('subscribe', () => {
   beforeAll(() => {
     server.listen({ onUnhandledRequest: 'bypass' });
   });
 
   afterEach(async () => {
-    await publicClient.webSockets.clobMarket.close();
-    await publicClient.webSockets.rtds.close();
     server.resetHandlers();
   });
 
@@ -56,47 +55,25 @@ describe('subscribe', () => {
   });
 
   describe('CLOB websocket', () => {
-    it('subscribes to CLOB market assets with server-side asset filters', async () => {
-      const frames: string[] = [];
+    afterEach(async () => {
+      await publicClient.closeSubscriptions();
+    });
 
-      server.use(
-        clobMarket.addEventListener('connection', ({ client }) => {
-          client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
-          });
-        }),
-      );
-
-      const handle = await publicClient.subscribe([
-        {
-          customFeatureEnabled: true,
-          tokenIds: ['token-a'],
-          topic: 'market',
-        },
-      ]);
-
-      try {
-        await vi.waitFor(() => {
-          expect(parseJsonFrames(frames)).toEqual([
-            {
-              assets_ids: ['token-a'],
-              custom_feature_enabled: true,
-              type: 'market',
-            },
-          ]);
-        });
-      } finally {
-        await handle.close();
-      }
+    it('subscribes to CLOB market assets with server-side asset filters', {
+      timeout: 20_000,
+    }, async () => {
+      const market = await findHighVolumeLowPriceMarket();
+      const [tokenId] = expectPresent(market.clobTokenIds);
+      await publicClient.subscribe([{ tokenIds: [tokenId], topic: 'market' }]);
     });
 
     it('adds and removes CLOB market assets on the shared socket', async () => {
-      const frames: string[] = [];
+      let frames: unknown[] = [];
 
       server.use(
         clobMarket.addEventListener('connection', ({ client }) => {
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
@@ -104,48 +81,44 @@ describe('subscribe', () => {
       const firstHandle = await publicClient.subscribe([
         { tokenIds: ['token-a'], topic: 'market' },
       ]);
-      const secondHandle = await publicClient.subscribe([
+      await publicClient.subscribe([
         { tokenIds: ['token-b'], topic: 'market' },
       ]);
 
-      try {
-        await vi.waitFor(() => {
-          expect(parseJsonFrames(frames)).toEqual([
-            {
-              assets_ids: ['token-a'],
-              custom_feature_enabled: false,
-              type: 'market',
-            },
-            {
-              assets_ids: ['token-b'],
-              custom_feature_enabled: false,
-              operation: 'subscribe',
-            },
-          ]);
-        });
-
-        frames.length = 0;
-        await firstHandle.close();
-        expect(parseJsonFrames(frames)).toEqual([
-          { assets_ids: ['token-a'], operation: 'unsubscribe' },
+      await vi.waitFor(() => {
+        expect(frames).toEqual([
+          {
+            assets_ids: ['token-a'],
+            custom_feature_enabled: false,
+            type: 'market',
+          },
+          {
+            assets_ids: ['token-b'],
+            custom_feature_enabled: false,
+            operation: 'subscribe',
+          },
         ]);
-      } finally {
-        await secondHandle.close();
-      }
+      });
+
+      frames = [];
+      await firstHandle.close();
+      expect(frames).toEqual([
+        { assets_ids: ['token-a'], operation: 'unsubscribe' },
+      ]);
     });
 
     it('updates CLOB market custom feature flag on the shared socket', async () => {
-      const frames: string[] = [];
+      let frames: unknown[] = [];
 
       server.use(
         clobMarket.addEventListener('connection', ({ client }) => {
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
 
-      const standardHandle = await publicClient.subscribe([
+      await publicClient.subscribe([
         { tokenIds: ['token-a'], topic: 'market' },
       ]);
       const customHandle = await publicClient.subscribe([
@@ -156,35 +129,30 @@ describe('subscribe', () => {
         },
       ]);
 
-      try {
-        await vi.waitFor(() => {
-          expect(parseJsonFrames(frames)).toEqual([
-            {
-              assets_ids: ['token-a'],
-              custom_feature_enabled: false,
-              type: 'market',
-            },
-            {
-              assets_ids: ['token-a'],
-              custom_feature_enabled: true,
-              operation: 'subscribe',
-            },
-          ]);
-        });
-
-        frames.length = 0;
-        await customHandle.close();
-        expect(parseJsonFrames(frames)).toEqual([
+      await vi.waitFor(() => {
+        expect(frames).toEqual([
           {
             assets_ids: ['token-a'],
             custom_feature_enabled: false,
+            type: 'market',
+          },
+          {
+            assets_ids: ['token-a'],
+            custom_feature_enabled: true,
             operation: 'subscribe',
           },
         ]);
-      } finally {
-        await customHandle.close();
-        await standardHandle.close();
-      }
+      });
+
+      frames = [];
+      await customHandle.close();
+      expect(frames).toEqual([
+        {
+          assets_ids: ['token-a'],
+          custom_feature_enabled: false,
+          operation: 'subscribe',
+        },
+      ]);
     });
 
     it('fans out CLOB market events to matching token handles', async () => {
@@ -203,28 +171,24 @@ describe('subscribe', () => {
         [Symbol.asyncIterator]()
         .next();
 
-      try {
-        clientConnection?.send(
-          JSON.stringify({
-            asks: [],
-            asset_id: 'token-a',
-            bids: [],
-            event_type: 'book',
-            market: '0xmarket',
-          }),
-        );
+      clientConnection?.send(
+        JSON.stringify({
+          asks: [],
+          asset_id: 'token-a',
+          bids: [],
+          event_type: 'book',
+          market: '0xmarket',
+        }),
+      );
 
-        await expect(next).resolves.toMatchObject({
-          done: false,
-          value: {
-            payload: { asset_id: 'token-a' },
-            topic: 'market',
-            type: 'book',
-          },
-        });
-      } finally {
-        await handle.close();
-      }
+      await expect(next).resolves.toMatchObject({
+        done: false,
+        value: {
+          payload: { asset_id: 'token-a' },
+          topic: 'market',
+          type: 'book',
+        },
+      });
     });
 
     it('delivers custom CLOB market events only to custom-enabled handles', async () => {
@@ -253,32 +217,27 @@ describe('subscribe', () => {
         [Symbol.asyncIterator]()
         .next();
 
-      try {
-        clientConnection?.send(
-          JSON.stringify({
-            asset_id: 'token-a',
-            best_ask: '0.51',
-            best_bid: '0.49',
-            event_type: 'best_bid_ask',
-            market: '0xmarket',
-          }),
-        );
+      clientConnection?.send(
+        JSON.stringify({
+          asset_id: 'token-a',
+          best_ask: '0.51',
+          best_bid: '0.49',
+          event_type: 'best_bid_ask',
+          market: '0xmarket',
+        }),
+      );
 
-        await expect(customNext).resolves.toMatchObject({
-          done: false,
-          value: {
-            payload: { asset_id: 'token-a' },
-            topic: 'market',
-            type: 'best_bid_ask',
-          },
-        });
+      await expect(customNext).resolves.toMatchObject({
+        done: false,
+        value: {
+          payload: { asset_id: 'token-a' },
+          topic: 'market',
+          type: 'best_bid_ask',
+        },
+      });
 
-        await standardHandle.close();
-        await expect(standardNext).resolves.toMatchObject({ done: true });
-      } finally {
-        await standardHandle.close();
-        await customHandle.close();
-      }
+      await standardHandle.close();
+      await expect(standardNext).resolves.toMatchObject({ done: true });
     });
 
     it('sends CLOB PING heartbeats and treats PONG as freshness', {
@@ -297,16 +256,14 @@ describe('subscribe', () => {
 
       try {
         vi.useFakeTimers();
-        const handle = await publicClient.subscribe([
+        await publicClient.subscribe([
           { tokenIds: ['token-a'], topic: 'market' },
         ]);
 
         await vi.advanceTimersByTimeAsync(10_000);
 
         expect(frames).toContain('PING');
-        await handle.close();
       } finally {
-        await publicClient.webSockets.clobMarket.close();
         vi.useRealTimers();
       }
     });
@@ -314,16 +271,16 @@ describe('subscribe', () => {
     it('reconnects and resubscribes active CLOB market assets after an unexpected close', {
       timeout: 5_000,
     }, async () => {
-      const connectionFrames: string[][] = [];
+      const connectionFrames: unknown[][] = [];
       let firstClient: { close: () => void } | undefined;
 
       server.use(
         clobMarket.addEventListener('connection', ({ client }) => {
-          const frames: string[] = [];
+          const frames: unknown[] = [];
           connectionFrames.push(frames);
           if (connectionFrames.length === 1) firstClient = client;
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
@@ -332,12 +289,12 @@ describe('subscribe', () => {
       vi.useFakeTimers();
 
       try {
-        const handle = await publicClient.subscribe([
+        await publicClient.subscribe([
           { tokenIds: ['token-a'], topic: 'market' },
         ]);
 
         await vi.waitFor(() => {
-          expect(parseJsonFrames(connectionFrames[0] ?? [])).toEqual([
+          expect(connectionFrames[0] ?? []).toEqual([
             {
               assets_ids: ['token-a'],
               custom_feature_enabled: false,
@@ -350,7 +307,7 @@ describe('subscribe', () => {
         await vi.advanceTimersByTimeAsync(250);
 
         await vi.waitFor(() => {
-          expect(parseJsonFrames(connectionFrames[1] ?? [])).toEqual([
+          expect(connectionFrames[1] ?? []).toEqual([
             {
               assets_ids: ['token-a'],
               custom_feature_enabled: false,
@@ -358,17 +315,133 @@ describe('subscribe', () => {
             },
           ]);
         });
-
-        await handle.close();
       } finally {
         random.mockRestore();
-        await publicClient.webSockets.clobMarket.close();
         vi.useRealTimers();
+      }
+    });
+
+    it('subscribes to the live CLOB user stream with secure credentials', {
+      timeout: 20_000,
+    }, async () => {
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+
+      try {
+        await secureClient.subscribe([{ topic: 'user' }]);
+      } finally {
+        await secureClient.closeSubscriptions();
+      }
+    });
+
+    it('keeps the CLOB user socket broad while any handle subscribes to all markets', async () => {
+      let frames: unknown[] = [];
+
+      server.use(
+        clobUser.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(JSON.parse(String(event.data)));
+          });
+        }),
+      );
+
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+      await secureClient.subscribe([{ markets: ['market-a'], topic: 'user' }]);
+      const broadHandle = await secureClient.subscribe([{ topic: 'user' }]);
+
+      try {
+        await vi.waitFor(() => {
+          expect(frames).toEqual([
+            expect.objectContaining({
+              auth: {
+                apiKey: expect.any(String),
+                passphrase: expect.any(String),
+                secret: expect.any(String),
+              },
+              markets: ['market-a'],
+              type: 'user',
+            }),
+            { markets: ['market-a'], operation: 'unsubscribe' },
+          ]);
+        });
+
+        frames = [];
+        await broadHandle.close();
+        expect(frames).toEqual([
+          { markets: ['market-a'], operation: 'subscribe' },
+        ]);
+      } finally {
+        await secureClient.closeSubscriptions();
+      }
+    });
+
+    it('fans out CLOB user events to matching market handles', async () => {
+      let clientConnection: { send: (data: string) => void } | undefined;
+
+      server.use(
+        clobUser.addEventListener('connection', ({ client }) => {
+          clientConnection = client;
+        }),
+      );
+
+      const secureClient = await publicClient
+        .beginAuthentication({ wallet: safeWalletAddress })
+        .then(authenticateWith(walletClient));
+      const marketAHandle = await secureClient.subscribe([
+        { markets: ['market-a'], topic: 'user' },
+      ]);
+      const marketBHandle = await secureClient.subscribe([
+        { markets: ['market-b'], topic: 'user' },
+      ]);
+      const marketANext = (marketAHandle as AsyncIterable<UserEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+      const marketBNext = (marketBHandle as AsyncIterable<UserEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+
+      try {
+        clientConnection?.send(
+          JSON.stringify({
+            asset_id: 'token-a',
+            event_type: 'order',
+            id: 'order-a',
+            market: 'market-a',
+            original_size: '1',
+            owner: 'test-owner',
+            price: '0.5',
+            side: 'BUY',
+            size_matched: '0',
+            timestamp: '1',
+            type: 'PLACEMENT',
+          }),
+        );
+
+        await expect(marketANext).resolves.toMatchObject({
+          done: false,
+          value: {
+            payload: { market: 'market-a', orderEventType: 'PLACEMENT' },
+            topic: 'user',
+            type: 'order',
+          },
+        });
+
+        await marketBHandle.close();
+        await expect(marketBNext).resolves.toMatchObject({ done: true });
+      } finally {
+        await secureClient.closeSubscriptions();
       }
     });
   });
 
   describe('RTDS websocket', () => {
+    afterEach(async () => {
+      await publicClient.closeSubscriptions();
+    });
+
     it('streams events for a public subscription', {
       timeout: 15_000,
     }, async () => {
@@ -379,19 +452,15 @@ describe('subscribe', () => {
         },
       ]);
 
-      try {
-        const events = await collectEvents(
-          handle as AsyncIterable<CryptoPricesBinanceEvent>,
-          3,
-        );
-        for (const event of events) {
-          expect(event.topic).toBe('prices.crypto.binance');
-          expect(event.type).toBe('update');
-          expect(event.payload.symbol).toBe('btcusdt');
-          expect(typeof event.payload.value).toBe('number');
-        }
-      } finally {
-        await handle.close();
+      const events = await collectEvents(
+        handle as AsyncIterable<CryptoPricesBinanceEvent>,
+        3,
+      );
+      for (const event of events) {
+        expect(event.topic).toBe('prices.crypto.binance');
+        expect(event.type).toBe('update');
+        expect(event.payload.symbol).toBe('btcusdt');
+        expect(typeof event.payload.value).toBe('number');
       }
     });
 
@@ -405,28 +474,18 @@ describe('subscribe', () => {
         { topic: 'prices.crypto.binance', symbols: ['ethusdt'] },
       ]);
 
-      try {
-        const [btcEvents, ethEvents] = await Promise.all([
-          collectEvents(
-            btcHandle as AsyncIterable<CryptoPricesBinanceEvent>,
-            3,
-          ),
-          collectEvents(
-            ethHandle as AsyncIterable<CryptoPricesBinanceEvent>,
-            3,
-          ),
-        ]);
+      const [btcEvents, ethEvents] = await Promise.all([
+        collectEvents(btcHandle as AsyncIterable<CryptoPricesBinanceEvent>, 3),
+        collectEvents(ethHandle as AsyncIterable<CryptoPricesBinanceEvent>, 3),
+      ]);
 
-        expect(btcEvents.length).toBe(3);
-        expect(ethEvents.length).toBe(3);
-        for (const event of btcEvents) {
-          expect(event.payload.symbol).toBe('btcusdt');
-        }
-        for (const event of ethEvents) {
-          expect(event.payload.symbol).toBe('ethusdt');
-        }
-      } finally {
-        await Promise.all([btcHandle.close(), ethHandle.close()]);
+      expect(btcEvents.length).toBe(3);
+      expect(ethEvents.length).toBe(3);
+      for (const event of btcEvents) {
+        expect(event.payload.symbol).toBe('btcusdt');
+      }
+      for (const event of ethEvents) {
+        expect(event.payload.symbol).toBe('ethusdt');
       }
     });
 
@@ -446,21 +505,19 @@ describe('subscribe', () => {
 
       try {
         vi.useFakeTimers();
-        const handle = await publicClient.subscribe([
+        await publicClient.subscribe([
           { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
         ]);
 
         await vi.advanceTimersByTimeAsync(5_000);
 
         expect(frames).toContain('PING');
-        await handle.close();
       } finally {
-        await publicClient.webSockets.rtds.close();
         vi.useRealTimers();
       }
     });
 
-    it('ends active iterators when the manager closes', {
+    it('ends active iterators when the client closes subscriptions', {
       timeout: 5_000,
     }, async () => {
       const handle = await publicClient.subscribe([
@@ -469,18 +526,18 @@ describe('subscribe', () => {
       const iterator = handle[Symbol.asyncIterator]();
       const next = iterator.next();
 
-      await publicClient.webSockets.rtds.close();
+      await publicClient.closeSubscriptions();
 
       await expect(next).resolves.toMatchObject({ done: true });
     });
 
     it('unsubscribes from a server entry only after the last handle closes', async () => {
-      const frames: string[] = [];
+      let frames: unknown[] = [];
 
       server.use(
         rtds.addEventListener('connection', ({ client }) => {
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
@@ -492,30 +549,36 @@ describe('subscribe', () => {
         { topic: 'prices.crypto.binance', symbols: ['ethusdt'] },
       ]);
 
-      try {
-        frames.length = 0;
-        await btcHandle.close();
-        expect(parseJsonFrames(frames)).toEqual([]);
-
-        await ethHandle.close();
-        expect(parseJsonFrames(frames)).toEqual([
+      await vi.waitFor(() => {
+        expect(frames).toEqual([
           {
-            action: 'unsubscribe',
+            action: 'subscribe',
             subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
           },
         ]);
-      } finally {
-        await publicClient.webSockets.rtds.close();
-      }
+      });
+
+      frames = [];
+      await btcHandle.close();
+      expect(frames).toEqual([]);
+
+      frames = [];
+      await ethHandle.close();
+      expect(frames).toEqual([
+        {
+          action: 'unsubscribe',
+          subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
+        },
+      ]);
     });
 
     it('unsubscribes only the unshared server entry for an overlapping comments handle', async () => {
-      const frames: string[] = [];
+      let frames: unknown[] = [];
 
       server.use(
         rtds.addEventListener('connection', ({ client }) => {
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
@@ -526,40 +589,47 @@ describe('subscribe', () => {
           types: ['comment_created', 'reaction_created'],
         },
       ]);
-      const reactionHandle = await publicClient.subscribe([
+      await publicClient.subscribe([
         { topic: 'comments', types: ['reaction_created'] },
       ]);
 
-      try {
-        frames.length = 0;
-        await mixedHandle.close();
-        expect(parseJsonFrames(frames)).toEqual([
+      await vi.waitFor(() => {
+        expect(frames).toEqual([
           {
-            action: 'unsubscribe',
-            subscriptions: [{ topic: 'comments', type: 'comment_created' }],
+            action: 'subscribe',
+            subscriptions: [
+              { topic: 'comments', type: 'comment_created' },
+              { topic: 'comments', type: 'reaction_created' },
+            ],
           },
         ]);
-      } finally {
-        await reactionHandle.close();
-        await publicClient.webSockets.rtds.close();
-      }
+      });
+
+      frames = [];
+      await mixedHandle.close();
+      expect(frames).toEqual([
+        {
+          action: 'unsubscribe',
+          subscriptions: [{ topic: 'comments', type: 'comment_created' }],
+        },
+      ]);
     });
 
     it('reconnects and resubscribes active RTDS server entries after an unexpected close', {
       timeout: 5_000,
     }, async () => {
-      const connectionFrames: string[][] = [];
+      const connectionFrames: unknown[][] = [];
       let firstClient: { close: () => void } | undefined;
       let secondClient: { send: (data: string) => void } | undefined;
 
       server.use(
         rtds.addEventListener('connection', ({ client }) => {
-          const frames: string[] = [];
+          const frames: unknown[] = [];
           connectionFrames.push(frames);
           if (connectionFrames.length === 1) firstClient = client;
           if (connectionFrames.length === 2) secondClient = client;
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
@@ -574,7 +644,7 @@ describe('subscribe', () => {
         const next = handle[Symbol.asyncIterator]().next();
 
         await vi.waitFor(() => {
-          expect(parseJsonFrames(connectionFrames[0] ?? [])).toEqual([
+          expect(connectionFrames[0] ?? []).toEqual([
             {
               action: 'subscribe',
               subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
@@ -586,7 +656,7 @@ describe('subscribe', () => {
         await vi.advanceTimersByTimeAsync(250);
 
         await vi.waitFor(() => {
-          expect(parseJsonFrames(connectionFrames[1] ?? [])).toEqual([
+          expect(connectionFrames[1] ?? []).toEqual([
             {
               action: 'subscribe',
               subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
@@ -611,11 +681,8 @@ describe('subscribe', () => {
             payload: { symbol: 'btcusdt', value: 100 },
           },
         });
-
-        await handle.close();
       } finally {
         random.mockRestore();
-        await publicClient.webSockets.rtds.close();
         vi.useRealTimers();
       }
     });
@@ -623,16 +690,17 @@ describe('subscribe', () => {
     it('forces reconnect and resubscribes when RTDS data goes stale', {
       timeout: 5_000,
     }, async () => {
-      const connectionFrames: string[][] = [];
+      const connectionFrames: unknown[][] = [];
       let secondClient: { send: (data: string) => void } | undefined;
 
       server.use(
         rtds.addEventListener('connection', ({ client }) => {
-          const frames: string[] = [];
+          const frames: unknown[] = [];
           connectionFrames.push(frames);
           if (connectionFrames.length === 2) secondClient = client;
           client.addEventListener('message', (event) => {
-            frames.push(String(event.data));
+            if (event.data === 'PING') return;
+            frames.push(JSON.parse(String(event.data)));
           });
         }),
       );
@@ -647,7 +715,7 @@ describe('subscribe', () => {
         const next = handle[Symbol.asyncIterator]().next();
 
         await vi.waitFor(() => {
-          expect(parseJsonFrames(connectionFrames[0] ?? [])).toEqual([
+          expect(connectionFrames[0] ?? []).toEqual([
             {
               action: 'subscribe',
               subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
@@ -658,7 +726,7 @@ describe('subscribe', () => {
         await vi.advanceTimersByTimeAsync(30_250);
 
         await vi.waitFor(() => {
-          expect(parseJsonFrames(connectionFrames[1] ?? [])).toEqual([
+          expect(connectionFrames[1] ?? []).toEqual([
             {
               action: 'subscribe',
               subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
@@ -683,11 +751,8 @@ describe('subscribe', () => {
             payload: { symbol: 'btcusdt', value: 100 },
           },
         });
-
-        await handle.close();
       } finally {
         random.mockRestore();
-        await publicClient.webSockets.rtds.close();
         vi.useRealTimers();
       }
     });

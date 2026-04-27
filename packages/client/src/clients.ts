@@ -302,6 +302,26 @@ class BasePublicClient<
   }
 
   /**
+   * Closes all active realtime subscriptions owned by this client.
+   *
+   * @remarks
+   * This ends active subscription iterators and closes shared websocket
+   * connections. It does not affect authentication or other client state.
+   *
+   * @example
+   * ```ts
+   * await client.closeSubscriptions();
+   * ```
+   */
+  async closeSubscriptions(): Promise<void> {
+    await Promise.all([
+      this.webSockets.clobMarket.close(),
+      this.webSockets.rtds.close(),
+      this.webSockets.sports.close(),
+    ]).then(() => undefined);
+  }
+
+  /**
    * Returns a client typed with the methods contributed by the decorator.
    */
   extend<TDecorator extends ClientDecorator>(
@@ -455,7 +475,10 @@ class BaseSecureClient<
         clobMarket: new ClobMarketWebSocketManager({
           url: config.environment.clobMarketWs,
         }),
-        clobUser: new ClobUserWebSocketManager(),
+        clobUser: new ClobUserWebSocketManager({
+          resolveCredentials: () => this.credentials,
+          url: config.environment.clobUserWs,
+        }),
         sports: new SportsWebSocketManager(),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
       },
@@ -480,6 +503,28 @@ class BaseSecureClient<
   /** @internal */
   override get webSockets(): SecureWebSocketManagers {
     return this.context.webSockets;
+  }
+
+  /**
+   * Closes all active realtime subscriptions owned by this client.
+   *
+   * @remarks
+   * Secure clients also close authenticated user-stream subscriptions. This
+   * ends active subscription iterators and closes shared websocket connections.
+   * It does not affect authentication or other client state.
+   *
+   * @example
+   * ```ts
+   * await client.closeSubscriptions();
+   * ```
+   */
+  async closeSubscriptions(): Promise<void> {
+    await Promise.all([
+      this.webSockets.clobMarket.close(),
+      this.webSockets.rtds.close(),
+      this.webSockets.sports.close(),
+      this.webSockets.clobUser.close(),
+    ]).then(() => undefined);
   }
 
   /**
@@ -565,6 +610,8 @@ class BaseSecureClient<
   async endAuthentication(): Promise<
     PublicClient<TPublicActions, TSecureActions>
   > {
+    await this.closeSubscriptions();
+
     const { apiKey, environment } = this.context;
 
     await deleteApiKey(this);
