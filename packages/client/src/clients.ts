@@ -267,7 +267,9 @@ class BasePublicClient<
         clobMarket: new ClobMarketWebSocketManager({
           url: config.environment.clobMarketWs,
         }),
-        sports: new SportsWebSocketManager(),
+        sports: new SportsWebSocketManager({
+          url: config.environment.sportsWs,
+        }),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
       },
     });
@@ -479,7 +481,9 @@ class BaseSecureClient<
           resolveCredentials: () => this.credentials,
           url: config.environment.clobUserWs,
         }),
-        sports: new SportsWebSocketManager(),
+        sports: new SportsWebSocketManager({
+          url: config.environment.sportsWs,
+        }),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
       },
     });

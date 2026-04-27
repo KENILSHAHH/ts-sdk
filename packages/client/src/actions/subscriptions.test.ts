@@ -1,5 +1,6 @@
 import type {
   MarketEvent,
+  SportsEvent,
   UserEvent,
 } from '@polymarket/bindings/subscriptions';
 import { expectPresent } from '@polymarket/types';
@@ -27,6 +28,7 @@ import type { CryptoPricesBinanceEvent } from './subscriptions';
 const clobMarket = ws.link(production.clobMarketWs);
 const clobUser = ws.link(production.clobUserWs);
 const rtds = ws.link(production.rtdsWs);
+const sports = ws.link(production.sportsWs);
 const server = setupServer();
 
 async function collectEvents<TEvent>(
@@ -434,6 +436,88 @@ describe('subscribe', () => {
       } finally {
         await secureClient.closeSubscriptions();
       }
+    });
+  });
+
+  describe('Sports websocket', () => {
+    afterEach(async () => {
+      await publicClient.closeSubscriptions();
+    });
+
+    it('subscribes to the live sports stream', {
+      timeout: 20_000,
+    }, async () => {
+      await publicClient.subscribe([{ topic: 'sports' }]);
+    });
+
+    it('responds to sports ping heartbeats', async () => {
+      const frames: string[] = [];
+
+      server.use(
+        sports.addEventListener('connection', ({ client }) => {
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+          client.send('ping');
+        }),
+      );
+
+      await publicClient.subscribe([{ topic: 'sports' }]);
+
+      await vi.waitFor(() => {
+        expect(frames).toContain('pong');
+      });
+    });
+
+    it('fans out sports events to active handles', async () => {
+      let clientConnection: { send: (data: string) => void } | undefined;
+
+      server.use(
+        sports.addEventListener('connection', ({ client }) => {
+          clientConnection = client;
+        }),
+      );
+
+      const firstHandle = await publicClient.subscribe([{ topic: 'sports' }]);
+      const secondHandle = await publicClient.subscribe([{ topic: 'sports' }]);
+      const firstNext = (firstHandle as AsyncIterable<SportsEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+      const secondNext = (secondHandle as AsyncIterable<SportsEvent>)
+        [Symbol.asyncIterator]()
+        .next();
+
+      await vi.waitFor(() => {
+        expect(clientConnection).toBeDefined();
+      });
+
+      clientConnection?.send(
+        JSON.stringify({
+          ended: false,
+          gameId: 123,
+          leagueAbbreviation: 'NBA',
+          live: true,
+          score: '0-0',
+          status: 'inprogress',
+        }),
+      );
+
+      await expect(firstNext).resolves.toMatchObject({
+        done: false,
+        value: {
+          payload: { gameId: 123, leagueAbbreviation: 'NBA' },
+          topic: 'sports',
+          type: 'sport_result',
+        },
+      });
+      await expect(secondNext).resolves.toMatchObject({
+        done: false,
+        value: {
+          payload: { gameId: 123, leagueAbbreviation: 'NBA' },
+          topic: 'sports',
+          type: 'sport_result',
+        },
+      });
     });
   });
 

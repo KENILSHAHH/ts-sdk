@@ -42,6 +42,8 @@ export type EnvironmentConfig = {
   /** @internal */
   rtdsWs: string;
   /** @internal */
+  sportsWs: string;
+  /** @internal */
   relayerMaxPolls: number;
   /** @internal */
   relayerPollFrequencyMs: number;
@@ -88,6 +90,7 @@ export const production: EnvironmentConfig = {
   gamma: 'https://gamma-api.polymarket.com',
   data: 'https://data-api.polymarket.com',
   rtdsWs: 'wss://ws-live-data.polymarket.com',
+  sportsWs: 'wss://sports-api.polymarket.com/ws',
   relayerMaxPolls: 100,
   relayerPollFrequencyMs: 2000,
 };
