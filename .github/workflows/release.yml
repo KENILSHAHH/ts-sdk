@@ -44,6 +44,3 @@ jobs:
 
       - name: Publish Canary Packages
         run: pnpm release:canary
-
-      - name: Update Latest Dist Tags
-        run: pnpm release:latest
