@@ -24,7 +24,7 @@ export default defineConfig({
           typecheck: {
             enabled: true,
             include: ['packages/types/**/*.test-d.ts'],
-            tsconfig: 'packages/types/tsconfig.build.json',
+            tsconfig: 'packages/types/tsconfig.json',
           },
         },
       },
@@ -38,7 +38,7 @@ export default defineConfig({
           typecheck: {
             enabled: true,
             include: ['packages/client/**/*.test-d.ts'],
-            tsconfig: 'packages/client/tsconfig.build.json',
+            tsconfig: 'packages/client/tsconfig.json',
           },
         },
       },
