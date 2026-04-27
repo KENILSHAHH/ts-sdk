@@ -901,25 +901,25 @@ function marketMatcherFor(
   return (event) => {
     switch (event.type) {
       case 'price_change':
-        return event.payload.price_changes.some((change) =>
-          subscription.tokenIds.includes(change.asset_id),
+        return event.payload.priceChanges.some((change) =>
+          subscription.tokenIds.includes(change.tokenId),
         );
       case 'new_market':
         return subscription.customFeatureEnabled === true;
       case 'market_resolved':
         return (
           subscription.customFeatureEnabled === true &&
-          (event.payload.assets_ids ?? []).some((assetId) =>
-            subscription.tokenIds.includes(assetId),
+          (event.payload.tokenIds ?? []).some((tokenId) =>
+            subscription.tokenIds.includes(tokenId),
           )
         );
       case 'best_bid_ask':
         return (
           subscription.customFeatureEnabled === true &&
-          subscription.tokenIds.includes(event.payload.asset_id)
+          subscription.tokenIds.includes(event.payload.tokenId)
         );
       default:
-        return subscription.tokenIds.includes(event.payload.asset_id);
+        return subscription.tokenIds.includes(event.payload.tokenId);
     }
   };
 }

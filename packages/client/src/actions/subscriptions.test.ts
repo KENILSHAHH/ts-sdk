@@ -173,6 +173,10 @@ describe('subscribe', () => {
         [Symbol.asyncIterator]()
         .next();
 
+      await vi.waitFor(() => {
+        expect(clientConnection).toBeDefined();
+      });
+
       clientConnection?.send(
         JSON.stringify({
           asks: [],
@@ -186,7 +190,7 @@ describe('subscribe', () => {
       await expect(next).resolves.toMatchObject({
         done: false,
         value: {
-          payload: { asset_id: 'token-a' },
+          payload: { tokenId: 'token-a' },
           topic: 'market',
           type: 'book',
         },
@@ -219,6 +223,10 @@ describe('subscribe', () => {
         [Symbol.asyncIterator]()
         .next();
 
+      await vi.waitFor(() => {
+        expect(clientConnection).toBeDefined();
+      });
+
       clientConnection?.send(
         JSON.stringify({
           asset_id: 'token-a',
@@ -232,7 +240,7 @@ describe('subscribe', () => {
       await expect(customNext).resolves.toMatchObject({
         done: false,
         value: {
-          payload: { asset_id: 'token-a' },
+          payload: { tokenId: 'token-a' },
           topic: 'market',
           type: 'best_bid_ask',
         },
