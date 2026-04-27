@@ -16,6 +16,7 @@ import type {
   EquityPricesSubscription,
   SubscriptionHandle,
 } from '../actions/subscriptions';
+import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
 type RtdsSpec =
@@ -44,6 +45,7 @@ type RtdsServerSubscription = {
 // RTDS requires clients to send `PING` roughly every 5 seconds to keep the
 // socket from being idled out by the server.
 const HEARTBEAT_INTERVAL_MS = 5_000;
+const STALENESS_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -107,9 +109,6 @@ class RtdsSubscriptionRegistry {
  * Implements {@link WebSocketManager} for the comments, crypto prices, and
  * equity prices topics multiplexed over a single shared upstream socket
  * opened lazily on the first subscribe.
- *
- * TODO(followup): add a data-staleness watchdog that forces reconnect when no
- * messages arrive for a configured interval.
  */
 export class RtdsWebSocketManager
   implements WebSocketManager<RtdsSpec, RtdsEvent>
@@ -119,12 +118,17 @@ export class RtdsWebSocketManager
   #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
   #heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  readonly #stalenessWatchdog: StalenessWatchdog;
   #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   #reconnectAttempt = 0;
   readonly #subscriptions = new RtdsSubscriptionRegistry();
 
   constructor(url: string) {
     this.#url = url;
+    this.#stalenessWatchdog = new StalenessWatchdog({
+      intervalMs: STALENESS_INTERVAL_MS,
+      onStale: () => this.#forceReconnect(),
+    });
   }
 
   async subscribe(
@@ -195,6 +199,7 @@ export class RtdsWebSocketManager
 
   async #shutdown(): Promise<void> {
     this.#stopHeartbeat();
+    this.#stopStalenessWatchdog();
     this.#stopReconnect();
     this.#subscriptions.endAll();
 
@@ -257,7 +262,9 @@ export class RtdsWebSocketManager
 
       socket.addEventListener('open', onOpen, { once: true });
       socket.addEventListener('error', onOpenError, { once: true });
-      socket.addEventListener('message', (event) => this.#dispatch(event));
+      socket.addEventListener('message', (event) =>
+        this.#onSocketMessage(socket, event),
+      );
       socket.addEventListener('close', () => this.#onSocketClose(socket));
       socket.addEventListener('error', () => this.#onSocketError());
     });
@@ -268,10 +275,12 @@ export class RtdsWebSocketManager
     this.#connecting = undefined;
     this.#resetReconnectBackoff();
     this.#startHeartbeat(socket);
+    this.#startStalenessWatchdog();
     this.#resubscribeActiveServerEntries(socket);
   }
 
-  #dispatch(event: MessageEvent): void {
+  #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
+    if (this.#socket !== socket) return;
     let raw: unknown;
     try {
       raw = JSON.parse(String(event.data));
@@ -280,12 +289,14 @@ export class RtdsWebSocketManager
     }
     const parsed = RealtimeEventSchema.safeParse(raw);
     if (!parsed.success) return;
+    this.#markSocketFresh();
     this.#subscriptions.dispatch(parsed.data);
   }
 
   #onSocketClose(socket: WebSocket): void {
     if (this.#socket !== undefined && this.#socket !== socket) return;
     this.#stopHeartbeat();
+    this.#stopStalenessWatchdog();
     this.#socket = undefined;
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
@@ -312,6 +323,38 @@ export class RtdsWebSocketManager
     if (this.#heartbeatTimer !== undefined) {
       clearInterval(this.#heartbeatTimer);
       this.#heartbeatTimer = undefined;
+    }
+  }
+
+  // Data staleness watchdog.
+
+  #startStalenessWatchdog(): void {
+    this.#stalenessWatchdog.start();
+  }
+
+  #markSocketFresh(): void {
+    this.#stalenessWatchdog.markFresh();
+  }
+
+  #stopStalenessWatchdog(): void {
+    this.#stalenessWatchdog.stop();
+  }
+
+  #forceReconnect(): void {
+    const socket = this.#socket;
+    this.#stopHeartbeat();
+    this.#stopStalenessWatchdog();
+    this.#socket = undefined;
+
+    if (
+      socket !== undefined &&
+      socket.readyState !== WebSocket.CLOSING &&
+      socket.readyState !== WebSocket.CLOSED
+    ) {
+      socket.close();
+    }
+    if (this.#subscriptions.hasActiveSubscriptions()) {
+      this.#scheduleReconnect();
     }
   }
 

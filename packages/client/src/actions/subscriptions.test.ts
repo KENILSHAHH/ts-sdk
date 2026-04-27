@@ -303,5 +303,77 @@ describe('subscribe', () => {
         vi.useRealTimers();
       }
     });
+
+    it('forces reconnect and resubscribes when RTDS data goes stale', {
+      timeout: 5_000,
+    }, async () => {
+      const connectionFrames: string[][] = [];
+      let secondClient: { send: (data: string) => void } | undefined;
+
+      server.use(
+        rtds.addEventListener('connection', ({ client }) => {
+          const frames: string[] = [];
+          connectionFrames.push(frames);
+          if (connectionFrames.length === 2) secondClient = client;
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const random = vi.spyOn(Math, 'random').mockReturnValue(1);
+      vi.useFakeTimers();
+
+      try {
+        const handle = await publicClient.subscribe([
+          { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
+        ]);
+        const next = handle[Symbol.asyncIterator]().next();
+
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(connectionFrames[0] ?? [])).toEqual([
+            {
+              action: 'subscribe',
+              subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
+            },
+          ]);
+        });
+
+        await vi.advanceTimersByTimeAsync(30_250);
+
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(connectionFrames[1] ?? [])).toEqual([
+            {
+              action: 'subscribe',
+              subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
+            },
+          ]);
+        });
+
+        secondClient?.send(
+          JSON.stringify({
+            topic: 'crypto_prices',
+            type: 'update',
+            timestamp: 1,
+            payload: { symbol: 'btcusdt', timestamp: 1, value: 100 },
+          }),
+        );
+
+        await expect(next).resolves.toMatchObject({
+          done: false,
+          value: {
+            topic: 'prices.crypto.binance',
+            type: 'update',
+            payload: { symbol: 'btcusdt', value: 100 },
+          },
+        });
+
+        await handle.close();
+      } finally {
+        random.mockRestore();
+        await publicClient.webSockets.rtds.close();
+        vi.useRealTimers();
+      }
+    });
   });
 });
