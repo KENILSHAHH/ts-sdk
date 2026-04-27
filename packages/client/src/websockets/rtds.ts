@@ -77,7 +77,7 @@ class RtdsSubscriptionRegistry {
     return Array.from(this.#activeServerSubscriptionsByKey().values());
   }
 
-  hasActiveServerSubscriptions(): boolean {
+  hasActiveSubscriptions(): boolean {
     return this.#entries.size > 0;
   }
 
@@ -177,7 +177,7 @@ export class RtdsWebSocketManager
   async #closeSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
     const subscriptionsToClose = this.#subscriptions.remove(entry);
     this.#sendUnsubscribeFrame(subscriptionsToClose);
-    if (!this.#subscriptions.hasActiveServerSubscriptions()) {
+    if (!this.#subscriptions.hasActiveSubscriptions()) {
       await this.close();
     }
   }
@@ -186,14 +186,14 @@ export class RtdsWebSocketManager
 
   async close(): Promise<void> {
     if (this.#closing === undefined) {
-      this.#closing = this.#closeCurrentSocket().finally(() => {
+      this.#closing = this.#shutdown().finally(() => {
         this.#closing = undefined;
       });
     }
     await this.#closing;
   }
 
-  async #closeCurrentSocket(): Promise<void> {
+  async #shutdown(): Promise<void> {
     this.#stopHeartbeat();
     this.#stopReconnect();
     this.#subscriptions.endAll();
@@ -236,7 +236,12 @@ export class RtdsWebSocketManager
     this.#socket = undefined;
     if (this.#connecting !== undefined) return this.#connecting;
 
-    this.#connecting = new Promise<WebSocket>((resolve, reject) => {
+    this.#connecting = this.#openSocket();
+    return this.#connecting;
+  }
+
+  #openSocket(): Promise<WebSocket> {
+    return new Promise<WebSocket>((resolve, reject) => {
       const socket = new WebSocket(this.#url);
 
       const onOpen = () => {
@@ -256,8 +261,6 @@ export class RtdsWebSocketManager
       socket.addEventListener('close', () => this.#onSocketClose(socket));
       socket.addEventListener('error', () => this.#onSocketError());
     });
-
-    return this.#connecting;
   }
 
   #onSocketOpen(socket: WebSocket): void {
@@ -284,7 +287,7 @@ export class RtdsWebSocketManager
     if (this.#socket !== undefined && this.#socket !== socket) return;
     this.#stopHeartbeat();
     this.#socket = undefined;
-    if (this.#subscriptions.hasActiveServerSubscriptions()) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -347,7 +350,7 @@ export class RtdsWebSocketManager
     if (
       this.#reconnectTimer !== undefined ||
       this.#connecting !== undefined ||
-      !this.#subscriptions.hasActiveServerSubscriptions()
+      !this.#subscriptions.hasActiveSubscriptions()
     ) {
       return;
     }
@@ -360,7 +363,7 @@ export class RtdsWebSocketManager
   }
 
   async #reconnect(): Promise<void> {
-    if (!this.#subscriptions.hasActiveServerSubscriptions()) return;
+    if (!this.#subscriptions.hasActiveSubscriptions()) return;
     try {
       await this.#ensureSocket();
     } catch {

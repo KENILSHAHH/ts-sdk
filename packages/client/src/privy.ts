@@ -9,7 +9,6 @@ import {
   never,
   type TxHash,
 } from '@polymarket/types';
-// biome-ignore lint/style/noRestrictedImports: @privy-io/node is the intentional external adapter target for this entrypoint.
 import type { AuthorizationContext, PrivyClient } from '@privy-io/node';
 import { Hex } from 'ox';
 import {
