@@ -4,7 +4,11 @@ import {
   type EquityPricesEvent,
   RealtimeEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { invariant, setNonBlockingInterval } from '@polymarket/types';
+import {
+  invariant,
+  setNonBlockingInterval,
+  setNonBlockingTimeout,
+} from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import type {
   CommentsSubscription,
@@ -34,9 +38,16 @@ type RtdsServerSubscription = {
   type: string;
 };
 
+type RtdsServerSubscriptionState = {
+  subscription: RtdsServerSubscription;
+  subscribers: Set<RtdsSubscriber>;
+};
+
 // RTDS requires clients to send `PING` roughly every 5 seconds to keep the
 // socket from being idled out by the server.
 const HEARTBEAT_INTERVAL_MS = 5_000;
+const RECONNECT_BASE_DELAY_MS = 250;
+const RECONNECT_MAX_DELAY_MS = 30_000;
 
 /**
  * Realtime Data Service (RTDS) WebSocket manager.
@@ -45,12 +56,8 @@ const HEARTBEAT_INTERVAL_MS = 5_000;
  * equity prices topics multiplexed over a single shared upstream socket
  * opened lazily on the first subscribe.
  *
- * TODO(followup):
- *  - 5-second PING heartbeat to keep the shared socket alive
- *  - refcount handle lifecycle: send unsubscribe frames when individual
- *    handles close, and close the socket when the last handle closes
- *  - manager-level close() to terminate the socket and end all handles
- *  - reconnect + resubscribe on unexpected socket drop
+ * TODO(followup): add a data-staleness watchdog that forces reconnect when no
+ * messages arrive for a configured interval.
  */
 export class RtdsWebSocketManager
   implements WebSocketManager<RtdsSpec, RtdsEvent>
@@ -60,10 +67,15 @@ export class RtdsWebSocketManager
   #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
   #heartbeat: ReturnType<typeof setInterval> | undefined;
+  #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  #reconnectAttempt = 0;
   // Topic buckets drive client-side fan-out of parsed events. Server buckets
   // drive refcounted subscribe/unsubscribe frames keyed by RTDS `(topic,type)`.
   readonly #subscribersByTopic = new Map<RtdsTopic, Set<RtdsSubscriber>>();
-  readonly #subscribersByServerKey = new Map<string, Set<RtdsSubscriber>>();
+  readonly #serverSubscriptionsByKey = new Map<
+    string,
+    RtdsServerSubscriptionState
+  >();
 
   constructor(url: string) {
     this.#url = url;
@@ -94,28 +106,41 @@ export class RtdsWebSocketManager
     subscriber: RtdsSubscriber,
     serverSubscriptions: readonly RtdsServerSubscription[],
   ): Promise<void> {
+    const sendIncrementalSubscribe =
+      this.#socket?.readyState === WebSocket.OPEN;
     const topicSubscribers = this.#subscribersByTopic.get(subscription.topic);
     if (topicSubscribers !== undefined) topicSubscribers.add(subscriber);
     else
       this.#subscribersByTopic.set(subscription.topic, new Set([subscriber]));
 
-    const socket = await this.#ensureSocket();
     const subscriptionsToOpen: RtdsServerSubscription[] = [];
     for (const serverSubscription of serverSubscriptions) {
-      const serverSubscribers = this.#subscribersByServerKey.get(
+      const serverState = this.#serverSubscriptionsByKey.get(
         serverSubscription.key,
       );
-      if (serverSubscribers !== undefined) {
-        serverSubscribers.add(subscriber);
+      if (serverState !== undefined) {
+        serverState.subscribers.add(subscriber);
         continue;
       }
-      this.#subscribersByServerKey.set(
-        serverSubscription.key,
-        new Set([subscriber]),
-      );
+      this.#serverSubscriptionsByKey.set(serverSubscription.key, {
+        subscription: serverSubscription,
+        subscribers: new Set([subscriber]),
+      });
       subscriptionsToOpen.push(serverSubscription);
     }
-    if (subscriptionsToOpen.length > 0) {
+
+    let socket: WebSocket;
+    try {
+      socket = await this.#ensureSocket();
+    } catch (error) {
+      await this.#closeSubscriber(
+        subscription.topic,
+        serverSubscriptions,
+        subscriber,
+      );
+      throw error;
+    }
+    if (sendIncrementalSubscribe && subscriptionsToOpen.length > 0) {
       socket.send(JSON.stringify(buildSubscribeMessage(subscriptionsToOpen)));
     }
   }
@@ -153,13 +178,13 @@ export class RtdsWebSocketManager
 
     const subscriptionsToClose: RtdsServerSubscription[] = [];
     for (const serverSubscription of serverSubscriptions) {
-      const serverSubscribers = this.#subscribersByServerKey.get(
+      const serverState = this.#serverSubscriptionsByKey.get(
         serverSubscription.key,
       );
-      if (serverSubscribers === undefined) continue;
-      serverSubscribers.delete(subscriber);
-      if (serverSubscribers.size === 0) {
-        this.#subscribersByServerKey.delete(serverSubscription.key);
+      if (serverState === undefined) continue;
+      serverState.subscribers.delete(subscriber);
+      if (serverState.subscribers.size === 0) {
+        this.#serverSubscriptionsByKey.delete(serverSubscription.key);
         subscriptionsToClose.push(serverSubscription);
       }
     }
@@ -169,7 +194,7 @@ export class RtdsWebSocketManager
         JSON.stringify(buildUnsubscribeMessage(subscriptionsToClose)),
       );
     }
-    if (this.#subscribersByServerKey.size === 0) {
+    if (this.#serverSubscriptionsByKey.size === 0) {
       await this.close();
     }
   }
@@ -185,6 +210,7 @@ export class RtdsWebSocketManager
 
   async #closeCurrentSocket(): Promise<void> {
     this.#stopHeartbeat();
+    this.#stopReconnect();
     this.#endSubscribers();
 
     const socket = await this.#takeCurrentSocket();
@@ -214,7 +240,10 @@ export class RtdsWebSocketManager
   }
 
   #ensureSocket(): Promise<WebSocket> {
-    if (this.#socket !== undefined) return Promise.resolve(this.#socket);
+    if (this.#socket?.readyState === WebSocket.OPEN) {
+      return Promise.resolve(this.#socket);
+    }
+    this.#socket = undefined;
     if (this.#connecting !== undefined) return this.#connecting;
 
     this.#connecting = new Promise<WebSocket>((resolve, reject) => {
@@ -224,7 +253,9 @@ export class RtdsWebSocketManager
         socket.removeEventListener('error', onOpenError);
         this.#socket = socket;
         this.#connecting = undefined;
+        this.#reconnectAttempt = 0;
         this.#startHeartbeat(socket);
+        this.#sendActiveSubscriptions(socket);
         resolve(socket);
       };
       const onOpenError = () => {
@@ -236,7 +267,7 @@ export class RtdsWebSocketManager
       socket.addEventListener('open', onOpen, { once: true });
       socket.addEventListener('error', onOpenError, { once: true });
       socket.addEventListener('message', (event) => this.#dispatch(event));
-      socket.addEventListener('close', () => this.#onSocketClose());
+      socket.addEventListener('close', () => this.#onSocketClose(socket));
       socket.addEventListener('error', () => this.#onSocketError());
     });
 
@@ -261,12 +292,13 @@ export class RtdsWebSocketManager
     }
   }
 
-  #onSocketClose(): void {
-    // TODO(followup): reconnect + resubscribe. For now, terminate every
-    // active handle's iterator so callers observe the drop.
+  #onSocketClose(socket: WebSocket): void {
+    if (this.#socket !== undefined && this.#socket !== socket) return;
     this.#stopHeartbeat();
     this.#socket = undefined;
-    this.#endSubscribers();
+    if (this.#serverSubscriptionsByKey.size > 0) {
+      this.#scheduleReconnect();
+    }
   }
 
   #endSubscribers(error?: Error): void {
@@ -276,7 +308,7 @@ export class RtdsWebSocketManager
       }
     }
     this.#subscribersByTopic.clear();
-    this.#subscribersByServerKey.clear();
+    this.#serverSubscriptionsByKey.clear();
   }
 
   #startHeartbeat(socket: WebSocket): void {
@@ -288,6 +320,57 @@ export class RtdsWebSocketManager
     }, HEARTBEAT_INTERVAL_MS);
   }
 
+  #sendActiveSubscriptions(socket: WebSocket): void {
+    if (
+      socket.readyState !== WebSocket.OPEN ||
+      this.#serverSubscriptionsByKey.size === 0
+    ) {
+      return;
+    }
+    socket.send(
+      JSON.stringify(
+        buildSubscribeMessage(
+          Array.from(
+            this.#serverSubscriptionsByKey.values(),
+            ({ subscription }) => subscription,
+          ),
+        ),
+      ),
+    );
+  }
+
+  #scheduleReconnect(): void {
+    if (
+      this.#reconnectTimer !== undefined ||
+      this.#connecting !== undefined ||
+      this.#serverSubscriptionsByKey.size === 0
+    ) {
+      return;
+    }
+    const delay = reconnectDelay(this.#reconnectAttempt);
+    this.#reconnectAttempt += 1;
+    this.#reconnectTimer = setNonBlockingTimeout(() => {
+      this.#reconnectTimer = undefined;
+      void this.#reconnect();
+    }, delay);
+  }
+
+  async #reconnect(): Promise<void> {
+    if (this.#serverSubscriptionsByKey.size === 0) return;
+    try {
+      await this.#ensureSocket();
+    } catch {
+      this.#scheduleReconnect();
+    }
+  }
+
+  #stopReconnect(): void {
+    if (this.#reconnectTimer !== undefined) {
+      clearTimeout(this.#reconnectTimer);
+      this.#reconnectTimer = undefined;
+    }
+  }
+
   #stopHeartbeat(): void {
     if (this.#heartbeat !== undefined) {
       clearInterval(this.#heartbeat);
@@ -296,9 +379,17 @@ export class RtdsWebSocketManager
   }
 
   #onSocketError(): void {
-    // TODO(followup): classify errors and reconnect when appropriate.
-    this.#endSubscribers(new Error('RTDS WebSocket connection errored.'));
+    // Browser WebSockets report most failures as an error followed by close.
+    // Keep iterators alive here so the close path can reconnect active handles.
   }
+}
+
+function reconnectDelay(attempt: number): number {
+  const exponentialDelay = Math.min(
+    RECONNECT_BASE_DELAY_MS * 2 ** attempt,
+    RECONNECT_MAX_DELAY_MS,
+  );
+  return Math.random() * exponentialDelay;
 }
 
 function waitForSocketClose(socket: WebSocket): Promise<void> {

@@ -60,3 +60,17 @@ export function setNonBlockingInterval(
   unrefTimer(timer);
   return timer;
 }
+
+/**
+ * Runs `callback` after a timeout without forcing Node processes to stay alive
+ * solely because the timer exists. In browsers, this behaves exactly like
+ * `setTimeout`.
+ */
+export function setNonBlockingTimeout(
+  callback: () => void,
+  ms: number,
+): ReturnType<typeof setTimeout> {
+  const timer = setTimeout(callback, ms);
+  unrefTimer(timer);
+  return timer;
+}

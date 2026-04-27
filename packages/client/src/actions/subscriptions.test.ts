@@ -69,7 +69,6 @@ describe('subscribe', () => {
           3,
         );
         for (const event of events) {
-          console.log('RTDS crypto price event', event);
           expect(event.topic).toBe('prices.crypto.binance');
           expect(event.type).toBe('update');
           expect(event.payload.symbol).toBe('btcusdt');
@@ -227,6 +226,81 @@ describe('subscribe', () => {
       } finally {
         await reactionHandle.close();
         await publicClient.webSockets.rtds.close();
+      }
+    });
+
+    it('reconnects and resubscribes active RTDS server entries after an unexpected close', {
+      timeout: 5_000,
+    }, async () => {
+      const connectionFrames: string[][] = [];
+      let firstClient: { close: () => void } | undefined;
+      let secondClient: { send: (data: string) => void } | undefined;
+
+      server.use(
+        rtds.addEventListener('connection', ({ client }) => {
+          const frames: string[] = [];
+          connectionFrames.push(frames);
+          if (connectionFrames.length === 1) firstClient = client;
+          if (connectionFrames.length === 2) secondClient = client;
+          client.addEventListener('message', (event) => {
+            frames.push(String(event.data));
+          });
+        }),
+      );
+
+      const random = vi.spyOn(Math, 'random').mockReturnValue(1);
+      vi.useFakeTimers();
+
+      try {
+        const handle = await publicClient.subscribe([
+          { topic: 'prices.crypto.binance', symbols: ['btcusdt'] },
+        ]);
+        const next = handle[Symbol.asyncIterator]().next();
+
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(connectionFrames[0] ?? [])).toEqual([
+            {
+              action: 'subscribe',
+              subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
+            },
+          ]);
+        });
+
+        firstClient?.close();
+        await vi.advanceTimersByTimeAsync(250);
+
+        await vi.waitFor(() => {
+          expect(parseJsonFrames(connectionFrames[1] ?? [])).toEqual([
+            {
+              action: 'subscribe',
+              subscriptions: [{ topic: 'crypto_prices', type: 'update' }],
+            },
+          ]);
+        });
+
+        secondClient?.send(
+          JSON.stringify({
+            topic: 'crypto_prices',
+            type: 'update',
+            timestamp: 1,
+            payload: { symbol: 'btcusdt', timestamp: 1, value: 100 },
+          }),
+        );
+
+        await expect(next).resolves.toMatchObject({
+          done: false,
+          value: {
+            topic: 'prices.crypto.binance',
+            type: 'update',
+            payload: { symbol: 'btcusdt', value: 100 },
+          },
+        });
+
+        await handle.close();
+      } finally {
+        random.mockRestore();
+        await publicClient.webSockets.rtds.close();
+        vi.useRealTimers();
       }
     });
   });
