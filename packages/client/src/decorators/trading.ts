@@ -189,7 +189,7 @@ export type TradingActions = {
    */
   cancelAll(): Promise<CancelOrdersResponse>;
   /**
-   * Cancels all open orders for the authenticated account that match the market or asset filter.
+   * Cancels all open orders for the authenticated account that match the market or token filter.
    *
    * @throws {@link CancelMarketOrdersError}
    * Thrown on failure.

@@ -71,12 +71,12 @@ describe('CLOB', () => {
         tokenId,
       });
 
-      expect(result.asset_id).toBe(tokenId);
+      expect(result.tokenId).toBe(tokenId);
       expect(Array.isArray(result.bids)).toBe(true);
       expect(Array.isArray(result.asks)).toBe(true);
-      expect(result.tick_size).toEqual(expect.any(String));
-      expect(result.min_order_size).toEqual(expect.any(String));
-      expect(result.neg_risk).toEqual(expect.any(Boolean));
+      expect(result.tickSize).toEqual(expect.any(String));
+      expect(result.minOrderSize).toEqual(expect.any(String));
+      expect(result.negRisk).toEqual(expect.any(Boolean));
       expect(result.hash).toEqual(expect.any(String));
     });
   });
@@ -89,7 +89,7 @@ describe('CLOB', () => {
 
       expect(result[0]).toEqual(
         expect.objectContaining({
-          asset_id: tokenId,
+          tokenId,
           asks: expect.any(Array),
           bids: expect.any(Array),
         }),
@@ -249,7 +249,7 @@ describe('CLOB', () => {
       }
 
       const result = await listMarketRewards(publicClient, {
-        conditionId: currentReward.condition_id,
+        conditionId: currentReward.conditionId,
       })
         .firstPage()
         .catch(ignoreRewardsEndpointTimeout);
@@ -261,7 +261,7 @@ describe('CLOB', () => {
       expect(result.items.length).toBeGreaterThan(0);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
-          condition_id: currentReward.condition_id,
+          conditionId: currentReward.conditionId,
           question: expect.any(String),
           tokens: expect.any(Array),
         }),

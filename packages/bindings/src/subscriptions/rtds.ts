@@ -124,14 +124,23 @@ export const CryptoPricesEventSchema = z.discriminatedUnion('topic', [
 
 export type CryptoPricesEvent = z.infer<typeof CryptoPricesEventSchema>;
 
-const EquityPriceUpdatePayloadSchema = z.looseObject({
-  symbol: z.string(),
-  value: z.number(),
-  full_accuracy_value: z.string(),
-  timestamp: z.number(),
-  received_at: z.number().nullish(),
-  is_carried_forward: z.boolean().nullish(),
-});
+const EquityPriceUpdatePayloadSchema = z
+  .looseObject({
+    symbol: z.string(),
+    value: z.number(),
+    full_accuracy_value: z.string(),
+    timestamp: z.number(),
+    received_at: z.number().nullish(),
+    is_carried_forward: z.boolean().nullish(),
+  })
+  .transform(
+    ({ full_accuracy_value, received_at, is_carried_forward, ...rest }) => ({
+      ...rest,
+      fullAccuracyValue: full_accuracy_value,
+      receivedAt: received_at,
+      isCarriedForward: is_carried_forward,
+    }),
+  );
 
 export type EquityPriceUpdatePayload = z.infer<
   typeof EquityPriceUpdatePayloadSchema

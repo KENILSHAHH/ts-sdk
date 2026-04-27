@@ -78,12 +78,12 @@ export async function fetchClosedOnlyMode(
       .andThen(validateWith(ClosedOnlyModeSchema)),
   );
 
-  return response.closed_only;
+  return response.closedOnly;
 }
 
 const ListOpenOrdersRequestSchema = z
   .object({
-    assetId: z.string().optional(),
+    tokenId: z.string().optional(),
     cursor: PaginationCursorSchema.optional(),
     id: z.string().optional(),
     market: z.string().optional(),
@@ -152,16 +152,19 @@ export function listOpenOrders(
     (nextCursor) =>
       client.secureClob
         .get('/data/orders', {
-          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+          params: toSearchParams(
+            { ...params, nextCursor },
+            snakeCase({ tokenId: 'asset_id' }),
+          ),
         })
         .andThen(validateWith(OpenOrdersPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -216,7 +219,7 @@ export async function fetchOrder(
 
 const ListAccountTradesRequestFields = {
   after: z.string().optional(),
-  assetId: z.string().optional(),
+  tokenId: z.string().optional(),
   before: z.string().optional(),
   cursor: PaginationCursorSchema.optional(),
   id: z.string().optional(),
@@ -292,16 +295,19 @@ export function listAccountTrades(
     (nextCursor) =>
       client.secureClob
         .get('/data/trades', {
-          params: toSearchParams({ ...params, nextCursor }, snakeCase()),
+          params: toSearchParams(
+            { ...params, nextCursor },
+            snakeCase({ tokenId: 'asset_id' }),
+          ),
         })
         .andThen(validateWith(ClobTradesPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -455,13 +461,7 @@ export async function fetchBalanceAllowance(
   return unwrap(
     client.secureClob
       .get('/balance-allowance', {
-        params: toSearchParams(
-          {
-            ...params,
-            signatureType,
-          },
-          snakeCase(),
-        ),
+        params: toSearchParams({ ...params, signatureType }, snakeCase()),
       })
       .andThen(validateWith(BalanceAllowanceResponseSchema)),
   );
@@ -515,10 +515,7 @@ export async function updateBalanceAllowance(
   const params = parseUserInput(request, UpdateBalanceAllowanceRequestSchema);
   const signatureType = toSignatureType(client.account.walletType);
   const searchParams = toSearchParams(
-    {
-      ...params,
-      signatureType,
-    },
+    { ...params, signatureType },
     snakeCase(),
   );
 
@@ -715,11 +712,11 @@ export function listUserEarningsForDay(
         .andThen(validateWith(UserEarningsPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,
@@ -865,11 +862,11 @@ export function listUserEarningsAndMarketsConfig(
         .andThen(validateWith(UserRewardsEarningsPageSchema))
         .map((response) => ({
           items: response.data,
-          hasMore: response.next_cursor !== END_CURSOR,
+          hasMore: response.nextCursor !== END_CURSOR,
           nextCursor:
-            response.next_cursor === END_CURSOR
+            response.nextCursor === END_CURSOR
               ? undefined
-              : toPaginationCursor(response.next_cursor),
+              : toPaginationCursor(response.nextCursor),
           totalCount: response.count,
         })),
     cursor,

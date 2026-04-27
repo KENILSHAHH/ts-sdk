@@ -69,14 +69,14 @@ describe('Orders', () => {
       }
 
       const position = page.items.find(
-        (candidate) => candidate.asset === market.clobTokenIds?.[0],
+        (candidate) => candidate.tokenId === market.clobTokenIds?.[0],
       );
 
       await secureClient
         .prepareMarketOrderPosting({
           amount: expectPresent(position?.size),
           side: OrderSide.SELL,
-          tokenId: expectPresent(position?.asset),
+          tokenId: expectPresent(position?.tokenId),
         })
         .then(completeWith(walletClient))
         .then(expectAcceptedOrderResponse);
@@ -91,12 +91,12 @@ describe('Orders', () => {
           })
           .firstPage();
         const position = positions.items.find(
-          (candidate) => candidate.asset && (candidate.size ?? 0) > 0,
+          (candidate) => candidate.tokenId && (candidate.size ?? 0) > 0,
         );
 
         if (position !== undefined) {
           annotate(
-            `Found existing position in condition ${position.conditionId} with size ${position.size} and asset ${position.asset}, closing with market order…`,
+            `Found existing position in condition ${position.conditionId} with size ${position.size} and asset ${position.tokenId}, closing with market order…`,
           );
 
           // Recover from a previous partially executed test run by selling any
@@ -106,7 +106,7 @@ describe('Orders', () => {
             .prepareMarketOrder({
               amount: expectPresent(position.size),
               side: OrderSide.SELL,
-              tokenId: expectPresent(position.asset),
+              tokenId: expectPresent(position.tokenId),
             })
             .then(completeWith(walletClient))
             .then(secureClient.postOrder)
@@ -364,7 +364,7 @@ async function cancelMarketOrderWithRetry(order: {
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const result = await secureClient.cancelMarketOrders({
-      assetId: order.tokenId,
+      tokenId: order.tokenId,
       market: conditionId,
     });
 
@@ -376,7 +376,7 @@ async function cancelMarketOrderWithRetry(order: {
   }
 
   return secureClient.cancelMarketOrders({
-    assetId: order.tokenId,
+    tokenId: order.tokenId,
     market: conditionId,
   });
 }

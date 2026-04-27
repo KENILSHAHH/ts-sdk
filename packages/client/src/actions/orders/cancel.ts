@@ -27,13 +27,13 @@ const CancelOrdersRequestSchema = z.object({
 
 const CancelMarketOrdersRequestSchema = z
   .object({
-    assetId: z.string().optional(),
+    tokenId: z.string().optional(),
     market: z.string().optional(),
   })
   .refine(
-    (request) => request.market !== undefined || request.assetId !== undefined,
+    (request) => request.market !== undefined || request.tokenId !== undefined,
     {
-      message: 'At least one of market or assetId is required.',
+      message: 'At least one of market or tokenId is required.',
       path: ['market'],
     },
   );
@@ -177,7 +177,7 @@ export const CancelMarketOrdersError = makeErrorGuard(
 
 /**
  * Cancels all open orders for the authenticated account that match the market
- * or asset filter.
+ * or token filter.
  *
  * @throws {@link CancelMarketOrdersError}
  * Thrown on failure.
@@ -198,7 +198,7 @@ export async function cancelMarketOrders(
   const params = parseUserInput(request, CancelMarketOrdersRequestSchema);
 
   return cancel(client, '/cancel-market-orders', {
-    asset_id: params.assetId,
+    asset_id: params.tokenId,
     market: params.market,
   });
 }

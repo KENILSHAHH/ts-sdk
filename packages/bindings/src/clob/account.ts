@@ -1,38 +1,73 @@
 import { z } from 'zod';
-import { EvmAddressSchema, NotificationIdSchema } from '../shared';
+import {
+  EvmAddressSchema,
+  NotificationIdSchema,
+  TokenIdSchema,
+} from '../shared';
 
 function createCursorPageSchema<TItem extends z.ZodTypeAny>(item: TItem) {
-  return z.object({
-    count: z.number(),
-    data: z.array(item),
-    limit: z.number(),
-    next_cursor: z.string(),
-  });
+  return z
+    .object({
+      count: z.number(),
+      data: z.array(item),
+      limit: z.number(),
+      next_cursor: z.string(),
+    })
+    .transform(({ next_cursor, ...rest }) => ({
+      ...rest,
+      nextCursor: next_cursor,
+    }));
 }
 
-export const ClosedOnlyModeSchema = z.object({
-  closed_only: z.boolean(),
-});
+export const ClosedOnlyModeSchema = z
+  .object({
+    closed_only: z.boolean(),
+  })
+  .transform(({ closed_only }) => ({
+    closedOnly: closed_only,
+  }));
 
 export type ClosedOnlyMode = z.infer<typeof ClosedOnlyModeSchema>;
 
-export const OpenOrderSchema = z.object({
-  asset_id: z.string(),
-  associate_trades: z.array(z.string()),
-  created_at: z.number(),
-  expiration: z.string(),
-  id: z.string(),
-  maker_address: z.string(),
-  market: z.string(),
-  order_type: z.string(),
-  original_size: z.string(),
-  outcome: z.string(),
-  owner: z.string(),
-  price: z.string(),
-  side: z.string(),
-  size_matched: z.string(),
-  status: z.string(),
-});
+export const OpenOrderSchema = z
+  .object({
+    asset_id: TokenIdSchema,
+    associate_trades: z.array(z.string()),
+    created_at: z.number(),
+    expiration: z.string(),
+    id: z.string(),
+    maker_address: z.string(),
+    market: z.string(),
+    order_type: z.string(),
+    original_size: z.string(),
+    outcome: z.string(),
+    owner: z.string(),
+    price: z.string(),
+    side: z.string(),
+    size_matched: z.string(),
+    status: z.string(),
+  })
+  .transform(
+    ({
+      asset_id,
+      associate_trades,
+      created_at,
+      maker_address,
+      order_type,
+      original_size,
+      size_matched,
+      ...rest
+    }) => ({
+      ...rest,
+      tokenId: asset_id,
+      associateTrades: associate_trades,
+      createdAt: created_at,
+      makerAddress: maker_address,
+      orderType: order_type,
+      originalSize: original_size,
+      sizeMatched: size_matched,
+    }),
+  );
 
 export type OpenOrder = z.infer<typeof OpenOrderSchema>;
 
@@ -40,38 +75,84 @@ export const OpenOrdersPageSchema = createCursorPageSchema(OpenOrderSchema);
 
 export type OpenOrdersPage = z.infer<typeof OpenOrdersPageSchema>;
 
-export const MakerOrderSchema = z.object({
-  asset_id: z.string(),
-  fee_rate_bps: z.string(),
-  maker_address: z.string(),
-  matched_amount: z.string(),
-  order_id: z.string(),
-  outcome: z.string(),
-  owner: z.string(),
-  price: z.string(),
-  side: z.string(),
-});
+export const MakerOrderSchema = z
+  .object({
+    asset_id: TokenIdSchema,
+    fee_rate_bps: z.string(),
+    maker_address: z.string(),
+    matched_amount: z.string(),
+    order_id: z.string(),
+    outcome: z.string(),
+    owner: z.string(),
+    price: z.string(),
+    side: z.string(),
+  })
+  .transform(
+    ({
+      asset_id,
+      fee_rate_bps,
+      maker_address,
+      matched_amount,
+      order_id,
+      ...rest
+    }) => ({
+      ...rest,
+      tokenId: asset_id,
+      feeRateBps: fee_rate_bps,
+      makerAddress: maker_address,
+      matchedAmount: matched_amount,
+      orderId: order_id,
+    }),
+  );
 
-export const ClobTradeSchema = z.object({
-  asset_id: z.string(),
-  bucket_index: z.number(),
-  fee_rate_bps: z.string(),
-  id: z.string(),
-  last_update: z.string(),
-  maker_address: z.string(),
-  maker_orders: z.array(MakerOrderSchema),
-  market: z.string(),
-  match_time: z.string(),
-  outcome: z.string(),
-  owner: z.string(),
-  price: z.string(),
-  side: z.string(),
-  size: z.string(),
-  status: z.string(),
-  taker_order_id: z.string(),
-  trader_side: z.enum(['TAKER', 'MAKER']),
-  transaction_hash: z.string(),
-});
+export const ClobTradeSchema = z
+  .object({
+    asset_id: TokenIdSchema,
+    bucket_index: z.number(),
+    fee_rate_bps: z.string(),
+    id: z.string(),
+    last_update: z.string(),
+    maker_address: z.string(),
+    maker_orders: z.array(MakerOrderSchema),
+    market: z.string(),
+    match_time: z.string(),
+    outcome: z.string(),
+    owner: z.string(),
+    price: z.string(),
+    side: z.string(),
+    size: z.string(),
+    status: z.string(),
+    taker_order_id: z.string(),
+    trader_side: z.enum(['TAKER', 'MAKER']),
+    transaction_hash: z.string(),
+  })
+  .transform(
+    ({
+      asset_id,
+      bucket_index,
+      fee_rate_bps,
+      last_update,
+      maker_address,
+      maker_orders,
+      match_time,
+      taker_order_id,
+      trader_side,
+      transaction_hash,
+      ...rest
+    }) => ({
+      ...rest,
+      tokenId: asset_id,
+      bucketIndex: bucket_index,
+      feeRateBps: fee_rate_bps,
+      lastUpdate: last_update,
+      makerAddress: maker_address,
+      makerOrders: maker_orders,
+      matchTime: match_time,
+      takerOrderId: taker_order_id,
+      traderSide: trader_side,
+      transactionHash: transaction_hash,
+    }),
+  );
 
 export type ClobTrade = z.infer<typeof ClobTradeSchema>;
 
@@ -119,14 +200,24 @@ export const OrdersScoringResponseSchema = z.record(z.string(), z.boolean());
 
 export type OrdersScoringResponse = z.infer<typeof OrdersScoringResponseSchema>;
 
-export const UserEarningSchema = z.object({
-  asset_address: z.string(),
-  asset_rate: z.number(),
-  condition_id: z.string(),
-  date: z.string(),
-  earnings: z.number(),
-  maker_address: z.string(),
-});
+export const UserEarningSchema = z
+  .object({
+    asset_address: z.string(),
+    asset_rate: z.number(),
+    condition_id: z.string(),
+    date: z.string(),
+    earnings: z.number(),
+    maker_address: z.string(),
+  })
+  .transform(
+    ({ asset_address, asset_rate, condition_id, maker_address, ...rest }) => ({
+      ...rest,
+      assetAddress: asset_address,
+      assetRate: asset_rate,
+      conditionId: condition_id,
+      makerAddress: maker_address,
+    }),
+  );
 
 export type UserEarning = z.infer<typeof UserEarningSchema>;
 
@@ -134,13 +225,20 @@ export const UserEarningsPageSchema = createCursorPageSchema(UserEarningSchema);
 
 export type UserEarningsPage = z.infer<typeof UserEarningsPageSchema>;
 
-export const TotalUserEarningSchema = z.object({
-  asset_address: z.string(),
-  asset_rate: z.number(),
-  date: z.string(),
-  earnings: z.number(),
-  maker_address: z.string(),
-});
+export const TotalUserEarningSchema = z
+  .object({
+    asset_address: z.string(),
+    asset_rate: z.number(),
+    date: z.string(),
+    earnings: z.number(),
+    maker_address: z.string(),
+  })
+  .transform(({ asset_address, asset_rate, maker_address, ...rest }) => ({
+    ...rest,
+    assetAddress: asset_address,
+    assetRate: asset_rate,
+    makerAddress: maker_address,
+  }));
 
 export type TotalUserEarning = z.infer<typeof TotalUserEarningSchema>;
 
@@ -154,41 +252,88 @@ export const RewardsPercentagesSchema = z.record(z.string(), z.number());
 
 export type RewardsPercentages = z.infer<typeof RewardsPercentagesSchema>;
 
-export const TokenSchema = z.object({
-  outcome: z.string(),
-  price: z.number(),
-  token_id: z.string(),
-});
+export const TokenSchema = z
+  .object({
+    outcome: z.string(),
+    price: z.number(),
+    token_id: TokenIdSchema,
+  })
+  .transform(({ token_id, ...rest }) => ({
+    ...rest,
+    tokenId: token_id,
+  }));
 
-export const RewardsConfigSchema = z.object({
-  asset_address: z.string(),
-  end_date: z.string(),
-  rate_per_day: z.number(),
-  start_date: z.string(),
-  total_rewards: z.number(),
-});
+export const RewardsConfigSchema = z
+  .object({
+    asset_address: z.string(),
+    end_date: z.string(),
+    rate_per_day: z.number(),
+    start_date: z.string(),
+    total_rewards: z.number(),
+  })
+  .transform(
+    ({ asset_address, end_date, rate_per_day, start_date, total_rewards }) => ({
+      assetAddress: asset_address,
+      endDate: end_date,
+      ratePerDay: rate_per_day,
+      startDate: start_date,
+      totalRewards: total_rewards,
+    }),
+  );
 
-export const EarningSchema = z.object({
-  asset_address: z.string(),
-  asset_rate: z.number(),
-  earnings: z.number(),
-});
+export const EarningSchema = z
+  .object({
+    asset_address: z.string(),
+    asset_rate: z.number(),
+    earnings: z.number(),
+  })
+  .transform(({ asset_address, asset_rate, ...rest }) => ({
+    ...rest,
+    assetAddress: asset_address,
+    assetRate: asset_rate,
+  }));
 
-export const UserRewardsEarningSchema = z.object({
-  condition_id: z.string(),
-  earning_percentage: z.number(),
-  earnings: z.array(EarningSchema),
-  event_slug: z.string(),
-  image: z.string(),
-  maker_address: z.string(),
-  market_competitiveness: z.number(),
-  market_slug: z.string(),
-  question: z.string(),
-  rewards_config: z.array(RewardsConfigSchema),
-  rewards_max_spread: z.number(),
-  rewards_min_size: z.number(),
-  tokens: z.array(TokenSchema),
-});
+export const UserRewardsEarningSchema = z
+  .object({
+    condition_id: z.string(),
+    earning_percentage: z.number(),
+    earnings: z.array(EarningSchema),
+    event_slug: z.string(),
+    image: z.string(),
+    maker_address: z.string(),
+    market_competitiveness: z.number(),
+    market_slug: z.string(),
+    question: z.string(),
+    rewards_config: z.array(RewardsConfigSchema),
+    rewards_max_spread: z.number(),
+    rewards_min_size: z.number(),
+    tokens: z.array(TokenSchema),
+  })
+  .transform(
+    ({
+      condition_id,
+      earning_percentage,
+      event_slug,
+      maker_address,
+      market_competitiveness,
+      market_slug,
+      rewards_config,
+      rewards_max_spread,
+      rewards_min_size,
+      ...rest
+    }) => ({
+      ...rest,
+      conditionId: condition_id,
+      earningPercentage: earning_percentage,
+      eventSlug: event_slug,
+      makerAddress: maker_address,
+      marketCompetitiveness: market_competitiveness,
+      marketSlug: market_slug,
+      rewardsConfig: rewards_config,
+      rewardsMaxSpread: rewards_max_spread,
+      rewardsMinSize: rewards_min_size,
+    }),
+  );
 
 export type UserRewardsEarning = z.infer<typeof UserRewardsEarningSchema>;
 

@@ -1,18 +1,24 @@
 import { z } from 'zod';
+import { TokenIdSchema } from '../shared';
 import { AddressSchema, Hash64Schema } from './common';
 
-export const HolderSchema = z.looseObject({
-  proxyWallet: AddressSchema.nullish(),
-  bio: z.string().nullish(),
-  asset: z.string().nullish(),
-  pseudonym: z.string().nullish(),
-  amount: z.number().nullish(),
-  displayUsernamePublic: z.boolean().nullish(),
-  outcomeIndex: z.number().int().nullish(),
-  name: z.string().nullish(),
-  profileImage: z.string().nullish(),
-  profileImageOptimized: z.string().nullish(),
-});
+export const HolderSchema = z
+  .looseObject({
+    proxyWallet: AddressSchema.nullish(),
+    bio: z.string().nullish(),
+    asset: TokenIdSchema.nullish(),
+    pseudonym: z.string().nullish(),
+    amount: z.number().nullish(),
+    displayUsernamePublic: z.boolean().nullish(),
+    outcomeIndex: z.number().int().nullish(),
+    name: z.string().nullish(),
+    profileImage: z.string().nullish(),
+    profileImageOptimized: z.string().nullish(),
+  })
+  .transform(({ asset, ...rest }) => ({
+    ...rest,
+    tokenId: asset,
+  }));
 
 export const MetaHolderSchema = z.looseObject({
   token: z.string().nullish(),
