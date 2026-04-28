@@ -1,4 +1,4 @@
-import type { Pushable } from 'it-pushable';
+import { type Pushable, pushable } from 'it-pushable';
 
 export type SubscriptionRegistrySubscriber<TEvent> = {
   matches?: (event: TEvent) => boolean;
@@ -13,6 +13,15 @@ export type SubscriptionRegistryEntry<TSubscription, TEvent> = {
 export type SubscriptionRegistryChange<TState> = {
   before: TState;
   after: TState;
+};
+
+export type SubscriptionRegistryAddOptions<TEvent> = {
+  matches?: (event: TEvent) => boolean;
+};
+
+export type SubscriptionRegistryAddResult<TSubscription, TEvent, TState> = {
+  change: SubscriptionRegistryChange<TState>;
+  entry: SubscriptionRegistryEntry<TSubscription, TEvent>;
 };
 
 type DeriveServerState<TSubscription, TEvent, TState> = (
@@ -55,6 +64,23 @@ export class SubscriptionRegistry<
   }
 
   add(
+    subscription: TSubscription,
+    options: SubscriptionRegistryAddOptions<TEvent> = {},
+  ): SubscriptionRegistryAddResult<TSubscription, TEvent, TServerState> {
+    const subscriber: SubscriptionRegistrySubscriber<TEvent> = {
+      queue: pushable<TEvent>({ objectMode: true }),
+    };
+    if (options.matches !== undefined) {
+      subscriber.matches = options.matches;
+    }
+    const entry: SubscriptionRegistryEntry<TSubscription, TEvent> = {
+      subscription,
+      subscriber,
+    };
+    return { change: this.#addEntry(entry), entry };
+  }
+
+  #addEntry(
     entry: SubscriptionRegistryEntry<TSubscription, TEvent>,
   ): SubscriptionRegistryChange<TServerState> {
     const before = this.serverState();

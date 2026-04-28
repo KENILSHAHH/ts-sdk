@@ -5,7 +5,6 @@ import {
   type UserEvent,
   UserEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { pushable } from 'it-pushable';
 import type {
   MarketSubscription,
   SubscriptionHandle,
@@ -19,6 +18,7 @@ import {
 } from './lifecycle';
 import {
   SubscriptionRegistry,
+  type SubscriptionRegistryChange,
   type SubscriptionRegistryEntry,
 } from './registry';
 import type { WebSocketManager } from './types';
@@ -89,23 +89,22 @@ export class ClobMarketWebSocketManager
   async subscribe(
     subscription: MarketSubscription,
   ): Promise<SubscriptionHandle<MarketEvent>> {
-    const entry: MarketSubscriptionEntry = {
-      subscription,
-      subscriber: {
-        matches: marketMatcherFor(subscription),
-        queue: pushable<MarketEvent>({ objectMode: true }),
-      },
-    };
+    const { change, entry } = this.#subscriptions.add(subscription, {
+      matches: marketMatcherFor(subscription),
+    });
 
-    await this.#registerSubscriber(entry);
+    await this.#registerSubscriber(entry, change);
     return this.#createHandle(entry);
   }
 
   // Subscription handle lifecycle.
 
-  async #registerSubscriber(entry: MarketSubscriptionEntry): Promise<void> {
+  async #registerSubscriber(
+    entry: MarketSubscriptionEntry,
+    change: SubscriptionRegistryChange<MarketServerSubscription>,
+  ): Promise<void> {
     const wasOpen = this.#connection.hasOpenSocket();
-    const { before, after } = this.#subscriptions.add(entry);
+    const { before, after } = change;
 
     let socket: WebSocket;
     try {
@@ -300,23 +299,22 @@ export class ClobUserWebSocketManager
   async subscribe(
     subscription: UserSubscription,
   ): Promise<SubscriptionHandle<UserEvent>> {
-    const entry: UserSubscriptionEntry = {
-      subscription,
-      subscriber: {
-        matches: userMatcherFor(subscription),
-        queue: pushable<UserEvent>({ objectMode: true }),
-      },
-    };
+    const { change, entry } = this.#subscriptions.add(subscription, {
+      matches: userMatcherFor(subscription),
+    });
 
-    await this.#registerSubscriber(entry);
+    await this.#registerSubscriber(entry, change);
     return this.#createHandle(entry);
   }
 
   // Subscription handle lifecycle.
 
-  async #registerSubscriber(entry: UserSubscriptionEntry): Promise<void> {
+  async #registerSubscriber(
+    entry: UserSubscriptionEntry,
+    change: SubscriptionRegistryChange<UserServerSubscription>,
+  ): Promise<void> {
     const wasOpen = this.#connection.hasOpenSocket();
-    const { before, after } = this.#subscriptions.add(entry);
+    const { before, after } = change;
 
     let socket: WebSocket;
     try {

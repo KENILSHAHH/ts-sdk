@@ -2,7 +2,6 @@ import {
   type SportsEvent,
   SportsResultEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { pushable } from 'it-pushable';
 import type {
   SportsSubscription,
   SubscriptionHandle,
@@ -60,12 +59,7 @@ export class SportsWebSocketManager
   async subscribe(
     subscription: SportsSubscription,
   ): Promise<SubscriptionHandle<SportsEvent>> {
-    const entry: SportsSubscriptionEntry = {
-      subscription,
-      subscriber: {
-        queue: pushable<SportsEvent>({ objectMode: true }),
-      },
-    };
+    const { entry } = this.#subscriptions.add(subscription);
 
     await this.#registerSubscriber(entry);
     return this.#createHandle(entry);
@@ -74,8 +68,6 @@ export class SportsWebSocketManager
   // Subscription handle lifecycle.
 
   async #registerSubscriber(entry: SportsSubscriptionEntry): Promise<void> {
-    this.#subscriptions.add(entry);
-
     try {
       await this.#ensureSocket();
     } catch (error) {

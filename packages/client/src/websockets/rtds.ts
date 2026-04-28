@@ -5,7 +5,6 @@ import {
   RealtimeEventSchema,
 } from '@polymarket/bindings/subscriptions';
 import { invariant } from '@polymarket/types';
-import { pushable } from 'it-pushable';
 import type {
   CommentsSubscription,
   CryptoPricesSubscription,
@@ -20,6 +19,7 @@ import {
 } from './lifecycle';
 import {
   SubscriptionRegistry,
+  type SubscriptionRegistryChange,
   type SubscriptionRegistryEntry,
 } from './registry';
 import type { WebSocketManager } from './types';
@@ -79,22 +79,21 @@ export class RtdsWebSocketManager
   async subscribe(
     subscription: RtdsSpec,
   ): Promise<SubscriptionHandle<RtdsEvent>> {
-    const entry: RtdsSubscriptionEntry = {
-      subscription,
-      subscriber: {
-        matches: matcherFor(subscription),
-        queue: pushable<RtdsEvent>({ objectMode: true }),
-      },
-    };
-    await this.#registerSubscriber(entry);
+    const { change, entry } = this.#subscriptions.add(subscription, {
+      matches: matcherFor(subscription),
+    });
+    await this.#registerSubscriber(entry, change);
     return this.#createHandle(entry);
   }
 
   // Subscription handle lifecycle.
 
-  async #registerSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
+  async #registerSubscriber(
+    entry: RtdsSubscriptionEntry,
+    change: SubscriptionRegistryChange<RtdsServerState>,
+  ): Promise<void> {
     const shouldSendIncrementalSubscribe = this.#connection.hasOpenSocket();
-    const { before, after } = this.#subscriptions.add(entry);
+    const { before, after } = change;
     const subscriptionsToOpen = serverSubscriptionsAdded(before, after);
 
     let socket: WebSocket;
