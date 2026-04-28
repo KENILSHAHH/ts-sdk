@@ -1,5 +1,5 @@
 import {
-  ISODateStringSchema,
+  IsoDateTimeStringSchema,
   PaginationCursorSchema,
 } from '@polymarket/bindings';
 import {
@@ -49,8 +49,8 @@ const ListMarketsRequestSchema = z.object({
   conditionIds: z.array(z.string()).optional(),
   cyom: z.boolean().optional(),
   decimalized: z.boolean().optional(),
-  endDateMax: ISODateStringSchema.optional(),
-  endDateMin: ISODateStringSchema.optional(),
+  endDateMax: IsoDateTimeStringSchema.optional(),
+  endDateMin: IsoDateTimeStringSchema.optional(),
   gameId: z.string().optional(),
   ids: z.array(z.number().int()).optional(),
   includeTag: z.boolean().optional(),
@@ -65,8 +65,8 @@ const ListMarketsRequestSchema = z.object({
   rewardsMinSize: z.number().optional(),
   slug: z.array(z.string()).optional(),
   sportsMarketTypes: z.array(z.string()).optional(),
-  startDateMax: ISODateStringSchema.optional(),
-  startDateMin: ISODateStringSchema.optional(),
+  startDateMax: IsoDateTimeStringSchema.optional(),
+  startDateMin: IsoDateTimeStringSchema.optional(),
   tagId: z.number().int().optional(),
   tagMatch: z.enum(['any', 'all']).optional(),
   umaResolutionStatus: z.string().optional(),

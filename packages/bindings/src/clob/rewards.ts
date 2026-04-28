@@ -1,12 +1,15 @@
 import { z } from 'zod';
-import { TokenIdSchema } from '../shared';
+import {
+  EpochMillisecondsToIsoDateTimeStringSchema,
+  TokenIdSchema,
+} from '../shared';
 
 const CurrentRewardConfigSchema = z
   .looseObject({
     id: z.number().int().optional(),
     asset_address: z.string(),
-    start_date: z.string(),
-    end_date: z.string().optional(),
+    start_date: EpochMillisecondsToIsoDateTimeStringSchema,
+    end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
     rate_per_day: z.number(),
     total_rewards: z.number().optional(),
   })
@@ -95,8 +98,8 @@ export type RewardToken = z.infer<typeof RewardTokenSchema>;
 const RewardConfigSchema = z
   .looseObject({
     asset_address: z.string(),
-    start_date: z.string(),
-    end_date: z.string().optional(),
+    start_date: EpochMillisecondsToIsoDateTimeStringSchema,
+    end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
     rate_per_day: z.number(),
     total_rewards: z.number().optional(),
   })

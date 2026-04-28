@@ -417,7 +417,9 @@ describe('subscribe', () => {
         clientConnection?.send(
           JSON.stringify({
             asset_id: 'token-a',
+            created_at: '1641042000',
             event_type: 'order',
+            expiration: '1641045600',
             id: 'order-a',
             market: 'market-a',
             original_size: '1',
@@ -433,7 +435,13 @@ describe('subscribe', () => {
         await expect(marketANext).resolves.toMatchObject({
           done: false,
           value: {
-            payload: { market: 'market-a', orderEventType: 'PLACEMENT' },
+            payload: {
+              createdAt: '2022-01-01T13:00:00.000Z',
+              expiresAt: '2022-01-01T14:00:00.000Z',
+              market: 'market-a',
+              orderEventType: 'PLACEMENT',
+              timestamp: 1,
+            },
             topic: 'user',
             type: 'order',
           },
@@ -504,6 +512,7 @@ describe('subscribe', () => {
           ended: false,
           gameId: 123,
           leagueAbbreviation: 'NBA',
+          finishedTimestamp: '2024-01-09T17:47:52.121Z',
           live: true,
           score: '0-0',
           status: 'inprogress',
@@ -513,7 +522,11 @@ describe('subscribe', () => {
       await expect(firstNext).resolves.toMatchObject({
         done: false,
         value: {
-          payload: { gameId: 123, leagueAbbreviation: 'NBA' },
+          payload: {
+            finishedAt: '2024-01-09T17:47:52.121Z',
+            gameId: 123,
+            leagueAbbreviation: 'NBA',
+          },
           topic: 'sports',
           type: 'sport_result',
         },
@@ -521,7 +534,11 @@ describe('subscribe', () => {
       await expect(secondNext).resolves.toMatchObject({
         done: false,
         value: {
-          payload: { gameId: 123, leagueAbbreviation: 'NBA' },
+          payload: {
+            finishedAt: '2024-01-09T17:47:52.121Z',
+            gameId: 123,
+            leagueAbbreviation: 'NBA',
+          },
           topic: 'sports',
           type: 'sport_result',
         },
@@ -770,7 +787,7 @@ describe('subscribe', () => {
           value: {
             topic: 'prices.crypto.binance',
             type: 'update',
-            payload: { symbol: 'btcusdt', value: 100 },
+            payload: { symbol: 'btcusdt', timestamp: 1, value: 100 },
           },
         });
       } finally {

@@ -1,0 +1,31 @@
+name: Backend Compatibility
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    name: Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Set Up Repository
+        uses: ./.github/actions/setup
+
+      - name: Test Backend Compatibility
+        run: pnpm test:backend-compat
+        env:
+          POLYMARKET_BUILDER_API_KEY: ${{ vars.POLYMARKET_BUILDER_API_KEY }}
+          POLYMARKET_BUILDER_PASSPHRASE: ${{ secrets.POLYMARKET_BUILDER_PASSPHRASE }}
+          POLYMARKET_BUILDER_SECRET: ${{ secrets.POLYMARKET_BUILDER_SECRET }}
+          POLYMARKET_TEST_PRIVATE_KEY: ${{ secrets.POLYMARKET_TEST_PRIVATE_KEY }}
+          POLYMARKET_TEST_SAFE_WALLET: ${{ vars.POLYMARKET_TEST_SAFE_WALLET }}
+          POLYMARKET_RELAYER_API_KEY: ${{ vars.POLYMARKET_RELAYER_API_KEY }}
+          POLYMARKET_RELAYER_API_KEY_ADDRESS: ${{ vars.POLYMARKET_RELAYER_API_KEY_ADDRESS }}

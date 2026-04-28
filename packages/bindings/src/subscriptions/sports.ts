@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EpochMillisecondsToIsoDateTimeStringSchema } from '../shared';
 
 const SportsResultPayloadSchema = z
   .looseObject({
@@ -14,12 +15,13 @@ const SportsResultPayloadSchema = z
     score: z.string(),
     period: z.string().nullish(),
     elapsed: z.string().nullish(),
-    finished_timestamp: z.string().nullish(),
+    finishedTimestamp: EpochMillisecondsToIsoDateTimeStringSchema.nullish(),
+    finished_timestamp: EpochMillisecondsToIsoDateTimeStringSchema.nullish(),
     turn: z.string().nullish(),
   })
-  .transform(({ finished_timestamp, ...rest }) => ({
+  .transform(({ finishedTimestamp, finished_timestamp, ...rest }) => ({
     ...rest,
-    finishedTimestamp: finished_timestamp,
+    finishedAt: finishedTimestamp ?? finished_timestamp,
   }));
 
 export const SportsResultEventSchema = SportsResultPayloadSchema.transform(

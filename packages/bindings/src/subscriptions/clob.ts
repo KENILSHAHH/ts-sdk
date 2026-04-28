@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import {
+  EpochMillisecondsStringSchema,
+  EpochMillisecondsToIsoDateTimeStringSchema,
   type OrderSide,
   OrderSideSchema,
   OrderTypeSchema,
   TokenIdSchema,
+  toIsoDateTimeString,
 } from '../shared';
 
 const NormalizedOrderSideSchema: z.ZodType<OrderSide> = z.preprocess(
@@ -37,6 +40,22 @@ const OrderBookLevelSchema = z.looseObject({
   size: z.string(),
 });
 
+const EpochSecondsStringToIsoDateTimeStringSchema = z
+  .string()
+  .regex(/^\d+$/)
+  .transform((value) =>
+    toIsoDateTimeString(new Date(Number(value) * 1000).toISOString()),
+  );
+
+const ExpirationToIsoDateTimeStringSchema = z
+  .string()
+  .regex(/^\d+$/)
+  .transform((value) =>
+    value === '0'
+      ? undefined
+      : toIsoDateTimeString(new Date(Number(value) * 1000).toISOString()),
+  );
+
 export type OrderBookLevel = z.infer<typeof OrderBookLevelSchema>;
 
 export const MarketBookEventSchema = z
@@ -47,7 +66,7 @@ export const MarketBookEventSchema = z
     bids: z.array(OrderBookLevelSchema),
     asks: z.array(OrderBookLevelSchema),
     hash: z.string().nullish(),
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
     min_order_size: z.string().nullish(),
     tick_size: z.string().nullish(),
     neg_risk: z.boolean().nullish(),
@@ -105,7 +124,7 @@ export const MarketPriceChangeEventSchema = z
     event_type: z.literal('price_change'),
     market: z.string(),
     price_changes: z.array(PriceChangeSchema),
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
   })
   .transform(({ event_type, price_changes, ...rest }) => {
     return {
@@ -132,7 +151,7 @@ export const MarketLastTradePriceEventSchema = z
     size: z.string().nullish(),
     fee_rate_bps: z.string().nullish(),
     side: NormalizedOrderSideSchema,
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
     transaction_hash: z.string().nullish(),
   })
   .transform(
@@ -162,7 +181,7 @@ export const MarketTickSizeChangeEventSchema = z
     asset_id: TokenIdSchema,
     old_tick_size: z.string().nullish(),
     new_tick_size: z.string(),
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
   })
   .transform(
     ({ event_type, asset_id, old_tick_size, new_tick_size, ...rest }) => {
@@ -192,7 +211,7 @@ export const MarketBestBidAskEventSchema = z
     best_bid: z.string().nullish(),
     best_ask: z.string().nullish(),
     spread: z.string().nullish(),
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
   })
   .transform(({ event_type, asset_id, best_bid, best_ask, ...rest }) => {
     return {
@@ -231,14 +250,14 @@ export const NewMarketEventSchema = z
     assets_ids: z.array(TokenIdSchema).nullish(),
     outcomes: z.array(z.string()).nullish(),
     event_message: MarketEventMessageSchema.nullish(),
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
     tags: z.array(z.string()).nullish(),
     condition_id: z.string().nullish(),
     active: z.boolean().nullish(),
     clob_token_ids: z.array(z.string()).nullish(),
     sports_market_type: z.string().nullish(),
     line: z.string().nullish(),
-    game_start_time: z.string().nullish(),
+    game_start_time: EpochMillisecondsToIsoDateTimeStringSchema.nullish(),
     order_price_min_tick_size: z.string().nullish(),
     group_item_title: z.string().nullish(),
     taker_base_fee: z.string().nullish(),
@@ -294,7 +313,7 @@ export const MarketResolvedEventSchema = z
     winning_asset_id: TokenIdSchema.nullish(),
     winning_outcome: z.string().nullish(),
     event_message: MarketEventMessageSchema.nullish(),
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
     tags: z.array(z.string()).nullish(),
   })
   .transform(
@@ -346,12 +365,12 @@ export const UserOrderEventSchema = z
     associate_trades: z.array(z.string()).nullish(),
     outcome: z.string().nullish(),
     type: UserOrderEventTypeSchema,
-    created_at: z.string().nullish(),
-    expiration: z.string().nullish(),
+    created_at: EpochSecondsStringToIsoDateTimeStringSchema.nullish(),
+    expiration: ExpirationToIsoDateTimeStringSchema.nullish(),
     order_type: OrderTypeSchema.nullish(),
     status: UserOrderStatusSchema.nullish(),
     maker_address: z.string().nullish(),
-    timestamp: z.string(),
+    timestamp: EpochMillisecondsStringSchema,
   })
   .transform(
     ({
@@ -363,6 +382,7 @@ export const UserOrderEventSchema = z
       size_matched,
       associate_trades,
       created_at,
+      expiration,
       order_type,
       maker_address,
       ...rest
@@ -380,6 +400,7 @@ export const UserOrderEventSchema = z
           sizeMatched: size_matched,
           associateTrades: associate_trades,
           createdAt: created_at,
+          expiresAt: expiration,
           orderType: order_type,
           makerAddress: maker_address,
         },
@@ -437,9 +458,9 @@ export const UserTradeEventSchema = z
     fee_rate_bps: z.string().nullish(),
     price: z.string(),
     status: TradeStatusSchema,
-    match_time: z.string().nullish(),
-    matchtime: z.string().nullish(),
-    last_update: z.string().nullish(),
+    match_time: EpochSecondsStringToIsoDateTimeStringSchema.nullish(),
+    matchtime: EpochSecondsStringToIsoDateTimeStringSchema.nullish(),
+    last_update: EpochSecondsStringToIsoDateTimeStringSchema.nullish(),
     outcome: z.string().nullish(),
     owner: z.string(),
     trade_owner: z.string().nullish(),
@@ -448,7 +469,7 @@ export const UserTradeEventSchema = z
     bucket_index: z.number().int().nullish(),
     maker_orders: z.array(TradeMakerOrderSchema).nullish(),
     trader_side: z.union([z.literal('TAKER'), z.literal('MAKER')]).nullish(),
-    timestamp: z.string(),
+    timestamp: EpochMillisecondsStringSchema,
   })
   .transform(
     ({
@@ -477,8 +498,8 @@ export const UserTradeEventSchema = z
           takerOrderId: taker_order_id,
           tokenId: asset_id,
           feeRateBps: fee_rate_bps,
-          matchTime: match_time ?? matchtime,
-          lastUpdate: last_update,
+          matchedAt: match_time ?? matchtime,
+          updatedAt: last_update,
           tradeOwner: trade_owner,
           makerAddress: maker_address,
           transactionHash: transaction_hash,

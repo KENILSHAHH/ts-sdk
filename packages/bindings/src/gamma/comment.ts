@@ -3,6 +3,7 @@ import {
   CommentIdSchema,
   CommentParentEntityTypeSchema,
   EventIdSchema,
+  IsoDateTimeStringSchema,
   TokenIdSchema,
 } from '../shared';
 import { ImageOptimizationSchema } from './common';
@@ -39,7 +40,7 @@ export const ReactionSchema = z.looseObject({
   reactionType: ReactionTypeSchema.nullish(),
   icon: z.string().nullish(),
   userAddress: z.string().nullish(),
-  createdAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
   profile: CommentProfileSchema.nullish(),
 });
 
@@ -51,7 +52,7 @@ export const CommentMediaSchema = z.looseObject({
   url: z.string().nullish(),
   mediaType: z.string().nullish(),
   altText: z.string().nullish(),
-  createdAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const CommentSchema = z.looseObject({
@@ -62,8 +63,8 @@ export const CommentSchema = z.looseObject({
   parentCommentID: CommentIdSchema.nullish(),
   userAddress: z.string().nullish(),
   replyAddress: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
   media: z.array(CommentMediaSchema).nullish(),
   profile: CommentProfileSchema.nullish(),
   reactions: z.array(ReactionSchema).nullish(),

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   EventIdSchema,
+  IsoCalendarDateStringSchema,
+  IsoDateTimeStringSchema,
   PaginationCursorSchema,
   toBestLineId,
   toChatId,
@@ -58,11 +60,11 @@ export const CollectionReferenceSchema = z.looseObject({
   restricted: z.boolean().nullish(),
   isTemplate: z.boolean().nullish(),
   templateVariables: z.string().nullish(),
-  publishedAt: z.string().nullish(),
+  publishedAt: IsoDateTimeStringSchema.nullish(),
   createdBy: z.string().nullish(),
   updatedBy: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
   disqusThread: z.string().nullish(),
   commentsEnabled: z.boolean().nullish(),
 });
@@ -87,17 +89,17 @@ export const SeriesReferenceSchema = z.looseObject({
   restricted: z.boolean().nullish(),
   isTemplate: z.boolean().nullish(),
   templateVariables: z.boolean().nullish(),
-  publishedAt: z.string().nullish(),
+  publishedAt: IsoDateTimeStringSchema.nullish(),
   createdBy: z.string().nullish(),
   updatedBy: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
   commentsEnabled: z.boolean().nullish(),
   competitive: z.string().nullish(),
   volume24hr: z.number().nullish(),
   volume: z.number().nullish(),
   liquidity: z.number().nullish(),
-  startDate: z.string().nullish(),
+  startDate: IsoDateTimeStringSchema.nullish(),
   pythTokenID: z.string().nullish(),
   cgAssetName: z.string().nullish(),
   score: z.number().int().nullish(),
@@ -119,8 +121,8 @@ export const TemplateReferenceSchema = z.looseObject({
   markets: z.string().nullish(),
   userVariables: z.string().nullish(),
   creatorUserId: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const ChatSchema = z.looseObject({
@@ -129,8 +131,8 @@ export const ChatSchema = z.looseObject({
   channelName: z.string().nullish(),
   channelImage: z.string().nullish(),
   live: z.boolean().nullish(),
-  startTime: z.string().nullish(),
-  endTime: z.string().nullish(),
+  startTime: IsoDateTimeStringSchema.nullish(),
+  endTime: IsoDateTimeStringSchema.nullish(),
 });
 
 export const EventCreatorSchema = z.looseObject({
@@ -139,16 +141,16 @@ export const EventCreatorSchema = z.looseObject({
   creatorHandle: z.string().nullish(),
   creatorURL: z.string().nullish(),
   creatorImage: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const PartnerSchema = z.looseObject({
   id: PartnerIdSchema,
   slug: z.string(),
   name: z.string(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const EventExternalPartnerMappingSchema = z.looseObject({
@@ -157,8 +159,8 @@ export const EventExternalPartnerMappingSchema = z.looseObject({
   partnerId: z.number().int(),
   externalId: z.string(),
   partner: PartnerSchema.nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const BestLineSchema = z.looseObject({
@@ -175,8 +177,8 @@ export const TeamSchema = z.looseObject({
   logo: z.string().nullish(),
   abbreviation: z.string().nullish(),
   alias: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
   providerId: z.number().int().nullish(),
   color: z.string().nullish(),
 });
@@ -189,8 +191,8 @@ export const SportsMetadataSchema = z.looseObject({
   ordering: z.string(),
   tags: z.string(),
   series: z.string(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const ListTeamsResponseSchema = z.array(TeamSchema);
@@ -208,9 +210,9 @@ export const EventSchema = z
     subtitle: z.string().nullish(),
     description: z.string().nullish(),
     resolutionSource: z.string().nullish(),
-    startDate: z.string().nullish(),
-    creationDate: z.string().nullish(),
-    endDate: z.string().nullish(),
+    startDate: IsoDateTimeStringSchema.nullish(),
+    creationDate: IsoDateTimeStringSchema.nullish(),
+    endDate: IsoDateTimeStringSchema.nullish(),
     image: z.string().nullish(),
     icon: z.string().nullish(),
     active: z.boolean().nullish(),
@@ -227,11 +229,11 @@ export const EventSchema = z
     subcategory: z.string().nullish(),
     isTemplate: z.boolean().nullish(),
     templateVariables: z.string().nullish(),
-    published_at: z.string().nullish(),
+    published_at: IsoDateTimeStringSchema.nullish(),
     createdBy: z.string().nullish(),
     updatedBy: z.string().nullish(),
-    createdAt: z.string().nullish(),
-    updatedAt: z.string().nullish(),
+    createdAt: IsoDateTimeStringSchema.nullish(),
+    updatedAt: IsoDateTimeStringSchema.nullish(),
     commentsEnabled: z.boolean().nullish(),
     competitive: z.number().nullish(),
     volume24hr: z.number().nullish(),
@@ -260,14 +262,14 @@ export const EventSchema = z
     tag_labels: z.array(z.string()).nullish(),
     tag_slugs: z.array(z.string()).nullish(),
     cyom: z.boolean().nullish(),
-    closedTime: z.string().nullish(),
+    closedTime: IsoDateTimeStringSchema.nullish(),
     showAllOutcomes: z.boolean().nullish(),
     showMarketImages: z.boolean().nullish(),
     automaticallyResolved: z.boolean().nullish(),
     enableNegRisk: z.boolean().nullish(),
     automaticallyActive: z.boolean().nullish(),
-    eventDate: z.string().nullish(),
-    startTime: z.string().nullish(),
+    eventDate: IsoCalendarDateStringSchema.nullish(),
+    startTime: IsoDateTimeStringSchema.nullish(),
     eventWeek: z.number().int().nullish(),
     seriesSlug: z.string().nullish(),
     score: z.string().nullish(),
@@ -275,7 +277,7 @@ export const EventSchema = z
     period: z.string().nullish(),
     live: z.boolean().nullish(),
     ended: z.boolean().nullish(),
-    finishedTimestamp: z.string().nullish(),
+    finishedTimestamp: IsoDateTimeStringSchema.nullish(),
     gmpChartMode: z.string().nullish(),
     eventCreators: z.array(EventCreatorSchema).nullish(),
     negRiskAugmented: z.boolean().nullish(),
@@ -295,8 +297,8 @@ export const EventSchema = z
     carouselMap: z.string().nullish(),
     pendingDeployment: z.boolean().nullish(),
     deploying: z.boolean().nullish(),
-    deployingTimestamp: z.string().nullish(),
-    scheduledDeploymentTimestamp: z.string().nullish(),
+    deployingTimestamp: IsoDateTimeStringSchema.nullish(),
+    scheduledDeploymentTimestamp: IsoDateTimeStringSchema.nullish(),
     gameStatus: z.string().nullish(),
     internalUsers: z.array(InternalUserSchema).nullish(),
     gameId: z.number().int().nullish(),
@@ -309,18 +311,31 @@ export const EventSchema = z
     turnProviderId: z.string().nullish(),
     lastHighlight: z.string().nullish(),
     lastHighlightType: z.string().nullish(),
-    lastHighlightAt: z.string().nullish(),
+    lastHighlightAt: IsoDateTimeStringSchema.nullish(),
     eventMetadata: z.record(z.string(), z.unknown()).nullish(),
     teams: z.array(TeamSchema).nullish(),
     sport: SportsMetadataSchema.nullish(),
     externalPartners: z.array(EventExternalPartnerMappingSchema).nullish(),
   })
-  .transform(({ published_at, tag_labels, tag_slugs, ...rest }) => ({
-    ...rest,
-    publishedAt: published_at,
-    tagLabels: tag_labels,
-    tagSlugs: tag_slugs,
-  }));
+  .transform(
+    ({
+      deployingTimestamp,
+      finishedTimestamp,
+      published_at,
+      scheduledDeploymentTimestamp,
+      tag_labels,
+      tag_slugs,
+      ...rest
+    }) => ({
+      ...rest,
+      deployingAt: deployingTimestamp,
+      finishedAt: finishedTimestamp,
+      publishedAt: published_at,
+      scheduledDeploymentAt: scheduledDeploymentTimestamp,
+      tagLabels: tag_labels,
+      tagSlugs: tag_slugs,
+    }),
+  );
 
 export const ListEventsResponseSchema = z.array(EventSchema);
 export const ListEventsKeysetResponseSchema = z

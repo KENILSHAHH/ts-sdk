@@ -33,6 +33,7 @@ export default defineConfig({
         test: {
           name: 'client',
           include: ['packages/client/**/*.test.ts'],
+          exclude: ['packages/client/src/backend-compat.test.ts'],
           environment: 'node',
           testTimeout: 10_000,
           typecheck: {
@@ -40,6 +41,15 @@ export default defineConfig({
             include: ['packages/client/**/*.test-d.ts'],
             tsconfig: 'packages/client/tsconfig.json',
           },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'backend-compat',
+          include: ['packages/client/src/backend-compat.test.ts'],
+          environment: 'node',
+          testTimeout: 600_000,
         },
       },
     ],

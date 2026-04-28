@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IsoDateTimeStringSchema } from '../shared';
 import { AddressSchema } from './common';
 
 export const LeaderboardEntrySchema = z.looseObject({
@@ -10,15 +11,20 @@ export const LeaderboardEntrySchema = z.looseObject({
   builderLogo: z.string().nullish(),
 });
 
-export const BuilderVolumeEntrySchema = z.looseObject({
-  dt: z.string().nullish(),
-  builder: z.string().nullish(),
-  builderLogo: z.string().nullish(),
-  verified: z.boolean().nullish(),
-  volume: z.number().nullish(),
-  activeUsers: z.number().int().nullish(),
-  rank: z.string().nullish(),
-});
+export const BuilderVolumeEntrySchema = z
+  .looseObject({
+    dt: IsoDateTimeStringSchema.nullish(),
+    builder: z.string().nullish(),
+    builderLogo: z.string().nullish(),
+    verified: z.boolean().nullish(),
+    volume: z.number().nullish(),
+    activeUsers: z.number().int().nullish(),
+    rank: z.string().nullish(),
+  })
+  .transform(({ dt, ...rest }) => ({
+    ...rest,
+    bucketAt: dt,
+  }));
 
 export const TraderLeaderboardEntrySchema = z.looseObject({
   rank: z.string().nullish(),

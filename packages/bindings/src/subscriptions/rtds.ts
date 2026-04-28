@@ -5,7 +5,10 @@ import {
   CommentSchema,
   ReactionSchema,
 } from '../gamma/comment';
-import { CommentParentEntityTypeSchema } from '../shared';
+import {
+  CommentParentEntityTypeSchema,
+  EpochMillisecondsSchema,
+} from '../shared';
 
 const CommentRemovedPayloadSchema = z.looseObject({
   id: z.string(),
@@ -30,7 +33,7 @@ export type CommentRemovedPayload = z.infer<typeof CommentRemovedPayloadSchema>;
 export const CommentCreatedEventSchema = z.looseObject({
   topic: z.literal('comments'),
   type: z.literal('comment_created'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: CommentSchema,
 });
 
@@ -39,7 +42,7 @@ export type CommentCreatedEvent = z.infer<typeof CommentCreatedEventSchema>;
 export const CommentRemovedEventSchema = z.looseObject({
   topic: z.literal('comments'),
   type: z.literal('comment_removed'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: CommentRemovedPayloadSchema,
 });
 
@@ -48,7 +51,7 @@ export type CommentRemovedEvent = z.infer<typeof CommentRemovedEventSchema>;
 export const ReactionCreatedEventSchema = z.looseObject({
   topic: z.literal('comments'),
   type: z.literal('reaction_created'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: ReactionSchema,
 });
 
@@ -57,7 +60,7 @@ export type ReactionCreatedEvent = z.infer<typeof ReactionCreatedEventSchema>;
 export const ReactionRemovedEventSchema = z.looseObject({
   topic: z.literal('comments'),
   type: z.literal('reaction_removed'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: ReactionSchema,
 });
 
@@ -65,7 +68,7 @@ export type ReactionRemovedEvent = z.infer<typeof ReactionRemovedEventSchema>;
 
 const PriceUpdatePayloadSchema = z.looseObject({
   symbol: z.string(),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   value: z.number(),
 });
 
@@ -98,7 +101,7 @@ const CryptoPricesChainlinkTopicSchema: z.ZodType<CryptoPricesChainlinkTopic> =
 export const CryptoPricesBinanceEventSchema = z.looseObject({
   topic: CryptoPricesBinanceTopicSchema,
   type: z.literal('update'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: PriceUpdatePayloadSchema,
 });
 
@@ -109,7 +112,7 @@ export type CryptoPricesBinanceEvent = z.infer<
 export const CryptoPricesChainlinkEventSchema = z.looseObject({
   topic: CryptoPricesChainlinkTopicSchema,
   type: z.literal('update'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: PriceUpdatePayloadSchema,
 });
 
@@ -129,8 +132,8 @@ const EquityPriceUpdatePayloadSchema = z
     symbol: z.string(),
     value: z.number(),
     full_accuracy_value: z.string(),
-    timestamp: z.number(),
-    received_at: z.number().nullish(),
+    timestamp: EpochMillisecondsSchema,
+    received_at: EpochMillisecondsSchema.nullish(),
     is_carried_forward: z.boolean().nullish(),
   })
   .transform(
@@ -178,7 +181,7 @@ const EquityPricesTopicSchema: z.ZodType<EquityPricesTopic> =
 export const EquityPricesUpdateEventSchema = z.looseObject({
   topic: EquityPricesTopicSchema,
   type: z.literal('update'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: EquityPriceUpdatePayloadSchema,
 });
 
@@ -189,7 +192,7 @@ export type EquityPricesUpdateEvent = z.infer<
 export const EquityPricesSubscribeEventSchema = z.looseObject({
   topic: EquityPricesTopicSchema,
   type: z.literal('subscribe'),
-  timestamp: z.number(),
+  timestamp: EpochMillisecondsSchema,
   payload: EquityPriceSubscribePayloadSchema,
 });
 

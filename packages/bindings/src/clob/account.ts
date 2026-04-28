@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import {
+  EpochMillisecondsSchema,
+  EpochMillisecondsToIsoDateTimeStringSchema,
   EvmAddressSchema,
   NotificationIdSchema,
+  OptionalEpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
 } from '../shared';
 
@@ -33,8 +36,8 @@ export const OpenOrderSchema = z
   .object({
     asset_id: TokenIdSchema,
     associate_trades: z.array(z.string()),
-    created_at: z.number(),
-    expiration: z.string(),
+    created_at: EpochMillisecondsToIsoDateTimeStringSchema,
+    expiration: OptionalEpochMillisecondsToIsoDateTimeStringSchema,
     id: z.string(),
     maker_address: z.string(),
     market: z.string(),
@@ -52,21 +55,28 @@ export const OpenOrderSchema = z
       asset_id,
       associate_trades,
       created_at,
+      expiration,
       maker_address,
       order_type,
       original_size,
       size_matched,
       ...rest
-    }) => ({
-      ...rest,
-      tokenId: asset_id,
-      associateTrades: associate_trades,
-      createdAt: created_at,
-      makerAddress: maker_address,
-      orderType: order_type,
-      originalSize: original_size,
-      sizeMatched: size_matched,
-    }),
+    }) => {
+      const transformed = {
+        ...rest,
+        tokenId: asset_id,
+        associateTrades: associate_trades,
+        createdAt: created_at,
+        makerAddress: maker_address,
+        orderType: order_type,
+        originalSize: original_size,
+        sizeMatched: size_matched,
+      };
+
+      return expiration === undefined
+        ? transformed
+        : { ...transformed, expiresAt: expiration };
+    },
   );
 
 export type OpenOrder = z.infer<typeof OpenOrderSchema>;
@@ -111,11 +121,11 @@ export const ClobTradeSchema = z
     bucket_index: z.number(),
     fee_rate_bps: z.string(),
     id: z.string(),
-    last_update: z.string(),
+    last_update: EpochMillisecondsToIsoDateTimeStringSchema,
     maker_address: z.string(),
     maker_orders: z.array(MakerOrderSchema),
     market: z.string(),
-    match_time: z.string(),
+    match_time: EpochMillisecondsToIsoDateTimeStringSchema,
     outcome: z.string(),
     owner: z.string(),
     price: z.string(),
@@ -144,10 +154,10 @@ export const ClobTradeSchema = z
       tokenId: asset_id,
       bucketIndex: bucket_index,
       feeRateBps: fee_rate_bps,
-      lastUpdate: last_update,
+      updatedAt: last_update,
       makerAddress: maker_address,
       makerOrders: maker_orders,
-      matchTime: match_time,
+      matchedAt: match_time,
       takerOrderId: taker_order_id,
       traderSide: trader_side,
       transactionHash: transaction_hash,
@@ -164,7 +174,7 @@ export const NotificationSchema = z.object({
   id: NotificationIdSchema,
   owner: z.string(),
   payload: z.unknown(),
-  timestamp: z.string().or(z.number().int()),
+  timestamp: EpochMillisecondsSchema,
   type: z.number(),
 });
 
@@ -205,7 +215,7 @@ export const UserEarningSchema = z
     asset_address: z.string(),
     asset_rate: z.number(),
     condition_id: z.string(),
-    date: z.string(),
+    date: EpochMillisecondsToIsoDateTimeStringSchema,
     earnings: z.number(),
     maker_address: z.string(),
   })
@@ -229,7 +239,7 @@ export const TotalUserEarningSchema = z
   .object({
     asset_address: z.string(),
     asset_rate: z.number(),
-    date: z.string(),
+    date: EpochMillisecondsToIsoDateTimeStringSchema,
     earnings: z.number(),
     maker_address: z.string(),
   })
@@ -266,9 +276,9 @@ export const TokenSchema = z
 export const RewardsConfigSchema = z
   .object({
     asset_address: z.string(),
-    end_date: z.string(),
+    end_date: EpochMillisecondsToIsoDateTimeStringSchema,
     rate_per_day: z.number(),
-    start_date: z.string(),
+    start_date: EpochMillisecondsToIsoDateTimeStringSchema,
     total_rewards: z.number(),
   })
   .transform(

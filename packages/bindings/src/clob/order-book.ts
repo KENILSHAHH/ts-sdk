@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TokenIdSchema } from '../shared';
+import { EpochMillisecondsStringSchema, TokenIdSchema } from '../shared';
 
 export const OrderBookLevelSchema = z.looseObject({
   price: z.string(),
@@ -10,7 +10,7 @@ export const OrderBookSchema = z
   .looseObject({
     market: z.string(),
     asset_id: TokenIdSchema,
-    timestamp: z.string().nullish(),
+    timestamp: EpochMillisecondsStringSchema.nullish(),
     bids: z.array(OrderBookLevelSchema),
     asks: z.array(OrderBookLevelSchema),
     min_order_size: z.string(),

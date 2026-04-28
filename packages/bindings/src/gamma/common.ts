@@ -6,6 +6,8 @@ import {
   EventIdSchema,
   ImageOptimizationIdSchema,
   InternalUserIdSchema,
+  IsoCalendarDateStringSchema,
+  IsoDateTimeStringSchema,
   MarketIdSchema,
   OptionalConditionIdSchema,
   TagIdSchema,
@@ -18,7 +20,7 @@ export const ImageOptimizationSchema = z.looseObject({
   imageSizeKbSource: z.number().nullish(),
   imageSizeKbOptimized: z.number().nullish(),
   imageOptimizedComplete: z.boolean().nullish(),
-  imageOptimizedLastUpdated: z.string().nullish(),
+  imageOptimizedLastUpdated: IsoDateTimeStringSchema.nullish(),
   relID: z.number().int().nullish(),
   field: z.string().nullish(),
   relname: z.string().nullish(),
@@ -38,11 +40,11 @@ export const CategoryReferenceSchema = z.looseObject({
   label: z.string().nullish(),
   parentCategory: z.string().nullish(),
   slug: z.string().nullish(),
-  publishedAt: z.string().nullish(),
+  publishedAt: IsoDateTimeStringSchema.nullish(),
   createdBy: z.string().nullish(),
   updatedBy: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
 export const TagReferenceSchema = z.looseObject({
@@ -50,11 +52,11 @@ export const TagReferenceSchema = z.looseObject({
   label: z.string().nullish(),
   slug: z.string().nullish(),
   forceShow: z.boolean().nullish(),
-  publishedAt: z.string().nullish(),
+  publishedAt: IsoDateTimeStringSchema.nullish(),
   createdBy: z.number().int().nullish(),
   updatedBy: z.number().int().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
   forceHide: z.boolean().nullish(),
   isCarousel: z.boolean().nullish(),
   requiresTranslation: z.boolean().nullish(),
@@ -70,7 +72,7 @@ export const RelatedMarketSchema = z.looseObject({
   question: z.string().nullish(),
   outcomes: z.string().nullish(),
   outcomePrices: z.string().nullish(),
-  startDate: z.string().nullish(),
+  startDate: IsoDateTimeStringSchema.nullish(),
   eventSlug: z.string().nullish(),
 });
 
@@ -80,8 +82,8 @@ export const ClobRewardsSchema = z.looseObject({
   assetAddress: z.string(),
   rewardsAmount: z.number(),
   rewardsDailyRate: z.number(),
-  startDate: z.string(),
-  endDate: z.string().nullish(),
+  startDate: IsoCalendarDateStringSchema,
+  endDate: IsoCalendarDateStringSchema.nullish(),
 });
 
 export const InternalUserSchema = z.looseObject({

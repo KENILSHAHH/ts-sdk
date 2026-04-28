@@ -2,7 +2,6 @@ import { OrderSide } from '@polymarket/bindings';
 import { PriceHistoryInterval } from '@polymarket/bindings/clob';
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { RequestRejectedError } from '../errors';
 import { publicClient } from '../testing';
 import {
   fetchFeeRate,
@@ -225,22 +224,14 @@ describe('CLOB', () => {
   describe('listCurrentRewards', () => {
     it('lists current active market rewards', async () => {
       await expect(
-        listCurrentRewards(publicClient)
-          .firstPage()
-          .catch(ignoreRewardsEndpointTimeout),
+        listCurrentRewards(publicClient).firstPage(),
       ).resolves.toBeDefined();
     });
   });
 
   describe('listMarketRewards', () => {
     it('fetches reward configurations for a market', async () => {
-      const currentRewards = await listCurrentRewards(publicClient)
-        .firstPage()
-        .catch(ignoreRewardsEndpointTimeout);
-
-      if (currentRewards === undefined) {
-        return;
-      }
+      const currentRewards = await listCurrentRewards(publicClient).firstPage();
 
       const currentReward = currentRewards.items[0];
 
@@ -250,13 +241,7 @@ describe('CLOB', () => {
 
       const result = await listMarketRewards(publicClient, {
         conditionId: currentReward.conditionId,
-      })
-        .firstPage()
-        .catch(ignoreRewardsEndpointTimeout);
-
-      if (result === undefined) {
-        return;
-      }
+      }).firstPage();
 
       expect(result.items.length).toBeGreaterThan(0);
       expect(result.items[0]).toEqual(
@@ -287,15 +272,4 @@ async function selectLiquidClobTokenId(): Promise<string> {
   }
 
   never('Expected at least one live market with a CLOB token id');
-}
-
-function ignoreRewardsEndpointTimeout(error: unknown) {
-  if (
-    error instanceof RequestRejectedError &&
-    error.message.includes('canceling statement due to statement timeout')
-  ) {
-    return undefined;
-  }
-
-  throw error;
 }
