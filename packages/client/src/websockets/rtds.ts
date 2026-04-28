@@ -4,7 +4,7 @@ import {
   type EquityPricesEvent,
   RealtimeEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { invariant, setNonBlockingTimeout } from '@polymarket/types';
+import { invariant } from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import type {
   CommentsSubscription,
@@ -14,7 +14,7 @@ import type {
 } from '../actions/subscriptions';
 import {
   ClientPingHeartbeat,
-  reconnectDelay,
+  ReconnectScheduler,
   waitForSocketClose,
 } from './lifecycle';
 import { StalenessWatchdog } from './staleness';
@@ -120,8 +120,7 @@ export class RtdsWebSocketManager
   #closing: Promise<void> | undefined;
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
-  #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-  #reconnectAttempt = 0;
+  readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new RtdsSubscriptionRegistry();
 
   constructor(url: string) {
@@ -129,6 +128,10 @@ export class RtdsWebSocketManager
     this.#stalenessWatchdog = new StalenessWatchdog({
       intervalMs: STALENESS_INTERVAL_MS,
       onStale: () => this.#forceReconnect(),
+    });
+    this.#reconnectScheduler = new ReconnectScheduler({
+      baseDelayMs: RECONNECT_BASE_DELAY_MS,
+      maxDelayMs: RECONNECT_MAX_DELAY_MS,
     });
   }
 
@@ -201,7 +204,7 @@ export class RtdsWebSocketManager
   async #shutdown(): Promise<void> {
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#stopReconnect();
+    this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
     const socket = await this.#takeCurrentSocket();
@@ -274,7 +277,7 @@ export class RtdsWebSocketManager
   #onSocketOpen(socket: WebSocket): void {
     this.#socket = socket;
     this.#connecting = undefined;
-    this.#resetReconnectBackoff();
+    this.#reconnectScheduler.resetBackoff();
     this.#startHeartbeat(socket);
     this.#startStalenessWatchdog();
     this.#resubscribeActiveServerEntries(socket);
@@ -380,45 +383,11 @@ export class RtdsWebSocketManager
     socket.send(JSON.stringify(buildUnsubscribeMessage(subscriptions)));
   }
 
-  // Reconnect.
-
   #scheduleReconnect(): void {
-    if (
-      this.#reconnectTimer !== undefined ||
-      this.#connecting !== undefined ||
-      !this.#subscriptions.hasActiveSubscriptions()
-    ) {
-      return;
-    }
-    const delay = reconnectDelay(this.#reconnectAttempt, {
-      baseMs: RECONNECT_BASE_DELAY_MS,
-      maxMs: RECONNECT_MAX_DELAY_MS,
+    this.#reconnectScheduler.schedule({
+      reconnect: () => this.#ensureSocket(),
+      shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
-    this.#reconnectAttempt += 1;
-    this.#reconnectTimer = setNonBlockingTimeout(() => {
-      this.#reconnectTimer = undefined;
-      void this.#reconnect();
-    }, delay);
-  }
-
-  async #reconnect(): Promise<void> {
-    if (!this.#subscriptions.hasActiveSubscriptions()) return;
-    try {
-      await this.#ensureSocket();
-    } catch {
-      this.#scheduleReconnect();
-    }
-  }
-
-  #stopReconnect(): void {
-    if (this.#reconnectTimer !== undefined) {
-      clearTimeout(this.#reconnectTimer);
-      this.#reconnectTimer = undefined;
-    }
-  }
-
-  #resetReconnectBackoff(): void {
-    this.#reconnectAttempt = 0;
   }
 }
 

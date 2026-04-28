@@ -2,13 +2,12 @@ import {
   type SportsEvent,
   SportsResultEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { setNonBlockingTimeout } from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import type {
   SportsSubscription,
   SubscriptionHandle,
 } from '../actions/subscriptions';
-import { reconnectDelay, waitForSocketClose } from './lifecycle';
+import { ReconnectScheduler, waitForSocketClose } from './lifecycle';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
@@ -43,8 +42,7 @@ export class SportsWebSocketManager
   #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
   readonly #stalenessWatchdog: StalenessWatchdog;
-  #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-  #reconnectAttempt = 0;
+  readonly #reconnectScheduler: ReconnectScheduler;
   readonly #entries = new Set<SportsSubscriptionEntry>();
 
   constructor(options: SportsWebSocketManagerOptions) {
@@ -52,6 +50,10 @@ export class SportsWebSocketManager
     this.#stalenessWatchdog = new StalenessWatchdog({
       intervalMs: STALENESS_INTERVAL_MS,
       onStale: () => this.#forceReconnect(),
+    });
+    this.#reconnectScheduler = new ReconnectScheduler({
+      baseDelayMs: RECONNECT_BASE_DELAY_MS,
+      maxDelayMs: RECONNECT_MAX_DELAY_MS,
     });
   }
 
@@ -120,7 +122,7 @@ export class SportsWebSocketManager
 
   async #shutdown(): Promise<void> {
     this.#stopStalenessWatchdog();
-    this.#stopReconnect();
+    this.#reconnectScheduler.stop();
     this.#endSubscribers();
 
     const socket = await this.#takeCurrentSocket();
@@ -194,7 +196,7 @@ export class SportsWebSocketManager
   #onSocketOpen(socket: WebSocket): void {
     this.#socket = socket;
     this.#connecting = undefined;
-    this.#resetReconnectBackoff();
+    this.#reconnectScheduler.resetBackoff();
     this.#startStalenessWatchdog();
   }
 
@@ -274,44 +276,10 @@ export class SportsWebSocketManager
     }
   }
 
-  // Reconnect.
-
   #scheduleReconnect(): void {
-    if (
-      this.#reconnectTimer !== undefined ||
-      this.#connecting !== undefined ||
-      this.#entries.size === 0
-    ) {
-      return;
-    }
-    const delay = reconnectDelay(this.#reconnectAttempt, {
-      baseMs: RECONNECT_BASE_DELAY_MS,
-      maxMs: RECONNECT_MAX_DELAY_MS,
+    this.#reconnectScheduler.schedule({
+      reconnect: () => this.#ensureSocket(),
+      shouldReconnect: () => this.#entries.size > 0,
     });
-    this.#reconnectAttempt += 1;
-    this.#reconnectTimer = setNonBlockingTimeout(() => {
-      this.#reconnectTimer = undefined;
-      void this.#reconnect();
-    }, delay);
-  }
-
-  async #reconnect(): Promise<void> {
-    if (this.#entries.size === 0) return;
-    try {
-      await this.#ensureSocket();
-    } catch {
-      this.#scheduleReconnect();
-    }
-  }
-
-  #stopReconnect(): void {
-    if (this.#reconnectTimer !== undefined) {
-      clearTimeout(this.#reconnectTimer);
-      this.#reconnectTimer = undefined;
-    }
-  }
-
-  #resetReconnectBackoff(): void {
-    this.#reconnectAttempt = 0;
   }
 }
