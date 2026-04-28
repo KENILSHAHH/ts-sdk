@@ -1,11 +1,17 @@
-import { setNonBlockingTimeout } from '@polymarket/types';
+import {
+  setNonBlockingInterval,
+  setNonBlockingTimeout,
+} from '@polymarket/types';
 import { TransportError } from '../errors';
 
 export type WebSocketHeartbeat = {
   handleMessage(message: string): boolean;
+  isStale(now: number): boolean;
   start(send: (message: string) => void): void;
   stop(): void;
 };
+
+const HEARTBEAT_WATCHDOG_INTERVAL_MS = 5_000;
 
 export type ReconnectSchedulerOptions = {
   baseDelayMs: number;
@@ -87,6 +93,7 @@ export class WebSocketConnection {
   readonly #heartbeat: WebSocketHeartbeat;
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocketConnectionResult> | undefined;
+  #watchdog: ReturnType<typeof setInterval> | undefined;
 
   constructor(options: WebSocketConnectionConstructorOptions) {
     this.#heartbeat = options.heartbeat;
@@ -124,7 +131,7 @@ export class WebSocketConnection {
 
   async close(): Promise<void> {
     const socket = await this.#takeCurrent();
-    this.#heartbeat.stop();
+    this.#stopHeartbeat();
     if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
 
     await new Promise<void>((resolve) => {
@@ -146,7 +153,7 @@ export class WebSocketConnection {
       const onOpen = () => {
         socket.removeEventListener('error', onOpenError);
         this.#markOpen(socket);
-        this.#heartbeat.start((message) => this.send(message));
+        this.#startHeartbeat();
         options.onOpen(context as TContext);
         resolve(socket);
       };
@@ -189,8 +196,29 @@ export class WebSocketConnection {
   }
 
   #clearCurrentSocket(): void {
-    this.#heartbeat.stop();
+    this.#stopHeartbeat();
     this.#socket = undefined;
+  }
+
+  #startHeartbeat(): void {
+    this.#stopHeartbeat();
+    this.#heartbeat.start((message) => this.send(message));
+    this.#watchdog = setNonBlockingInterval(() => {
+      if (!this.#heartbeat.isStale(Date.now())) return;
+      const socket = this.#socket;
+      if (socket?.readyState === WebSocket.OPEN) {
+        // Let the normal close path reconnect and resubscribe active handles.
+        socket.close();
+      }
+    }, HEARTBEAT_WATCHDOG_INTERVAL_MS);
+  }
+
+  #stopHeartbeat(): void {
+    if (this.#watchdog !== undefined) {
+      clearInterval(this.#watchdog);
+      this.#watchdog = undefined;
+    }
+    this.#heartbeat.stop();
   }
 
   async #takeCurrent(): Promise<WebSocket | undefined> {
