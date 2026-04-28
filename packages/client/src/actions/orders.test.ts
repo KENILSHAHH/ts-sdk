@@ -16,7 +16,6 @@ import {
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
-import { prepareErc20Approval } from './approvals';
 import { fetchNegRisk } from './clob';
 
 const market = await findHighVolumeLowPriceMarket();
@@ -178,11 +177,12 @@ describe('Orders', () => {
         yesTokenId,
       );
 
-      await prepareErc20Approval(gaslessClient, {
-        amount: 0n,
-        spenderAddress: exchangeAddress,
-        tokenAddress: gaslessClient.environment.collateralToken,
-      })
+      await gaslessClient
+        .prepareErc20Approval({
+          amount: 0n,
+          spenderAddress: exchangeAddress,
+          tokenAddress: gaslessClient.environment.collateralToken,
+        })
         .then(completeWith(walletClient))
         .then((handle) => handle.wait());
 

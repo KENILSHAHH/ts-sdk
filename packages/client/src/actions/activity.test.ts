@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import { listActivity, listTrades } from './activity';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 describe('Activity', () => {
   describe('listTrades', () => {
     it('lists trades for a wallet', async () => {
-      const result = await listTrades(publicClient, {
-        user: TEST_USER,
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listTrades({
+          user: TEST_USER,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
@@ -26,10 +26,11 @@ describe('Activity', () => {
 
   describe('listActivity', () => {
     it('lists wallet activity', async () => {
-      const result = await listActivity(publicClient, {
-        user: TEST_USER,
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listActivity({
+          user: TEST_USER,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 

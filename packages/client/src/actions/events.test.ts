@@ -1,17 +1,11 @@
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import {
-  fetchEvent,
-  fetchEventLiveVolume,
-  fetchEventTags,
-  listEvents,
-} from './events';
 
 describe('Events', () => {
   describe('listEvents', () => {
     it('fetches events from Gamma', async () => {
-      const paginator = listEvents(publicClient, {
+      const paginator = publicClient.listEvents({
         closed: false,
         pageSize: 1,
       });
@@ -36,18 +30,19 @@ describe('Events', () => {
     it('fetches an event by id and slug', async () => {
       const {
         items: [event],
-      } = await listEvents(publicClient, {
-        closed: false,
-        pageSize: 1,
-      })
+      } = await publicClient
+        .listEvents({
+          closed: false,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      const eventById = await fetchEvent(publicClient, {
+      const eventById = await publicClient.fetchEvent({
         id: event.id,
       });
 
-      const eventBySlug = await fetchEvent(publicClient, {
+      const eventBySlug = await publicClient.fetchEvent({
         slug: expectPresent(event.slug),
       });
 
@@ -60,14 +55,15 @@ describe('Events', () => {
     it("fetches an event's tags by id", async () => {
       const {
         items: [event],
-      } = await listEvents(publicClient, {
-        closed: false,
-        pageSize: 1,
-      })
+      } = await publicClient
+        .listEvents({
+          closed: false,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      const result = await fetchEventTags(publicClient, {
+      const result = await publicClient.fetchEventTags({
         id: event.id,
       });
 
@@ -87,14 +83,15 @@ describe('Events', () => {
     it('fetches live volume for an event', async () => {
       const {
         items: [event],
-      } = await listEvents(publicClient, {
-        closed: false,
-        pageSize: 1,
-      })
+      } = await publicClient
+        .listEvents({
+          closed: false,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      const result = await fetchEventLiveVolume(publicClient, {
+      const result = await publicClient.fetchEventLiveVolume({
         id: event.id,
       });
 

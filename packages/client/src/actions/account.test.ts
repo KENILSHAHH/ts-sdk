@@ -1,16 +1,9 @@
 import { AssetType } from '@polymarket/bindings/clob';
 import { describe, expect, it } from 'vitest';
-import type { SecureClient } from '../clients';
+import type { AccountActions } from '../decorators';
 import { publicClient, safeWalletAddress, walletClient } from '../testing';
 import { authenticateWith } from '../viem';
-import {
-  dropNotifications,
-  fetchBalanceAllowance,
-  fetchClosedOnlyMode,
-  fetchNotifications,
-  listAccountTrades,
-  listOpenOrders,
-} from './account';
+import { fetchBalanceAllowance } from './account';
 
 describe('Account', () => {
   describe('authenticated reads', () => {
@@ -21,10 +14,10 @@ describe('Account', () => {
 
       const [closedOnly, openOrders, trades, notifications, balanceAllowance] =
         await Promise.all([
-          fetchClosedOnlyMode(secureClient),
-          listOpenOrders(secureClient).firstPage(),
-          listAccountTrades(secureClient).firstPage(),
-          fetchNotifications(secureClient),
+          secureClient.fetchClosedOnlyMode(),
+          secureClient.listOpenOrders().firstPage(),
+          secureClient.listAccountTrades().firstPage(),
+          secureClient.fetchNotifications(),
           fetchBalanceAllowance(secureClient, {
             assetType: AssetType.COLLATERAL,
           }),
@@ -49,7 +42,7 @@ describe('Account', () => {
         .beginAuthentication({ wallet: safeWalletAddress })
         .then(authenticateWith(walletClient));
 
-      const notifications = await fetchNotifications(secureClient);
+      const notifications = await secureClient.fetchNotifications();
 
       if (notifications.length === 0) {
         return;
@@ -58,7 +51,7 @@ describe('Account', () => {
       const ids = notifications.slice(0, 1).map(({ id }) => `${id}`);
 
       await expect(
-        dropNotifications(secureClient, {
+        secureClient.dropNotifications({
           ids,
         }),
       ).resolves.toBeUndefined();
@@ -76,11 +69,11 @@ describe('Account', () => {
 });
 
 async function waitForNotificationsToClear(
-  secureClient: SecureClient,
+  secureClient: Pick<AccountActions, 'fetchNotifications'>,
   ids: string[],
 ) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const notifications = await fetchNotifications(secureClient);
+    const notifications = await secureClient.fetchNotifications();
 
     if (!notifications.some(({ id }) => ids.includes(`${id}`))) {
       return notifications;
@@ -89,5 +82,5 @@ async function waitForNotificationsToClear(
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  return fetchNotifications(secureClient);
+  return secureClient.fetchNotifications();
 }

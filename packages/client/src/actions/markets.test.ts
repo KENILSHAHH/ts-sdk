@@ -1,25 +1,17 @@
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import {
-  fetchMarket,
-  fetchMarketTags,
-  listMarketHolders,
-  listMarketPositions,
-  listMarkets,
-  listOpenInterest,
-} from './markets';
-import { listPositions } from './portfolio';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 async function findPositionConditionId(): Promise<string> {
   const {
     items: [position],
-  } = await listPositions(publicClient, {
-    user: TEST_USER,
-    pageSize: 1,
-  })
+  } = await publicClient
+    .listPositions({
+      user: TEST_USER,
+      pageSize: 1,
+    })
     .firstPage()
     .then(expectNonEmptyPage);
 
@@ -29,7 +21,7 @@ async function findPositionConditionId(): Promise<string> {
 describe('Markets', () => {
   describe('listMarkets', () => {
     it('fetches markets from Gamma', async () => {
-      const paginator = listMarkets(publicClient, {
+      const paginator = publicClient.listMarkets({
         closed: false,
         pageSize: 1,
       });
@@ -54,18 +46,19 @@ describe('Markets', () => {
     it('fetches a market by id and slug', async () => {
       const {
         items: [market],
-      } = await listMarkets(publicClient, {
-        closed: false,
-        pageSize: 1,
-      })
+      } = await publicClient
+        .listMarkets({
+          closed: false,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      const marketById = await fetchMarket(publicClient, {
+      const marketById = await publicClient.fetchMarket({
         id: market.id,
       });
 
-      const marketBySlug = await fetchMarket(publicClient, {
+      const marketBySlug = await publicClient.fetchMarket({
         slug: expectPresent(market.slug),
       });
 
@@ -78,14 +71,15 @@ describe('Markets', () => {
     it("fetches a market's tags by id", async () => {
       const {
         items: [market],
-      } = await listMarkets(publicClient, {
-        closed: false,
-        pageSize: 1,
-      })
+      } = await publicClient
+        .listMarkets({
+          closed: false,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      const result = await fetchMarketTags(publicClient, {
+      const result = await publicClient.fetchMarketTags({
         id: market.id,
       });
 
@@ -105,7 +99,7 @@ describe('Markets', () => {
     it('lists top holders for a market', async () => {
       const market = await findPositionConditionId();
 
-      const result = await listMarketHolders(publicClient, {
+      const result = await publicClient.listMarketHolders({
         market: [market],
         limit: 1,
       });
@@ -124,7 +118,7 @@ describe('Markets', () => {
     it('lists open interest for a market', async () => {
       const market = await findPositionConditionId();
 
-      const result = await listOpenInterest(publicClient, {
+      const result = await publicClient.listOpenInterest({
         market: [market],
       });
 
@@ -141,10 +135,11 @@ describe('Markets', () => {
     it('lists positions for a market', async () => {
       const market = await findPositionConditionId();
 
-      const result = await listMarketPositions(publicClient, {
-        market,
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listMarketPositions({
+          market,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 

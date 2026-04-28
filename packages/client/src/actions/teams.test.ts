@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import { listTeams } from './teams';
 
 describe('Teams', () => {
   describe('listTeams', () => {
     it('fetches teams', async () => {
-      const result = await listTeams(publicClient, {
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listTeams({
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 

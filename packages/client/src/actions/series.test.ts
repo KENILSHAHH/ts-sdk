@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import { fetchSeries, listSeries } from './series';
 
 describe('Series', () => {
   describe('listSeries', () => {
     it('fetches series', async () => {
-      const result = await listSeries(publicClient, {
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listSeries({
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
@@ -24,13 +24,14 @@ describe('Series', () => {
     it('fetches a series by id', async () => {
       const {
         items: [series],
-      } = await listSeries(publicClient, {
-        pageSize: 1,
-      })
+      } = await publicClient
+        .listSeries({
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      const result = await fetchSeries(publicClient, {
+      const result = await publicClient.fetchSeries({
         id: series.id,
       });
 
