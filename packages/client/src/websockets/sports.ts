@@ -8,9 +8,9 @@ import type {
 } from '../actions/subscriptions';
 import { createSubscriptionHandle } from './handle';
 import {
-  closeSocket,
   ReconnectScheduler,
   WebSocketConnection,
+  type WebSocketConnectionResult,
 } from './lifecycle';
 import {
   SubscriptionRegistry,
@@ -102,50 +102,28 @@ export class SportsWebSocketManager
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
-    await closeSocket(await this.#connection.takeCurrent());
+    await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocket> {
-    return this.#connection.ensure(() => this.#openSocket());
-  }
-
-  #openSocket(): Promise<WebSocket> {
-    return new Promise<WebSocket>((resolve, reject) => {
-      const socket = new WebSocket(this.#url);
-
-      const onOpen = () => {
-        socket.removeEventListener('error', onOpenError);
-        this.#onSocketOpen(socket);
-        resolve(socket);
-      };
-      const onOpenError = () => {
-        socket.removeEventListener('open', onOpen);
-        reject(new Error('Sports WebSocket failed to open.'));
-      };
-
-      socket.addEventListener('open', onOpen, { once: true });
-      socket.addEventListener('error', onOpenError, { once: true });
-      socket.addEventListener('message', (event) =>
-        this.#onSocketMessage(socket, event),
-      );
-      socket.addEventListener('close', () => this.#onSocketClose(socket));
-      socket.addEventListener('error', () => this.#onSocketError());
+  #ensureSocket(): Promise<WebSocketConnectionResult> {
+    return this.#connection.connect({
+      onClose: () => this.#onSocketClose(),
+      onError: () => this.#onSocketError(),
+      onMessage: (event) => this.#onSocketMessage(event),
+      onOpen: () => this.#onSocketOpen(),
+      openErrorMessage: 'Sports WebSocket failed to open.',
+      url: this.#url,
     });
   }
 
-  #onSocketOpen(socket: WebSocket): void {
-    this.#connection.markOpen(socket);
+  #onSocketOpen(): void {
     this.#reconnectScheduler.resetBackoff();
   }
 
-  #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (!this.#connection.isCurrent(socket)) return;
-
+  #onSocketMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data.toLowerCase() === 'ping') {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send('pong');
-      }
+      this.#connection.sendIfOpen('pong');
       return;
     }
 
@@ -161,9 +139,7 @@ export class SportsWebSocketManager
     this.#subscriptions.dispatch(parsed.data);
   }
 
-  #onSocketClose(socket: WebSocket): void {
-    if (this.#connection.hasDifferentCurrent(socket)) return;
-    this.#connection.clearSocket();
+  #onSocketClose(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }

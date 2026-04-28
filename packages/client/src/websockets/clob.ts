@@ -13,9 +13,9 @@ import type {
 import { createSubscriptionHandle } from './handle';
 import {
   ClientPingHeartbeat,
-  closeSocket,
   ReconnectScheduler,
   WebSocketConnection,
+  type WebSocketConnectionResult,
 } from './lifecycle';
 import {
   SubscriptionRegistry,
@@ -106,18 +106,17 @@ export class ClobMarketWebSocketManager
     entry: MarketSubscriptionEntry,
     change: SubscriptionRegistryChange<MarketServerSubscription>,
   ): Promise<void> {
-    const wasOpen = this.#connection.hasOpenSocket();
     const { before, after } = change;
 
-    let socket: WebSocket;
+    let connection: WebSocketConnectionResult;
     try {
-      socket = await this.#ensureSocket();
+      connection = await this.#ensureSocket();
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
     }
-    if (wasOpen) {
-      syncMarketSubscription(socket, before, after);
+    if (connection.alreadyOpen) {
+      syncMarketSubscription(connection.socket, before, after);
     }
   }
 
@@ -151,47 +150,27 @@ export class ClobMarketWebSocketManager
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
-    await closeSocket(await this.#connection.takeCurrent());
+    await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocket> {
-    return this.#connection.ensure(() => this.#openSocket());
-  }
-
-  #openSocket(): Promise<WebSocket> {
-    return new Promise<WebSocket>((resolve, reject) => {
-      const socket = new WebSocket(this.#url);
-
-      const onOpen = () => {
-        socket.removeEventListener('error', onOpenError);
-        this.#onSocketOpen(socket);
-        resolve(socket);
-      };
-      const onOpenError = () => {
-        socket.removeEventListener('open', onOpen);
-        reject(new Error('CLOB market WebSocket failed to open.'));
-      };
-
-      socket.addEventListener('open', onOpen, { once: true });
-      socket.addEventListener('error', onOpenError, { once: true });
-      socket.addEventListener('message', (event) =>
-        this.#onSocketMessage(socket, event),
-      );
-      socket.addEventListener('close', () => this.#onSocketClose(socket));
-      socket.addEventListener('error', () => this.#onSocketError());
+  #ensureSocket(): Promise<WebSocketConnectionResult> {
+    return this.#connection.connect({
+      onClose: () => this.#onSocketClose(),
+      onError: () => this.#onSocketError(),
+      onMessage: (event) => this.#onSocketMessage(event),
+      onOpen: (socket) => this.#onSocketOpen(socket),
+      openErrorMessage: 'CLOB market WebSocket failed to open.',
+      url: this.#url,
     });
   }
 
   #onSocketOpen(socket: WebSocket): void {
-    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(socket);
     this.#startHeartbeat(socket);
   }
 
-  #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (!this.#connection.isCurrent(socket)) return;
-
+  #onSocketMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data === 'PONG') {
       return;
@@ -212,10 +191,8 @@ export class ClobMarketWebSocketManager
     }
   }
 
-  #onSocketClose(socket: WebSocket): void {
-    if (this.#connection.hasDifferentCurrent(socket)) return;
+  #onSocketClose(): void {
     this.#stopHeartbeat();
-    this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
@@ -301,18 +278,17 @@ export class ClobUserWebSocketManager
     entry: UserSubscriptionEntry,
     change: SubscriptionRegistryChange<UserServerSubscription>,
   ): Promise<void> {
-    const wasOpen = this.#connection.hasOpenSocket();
     const { before, after } = change;
 
-    let socket: WebSocket;
+    let connection: WebSocketConnectionResult;
     try {
-      socket = await this.#ensureSocket();
+      connection = await this.#ensureSocket();
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
     }
-    if (wasOpen) {
-      syncUserSubscription(socket, before, after);
+    if (connection.alreadyOpen) {
+      syncUserSubscription(connection.socket, before, after);
     }
   }
 
@@ -346,49 +322,28 @@ export class ClobUserWebSocketManager
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
-    await closeSocket(await this.#connection.takeCurrent());
+    await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocket> {
-    return this.#connection.ensure(() => this.#openSocket());
-  }
-
-  async #openSocket(): Promise<WebSocket> {
-    const credentials = await this.#resolveCredentials();
-
-    return new Promise<WebSocket>((resolve, reject) => {
-      const socket = new WebSocket(this.#url);
-
-      const onOpen = () => {
-        socket.removeEventListener('error', onOpenError);
-        this.#onSocketOpen(socket, credentials);
-        resolve(socket);
-      };
-      const onOpenError = () => {
-        socket.removeEventListener('open', onOpen);
-        reject(new Error('CLOB user WebSocket failed to open.'));
-      };
-
-      socket.addEventListener('open', onOpen, { once: true });
-      socket.addEventListener('error', onOpenError, { once: true });
-      socket.addEventListener('message', (event) =>
-        this.#onSocketMessage(socket, event),
-      );
-      socket.addEventListener('close', () => this.#onSocketClose(socket));
-      socket.addEventListener('error', () => this.#onSocketError());
+  #ensureSocket(): Promise<WebSocketConnectionResult> {
+    return this.#connection.connect({
+      onClose: () => this.#onSocketClose(),
+      onError: () => this.#onSocketError(),
+      onMessage: (event) => this.#onSocketMessage(event),
+      onOpen: (socket, credentials) => this.#onSocketOpen(socket, credentials),
+      openErrorMessage: 'CLOB user WebSocket failed to open.',
+      prepare: () => this.#resolveCredentials(),
+      url: this.#url,
     });
   }
 
   #onSocketOpen(socket: WebSocket, credentials: ApiKeyCreds): void {
-    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(socket, credentials);
     this.#startHeartbeat(socket);
   }
 
-  #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (!this.#connection.isCurrent(socket)) return;
-
+  #onSocketMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data === 'PONG') {
       return;
@@ -409,10 +364,8 @@ export class ClobUserWebSocketManager
     }
   }
 
-  #onSocketClose(socket: WebSocket): void {
-    if (this.#connection.hasDifferentCurrent(socket)) return;
+  #onSocketClose(): void {
     this.#stopHeartbeat();
-    this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }

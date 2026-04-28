@@ -14,9 +14,9 @@ import type {
 import { createSubscriptionHandle } from './handle';
 import {
   ClientPingHeartbeat,
-  closeSocket,
   ReconnectScheduler,
   WebSocketConnection,
+  type WebSocketConnectionResult,
 } from './lifecycle';
 import {
   SubscriptionRegistry,
@@ -95,19 +95,18 @@ export class RtdsWebSocketManager
     entry: RtdsSubscriptionEntry,
     change: SubscriptionRegistryChange<RtdsServerState>,
   ): Promise<void> {
-    const shouldSendIncrementalSubscribe = this.#connection.hasOpenSocket();
     const { before, after } = change;
     const subscriptionsToOpen = serverSubscriptionsAdded(before, after);
 
-    let socket: WebSocket;
+    let connection: WebSocketConnectionResult;
     try {
-      socket = await this.#ensureSocket();
+      connection = await this.#ensureSocket();
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
     }
-    if (shouldSendIncrementalSubscribe) {
-      this.#sendSubscribeFrame(socket, subscriptionsToOpen);
+    if (connection.alreadyOpen) {
+      this.#sendSubscribeFrame(connection.socket, subscriptionsToOpen);
     }
   }
 
@@ -136,46 +135,27 @@ export class RtdsWebSocketManager
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
-    await closeSocket(await this.#connection.takeCurrent());
+    await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocket> {
-    return this.#connection.ensure(() => this.#openSocket());
-  }
-
-  #openSocket(): Promise<WebSocket> {
-    return new Promise<WebSocket>((resolve, reject) => {
-      const socket = new WebSocket(this.#url);
-
-      const onOpen = () => {
-        socket.removeEventListener('error', onOpenError);
-        this.#onSocketOpen(socket);
-        resolve(socket);
-      };
-      const onOpenError = () => {
-        socket.removeEventListener('open', onOpen);
-        reject(new Error('RTDS WebSocket failed to open.'));
-      };
-
-      socket.addEventListener('open', onOpen, { once: true });
-      socket.addEventListener('error', onOpenError, { once: true });
-      socket.addEventListener('message', (event) =>
-        this.#onSocketMessage(socket, event),
-      );
-      socket.addEventListener('close', () => this.#onSocketClose(socket));
-      socket.addEventListener('error', () => this.#onSocketError());
+  #ensureSocket(): Promise<WebSocketConnectionResult> {
+    return this.#connection.connect({
+      onClose: () => this.#onSocketClose(),
+      onError: () => this.#onSocketError(),
+      onMessage: (event) => this.#onSocketMessage(event),
+      onOpen: (socket) => this.#onSocketOpen(socket),
+      openErrorMessage: 'RTDS WebSocket failed to open.',
+      url: this.#url,
     });
   }
 
   #onSocketOpen(socket: WebSocket): void {
-    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#startHeartbeat(socket);
     this.#resubscribeActiveServerEntries(socket);
   }
 
-  #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (!this.#connection.isCurrent(socket)) return;
+  #onSocketMessage(event: MessageEvent): void {
     let raw: unknown;
     try {
       raw = JSON.parse(String(event.data));
@@ -187,10 +167,8 @@ export class RtdsWebSocketManager
     this.#subscriptions.dispatch(parsed.data);
   }
 
-  #onSocketClose(socket: WebSocket): void {
-    if (this.#connection.hasDifferentCurrent(socket)) return;
+  #onSocketClose(): void {
     this.#stopHeartbeat();
-    this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }

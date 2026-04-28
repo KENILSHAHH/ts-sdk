@@ -38,6 +38,21 @@ export type ScheduleReconnectOptions = {
   reconnect: () => Promise<unknown>;
 };
 
+export type WebSocketConnectionOptions<TContext = undefined> = {
+  onClose: () => void;
+  onError: () => void;
+  onMessage: (event: MessageEvent) => void;
+  onOpen: (socket: WebSocket, context: TContext) => void;
+  openErrorMessage: string;
+  prepare?: () => TContext | Promise<TContext>;
+  url: string;
+};
+
+export type WebSocketConnectionResult = {
+  alreadyOpen: boolean;
+  socket: WebSocket;
+};
+
 export class ReconnectScheduler {
   readonly #baseDelayMs: number;
   readonly #maxDelayMs: number;
@@ -89,49 +104,81 @@ export class ReconnectScheduler {
 
 export class WebSocketConnection {
   #socket: WebSocket | undefined;
-  #connecting: Promise<WebSocket> | undefined;
+  #connecting: Promise<WebSocketConnectionResult> | undefined;
 
   get current(): WebSocket | undefined {
     return this.#socket;
   }
 
-  ensure(open: () => Promise<WebSocket>): Promise<WebSocket> {
+  ensure(open: () => Promise<WebSocket>): Promise<WebSocketConnectionResult> {
     const socket = this.#socket;
     if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve(socket);
+      return Promise.resolve({ alreadyOpen: true, socket });
     }
     this.#socket = undefined;
     if (this.#connecting !== undefined) return this.#connecting;
 
-    const connecting = open().catch((error: unknown) => {
-      if (this.#connecting === connecting) {
-        this.#connecting = undefined;
-      }
-      throw error;
-    });
+    const connecting = open()
+      .then((socket) => ({ alreadyOpen: false, socket }))
+      .catch((error: unknown) => {
+        if (this.#connecting === connecting) {
+          this.#connecting = undefined;
+        }
+        throw error;
+      });
     this.#connecting = connecting;
     return connecting;
   }
 
-  markOpen(socket: WebSocket): void {
+  connect<TContext = undefined>(
+    options: WebSocketConnectionOptions<TContext>,
+  ): Promise<WebSocketConnectionResult> {
+    return this.ensure(() => this.#open(options));
+  }
+
+  async #open<TContext>(
+    options: WebSocketConnectionOptions<TContext>,
+  ): Promise<WebSocket> {
+    const context = await options.prepare?.();
+
+    return new Promise<WebSocket>((resolve, reject) => {
+      const socket = new WebSocket(options.url);
+
+      const onOpen = () => {
+        socket.removeEventListener('error', onOpenError);
+        this.#markOpen(socket);
+        options.onOpen(socket, context as TContext);
+        resolve(socket);
+      };
+      const onOpenError = () => {
+        socket.removeEventListener('open', onOpen);
+        reject(new Error(options.openErrorMessage));
+      };
+
+      socket.addEventListener('open', onOpen, { once: true });
+      socket.addEventListener('error', onOpenError, { once: true });
+      socket.addEventListener('message', (event) => {
+        if (this.#socket !== socket) return;
+        options.onMessage(event);
+      });
+      socket.addEventListener('close', () => {
+        if (this.#socket !== socket) return;
+        this.#socket = undefined;
+        options.onClose();
+      });
+      socket.addEventListener('error', () => options.onError());
+    });
+  }
+
+  #markOpen(socket: WebSocket): void {
     this.#socket = socket;
     this.#connecting = undefined;
   }
 
-  clearSocket(): void {
-    this.#socket = undefined;
-  }
-
-  hasOpenSocket(): boolean {
-    return this.#socket?.readyState === WebSocket.OPEN;
-  }
-
-  isCurrent(socket: WebSocket): boolean {
-    return this.#socket === socket;
-  }
-
-  hasDifferentCurrent(socket: WebSocket): boolean {
-    return this.#socket !== undefined && this.#socket !== socket;
+  sendIfOpen(message: string): boolean {
+    if (this.#socket?.readyState !== WebSocket.OPEN) return false;
+    this.#socket.send(message);
+    return true;
   }
 
   async takeCurrent(): Promise<WebSocket | undefined> {
@@ -142,7 +189,14 @@ export class WebSocketConnection {
     this.#connecting = undefined;
 
     if (socket !== undefined) return socket;
-    return connecting?.catch(() => undefined);
+    return connecting?.then(
+      (result) => result.socket,
+      () => undefined,
+    );
+  }
+
+  async close(): Promise<void> {
+    await closeSocket(await this.takeCurrent());
   }
 }
 
