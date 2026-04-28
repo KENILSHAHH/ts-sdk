@@ -40,9 +40,6 @@ type RtdsServerSubscription = {
   type: string;
 };
 
-const RECONNECT_BASE_DELAY_MS = 250;
-const RECONNECT_MAX_DELAY_MS = 30_000;
-
 type RtdsServerState = Map<string, RtdsServerSubscription>;
 
 /**
@@ -60,7 +57,7 @@ export class RtdsWebSocketManager
   readonly #connection = new WebSocketConnection({
     heartbeat: new RtdsWebSocketHeartbeat(),
   });
-  readonly #reconnectScheduler: ReconnectScheduler;
+  readonly #reconnectScheduler = new ReconnectScheduler();
   readonly #subscriptions = new SubscriptionRegistry<
     RtdsSpec,
     RtdsEvent,
@@ -69,10 +66,6 @@ export class RtdsWebSocketManager
 
   constructor(url: string) {
     this.#url = url;
-    this.#reconnectScheduler = new ReconnectScheduler({
-      baseDelayMs: RECONNECT_BASE_DELAY_MS,
-      maxDelayMs: RECONNECT_MAX_DELAY_MS,
-    });
   }
 
   async subscribe(
@@ -175,16 +168,14 @@ export class RtdsWebSocketManager
 
   #sendSubscribeFrame(subscriptions: readonly RtdsServerSubscription[]): void {
     if (subscriptions.length === 0) return;
-    this.#connection.send(JSON.stringify(buildSubscribeMessage(subscriptions)));
+    this.#connection.send(buildSubscribeMessage(subscriptions));
   }
 
   #sendUnsubscribeFrame(
     subscriptions: readonly RtdsServerSubscription[],
   ): void {
     if (subscriptions.length === 0) return;
-    this.#connection.send(
-      JSON.stringify(buildUnsubscribeMessage(subscriptions)),
-    );
+    this.#connection.send(buildUnsubscribeMessage(subscriptions));
   }
 
   #scheduleReconnect(): void {

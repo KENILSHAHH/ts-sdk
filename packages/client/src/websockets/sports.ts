@@ -28,9 +28,6 @@ export type SportsWebSocketManagerOptions = {
   url: string;
 };
 
-const RECONNECT_BASE_DELAY_MS = 250;
-const RECONNECT_MAX_DELAY_MS = 30_000;
-
 /**
  * Sports WebSocket manager.
  *
@@ -46,7 +43,7 @@ export class SportsWebSocketManager
   readonly #connection = new WebSocketConnection({
     heartbeat: new SportsWebSocketHeartbeat(),
   });
-  readonly #reconnectScheduler: ReconnectScheduler;
+  readonly #reconnectScheduler = new ReconnectScheduler();
   readonly #subscriptions = new SubscriptionRegistry<
     SportsSubscription,
     SportsEvent
@@ -54,10 +51,6 @@ export class SportsWebSocketManager
 
   constructor(options: SportsWebSocketManagerOptions) {
     this.#url = options.url;
-    this.#reconnectScheduler = new ReconnectScheduler({
-      baseDelayMs: RECONNECT_BASE_DELAY_MS,
-      maxDelayMs: RECONNECT_MAX_DELAY_MS,
-    });
   }
 
   async subscribe(

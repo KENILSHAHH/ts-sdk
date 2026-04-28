@@ -12,11 +12,8 @@ export type WebSocketHeartbeat = {
 };
 
 const HEARTBEAT_WATCHDOG_INTERVAL_MS = 5_000;
-
-export type ReconnectSchedulerOptions = {
-  baseDelayMs: number;
-  maxDelayMs: number;
-};
+const RECONNECT_BASE_DELAY_MS = 250;
+const RECONNECT_MAX_DELAY_MS = 30_000;
 
 export type ScheduleReconnectOptions = {
   shouldReconnect: () => boolean;
@@ -41,15 +38,8 @@ export type WebSocketConnectionConstructorOptions = {
 };
 
 export class ReconnectScheduler {
-  readonly #baseDelayMs: number;
-  readonly #maxDelayMs: number;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #attempt = 0;
-
-  constructor(options: ReconnectSchedulerOptions) {
-    this.#baseDelayMs = options.baseDelayMs;
-    this.#maxDelayMs = options.maxDelayMs;
-  }
 
   schedule(options: ScheduleReconnectOptions): void {
     if (this.#timer !== undefined || !options.shouldReconnect()) {
@@ -57,8 +47,8 @@ export class ReconnectScheduler {
     }
 
     const delay = reconnectDelay(this.#attempt, {
-      baseMs: this.#baseDelayMs,
-      maxMs: this.#maxDelayMs,
+      baseMs: RECONNECT_BASE_DELAY_MS,
+      maxMs: RECONNECT_MAX_DELAY_MS,
     });
     this.#attempt += 1;
     this.#timer = setNonBlockingTimeout(() => {
@@ -121,7 +111,11 @@ export class WebSocketConnection {
     return connecting;
   }
 
-  send(message: string): boolean {
+  send(message: unknown): boolean {
+    return this.#sendRaw(JSON.stringify(message));
+  }
+
+  #sendRaw(message: string): boolean {
     // Reconnects and shutdown can race with protocol updates; callers use the
     // boolean result only when they need to know whether the frame was sent.
     if (this.#socket?.readyState !== WebSocket.OPEN) return false;
@@ -202,7 +196,7 @@ export class WebSocketConnection {
 
   #startHeartbeat(): void {
     this.#stopHeartbeat();
-    this.#heartbeat.start((message) => this.send(message));
+    this.#heartbeat.start((message) => this.#sendRaw(message));
     this.#watchdog = setNonBlockingInterval(() => {
       if (!this.#heartbeat.isStale(Date.now())) return;
       const socket = this.#socket;
