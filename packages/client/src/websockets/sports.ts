@@ -6,6 +6,7 @@ import type {
   SportsSubscription,
   SubscriptionHandle,
 } from '../actions/subscriptions';
+import { createSubscriptionHandle } from './handle';
 import {
   closeSocket,
   ReconnectScheduler,
@@ -62,7 +63,9 @@ export class SportsWebSocketManager
     const { entry } = this.#subscriptions.add(subscription);
 
     await this.#registerSubscriber(entry);
-    return this.#createHandle(entry);
+    return createSubscriptionHandle(entry.subscriber.queue, () =>
+      this.#closeSubscriber(entry),
+    );
   }
 
   // Subscription handle lifecycle.
@@ -74,23 +77,6 @@ export class SportsWebSocketManager
       await this.#closeSubscriber(entry);
       throw error;
     }
-  }
-
-  #createHandle(
-    entry: SportsSubscriptionEntry,
-  ): SubscriptionHandle<SportsEvent> {
-    let closing: Promise<void> | undefined;
-    return {
-      close: () => {
-        if (closing === undefined) {
-          closing = this.#closeSubscriber(entry);
-        }
-        return closing;
-      },
-      [Symbol.asyncIterator]() {
-        return entry.subscriber.queue[Symbol.asyncIterator]();
-      },
-    };
   }
 
   async #closeSubscriber(entry: SportsSubscriptionEntry): Promise<void> {

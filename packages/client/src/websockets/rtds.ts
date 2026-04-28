@@ -11,6 +11,7 @@ import type {
   EquityPricesSubscription,
   SubscriptionHandle,
 } from '../actions/subscriptions';
+import { createSubscriptionHandle } from './handle';
 import {
   ClientPingHeartbeat,
   closeSocket,
@@ -83,7 +84,9 @@ export class RtdsWebSocketManager
       matches: matcherFor(subscription),
     });
     await this.#registerSubscriber(entry, change);
-    return this.#createHandle(entry);
+    return createSubscriptionHandle(entry.subscriber.queue, () =>
+      this.#closeSubscriber(entry),
+    );
   }
 
   // Subscription handle lifecycle.
@@ -106,21 +109,6 @@ export class RtdsWebSocketManager
     if (shouldSendIncrementalSubscribe) {
       this.#sendSubscribeFrame(socket, subscriptionsToOpen);
     }
-  }
-
-  #createHandle(entry: RtdsSubscriptionEntry): SubscriptionHandle<RtdsEvent> {
-    let closing: Promise<void> | undefined;
-    return {
-      close: () => {
-        if (closing === undefined) {
-          closing = this.#closeSubscriber(entry);
-        }
-        return closing;
-      },
-      [Symbol.asyncIterator]() {
-        return entry.subscriber.queue[Symbol.asyncIterator]();
-      },
-    };
   }
 
   async #closeSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {

@@ -10,6 +10,7 @@ import type {
   SubscriptionHandle,
   UserSubscription,
 } from '../actions/subscriptions';
+import { createSubscriptionHandle } from './handle';
 import {
   ClientPingHeartbeat,
   closeSocket,
@@ -94,7 +95,9 @@ export class ClobMarketWebSocketManager
     });
 
     await this.#registerSubscriber(entry, change);
-    return this.#createHandle(entry);
+    return createSubscriptionHandle(entry.subscriber.queue, () =>
+      this.#closeSubscriber(entry),
+    );
   }
 
   // Subscription handle lifecycle.
@@ -116,23 +119,6 @@ export class ClobMarketWebSocketManager
     if (wasOpen) {
       syncMarketSubscription(socket, before, after);
     }
-  }
-
-  #createHandle(
-    entry: MarketSubscriptionEntry,
-  ): SubscriptionHandle<MarketEvent> {
-    let closing: Promise<void> | undefined;
-    return {
-      close: () => {
-        if (closing === undefined) {
-          closing = this.#closeSubscriber(entry);
-        }
-        return closing;
-      },
-      [Symbol.asyncIterator]() {
-        return entry.subscriber.queue[Symbol.asyncIterator]();
-      },
-    };
   }
 
   async #closeSubscriber(entry: MarketSubscriptionEntry): Promise<void> {
@@ -304,7 +290,9 @@ export class ClobUserWebSocketManager
     });
 
     await this.#registerSubscriber(entry, change);
-    return this.#createHandle(entry);
+    return createSubscriptionHandle(entry.subscriber.queue, () =>
+      this.#closeSubscriber(entry),
+    );
   }
 
   // Subscription handle lifecycle.
@@ -326,21 +314,6 @@ export class ClobUserWebSocketManager
     if (wasOpen) {
       syncUserSubscription(socket, before, after);
     }
-  }
-
-  #createHandle(entry: UserSubscriptionEntry): SubscriptionHandle<UserEvent> {
-    let closing: Promise<void> | undefined;
-    return {
-      close: () => {
-        if (closing === undefined) {
-          closing = this.#closeSubscriber(entry);
-        }
-        return closing;
-      },
-      [Symbol.asyncIterator]() {
-        return entry.subscriber.queue[Symbol.asyncIterator]();
-      },
-    };
   }
 
   async #closeSubscriber(entry: UserSubscriptionEntry): Promise<void> {
