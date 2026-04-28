@@ -212,6 +212,43 @@ export const EpochSecondsToMillisecondsSchema = z
   .number()
   .int()
   .transform((value) => toEpochMilliseconds(value * 1000));
+const EpochMillisecondsLikeSchema = z.union([
+  z.number().int(),
+  z.string().regex(/^\d+$/).transform(Number),
+]);
+const DateLikeStringToIsoDateTimeStringSchema = z
+  .string()
+  .transform((value) => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return toIsoDateTimeString(
+        new Date(`${value}T00:00:00.000Z`).toISOString(),
+      );
+    }
+
+    return toIsoDateTimeString(value);
+  });
+export const EpochMillisecondsStringSchema = z
+  .string()
+  .regex(/^\d+$/)
+  .transform((value) => toEpochMilliseconds(Number(value)));
+export const DateLikeToIsoDateTimeStringSchema = z.union([
+  EpochMillisecondsLikeSchema.transform((value) =>
+    toIsoDateTimeString(new Date(value).toISOString()),
+  ),
+  DateLikeStringToIsoDateTimeStringSchema,
+]);
+export const OptionalDateLikeToIsoDateTimeStringSchema = z.union([
+  EpochMillisecondsLikeSchema.transform((value) =>
+    value === 0
+      ? undefined
+      : toIsoDateTimeString(new Date(value).toISOString()),
+  ),
+  DateLikeStringToIsoDateTimeStringSchema,
+]);
+export const EpochMillisecondsToIsoDateTimeStringSchema =
+  DateLikeToIsoDateTimeStringSchema;
+export const OptionalEpochMillisecondsToIsoDateTimeStringSchema =
+  OptionalDateLikeToIsoDateTimeStringSchema;
 export const EventIdSchema = z
   .union([z.string(), z.number().int().transform(String)])
   .transform(toEventId);

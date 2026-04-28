@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { OrderSideSchema, TokenIdSchema } from '../shared';
+import {
+  EpochMillisecondsToIsoDateTimeStringSchema,
+  OrderSideSchema,
+  TokenIdSchema,
+} from '../shared';
 
 export const BuilderTradeSchema = z
   .looseObject({
@@ -19,18 +23,19 @@ export const BuilderTradeSchema = z
     owner: z.string(),
     maker: z.string(),
     transactionHash: z.string(),
-    matchTime: z.string(),
+    matchTime: EpochMillisecondsToIsoDateTimeStringSchema,
     bucketIndex: z.number().int(),
     fee: z.string(),
     feeUsdc: z.string(),
     err_msg: z.string().nullable().optional(),
-    createdAt: z.string().optional(),
-    updatedAt: z.string().optional(),
+    createdAt: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
+    updatedAt: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
   })
-  .transform(({ err_msg, assetId, ...rest }) => ({
+  .transform(({ err_msg, assetId, matchTime, ...rest }) => ({
     ...rest,
     tokenId: assetId,
     errMsg: err_msg,
+    matchedAt: matchTime,
   }));
 export type BuilderTrade = z.infer<typeof BuilderTradeSchema>;
 

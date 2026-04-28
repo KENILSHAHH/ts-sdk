@@ -1,7 +1,9 @@
 import { CommentParentEntityType } from '@polymarket/bindings';
+import { expectPresent } from '@polymarket/types';
 import { describe, it } from 'vitest';
 import {
   expectNonEmptyPage,
+  findHighVolumeLowPriceMarket,
   publicClient,
   runBackendCompatTests,
 } from './testing';
@@ -210,5 +212,46 @@ describe.runIf(runBackendCompatTests)('backend compatibility', () => {
     await publicClient.fetchBuilderVolume({
       timePeriod: 'DAY',
     });
+  });
+
+  it('validates order book responses against the response schema', async () => {
+    const market = await findHighVolumeLowPriceMarket();
+    const [tokenId] = expectPresent(market.clobTokenIds);
+
+    await publicClient.fetchOrderBook({ tokenId });
+    await publicClient.fetchOrderBooks([{ tokenId }]);
+  });
+
+  it('validates reward responses against the response schemas', async () => {
+    const paginator = publicClient.listCurrentRewards();
+    const firstPage = await paginator.firstPage();
+
+    let remainingPages = 99;
+
+    for await (const _page of paginator.from(firstPage.nextCursor)) {
+      if (--remainingPages === 0) {
+        break;
+      }
+    }
+
+    const currentReward = firstPage.items[0];
+    if (currentReward === undefined) {
+      return;
+    }
+
+    const marketRewards = publicClient.listMarketRewards({
+      conditionId: currentReward.conditionId,
+    });
+    const marketRewardsFirstPage = await marketRewards.firstPage();
+
+    remainingPages = 99;
+
+    for await (const _page of marketRewards.from(
+      marketRewardsFirstPage.nextCursor,
+    )) {
+      if (--remainingPages === 0) {
+        break;
+      }
+    }
   });
 });
