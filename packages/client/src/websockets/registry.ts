@@ -15,29 +15,48 @@ export type SubscriptionRegistryChange<TState> = {
   after: TState;
 };
 
+type DeriveServerState<TSubscription, TEvent, TState> = (
+  entries: Iterable<SubscriptionRegistryEntry<TSubscription, TEvent>>,
+) => TState;
+
 export type SubscriptionRegistryOptions<TSubscription, TEvent, TState> = {
-  deriveServerState: (
-    entries: Iterable<SubscriptionRegistryEntry<TSubscription, TEvent>>,
-  ) => TState;
+  deriveServerState: DeriveServerState<TSubscription, TEvent, TState>;
 };
 
-export class SubscriptionRegistry<TSubscription, TEvent, TState> {
+type SubscriptionRegistryConstructorArgs<TSubscription, TEvent, TState> =
+  TState extends undefined
+    ? [options?: SubscriptionRegistryOptions<TSubscription, TEvent, TState>]
+    : [options: SubscriptionRegistryOptions<TSubscription, TEvent, TState>];
+
+export class SubscriptionRegistry<
+  TSubscription,
+  TEvent,
+  TServerState = undefined,
+> {
   readonly #entries = new Set<
     SubscriptionRegistryEntry<TSubscription, TEvent>
   >();
-  readonly #deriveServerState: (
-    entries: Iterable<SubscriptionRegistryEntry<TSubscription, TEvent>>,
-  ) => TState;
+  readonly #deriveServerState: DeriveServerState<
+    TSubscription,
+    TEvent,
+    TServerState
+  >;
 
   constructor(
-    options: SubscriptionRegistryOptions<TSubscription, TEvent, TState>,
+    ...args: SubscriptionRegistryConstructorArgs<
+      TSubscription,
+      TEvent,
+      TServerState
+    >
   ) {
-    this.#deriveServerState = options.deriveServerState;
+    const [options] = args;
+    this.#deriveServerState =
+      options?.deriveServerState ?? (() => undefined as TServerState);
   }
 
   add(
     entry: SubscriptionRegistryEntry<TSubscription, TEvent>,
-  ): SubscriptionRegistryChange<TState> {
+  ): SubscriptionRegistryChange<TServerState> {
     const before = this.serverState();
     this.#entries.add(entry);
     return { before, after: this.serverState() };
@@ -45,7 +64,7 @@ export class SubscriptionRegistry<TSubscription, TEvent, TState> {
 
   remove(
     entry: SubscriptionRegistryEntry<TSubscription, TEvent>,
-  ): SubscriptionRegistryChange<TState> {
+  ): SubscriptionRegistryChange<TServerState> {
     const before = this.serverState();
     this.#entries.delete(entry);
     entry.subscriber.queue.end();
@@ -71,7 +90,7 @@ export class SubscriptionRegistry<TSubscription, TEvent, TState> {
     this.#entries.clear();
   }
 
-  serverState(): TState {
+  serverState(): TServerState {
     return this.#deriveServerState(this.#entries);
   }
 }

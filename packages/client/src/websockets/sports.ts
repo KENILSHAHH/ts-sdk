@@ -46,9 +46,8 @@ export class SportsWebSocketManager
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     SportsSubscription,
-    SportsEvent,
-    undefined
-  >({ deriveServerState: () => undefined });
+    SportsEvent
+  >();
 
   constructor(options: SportsWebSocketManagerOptions) {
     this.#url = options.url;
