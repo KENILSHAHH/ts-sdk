@@ -1,22 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import {
-  downloadAccountingSnapshot,
-  fetchPortfolioValue,
-  fetchTradedMarketCount,
-  listClosedPositions,
-  listPositions,
-} from './portfolio';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 describe('Portfolio', () => {
   describe('listPositions', () => {
     it('lists positions for a wallet', async () => {
-      const result = await listPositions(publicClient, {
-        user: TEST_USER,
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listPositions({
+          user: TEST_USER,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
@@ -32,10 +26,11 @@ describe('Portfolio', () => {
 
   describe('listClosedPositions', () => {
     it('lists closed positions for a wallet', async () => {
-      const result = await listClosedPositions(publicClient, {
-        user: TEST_USER,
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listClosedPositions({
+          user: TEST_USER,
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
@@ -51,7 +46,7 @@ describe('Portfolio', () => {
 
   describe('fetchPortfolioValue', () => {
     it('fetches wallet value', async () => {
-      const result = await fetchPortfolioValue(publicClient, {
+      const result = await publicClient.fetchPortfolioValue({
         user: TEST_USER,
       });
 
@@ -66,7 +61,7 @@ describe('Portfolio', () => {
 
   describe('fetchTradedMarketCount', () => {
     it('fetches total traded market count for a wallet', async () => {
-      const result = await fetchTradedMarketCount(publicClient, {
+      const result = await publicClient.fetchTradedMarketCount({
         user: TEST_USER,
       });
 
@@ -81,7 +76,7 @@ describe('Portfolio', () => {
 
   describe('downloadAccountingSnapshot', () => {
     it('downloads the accounting snapshot archive', async () => {
-      const result = await downloadAccountingSnapshot(publicClient, {
+      const result = await publicClient.downloadAccountingSnapshot({
         user: TEST_USER,
       });
 

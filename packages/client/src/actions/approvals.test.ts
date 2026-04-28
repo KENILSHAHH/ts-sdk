@@ -10,11 +10,6 @@ import {
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
-import {
-  prepareErc20Approval,
-  prepareErc1155ApprovalForAll,
-  prepareTradingApprovals,
-} from './approvals';
 
 describe('Approvals', () => {
   describe('prepareErc20Approval', () => {
@@ -25,11 +20,13 @@ describe('Approvals', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
 
-      const handle = await prepareErc20Approval(secureClient, {
-        spenderAddress: secureClient.environment.standardExchange,
-        tokenAddress: secureClient.environment.collateralToken,
-        amount: 'max',
-      }).then(completeWith(walletClient));
+      const handle = await secureClient
+        .prepareErc20Approval({
+          spenderAddress: secureClient.environment.standardExchange,
+          tokenAddress: secureClient.environment.collateralToken,
+          amount: 'max',
+        })
+        .then(completeWith(walletClient));
 
       await expect(handle.wait()).resolves.toBeTruthy();
     });
@@ -46,11 +43,13 @@ describe('Approvals', () => {
       // to avoid having to fund the wallet we stop the test by proving the
       // transaction request is correctly formed, without actually sending it
       await expect(
-        prepareErc20Approval(secureClient, {
-          amount: 'max',
-          spenderAddress: ZERO_ADDRESS,
-          tokenAddress: secureClient.environment.collateralToken,
-        }).then(completeWith(walletClient)),
+        secureClient
+          .prepareErc20Approval({
+            amount: 'max',
+            spenderAddress: ZERO_ADDRESS,
+            tokenAddress: secureClient.environment.collateralToken,
+          })
+          .then(completeWith(walletClient)),
       ).rejects.toBeInstanceOf(SigningError);
     });
   });
@@ -63,10 +62,12 @@ describe('Approvals', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
 
-      const handle = await prepareErc1155ApprovalForAll(secureClient, {
-        operatorAddress: secureClient.environment.standardExchange,
-        tokenAddress: secureClient.environment.conditionalTokens,
-      }).then(completeWith(walletClient));
+      const handle = await secureClient
+        .prepareErc1155ApprovalForAll({
+          operatorAddress: secureClient.environment.standardExchange,
+          tokenAddress: secureClient.environment.conditionalTokens,
+        })
+        .then(completeWith(walletClient));
 
       await expect(handle.wait()).resolves.toBeTruthy();
     });
@@ -80,9 +81,9 @@ describe('Approvals', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
 
-      const handle = await prepareTradingApprovals(secureClient).then(
-        completeWith(walletClient),
-      );
+      const handle = await secureClient
+        .prepareTradingApprovals()
+        .then(completeWith(walletClient));
 
       await expect(handle.wait()).resolves.toBeTruthy();
     });

@@ -14,11 +14,7 @@ import {
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
-import {
-  isGaslessReady,
-  prepareGaslessTransaction,
-  prepareGaslessWallet,
-} from './gasless';
+import { prepareGaslessTransaction } from './gasless';
 
 describe('Gasless', () => {
   describe('isGaslessReady', () => {
@@ -30,7 +26,7 @@ describe('Gasless', () => {
       expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
 
       await expect(
-        isGaslessReady(secureClient, {
+        secureClient.isGaslessReady({
           wallet: secureClient.account.wallet,
         }),
       ).resolves.toBe(true);
@@ -38,7 +34,7 @@ describe('Gasless', () => {
 
     it('supports checking readiness from a public client with a wallet address', async () => {
       await expect(
-        isGaslessReady(publicClientWithRelayerKey, {
+        publicClientWithRelayerKey.isGaslessReady({
           wallet: safeWalletAddress,
         }),
       ).resolves.toBe(true);
@@ -54,7 +50,7 @@ describe('Gasless', () => {
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
 
       await expect(
-        isGaslessReady(secureClient, {
+        secureClient.isGaslessReady({
           wallet: secureClient.account.wallet,
         }),
       ).resolves.toBe(false);
@@ -65,7 +61,7 @@ describe('Gasless', () => {
       const walletClient = createRandomWalletClient();
 
       await expect(
-        isGaslessReady(publicClient, {
+        publicClient.isGaslessReady({
           wallet: walletClient.account.address,
         }),
       ).resolves.toBe(false);
@@ -230,14 +226,14 @@ describe('Gasless', () => {
         );
 
         await expect(
-          isGaslessReady(publicClientWithBuilderKey, {
+          publicClientWithBuilderKey.isGaslessReady({
             wallet: safeWallet,
           }),
         ).resolves.toBe(false);
 
-        const handle = await prepareGaslessWallet(
-          publicClientWithBuilderKey,
-        ).then(completeWith(walletClient));
+        const handle = await publicClientWithBuilderKey
+          .prepareGaslessWallet()
+          .then(completeWith(walletClient));
 
         expect(handle.wallet).toBe(safeWallet);
 
@@ -246,7 +242,7 @@ describe('Gasless', () => {
         await expect(handle.wait()).resolves.toBeTruthy();
 
         await expect(
-          isGaslessReady(publicClientWithBuilderKey, {
+          publicClientWithBuilderKey.isGaslessReady({
             wallet: safeWallet,
           }),
         ).resolves.toBe(true);

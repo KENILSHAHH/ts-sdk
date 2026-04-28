@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
-import { search } from './search';
 
 describe('Search', () => {
   describe('search', () => {
     it('fetches public search results', async () => {
-      const result = await search(publicClient, {
+      const result = await publicClient.search({
         q: 'trump',
         limitPerType: 1,
       });

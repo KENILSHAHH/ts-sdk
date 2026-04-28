@@ -3,25 +3,7 @@ import { PriceHistoryInterval } from '@polymarket/bindings/clob';
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
-import {
-  fetchFeeRate,
-  fetchLastTradePrice,
-  fetchLastTradePrices,
-  fetchMidpoint,
-  fetchMidpoints,
-  fetchNegRisk,
-  fetchOrderBook,
-  fetchOrderBooks,
-  fetchPrice,
-  fetchPriceHistory,
-  fetchPrices,
-  fetchSpread,
-  fetchSpreads,
-  fetchTickSize,
-  listCurrentRewards,
-  listMarketRewards,
-} from './clob';
-import { listMarkets } from './markets';
+import { fetchFeeRate, fetchNegRisk, fetchTickSize } from './clob';
 
 describe('CLOB', () => {
   describe('fetchTickSize', () => {
@@ -66,7 +48,7 @@ describe('CLOB', () => {
     it('fetches the order book for a token', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchOrderBook(publicClient, {
+      const result = await publicClient.fetchOrderBook({
         tokenId,
       });
 
@@ -84,7 +66,7 @@ describe('CLOB', () => {
     it('fetches order books for multiple tokens', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchOrderBooks(publicClient, [{ tokenId }]);
+      const result = await publicClient.fetchOrderBooks([{ tokenId }]);
 
       expect(result[0]).toEqual(
         expect.objectContaining({
@@ -100,7 +82,7 @@ describe('CLOB', () => {
     it('fetches the midpoint price for a token', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchMidpoint(publicClient, {
+      const result = await publicClient.fetchMidpoint({
         tokenId,
       });
 
@@ -112,7 +94,7 @@ describe('CLOB', () => {
     it('fetches midpoint prices for multiple tokens', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchMidpoints(publicClient, [{ tokenId }]);
+      const result = await publicClient.fetchMidpoints([{ tokenId }]);
 
       expect(result[tokenId]).toEqual(expect.any(String));
     });
@@ -122,7 +104,7 @@ describe('CLOB', () => {
     it('fetches the quoted price for a token and side', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchPrice(publicClient, {
+      const result = await publicClient.fetchPrice({
         tokenId,
         side: OrderSide.BUY,
       });
@@ -135,7 +117,7 @@ describe('CLOB', () => {
     it('fetches quoted prices for multiple tokens', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchPrices(publicClient, [
+      const result = await publicClient.fetchPrices([
         {
           tokenId,
           side: OrderSide.BUY,
@@ -150,7 +132,7 @@ describe('CLOB', () => {
     it('fetches the spread for a token', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchSpread(publicClient, {
+      const result = await publicClient.fetchSpread({
         tokenId,
       });
 
@@ -162,7 +144,7 @@ describe('CLOB', () => {
     it('fetches spreads for multiple tokens', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchSpreads(publicClient, [{ tokenId }]);
+      const result = await publicClient.fetchSpreads([{ tokenId }]);
 
       expect(result[tokenId]).toEqual(expect.any(String));
     });
@@ -172,7 +154,7 @@ describe('CLOB', () => {
     it('fetches the last traded price for a token', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchLastTradePrice(publicClient, {
+      const result = await publicClient.fetchLastTradePrice({
         tokenId,
       });
 
@@ -189,7 +171,7 @@ describe('CLOB', () => {
     it('fetches last traded prices for multiple tokens', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchLastTradePrices(publicClient, [{ tokenId }]);
+      const result = await publicClient.fetchLastTradePrices([{ tokenId }]);
 
       expect(result[0]).toEqual(
         expect.objectContaining({
@@ -205,7 +187,7 @@ describe('CLOB', () => {
     it('lists historical price points for a token', async () => {
       const tokenId = await selectLiquidClobTokenId();
 
-      const result = await fetchPriceHistory(publicClient, {
+      const result = await publicClient.fetchPriceHistory({
         tokenId,
         interval: PriceHistoryInterval.ONE_DAY,
         fidelity: 60,
@@ -224,14 +206,16 @@ describe('CLOB', () => {
   describe('listCurrentRewards', () => {
     it('lists current active market rewards', async () => {
       await expect(
-        listCurrentRewards(publicClient).firstPage(),
+        publicClient.listCurrentRewards().firstPage(),
       ).resolves.toBeDefined();
     });
   });
 
   describe('listMarketRewards', () => {
     it('fetches reward configurations for a market', async () => {
-      const currentRewards = await listCurrentRewards(publicClient).firstPage();
+      const currentRewards = await publicClient
+        .listCurrentRewards()
+        .firstPage();
 
       const currentReward = currentRewards.items[0];
 
@@ -239,9 +223,11 @@ describe('CLOB', () => {
         return;
       }
 
-      const result = await listMarketRewards(publicClient, {
-        conditionId: currentReward.conditionId,
-      }).firstPage();
+      const result = await publicClient
+        .listMarketRewards({
+          conditionId: currentReward.conditionId,
+        })
+        .firstPage();
 
       expect(result.items.length).toBeGreaterThan(0);
       expect(result.items[0]).toEqual(
@@ -256,12 +242,13 @@ describe('CLOB', () => {
 });
 
 async function selectLiquidClobTokenId(): Promise<string> {
-  const markets = await listMarkets(publicClient, {
-    closed: false,
-    pageSize: 100,
-    order: 'volume24hr',
-    ascending: false,
-  })
+  const markets = await publicClient
+    .listMarkets({
+      closed: false,
+      pageSize: 100,
+      order: 'volume24hr',
+      ascending: false,
+    })
     .firstPage()
     .then((page) => page.items);
 

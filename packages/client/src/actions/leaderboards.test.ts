@@ -1,17 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
-import {
-  fetchBuilderVolume,
-  listBuilderLeaderboard,
-  listTraderLeaderboard,
-} from './leaderboards';
 
 describe('Leaderboards', () => {
   describe('listTraderLeaderboard', () => {
     it('lists trader rankings', async () => {
-      const result = await listTraderLeaderboard(publicClient, {
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listTraderLeaderboard({
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
@@ -27,9 +23,10 @@ describe('Leaderboards', () => {
 
   describe('listBuilderLeaderboard', () => {
     it('lists builder rankings', async () => {
-      const result = await listBuilderLeaderboard(publicClient, {
-        pageSize: 1,
-      })
+      const result = await publicClient
+        .listBuilderLeaderboard({
+          pageSize: 1,
+        })
         .firstPage()
         .then(expectNonEmptyPage);
 
@@ -45,7 +42,7 @@ describe('Leaderboards', () => {
 
   describe('fetchBuilderVolume', () => {
     it('lists builder volume entries', async () => {
-      const result = await fetchBuilderVolume(publicClient, {
+      const result = await publicClient.fetchBuilderVolume({
         timePeriod: 'DAY',
       });
 

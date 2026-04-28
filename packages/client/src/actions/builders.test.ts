@@ -1,7 +1,6 @@
 import { OrderSide } from '@polymarket/bindings';
 import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import type { PublicClient } from '../clients';
 import {
   builderCredentials,
   expectNonEmptyPage,
@@ -11,15 +10,14 @@ import {
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
-import { listBuilderTrades } from './builders';
-import { postOrder, prepareMarketOrder } from './orders';
 
 const market = await findHighVolumeLowPriceMarket();
 
 describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder-attributed trades', async () => {
-      const existingTrades = await listBuilderTrades(publicClientWithBuilderKey)
+      const existingTrades = await publicClientWithBuilderKey
+        .listBuilderTrades()
         .firstPage()
         .then((page) => page.items);
 
@@ -40,13 +38,14 @@ describe('Builders', () => {
       console.log(market.slug);
       const [tokenId] = expectPresent(market.clobTokenIds);
 
-      const response = await prepareMarketOrder(secureClient, {
-        amount: expectPresent(market.orderMinSize),
-        side: OrderSide.BUY,
-        tokenId,
-      })
+      const response = await secureClient
+        .prepareMarketOrder({
+          amount: expectPresent(market.orderMinSize),
+          side: OrderSide.BUY,
+          tokenId,
+        })
         .then(completeWith(walletClient))
-        .then(postOrder(secureClient));
+        .then(secureClient.postOrder);
 
       expect(response.ok).toBe(true);
 
@@ -65,9 +64,12 @@ describe('Builders', () => {
   });
 });
 
-async function waitForBuilderTrades(client: PublicClient, tokenId: string) {
+async function waitForBuilderTrades(
+  client: typeof publicClientWithBuilderKey,
+  tokenId: string,
+) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const { items } = await listBuilderTrades(client, { tokenId }).firstPage();
+    const { items } = await client.listBuilderTrades({ tokenId }).firstPage();
 
     if (items.length > 0) {
       return items;
@@ -76,7 +78,8 @@ async function waitForBuilderTrades(client: PublicClient, tokenId: string) {
     await delay(500);
   }
 
-  return listBuilderTrades(client, { tokenId })
+  return client
+    .listBuilderTrades({ tokenId })
     .firstPage()
     .then(expectNonEmptyPage)
     .then((page) => page.items);
