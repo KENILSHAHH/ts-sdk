@@ -87,6 +87,65 @@ export class ReconnectScheduler {
   }
 }
 
+export class WebSocketConnection {
+  #socket: WebSocket | undefined;
+  #connecting: Promise<WebSocket> | undefined;
+
+  get current(): WebSocket | undefined {
+    return this.#socket;
+  }
+
+  ensure(open: () => Promise<WebSocket>): Promise<WebSocket> {
+    const socket = this.#socket;
+    if (socket?.readyState === WebSocket.OPEN) {
+      return Promise.resolve(socket);
+    }
+    this.#socket = undefined;
+    if (this.#connecting !== undefined) return this.#connecting;
+
+    const connecting = open().catch((error: unknown) => {
+      if (this.#connecting === connecting) {
+        this.#connecting = undefined;
+      }
+      throw error;
+    });
+    this.#connecting = connecting;
+    return connecting;
+  }
+
+  markOpen(socket: WebSocket): void {
+    this.#socket = socket;
+    this.#connecting = undefined;
+  }
+
+  clearSocket(): void {
+    this.#socket = undefined;
+  }
+
+  hasOpenSocket(): boolean {
+    return this.#socket?.readyState === WebSocket.OPEN;
+  }
+
+  isCurrent(socket: WebSocket): boolean {
+    return this.#socket === socket;
+  }
+
+  hasDifferentCurrent(socket: WebSocket): boolean {
+    return this.#socket !== undefined && this.#socket !== socket;
+  }
+
+  async takeCurrent(): Promise<WebSocket | undefined> {
+    const socket = this.#socket;
+    const connecting = this.#connecting;
+
+    this.#socket = undefined;
+    this.#connecting = undefined;
+
+    if (socket !== undefined) return socket;
+    return connecting?.catch(() => undefined);
+  }
+}
+
 type ReconnectDelayOptions = {
   baseMs: number;
   maxMs: number;
@@ -103,8 +162,33 @@ function reconnectDelay(
   return Math.random() * exponentialDelay;
 }
 
-export function waitForSocketClose(socket: WebSocket): Promise<void> {
+function waitForSocketClose(socket: WebSocket): Promise<void> {
   return new Promise((resolve) => {
     socket.addEventListener('close', () => resolve(), { once: true });
   });
+}
+
+export async function closeSocket(
+  socket: WebSocket | undefined,
+): Promise<void> {
+  if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
+  if (socket.readyState === WebSocket.CLOSING) {
+    await waitForSocketClose(socket);
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    socket.addEventListener('close', () => resolve(), { once: true });
+    socket.close();
+  });
+}
+
+export function closeSocketIfOpen(socket: WebSocket | undefined): void {
+  if (
+    socket !== undefined &&
+    socket.readyState !== WebSocket.CLOSING &&
+    socket.readyState !== WebSocket.CLOSED
+  ) {
+    socket.close();
+  }
 }

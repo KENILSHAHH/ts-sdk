@@ -14,8 +14,10 @@ import type {
 } from '../actions/subscriptions';
 import {
   ClientPingHeartbeat,
+  closeSocket,
+  closeSocketIfOpen,
   ReconnectScheduler,
-  waitForSocketClose,
+  WebSocketConnection,
 } from './lifecycle';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
@@ -115,9 +117,8 @@ export class RtdsWebSocketManager
   implements WebSocketManager<RtdsSpec, RtdsEvent>
 {
   readonly #url: string;
-  #socket: WebSocket | undefined;
-  #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
+  readonly #connection = new WebSocketConnection();
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
@@ -152,7 +153,7 @@ export class RtdsWebSocketManager
   // Subscription handle lifecycle.
 
   async #registerSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
-    const shouldSendIncrementalSubscribe = this.#hasOpenSocket();
+    const shouldSendIncrementalSubscribe = this.#connection.hasOpenSocket();
     const subscriptionsToOpen = this.#subscriptions.add(entry);
 
     let socket: WebSocket;
@@ -207,46 +208,11 @@ export class RtdsWebSocketManager
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
-    const socket = await this.#takeCurrentSocket();
-    if (socket === undefined || socket.readyState === WebSocket.CLOSED) {
-      return;
-    }
-    if (socket.readyState === WebSocket.CLOSING) {
-      await waitForSocketClose(socket);
-      return;
-    }
-
-    await new Promise<void>((resolve) => {
-      socket.addEventListener('close', () => resolve(), { once: true });
-      socket.close();
-    });
-  }
-
-  async #takeCurrentSocket(): Promise<WebSocket | undefined> {
-    const socket = this.#socket;
-    const connecting = this.#connecting;
-
-    this.#socket = undefined;
-    this.#connecting = undefined;
-
-    if (socket !== undefined) return socket;
-    return connecting?.catch(() => undefined);
-  }
-
-  #hasOpenSocket(): boolean {
-    return this.#socket?.readyState === WebSocket.OPEN;
+    await closeSocket(await this.#connection.takeCurrent());
   }
 
   #ensureSocket(): Promise<WebSocket> {
-    const socket = this.#socket;
-    if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve(socket);
-    }
-    this.#socket = undefined;
-    if (this.#connecting !== undefined) return this.#connecting;
-
-    this.#connecting = this.#openSocket();
-    return this.#connecting;
+    return this.#connection.ensure(() => this.#openSocket());
   }
 
   #openSocket(): Promise<WebSocket> {
@@ -260,7 +226,6 @@ export class RtdsWebSocketManager
       };
       const onOpenError = () => {
         socket.removeEventListener('open', onOpen);
-        this.#connecting = undefined;
         reject(new Error('RTDS WebSocket failed to open.'));
       };
 
@@ -275,8 +240,7 @@ export class RtdsWebSocketManager
   }
 
   #onSocketOpen(socket: WebSocket): void {
-    this.#socket = socket;
-    this.#connecting = undefined;
+    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#startHeartbeat(socket);
     this.#startStalenessWatchdog();
@@ -284,7 +248,7 @@ export class RtdsWebSocketManager
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (this.#socket !== socket) return;
+    if (!this.#connection.isCurrent(socket)) return;
     let raw: unknown;
     try {
       raw = JSON.parse(String(event.data));
@@ -298,10 +262,10 @@ export class RtdsWebSocketManager
   }
 
   #onSocketClose(socket: WebSocket): void {
-    if (this.#socket !== undefined && this.#socket !== socket) return;
+    if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
@@ -337,18 +301,12 @@ export class RtdsWebSocketManager
   }
 
   #forceReconnect(): void {
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
 
-    if (
-      socket !== undefined &&
-      socket.readyState !== WebSocket.CLOSING &&
-      socket.readyState !== WebSocket.CLOSED
-    ) {
-      socket.close();
-    }
+    closeSocketIfOpen(socket);
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
@@ -376,7 +334,7 @@ export class RtdsWebSocketManager
   #sendUnsubscribeFrame(
     subscriptions: readonly RtdsServerSubscription[],
   ): void {
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     if (subscriptions.length === 0 || socket?.readyState !== WebSocket.OPEN) {
       return;
     }

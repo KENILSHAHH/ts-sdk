@@ -7,7 +7,12 @@ import type {
   SportsSubscription,
   SubscriptionHandle,
 } from '../actions/subscriptions';
-import { ReconnectScheduler, waitForSocketClose } from './lifecycle';
+import {
+  closeSocket,
+  closeSocketIfOpen,
+  ReconnectScheduler,
+  WebSocketConnection,
+} from './lifecycle';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
@@ -38,9 +43,8 @@ export class SportsWebSocketManager
   implements WebSocketManager<SportsSubscription, SportsEvent>
 {
   readonly #url: string;
-  #socket: WebSocket | undefined;
-  #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
+  readonly #connection = new WebSocketConnection();
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #entries = new Set<SportsSubscriptionEntry>();
@@ -125,17 +129,11 @@ export class SportsWebSocketManager
     this.#reconnectScheduler.stop();
     this.#endSubscribers();
 
-    const socket = await this.#takeCurrentSocket();
-    if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
-    if (socket.readyState === WebSocket.CLOSING) {
-      await waitForSocketClose(socket);
-      return;
-    }
+    await closeSocket(await this.#connection.takeCurrent());
+  }
 
-    await new Promise<void>((resolve) => {
-      socket.addEventListener('close', () => resolve(), { once: true });
-      socket.close();
-    });
+  #ensureSocket(): Promise<WebSocket> {
+    return this.#connection.ensure(() => this.#openSocket());
   }
 
   #endSubscribers(error?: Error): void {
@@ -143,29 +141,6 @@ export class SportsWebSocketManager
       subscriber.queue.end(error);
     }
     this.#entries.clear();
-  }
-
-  async #takeCurrentSocket(): Promise<WebSocket | undefined> {
-    const socket = this.#socket;
-    const connecting = this.#connecting;
-
-    this.#socket = undefined;
-    this.#connecting = undefined;
-
-    if (socket !== undefined) return socket;
-    return connecting?.catch(() => undefined);
-  }
-
-  #ensureSocket(): Promise<WebSocket> {
-    const socket = this.#socket;
-    if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve(socket);
-    }
-    this.#socket = undefined;
-    if (this.#connecting !== undefined) return this.#connecting;
-
-    this.#connecting = this.#openSocket();
-    return this.#connecting;
   }
 
   #openSocket(): Promise<WebSocket> {
@@ -179,7 +154,6 @@ export class SportsWebSocketManager
       };
       const onOpenError = () => {
         socket.removeEventListener('open', onOpen);
-        this.#connecting = undefined;
         reject(new Error('Sports WebSocket failed to open.'));
       };
 
@@ -194,14 +168,13 @@ export class SportsWebSocketManager
   }
 
   #onSocketOpen(socket: WebSocket): void {
-    this.#socket = socket;
-    this.#connecting = undefined;
+    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#startStalenessWatchdog();
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (this.#socket !== socket) return;
+    if (!this.#connection.isCurrent(socket)) return;
 
     const data = String(event.data);
     if (data.toLowerCase() === 'ping') {
@@ -232,9 +205,9 @@ export class SportsWebSocketManager
   }
 
   #onSocketClose(socket: WebSocket): void {
-    if (this.#socket !== undefined && this.#socket !== socket) return;
+    if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
     if (this.#entries.size > 0) {
       this.#scheduleReconnect();
     }
@@ -260,17 +233,11 @@ export class SportsWebSocketManager
   }
 
   #forceReconnect(): void {
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
 
-    if (
-      socket !== undefined &&
-      socket.readyState !== WebSocket.CLOSING &&
-      socket.readyState !== WebSocket.CLOSED
-    ) {
-      socket.close();
-    }
+    closeSocketIfOpen(socket);
     if (this.#entries.size > 0) {
       this.#scheduleReconnect();
     }

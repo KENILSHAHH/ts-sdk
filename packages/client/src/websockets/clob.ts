@@ -13,8 +13,10 @@ import type {
 } from '../actions/subscriptions';
 import {
   ClientPingHeartbeat,
+  closeSocket,
+  closeSocketIfOpen,
   ReconnectScheduler,
-  waitForSocketClose,
+  WebSocketConnection,
 } from './lifecycle';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
@@ -75,9 +77,8 @@ export class ClobMarketWebSocketManager
   implements WebSocketManager<MarketSubscription, MarketEvent>
 {
   readonly #url: string;
-  #socket: WebSocket | undefined;
-  #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
+  readonly #connection = new WebSocketConnection();
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
@@ -113,7 +114,7 @@ export class ClobMarketWebSocketManager
   // Subscription handle lifecycle.
 
   async #registerSubscriber(entry: MarketSubscriptionEntry): Promise<void> {
-    const wasOpen = this.#hasOpenSocket();
+    const wasOpen = this.#connection.hasOpenSocket();
     const before = this.#activeServerSubscription();
     this.#entries.add(entry);
     const after = this.#activeServerSubscription();
@@ -158,7 +159,7 @@ export class ClobMarketWebSocketManager
       return;
     }
 
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     if (socket?.readyState === WebSocket.OPEN) {
       syncMarketSubscription(socket, before, after);
     }
@@ -181,17 +182,7 @@ export class ClobMarketWebSocketManager
     this.#reconnectScheduler.stop();
     this.#endSubscribers();
 
-    const socket = await this.#takeCurrentSocket();
-    if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
-    if (socket.readyState === WebSocket.CLOSING) {
-      await waitForSocketClose(socket);
-      return;
-    }
-
-    await new Promise<void>((resolve) => {
-      socket.addEventListener('close', () => resolve(), { once: true });
-      socket.close();
-    });
+    await closeSocket(await this.#connection.takeCurrent());
   }
 
   #endSubscribers(error?: Error): void {
@@ -201,31 +192,8 @@ export class ClobMarketWebSocketManager
     this.#entries.clear();
   }
 
-  async #takeCurrentSocket(): Promise<WebSocket | undefined> {
-    const socket = this.#socket;
-    const connecting = this.#connecting;
-
-    this.#socket = undefined;
-    this.#connecting = undefined;
-
-    if (socket !== undefined) return socket;
-    return connecting?.catch(() => undefined);
-  }
-
-  #hasOpenSocket(): boolean {
-    return this.#socket?.readyState === WebSocket.OPEN;
-  }
-
   #ensureSocket(): Promise<WebSocket> {
-    const socket = this.#socket;
-    if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve(socket);
-    }
-    this.#socket = undefined;
-    if (this.#connecting !== undefined) return this.#connecting;
-
-    this.#connecting = this.#openSocket();
-    return this.#connecting;
+    return this.#connection.ensure(() => this.#openSocket());
   }
 
   #openSocket(): Promise<WebSocket> {
@@ -239,7 +207,6 @@ export class ClobMarketWebSocketManager
       };
       const onOpenError = () => {
         socket.removeEventListener('open', onOpen);
-        this.#connecting = undefined;
         reject(new Error('CLOB market WebSocket failed to open.'));
       };
 
@@ -254,8 +221,7 @@ export class ClobMarketWebSocketManager
   }
 
   #onSocketOpen(socket: WebSocket): void {
-    this.#socket = socket;
-    this.#connecting = undefined;
+    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(socket);
     this.#startHeartbeat(socket);
@@ -263,7 +229,7 @@ export class ClobMarketWebSocketManager
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (this.#socket !== socket) return;
+    if (!this.#connection.isCurrent(socket)) return;
 
     const data = String(event.data);
     if (data === 'PONG') {
@@ -296,10 +262,10 @@ export class ClobMarketWebSocketManager
   }
 
   #onSocketClose(socket: WebSocket): void {
-    if (this.#socket !== undefined && this.#socket !== socket) return;
+    if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
     if (this.#entries.size > 0) {
       this.#scheduleReconnect();
     }
@@ -335,18 +301,12 @@ export class ClobMarketWebSocketManager
   }
 
   #forceReconnect(): void {
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
 
-    if (
-      socket !== undefined &&
-      socket.readyState !== WebSocket.CLOSING &&
-      socket.readyState !== WebSocket.CLOSED
-    ) {
-      socket.close();
-    }
+    closeSocketIfOpen(socket);
     if (this.#entries.size > 0) {
       this.#scheduleReconnect();
     }
@@ -385,9 +345,8 @@ export class ClobUserWebSocketManager
 {
   readonly #url: string;
   readonly #resolveCredentials: ApiKeyCredsProvider;
-  #socket: WebSocket | undefined;
-  #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
+  readonly #connection = new WebSocketConnection();
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
@@ -424,7 +383,7 @@ export class ClobUserWebSocketManager
   // Subscription handle lifecycle.
 
   async #registerSubscriber(entry: UserSubscriptionEntry): Promise<void> {
-    const wasOpen = this.#hasOpenSocket();
+    const wasOpen = this.#connection.hasOpenSocket();
     const before = this.#activeServerSubscription();
     this.#entries.add(entry);
     const after = this.#activeServerSubscription();
@@ -467,7 +426,7 @@ export class ClobUserWebSocketManager
       return;
     }
 
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     if (socket?.readyState === WebSocket.OPEN) {
       syncUserSubscription(socket, before, after);
     }
@@ -490,17 +449,7 @@ export class ClobUserWebSocketManager
     this.#reconnectScheduler.stop();
     this.#endSubscribers();
 
-    const socket = await this.#takeCurrentSocket();
-    if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
-    if (socket.readyState === WebSocket.CLOSING) {
-      await waitForSocketClose(socket);
-      return;
-    }
-
-    await new Promise<void>((resolve) => {
-      socket.addEventListener('close', () => resolve(), { once: true });
-      socket.close();
-    });
+    await closeSocket(await this.#connection.takeCurrent());
   }
 
   #endSubscribers(error?: Error): void {
@@ -510,31 +459,8 @@ export class ClobUserWebSocketManager
     this.#entries.clear();
   }
 
-  async #takeCurrentSocket(): Promise<WebSocket | undefined> {
-    const socket = this.#socket;
-    const connecting = this.#connecting;
-
-    this.#socket = undefined;
-    this.#connecting = undefined;
-
-    if (socket !== undefined) return socket;
-    return connecting?.catch(() => undefined);
-  }
-
-  #hasOpenSocket(): boolean {
-    return this.#socket?.readyState === WebSocket.OPEN;
-  }
-
   #ensureSocket(): Promise<WebSocket> {
-    const socket = this.#socket;
-    if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve(socket);
-    }
-    this.#socket = undefined;
-    if (this.#connecting !== undefined) return this.#connecting;
-
-    this.#connecting = this.#openSocket();
-    return this.#connecting;
+    return this.#connection.ensure(() => this.#openSocket());
   }
 
   async #openSocket(): Promise<WebSocket> {
@@ -550,7 +476,6 @@ export class ClobUserWebSocketManager
       };
       const onOpenError = () => {
         socket.removeEventListener('open', onOpen);
-        this.#connecting = undefined;
         reject(new Error('CLOB user WebSocket failed to open.'));
       };
 
@@ -565,8 +490,7 @@ export class ClobUserWebSocketManager
   }
 
   #onSocketOpen(socket: WebSocket, credentials: ApiKeyCreds): void {
-    this.#socket = socket;
-    this.#connecting = undefined;
+    this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(socket, credentials);
     this.#startHeartbeat(socket);
@@ -574,7 +498,7 @@ export class ClobUserWebSocketManager
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
-    if (this.#socket !== socket) return;
+    if (!this.#connection.isCurrent(socket)) return;
 
     const data = String(event.data);
     if (data === 'PONG') {
@@ -607,10 +531,10 @@ export class ClobUserWebSocketManager
   }
 
   #onSocketClose(socket: WebSocket): void {
-    if (this.#socket !== undefined && this.#socket !== socket) return;
+    if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
     if (this.#entries.size > 0) {
       this.#scheduleReconnect();
     }
@@ -646,18 +570,12 @@ export class ClobUserWebSocketManager
   }
 
   #forceReconnect(): void {
-    const socket = this.#socket;
+    const socket = this.#connection.current;
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
-    this.#socket = undefined;
+    this.#connection.clearSocket();
 
-    if (
-      socket !== undefined &&
-      socket.readyState !== WebSocket.CLOSING &&
-      socket.readyState !== WebSocket.CLOSED
-    ) {
-      socket.close();
-    }
+    closeSocketIfOpen(socket);
     if (this.#entries.size > 0) {
       this.#scheduleReconnect();
     }
