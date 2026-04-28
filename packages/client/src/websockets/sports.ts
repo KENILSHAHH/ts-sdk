@@ -8,6 +8,7 @@ import type {
   SportsSubscription,
   SubscriptionHandle,
 } from '../actions/subscriptions';
+import { reconnectDelay, waitForSocketClose } from './lifecycle';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
@@ -283,7 +284,10 @@ export class SportsWebSocketManager
     ) {
       return;
     }
-    const delay = reconnectDelay(this.#reconnectAttempt);
+    const delay = reconnectDelay(this.#reconnectAttempt, {
+      baseMs: RECONNECT_BASE_DELAY_MS,
+      maxMs: RECONNECT_MAX_DELAY_MS,
+    });
     this.#reconnectAttempt += 1;
     this.#reconnectTimer = setNonBlockingTimeout(() => {
       this.#reconnectTimer = undefined;
@@ -310,18 +314,4 @@ export class SportsWebSocketManager
   #resetReconnectBackoff(): void {
     this.#reconnectAttempt = 0;
   }
-}
-
-function reconnectDelay(attempt: number): number {
-  const exponentialDelay = Math.min(
-    RECONNECT_BASE_DELAY_MS * 2 ** attempt,
-    RECONNECT_MAX_DELAY_MS,
-  );
-  return Math.random() * exponentialDelay;
-}
-
-function waitForSocketClose(socket: WebSocket): Promise<void> {
-  return new Promise((resolve) => {
-    socket.addEventListener('close', () => resolve(), { once: true });
-  });
 }

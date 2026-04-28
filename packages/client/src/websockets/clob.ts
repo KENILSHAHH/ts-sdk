@@ -5,16 +5,18 @@ import {
   type UserEvent,
   UserEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import {
-  setNonBlockingInterval,
-  setNonBlockingTimeout,
-} from '@polymarket/types';
+import { setNonBlockingTimeout } from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import type {
   MarketSubscription,
   SubscriptionHandle,
   UserSubscription,
 } from '../actions/subscriptions';
+import {
+  ClientPingHeartbeat,
+  reconnectDelay,
+  waitForSocketClose,
+} from './lifecycle';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
@@ -77,7 +79,7 @@ export class ClobMarketWebSocketManager
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
-  #heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   #reconnectAttempt = 0;
@@ -309,19 +311,11 @@ export class ClobMarketWebSocketManager
   // Heartbeat.
 
   #startHeartbeat(socket: WebSocket): void {
-    this.#stopHeartbeat();
-    this.#heartbeatTimer = setNonBlockingInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send('PING');
-      }
-    }, HEARTBEAT_INTERVAL_MS);
+    this.#heartbeat.start(socket, HEARTBEAT_INTERVAL_MS);
   }
 
   #stopHeartbeat(): void {
-    if (this.#heartbeatTimer !== undefined) {
-      clearInterval(this.#heartbeatTimer);
-      this.#heartbeatTimer = undefined;
-    }
+    this.#heartbeat.stop();
   }
 
   // Data staleness watchdog.
@@ -386,7 +380,10 @@ export class ClobMarketWebSocketManager
     ) {
       return;
     }
-    const delay = reconnectDelay(this.#reconnectAttempt);
+    const delay = reconnectDelay(this.#reconnectAttempt, {
+      baseMs: RECONNECT_BASE_DELAY_MS,
+      maxMs: RECONNECT_MAX_DELAY_MS,
+    });
     this.#reconnectAttempt += 1;
     this.#reconnectTimer = setNonBlockingTimeout(() => {
       this.#reconnectTimer = undefined;
@@ -423,7 +420,7 @@ export class ClobUserWebSocketManager
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocket> | undefined;
   #closing: Promise<void> | undefined;
-  #heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   #reconnectAttempt = 0;
@@ -656,19 +653,11 @@ export class ClobUserWebSocketManager
   // Heartbeat.
 
   #startHeartbeat(socket: WebSocket): void {
-    this.#stopHeartbeat();
-    this.#heartbeatTimer = setNonBlockingInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send('PING');
-      }
-    }, HEARTBEAT_INTERVAL_MS);
+    this.#heartbeat.start(socket, HEARTBEAT_INTERVAL_MS);
   }
 
   #stopHeartbeat(): void {
-    if (this.#heartbeatTimer !== undefined) {
-      clearInterval(this.#heartbeatTimer);
-      this.#heartbeatTimer = undefined;
-    }
+    this.#heartbeat.stop();
   }
 
   // Data staleness watchdog.
@@ -742,7 +731,10 @@ export class ClobUserWebSocketManager
     ) {
       return;
     }
-    const delay = reconnectDelay(this.#reconnectAttempt);
+    const delay = reconnectDelay(this.#reconnectAttempt, {
+      baseMs: RECONNECT_BASE_DELAY_MS,
+      maxMs: RECONNECT_MAX_DELAY_MS,
+    });
     this.#reconnectAttempt += 1;
     this.#reconnectTimer = setNonBlockingTimeout(() => {
       this.#reconnectTimer = undefined;
@@ -947,18 +939,4 @@ function difference(
 ): string[] {
   const rightSet = new Set(right);
   return left.filter((value) => !rightSet.has(value));
-}
-
-function reconnectDelay(attempt: number): number {
-  const exponentialDelay = Math.min(
-    RECONNECT_BASE_DELAY_MS * 2 ** attempt,
-    RECONNECT_MAX_DELAY_MS,
-  );
-  return Math.random() * exponentialDelay;
-}
-
-function waitForSocketClose(socket: WebSocket): Promise<void> {
-  return new Promise((resolve) => {
-    socket.addEventListener('close', () => resolve(), { once: true });
-  });
 }
