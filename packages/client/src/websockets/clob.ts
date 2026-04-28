@@ -5,7 +5,7 @@ import {
   type UserEvent,
   UserEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { type Pushable, pushable } from 'it-pushable';
+import { pushable } from 'it-pushable';
 import type {
   MarketSubscription,
   SubscriptionHandle,
@@ -18,146 +18,32 @@ import {
   ReconnectScheduler,
   WebSocketConnection,
 } from './lifecycle';
+import {
+  SubscriptionRegistry,
+  type SubscriptionRegistryEntry,
+} from './registry';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
-type MarketSubscriber = {
-  matches: (event: MarketEvent) => boolean;
-  queue: Pushable<MarketEvent>;
-};
-
-type MarketSubscriptionEntry = {
-  subscription: MarketSubscription;
-  subscriber: MarketSubscriber;
-};
+type MarketSubscriptionEntry = SubscriptionRegistryEntry<
+  MarketSubscription,
+  MarketEvent
+>;
 
 type MarketServerSubscription = {
   assetsIds: string[];
   customFeatureEnabled: boolean;
 };
 
-type UserSubscriber = {
-  matches: (event: UserEvent) => boolean;
-  queue: Pushable<UserEvent>;
-};
-
-type UserSubscriptionEntry = {
-  subscription: UserSubscription;
-  subscriber: UserSubscriber;
-};
+type UserSubscriptionEntry = SubscriptionRegistryEntry<
+  UserSubscription,
+  UserEvent
+>;
 
 type UserServerSubscription = {
   includeAllMarkets: boolean;
   markets: string[];
 };
-
-type MarketServerSubscriptionChange = {
-  before: MarketServerSubscription;
-  after: MarketServerSubscription;
-};
-
-class MarketSubscriptionRegistry {
-  readonly #entries = new Set<MarketSubscriptionEntry>();
-
-  add(entry: MarketSubscriptionEntry): MarketServerSubscriptionChange {
-    const before = this.activeServerSubscription();
-    this.#entries.add(entry);
-    return { before, after: this.activeServerSubscription() };
-  }
-
-  remove(entry: MarketSubscriptionEntry): MarketServerSubscriptionChange {
-    const before = this.activeServerSubscription();
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
-    return { before, after: this.activeServerSubscription() };
-  }
-
-  dispatch(event: MarketEvent): void {
-    for (const { subscriber } of this.#entries) {
-      if (subscriber.matches(event)) {
-        subscriber.queue.push(event);
-      }
-    }
-  }
-
-  hasActiveSubscriptions(): boolean {
-    return this.#entries.size > 0;
-  }
-
-  endAll(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
-  }
-
-  activeServerSubscription(): MarketServerSubscription {
-    const assets = new Set<string>();
-    let customFeatureEnabled = false;
-    for (const { subscription } of this.#entries) {
-      for (const tokenId of subscription.tokenIds) assets.add(tokenId);
-      customFeatureEnabled ||= subscription.customFeatureEnabled === true;
-    }
-    return { assetsIds: Array.from(assets), customFeatureEnabled };
-  }
-}
-
-type UserServerSubscriptionChange = {
-  before: UserServerSubscription;
-  after: UserServerSubscription;
-};
-
-class UserSubscriptionRegistry {
-  readonly #entries = new Set<UserSubscriptionEntry>();
-
-  add(entry: UserSubscriptionEntry): UserServerSubscriptionChange {
-    const before = this.activeServerSubscription();
-    this.#entries.add(entry);
-    return { before, after: this.activeServerSubscription() };
-  }
-
-  remove(entry: UserSubscriptionEntry): UserServerSubscriptionChange {
-    const before = this.activeServerSubscription();
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
-    return { before, after: this.activeServerSubscription() };
-  }
-
-  dispatch(event: UserEvent): void {
-    for (const { subscriber } of this.#entries) {
-      if (subscriber.matches(event)) {
-        subscriber.queue.push(event);
-      }
-    }
-  }
-
-  hasActiveSubscriptions(): boolean {
-    return this.#entries.size > 0;
-  }
-
-  endAll(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
-  }
-
-  activeServerSubscription(): UserServerSubscription {
-    let includeAllMarkets = false;
-    const markets = new Set<string>();
-    for (const { subscription } of this.#entries) {
-      if (isAllMarketsUserSubscription(subscription)) {
-        includeAllMarkets = true;
-        continue;
-      }
-      for (const market of subscription.markets ?? []) markets.add(market);
-    }
-    return {
-      includeAllMarkets,
-      markets: includeAllMarkets ? [] : Array.from(markets),
-    };
-  }
-}
 
 type ApiKeyCredsProvider = () => ApiKeyCreds | Promise<ApiKeyCreds>;
 
@@ -190,7 +76,11 @@ export class ClobMarketWebSocketManager
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #subscriptions = new MarketSubscriptionRegistry();
+  readonly #subscriptions = new SubscriptionRegistry<
+    MarketSubscription,
+    MarketEvent,
+    MarketServerSubscription
+  >({ deriveServerState: deriveMarketServerSubscription });
 
   constructor(options: ClobMarketWebSocketManagerOptions) {
     this.#url = options.url;
@@ -411,7 +301,7 @@ export class ClobMarketWebSocketManager
   }
 
   #activeServerSubscription(): MarketServerSubscription {
-    return this.#subscriptions.activeServerSubscription();
+    return this.#subscriptions.serverState();
   }
 
   #scheduleReconnect(): void {
@@ -432,7 +322,11 @@ export class ClobUserWebSocketManager
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #subscriptions = new UserSubscriptionRegistry();
+  readonly #subscriptions = new SubscriptionRegistry<
+    UserSubscription,
+    UserEvent,
+    UserServerSubscription
+  >({ deriveServerState: deriveUserServerSubscription });
 
   constructor(options: ClobUserWebSocketManagerOptions) {
     this.#url = options.url;
@@ -657,7 +551,7 @@ export class ClobUserWebSocketManager
   }
 
   #activeServerSubscription(): UserServerSubscription {
-    return this.#subscriptions.activeServerSubscription();
+    return this.#subscriptions.serverState();
   }
 
   #scheduleReconnect(): void {
@@ -733,6 +627,36 @@ function syncUserSubscription(
   if (removedMarkets.length > 0) {
     socket.send(JSON.stringify(buildUserUnsubscribeUpdate(removedMarkets)));
   }
+}
+
+function deriveMarketServerSubscription(
+  entries: Iterable<MarketSubscriptionEntry>,
+): MarketServerSubscription {
+  const assets = new Set<string>();
+  let customFeatureEnabled = false;
+  for (const { subscription } of entries) {
+    for (const tokenId of subscription.tokenIds) assets.add(tokenId);
+    customFeatureEnabled ||= subscription.customFeatureEnabled === true;
+  }
+  return { assetsIds: Array.from(assets), customFeatureEnabled };
+}
+
+function deriveUserServerSubscription(
+  entries: Iterable<UserSubscriptionEntry>,
+): UserServerSubscription {
+  let includeAllMarkets = false;
+  const markets = new Set<string>();
+  for (const { subscription } of entries) {
+    if (isAllMarketsUserSubscription(subscription)) {
+      includeAllMarkets = true;
+      continue;
+    }
+    for (const market of subscription.markets ?? []) markets.add(market);
+  }
+  return {
+    includeAllMarkets,
+    markets: includeAllMarkets ? [] : Array.from(markets),
+  };
 }
 
 function buildMarketSubscribeMessage(

@@ -5,7 +5,7 @@ import {
   RealtimeEventSchema,
 } from '@polymarket/bindings/subscriptions';
 import { invariant } from '@polymarket/types';
-import { type Pushable, pushable } from 'it-pushable';
+import { pushable } from 'it-pushable';
 import type {
   CommentsSubscription,
   CryptoPricesSubscription,
@@ -19,6 +19,10 @@ import {
   ReconnectScheduler,
   WebSocketConnection,
 } from './lifecycle';
+import {
+  SubscriptionRegistry,
+  type SubscriptionRegistryEntry,
+} from './registry';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
@@ -29,15 +33,7 @@ type RtdsSpec =
 
 type RtdsEvent = CommentsEvent | CryptoPricesEvent | EquityPricesEvent;
 
-type RtdsSubscriber = {
-  matches: (event: RtdsEvent) => boolean;
-  queue: Pushable<RtdsEvent>;
-};
-
-type RtdsSubscriptionEntry = {
-  subscription: RtdsSpec;
-  subscriber: RtdsSubscriber;
-};
+type RtdsSubscriptionEntry = SubscriptionRegistryEntry<RtdsSpec, RtdsEvent>;
 
 type RtdsServerSubscription = {
   key: string;
@@ -52,59 +48,7 @@ const STALENESS_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
-class RtdsSubscriptionRegistry {
-  readonly #entries = new Set<RtdsSubscriptionEntry>();
-
-  add(entry: RtdsSubscriptionEntry): RtdsServerSubscription[] {
-    const activeBefore = this.#activeServerSubscriptionsByKey();
-    this.#entries.add(entry);
-    const activeAfter = this.#activeServerSubscriptionsByKey();
-    return serverSubscriptionsAdded(activeBefore, activeAfter);
-  }
-
-  remove(entry: RtdsSubscriptionEntry): RtdsServerSubscription[] {
-    const activeBefore = this.#activeServerSubscriptionsByKey();
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
-    const activeAfter = this.#activeServerSubscriptionsByKey();
-    return serverSubscriptionsRemoved(activeBefore, activeAfter);
-  }
-
-  dispatch(event: RtdsEvent): void {
-    for (const { subscriber } of this.#entries) {
-      if (subscriber.matches(event)) {
-        subscriber.queue.push(event);
-      }
-    }
-  }
-
-  activeServerSubscriptions(): RtdsServerSubscription[] {
-    return Array.from(this.#activeServerSubscriptionsByKey().values());
-  }
-
-  hasActiveSubscriptions(): boolean {
-    return this.#entries.size > 0;
-  }
-
-  endAll(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
-  }
-
-  #activeServerSubscriptionsByKey(): Map<string, RtdsServerSubscription> {
-    const activeByKey = new Map<string, RtdsServerSubscription>();
-    for (const { subscription } of this.#entries) {
-      for (const serverSubscription of serverSubscriptionsFor(subscription)) {
-        if (!activeByKey.has(serverSubscription.key)) {
-          activeByKey.set(serverSubscription.key, serverSubscription);
-        }
-      }
-    }
-    return activeByKey;
-  }
-}
+type RtdsServerState = Map<string, RtdsServerSubscription>;
 
 /**
  * Realtime Data Service (RTDS) WebSocket manager.
@@ -122,7 +66,11 @@ export class RtdsWebSocketManager
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #subscriptions = new RtdsSubscriptionRegistry();
+  readonly #subscriptions = new SubscriptionRegistry<
+    RtdsSpec,
+    RtdsEvent,
+    RtdsServerState
+  >({ deriveServerState: deriveRtdsServerState });
 
   constructor(url: string) {
     this.#url = url;
@@ -154,7 +102,8 @@ export class RtdsWebSocketManager
 
   async #registerSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
     const shouldSendIncrementalSubscribe = this.#connection.hasOpenSocket();
-    const subscriptionsToOpen = this.#subscriptions.add(entry);
+    const { before, after } = this.#subscriptions.add(entry);
+    const subscriptionsToOpen = serverSubscriptionsAdded(before, after);
 
     let socket: WebSocket;
     try {
@@ -184,7 +133,8 @@ export class RtdsWebSocketManager
   }
 
   async #closeSubscriber(entry: RtdsSubscriptionEntry): Promise<void> {
-    const subscriptionsToClose = this.#subscriptions.remove(entry);
+    const { before, after } = this.#subscriptions.remove(entry);
+    const subscriptionsToClose = serverSubscriptionsRemoved(before, after);
     this.#sendUnsubscribeFrame(subscriptionsToClose);
     if (!this.#subscriptions.hasActiveSubscriptions()) {
       await this.close();
@@ -317,7 +267,7 @@ export class RtdsWebSocketManager
   #resubscribeActiveServerEntries(socket: WebSocket): void {
     this.#sendSubscribeFrame(
       socket,
-      this.#subscriptions.activeServerSubscriptions(),
+      Array.from(this.#subscriptions.serverState().values()),
     );
   }
 
@@ -365,6 +315,20 @@ function serverSubscriptionsRemoved(
   return Array.from(before).flatMap(([key, subscription]) =>
     after.has(key) ? [] : [subscription],
   );
+}
+
+function deriveRtdsServerState(
+  entries: Iterable<RtdsSubscriptionEntry>,
+): RtdsServerState {
+  const activeByKey = new Map<string, RtdsServerSubscription>();
+  for (const { subscription } of entries) {
+    for (const serverSubscription of serverSubscriptionsFor(subscription)) {
+      if (!activeByKey.has(serverSubscription.key)) {
+        activeByKey.set(serverSubscription.key, serverSubscription);
+      }
+    }
+  }
+  return activeByKey;
 }
 
 function buildSubscribeMessage(

@@ -2,7 +2,7 @@ import {
   type SportsEvent,
   SportsResultEventSchema,
 } from '@polymarket/bindings/subscriptions';
-import { type Pushable, pushable } from 'it-pushable';
+import { pushable } from 'it-pushable';
 import type {
   SportsSubscription,
   SubscriptionHandle,
@@ -13,46 +13,17 @@ import {
   ReconnectScheduler,
   WebSocketConnection,
 } from './lifecycle';
+import {
+  SubscriptionRegistry,
+  type SubscriptionRegistryEntry,
+} from './registry';
 import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
-type SportsSubscriptionEntry = {
-  subscriber: SportsSubscriber;
-};
-
-type SportsSubscriber = {
-  queue: Pushable<SportsEvent>;
-};
-
-class SportsSubscriptionRegistry {
-  readonly #entries = new Set<SportsSubscriptionEntry>();
-
-  add(entry: SportsSubscriptionEntry): void {
-    this.#entries.add(entry);
-  }
-
-  remove(entry: SportsSubscriptionEntry): void {
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
-  }
-
-  dispatch(event: SportsEvent): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.push(event);
-    }
-  }
-
-  hasActiveSubscriptions(): boolean {
-    return this.#entries.size > 0;
-  }
-
-  endAll(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
-  }
-}
+type SportsSubscriptionEntry = SubscriptionRegistryEntry<
+  SportsSubscription,
+  SportsEvent
+>;
 
 export type SportsWebSocketManagerOptions = {
   url: string;
@@ -77,7 +48,11 @@ export class SportsWebSocketManager
   readonly #connection = new WebSocketConnection();
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #subscriptions = new SportsSubscriptionRegistry();
+  readonly #subscriptions = new SubscriptionRegistry<
+    SportsSubscription,
+    SportsEvent,
+    undefined
+  >({ deriveServerState: () => undefined });
 
   constructor(options: SportsWebSocketManagerOptions) {
     this.#url = options.url;
@@ -92,9 +67,10 @@ export class SportsWebSocketManager
   }
 
   async subscribe(
-    _subscription: SportsSubscription,
+    subscription: SportsSubscription,
   ): Promise<SubscriptionHandle<SportsEvent>> {
     const entry: SportsSubscriptionEntry = {
+      subscription,
       subscriber: {
         queue: pushable<SportsEvent>({ objectMode: true }),
       },
