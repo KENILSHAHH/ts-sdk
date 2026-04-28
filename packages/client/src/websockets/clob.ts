@@ -11,8 +11,8 @@ import type {
   UserSubscription,
 } from '../actions/subscriptions';
 import { createSubscriptionHandle } from './handle';
+import { ClobWebSocketHeartbeat } from './heartbeat';
 import {
-  ClientPingHeartbeat,
   ReconnectScheduler,
   WebSocketConnection,
   type WebSocketConnectionResult,
@@ -57,7 +57,6 @@ export type ClobUserWebSocketManagerOptions = {
   url: string;
 };
 
-const HEARTBEAT_INTERVAL_MS = 10_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -72,10 +71,8 @@ export class ClobMarketWebSocketManager
 {
   readonly #url: string;
   #closing: Promise<void> | undefined;
-  readonly #connection = new WebSocketConnection();
-  readonly #heartbeat = new ClientPingHeartbeat({
-    interval: HEARTBEAT_INTERVAL_MS,
-    message: 'PING',
+  readonly #connection = new WebSocketConnection({
+    heartbeat: new ClobWebSocketHeartbeat(),
   });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
@@ -155,7 +152,6 @@ export class ClobMarketWebSocketManager
   }
 
   async #shutdown(): Promise<void> {
-    this.#stopHeartbeat();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -166,7 +162,7 @@ export class ClobMarketWebSocketManager
     return this.#connection.connect({
       onClose: () => this.#onConnectionClose(),
       onError: () => this.#onConnectionError(),
-      onMessage: (event) => this.#onConnectionMessage(event),
+      onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
       url: this.#url,
     });
@@ -175,23 +171,10 @@ export class ClobMarketWebSocketManager
   #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription();
-    this.#startHeartbeat();
   }
 
-  #onConnectionMessage(event: MessageEvent): void {
-    const data = String(event.data);
-    if (data === 'PONG') {
-      return;
-    }
-
-    let raw: unknown;
-    try {
-      raw = JSON.parse(data);
-    } catch {
-      return;
-    }
-
-    const events = Array.isArray(raw) ? raw : [raw];
+  #onConnectionMessage(message: unknown): void {
+    const events = Array.isArray(message) ? message : [message];
     for (const eventData of events) {
       const parsed = MarketEventSchema.safeParse(eventData);
       if (!parsed.success) continue;
@@ -200,7 +183,6 @@ export class ClobMarketWebSocketManager
   }
 
   #onConnectionClose(): void {
-    this.#stopHeartbeat();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
@@ -209,16 +191,6 @@ export class ClobMarketWebSocketManager
   #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
-  }
-
-  // Heartbeat.
-
-  #startHeartbeat(): void {
-    this.#heartbeat.start(this.#connection);
-  }
-
-  #stopHeartbeat(): void {
-    this.#heartbeat.stop();
   }
 
   // CLOB market subscribe/unsubscribe frames.
@@ -249,10 +221,8 @@ export class ClobUserWebSocketManager
   readonly #url: string;
   readonly #resolveCredentials: ApiKeyCredsProvider;
   #closing: Promise<void> | undefined;
-  readonly #connection = new WebSocketConnection();
-  readonly #heartbeat = new ClientPingHeartbeat({
-    interval: HEARTBEAT_INTERVAL_MS,
-    message: 'PING',
+  readonly #connection = new WebSocketConnection({
+    heartbeat: new ClobWebSocketHeartbeat(),
   });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
@@ -333,7 +303,6 @@ export class ClobUserWebSocketManager
   }
 
   async #shutdown(): Promise<void> {
-    this.#stopHeartbeat();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -344,7 +313,7 @@ export class ClobUserWebSocketManager
     return this.#connection.connect({
       onClose: () => this.#onConnectionClose(),
       onError: () => this.#onConnectionError(),
-      onMessage: (event) => this.#onConnectionMessage(event),
+      onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: (credentials) => this.#onConnectionOpen(credentials),
       prepare: () => this.#resolveCredentials(),
       url: this.#url,
@@ -354,23 +323,10 @@ export class ClobUserWebSocketManager
   #onConnectionOpen(credentials: ApiKeyCreds): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(credentials);
-    this.#startHeartbeat();
   }
 
-  #onConnectionMessage(event: MessageEvent): void {
-    const data = String(event.data);
-    if (data === 'PONG') {
-      return;
-    }
-
-    let raw: unknown;
-    try {
-      raw = JSON.parse(data);
-    } catch {
-      return;
-    }
-
-    const events = Array.isArray(raw) ? raw : [raw];
+  #onConnectionMessage(message: unknown): void {
+    const events = Array.isArray(message) ? message : [message];
     for (const eventData of events) {
       const parsed = UserEventSchema.safeParse(eventData);
       if (!parsed.success) continue;
@@ -379,7 +335,6 @@ export class ClobUserWebSocketManager
   }
 
   #onConnectionClose(): void {
-    this.#stopHeartbeat();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
@@ -388,16 +343,6 @@ export class ClobUserWebSocketManager
   #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
-  }
-
-  // Heartbeat.
-
-  #startHeartbeat(): void {
-    this.#heartbeat.start(this.#connection);
-  }
-
-  #stopHeartbeat(): void {
-    this.#heartbeat.stop();
   }
 
   // CLOB user subscribe/unsubscribe frames.

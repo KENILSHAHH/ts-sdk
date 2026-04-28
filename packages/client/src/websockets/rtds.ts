@@ -12,8 +12,8 @@ import type {
   SubscriptionHandle,
 } from '../actions/subscriptions';
 import { createSubscriptionHandle } from './handle';
+import { RtdsWebSocketHeartbeat } from './heartbeat';
 import {
-  ClientPingHeartbeat,
   ReconnectScheduler,
   WebSocketConnection,
   type WebSocketConnectionResult,
@@ -40,9 +40,6 @@ type RtdsServerSubscription = {
   type: string;
 };
 
-// RTDS requires clients to send `PING` roughly every 5 seconds to keep the
-// socket from being idled out by the server.
-const HEARTBEAT_INTERVAL_MS = 5_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -60,10 +57,8 @@ export class RtdsWebSocketManager
 {
   readonly #url: string;
   #closing: Promise<void> | undefined;
-  readonly #connection = new WebSocketConnection();
-  readonly #heartbeat = new ClientPingHeartbeat({
-    interval: HEARTBEAT_INTERVAL_MS,
-    message: 'PING',
+  readonly #connection = new WebSocketConnection({
+    heartbeat: new RtdsWebSocketHeartbeat(),
   });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
@@ -132,7 +127,6 @@ export class RtdsWebSocketManager
   }
 
   async #shutdown(): Promise<void> {
-    this.#stopHeartbeat();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -143,7 +137,7 @@ export class RtdsWebSocketManager
     return this.#connection.connect({
       onClose: () => this.#onConnectionClose(),
       onError: () => this.#onConnectionError(),
-      onMessage: (event) => this.#onConnectionMessage(event),
+      onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
       url: this.#url,
     });
@@ -151,24 +145,16 @@ export class RtdsWebSocketManager
 
   #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
-    this.#startHeartbeat();
     this.#resubscribeActiveServerEntries();
   }
 
-  #onConnectionMessage(event: MessageEvent): void {
-    let raw: unknown;
-    try {
-      raw = JSON.parse(String(event.data));
-    } catch {
-      return;
-    }
-    const parsed = RealtimeEventSchema.safeParse(raw);
+  #onConnectionMessage(message: unknown): void {
+    const parsed = RealtimeEventSchema.safeParse(message);
     if (!parsed.success) return;
     this.#subscriptions.dispatch(parsed.data);
   }
 
   #onConnectionClose(): void {
-    this.#stopHeartbeat();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
@@ -177,16 +163,6 @@ export class RtdsWebSocketManager
   #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
-  }
-
-  // Heartbeat.
-
-  #startHeartbeat(): void {
-    this.#heartbeat.start(this.#connection);
-  }
-
-  #stopHeartbeat(): void {
-    this.#heartbeat.stop();
   }
 
   // RTDS subscribe/unsubscribe frames.

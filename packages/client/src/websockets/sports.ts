@@ -7,6 +7,7 @@ import type {
   SubscriptionHandle,
 } from '../actions/subscriptions';
 import { createSubscriptionHandle } from './handle';
+import { SportsWebSocketHeartbeat } from './heartbeat';
 import {
   ReconnectScheduler,
   WebSocketConnection,
@@ -42,7 +43,9 @@ export class SportsWebSocketManager
 {
   readonly #url: string;
   #closing: Promise<void> | undefined;
-  readonly #connection = new WebSocketConnection();
+  readonly #connection = new WebSocketConnection({
+    heartbeat: new SportsWebSocketHeartbeat(),
+  });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     SportsSubscription,
@@ -109,7 +112,7 @@ export class SportsWebSocketManager
     return this.#connection.connect({
       onClose: () => this.#onConnectionClose(),
       onError: () => this.#onConnectionError(),
-      onMessage: (event) => this.#onConnectionMessage(event),
+      onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
       url: this.#url,
     });
@@ -119,21 +122,8 @@ export class SportsWebSocketManager
     this.#reconnectScheduler.resetBackoff();
   }
 
-  #onConnectionMessage(event: MessageEvent): void {
-    const data = String(event.data);
-    if (data.toLowerCase() === 'ping') {
-      this.#connection.send('pong');
-      return;
-    }
-
-    let raw: unknown;
-    try {
-      raw = JSON.parse(data);
-    } catch {
-      return;
-    }
-
-    const parsed = SportsResultEventSchema.safeParse(raw);
+  #onConnectionMessage(message: unknown): void {
+    const parsed = SportsResultEventSchema.safeParse(message);
     if (!parsed.success) return;
     this.#subscriptions.dispatch(parsed.data);
   }
