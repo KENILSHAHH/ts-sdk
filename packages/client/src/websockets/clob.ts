@@ -168,7 +168,6 @@ export class ClobMarketWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (event) => this.#onConnectionMessage(event),
       onOpen: () => this.#onConnectionOpen(),
-      openErrorMessage: 'CLOB market WebSocket failed to open.',
       url: this.#url,
     });
   }
@@ -347,7 +346,6 @@ export class ClobUserWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (event) => this.#onConnectionMessage(event),
       onOpen: (credentials) => this.#onConnectionOpen(credentials),
-      openErrorMessage: 'CLOB user WebSocket failed to open.',
       prepare: () => this.#resolveCredentials(),
       url: this.#url,
     });

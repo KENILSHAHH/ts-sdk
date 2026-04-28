@@ -111,7 +111,6 @@ export class SportsWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (event) => this.#onConnectionMessage(event),
       onOpen: () => this.#onConnectionOpen(),
-      openErrorMessage: 'Sports WebSocket failed to open.',
       url: this.#url,
     });
   }

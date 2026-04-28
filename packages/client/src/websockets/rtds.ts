@@ -145,7 +145,6 @@ export class RtdsWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (event) => this.#onConnectionMessage(event),
       onOpen: () => this.#onConnectionOpen(),
-      openErrorMessage: 'RTDS WebSocket failed to open.',
       url: this.#url,
     });
   }

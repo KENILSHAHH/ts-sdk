@@ -2,6 +2,7 @@ import {
   setNonBlockingInterval,
   setNonBlockingTimeout,
 } from '@polymarket/types';
+import { TransportError } from '../errors';
 
 export type ClientPingHeartbeatOptions = {
   interval: number;
@@ -48,7 +49,6 @@ export type WebSocketConnectionOptions<TContext = undefined> = {
   onError: () => void;
   onMessage: (event: MessageEvent) => void;
   onOpen: (context: TContext) => void;
-  openErrorMessage: string;
   prepare?: () => TContext | Promise<TContext>;
   url: string;
 };
@@ -166,9 +166,13 @@ export class WebSocketConnection {
         options.onOpen(context as TContext);
         resolve(socket);
       };
-      const onOpenError = () => {
+      const onOpenError = (event: Event) => {
         socket.removeEventListener('open', onOpen);
-        reject(new Error(options.openErrorMessage));
+        reject(
+          new TransportError(`WebSocket connection failed: ${options.url}`, {
+            cause: event,
+          }),
+        );
       };
 
       socket.addEventListener('open', onOpen, { once: true });
