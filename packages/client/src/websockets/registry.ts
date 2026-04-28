@@ -32,11 +32,6 @@ export type SubscriptionRegistryOptions<TSubscription, TEvent, TState> = {
   deriveServerState: DeriveServerState<TSubscription, TEvent, TState>;
 };
 
-type SubscriptionRegistryConstructorArgs<TSubscription, TEvent, TState> =
-  TState extends undefined
-    ? [options?: SubscriptionRegistryOptions<TSubscription, TEvent, TState>]
-    : [options: SubscriptionRegistryOptions<TSubscription, TEvent, TState>];
-
 export class SubscriptionRegistry<
   TSubscription,
   TEvent,
@@ -52,13 +47,8 @@ export class SubscriptionRegistry<
   >;
 
   constructor(
-    ...args: SubscriptionRegistryConstructorArgs<
-      TSubscription,
-      TEvent,
-      TServerState
-    >
+    options?: SubscriptionRegistryOptions<TSubscription, TEvent, TServerState>,
   ) {
-    const [options] = args;
     this.#deriveServerState =
       options?.deriveServerState ?? (() => undefined as TServerState);
   }
