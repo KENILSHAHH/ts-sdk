@@ -1,6 +1,10 @@
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import {
+  expectNonEmptyPage,
+  publicClient,
+  runBackendCompatTests,
+} from '../testing';
 import {
   fetchMarket,
   fetchMarketTags,
@@ -48,6 +52,33 @@ describe('Markets', () => {
         }
       }
     });
+  });
+
+  describe('backend compatibility', () => {
+    it.runIf(runBackendCompatTests)(
+      'validates many market pages against the response schema',
+      async () => {
+        const paginator = listMarkets(publicClient, {
+          pageSize: 100,
+        });
+
+        let pages = 0;
+        let items = 0;
+
+        for await (const page of paginator) {
+          pages += 1;
+          items += page.items.length;
+
+          if (pages >= 1000) {
+            break;
+          }
+        }
+
+        expect(pages).toBeGreaterThan(0);
+        expect(items).toBeGreaterThan(0);
+      },
+      600_000,
+    );
   });
 
   describe('fetchMarket', () => {

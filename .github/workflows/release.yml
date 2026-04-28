@@ -24,10 +24,28 @@ jobs:
     uses: ./.github/workflows/tests.yml
     secrets: inherit
 
+  backend-compat:
+    name: Backend Compatibility
+    runs-on: ubuntu-latest
+    needs: verify
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Set Up Repository
+        uses: ./.github/actions/setup
+
+      - name: Test Backend Compatibility
+        run: pnpm test:backend-compat
+
   release:
     name: Publish Canary
     runs-on: ubuntu-latest
-    needs: verify
+    needs:
+      - verify
+      - test
+      - backend-compat
 
     steps:
       - name: Checkout Repository

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ApiKeySchema, ISODateStringSchema } from '../shared';
+import { ApiKeySchema, IsoDateTimeStringSchema } from '../shared';
 
 export const RawApiKeyCredsSchema = z.object({
   apiKey: ApiKeySchema,
@@ -31,8 +31,8 @@ export type BuilderApiKeyCreds = z.infer<typeof BuilderApiKeyCredsSchema>;
 
 export const BuilderApiKeySchema = z.object({
   key: ApiKeySchema,
-  createdAt: ISODateStringSchema.optional(),
-  revokedAt: ISODateStringSchema.nullable().optional(),
+  createdAt: IsoDateTimeStringSchema.optional(),
+  revokedAt: IsoDateTimeStringSchema.nullable().optional(),
 });
 
 export type BuilderApiKey = z.infer<typeof BuilderApiKeySchema>;

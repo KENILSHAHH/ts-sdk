@@ -53,9 +53,13 @@ export type EventExternalPartnerMappingId = Tagged<
   number,
   'EventExternalPartnerMappingId'
 >;
+export type EpochMilliseconds = Tagged<number, 'EpochMilliseconds'>;
 export type EventId = Tagged<string, 'EventId'>;
 export type ImageOptimizationId = Tagged<string, 'ImageOptimizationId'>;
 export type InternalUserId = Tagged<string, 'InternalUserId'>;
+export type IsoCalendarDateString = Tagged<string, 'IsoCalendarDateString'>;
+export type IsoDateTimeString = Tagged<string, 'IsoDateTimeString'>;
+export type LegacyDateTimeString = Tagged<string, 'LegacyDateTimeString'>;
 export type MarketId = Tagged<string, 'MarketId'>;
 export type NotificationId = Tagged<number, 'NotificationId'>;
 export type PartnerId = Tagged<number, 'PartnerId'>;
@@ -118,6 +122,10 @@ export function toEventExternalPartnerMappingId(
   return toTaggedInteger<EventExternalPartnerMappingId>(value);
 }
 
+export function toEpochMilliseconds(value: number): EpochMilliseconds {
+  return toTaggedInteger<EpochMilliseconds>(value);
+}
+
 export function toEventId(value: string): EventId {
   return toTaggedString<EventId>(value);
 }
@@ -128,6 +136,18 @@ export function toImageOptimizationId(value: string): ImageOptimizationId {
 
 export function toInternalUserId(value: string): InternalUserId {
   return toTaggedString<InternalUserId>(value);
+}
+
+export function toIsoCalendarDateString(value: string): IsoCalendarDateString {
+  return toTaggedString<IsoCalendarDateString>(value);
+}
+
+export function toIsoDateTimeString(value: string): IsoDateTimeString {
+  return toTaggedString<IsoDateTimeString>(value);
+}
+
+export function toLegacyDateTimeString(value: string): LegacyDateTimeString {
+  return toTaggedString<LegacyDateTimeString>(value);
 }
 
 export function toMarketId(value: string): MarketId {
@@ -184,6 +204,10 @@ export const OptionalConditionIdSchema = z.preprocess(
   ConditionIdSchema.optional(),
 );
 export const EvmAddressSchema = z.string().transform(toEvmAddress);
+export const EpochMillisecondsSchema = z
+  .number()
+  .int()
+  .transform(toEpochMilliseconds);
 export const EventIdSchema = z
   .union([z.string(), z.number().int().transform(String)])
   .transform(toEventId);
@@ -193,12 +217,25 @@ export const TickSizeValueSchema = z.union([
   z.literal(0.001),
   z.literal(0.0001),
 ]);
-export const ISODateStringSchema = z
+export const IsoDateTimeStringSchema = z
   .string()
-  .or(z.date().transform(toISODateString));
-export const ISOCalendarDateSchema = z
+  .transform(toIsoDateTimeString)
+  .or(z.date().transform((value) => toIsoDateTimeString(value.toISOString())));
+export const IsoCalendarDateStringSchema = z
   .string()
-  .or(z.date().transform(toISOCalendarDateString));
+  .transform(toIsoCalendarDateString)
+  .or(
+    z
+      .date()
+      .transform((value) =>
+        toIsoCalendarDateString(value.toISOString().slice(0, 10)),
+      ),
+  );
+export const LegacyDateTimeStringSchema = z
+  .string()
+  .transform(toLegacyDateTimeString);
+export const ISODateStringSchema = IsoDateTimeStringSchema;
+export const ISOCalendarDateSchema = IsoCalendarDateStringSchema;
 export const ImageOptimizationIdSchema = z
   .string()
   .transform(toImageOptimizationId);
@@ -220,19 +257,11 @@ export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);
 export const TxHashSchema = z.string().transform(toTxHash);
 
-export type ISODateString = z.output<typeof ISODateStringSchema>;
-export type ISOCalendarDateString = z.output<typeof ISOCalendarDateSchema>;
+export type ISODateString = IsoDateTimeString;
+export type ISOCalendarDateString = IsoCalendarDateString;
 export type TickSizeValue = z.output<typeof TickSizeValueSchema>;
 
 export type { EvmAddress, TxHash };
-
-function toISODateString(value: Date): string {
-  return value.toISOString();
-}
-
-function toISOCalendarDateString(value: Date): string {
-  return value.toISOString().slice(0, 10);
-}
 
 function toEvmAddress(value: string): EvmAddress {
   return expectEvmAddress(value);

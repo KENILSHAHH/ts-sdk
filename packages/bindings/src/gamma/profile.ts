@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EvmAddressSchema } from '../shared';
+import { EvmAddressSchema, IsoDateTimeStringSchema } from '../shared';
 import { ImageOptimizationSchema } from './common';
 
 export const PublicProfileUserSchema = z.looseObject({
@@ -16,8 +16,8 @@ export const ProfileSchema = z.looseObject({
   referral: z.string().nullish(),
   createdBy: z.number().int().nullish(),
   updatedBy: z.number().int().nullish(),
-  createdAt: z.string().nullish(),
-  updatedAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
+  updatedAt: IsoDateTimeStringSchema.nullish(),
   utmSource: z.string().nullish(),
   utmMedium: z.string().nullish(),
   utmCampaign: z.string().nullish(),
@@ -32,18 +32,18 @@ export const ProfileSchema = z.looseObject({
   profileImageOptimized: ImageOptimizationSchema.nullish(),
   isCloseOnly: z.boolean().nullish(),
   isCertReq: z.boolean().nullish(),
-  certReqDate: z.string().nullish(),
+  certReqDate: IsoDateTimeStringSchema.nullish(),
   discordUsername: z.string().nullish(),
   xUsername: z.string().nullish(),
   verifiedBadge: z.boolean().nullish(),
   dubPartnerId: z.string().nullish(),
-  termsAcceptedAt: z.string().nullish(),
-  viewOnlyAcknowledgedAt: z.string().nullish(),
+  termsAcceptedAt: IsoDateTimeStringSchema.nullish(),
+  viewOnlyAcknowledgedAt: IsoDateTimeStringSchema.nullish(),
   isReferralRestricted: z.boolean().nullish(),
 });
 
 export const PublicProfileSchema = z.looseObject({
-  createdAt: z.string().nullish(),
+  createdAt: IsoDateTimeStringSchema.nullish(),
   proxyWallet: EvmAddressSchema.nullish(),
   profileImage: z.string().nullish(),
   displayUsernamePublic: z.boolean().nullish(),
