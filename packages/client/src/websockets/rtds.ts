@@ -15,7 +15,6 @@ import type {
 import {
   ClientPingHeartbeat,
   closeSocket,
-  closeSocketIfOpen,
   ReconnectScheduler,
   WebSocketConnection,
 } from './lifecycle';
@@ -23,7 +22,6 @@ import {
   SubscriptionRegistry,
   type SubscriptionRegistryEntry,
 } from './registry';
-import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
 type RtdsSpec =
@@ -44,7 +42,6 @@ type RtdsServerSubscription = {
 // RTDS requires clients to send `PING` roughly every 5 seconds to keep the
 // socket from being idled out by the server.
 const HEARTBEAT_INTERVAL_MS = 5_000;
-const STALENESS_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -64,7 +61,6 @@ export class RtdsWebSocketManager
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
   readonly #heartbeat = new ClientPingHeartbeat('PING');
-  readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     RtdsSpec,
@@ -74,10 +70,6 @@ export class RtdsWebSocketManager
 
   constructor(url: string) {
     this.#url = url;
-    this.#stalenessWatchdog = new StalenessWatchdog({
-      intervalMs: STALENESS_INTERVAL_MS,
-      onStale: () => this.#forceReconnect(),
-    });
     this.#reconnectScheduler = new ReconnectScheduler({
       baseDelayMs: RECONNECT_BASE_DELAY_MS,
       maxDelayMs: RECONNECT_MAX_DELAY_MS,
@@ -154,7 +146,6 @@ export class RtdsWebSocketManager
 
   async #shutdown(): Promise<void> {
     this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -193,7 +184,6 @@ export class RtdsWebSocketManager
     this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
     this.#startHeartbeat(socket);
-    this.#startStalenessWatchdog();
     this.#resubscribeActiveServerEntries(socket);
   }
 
@@ -207,14 +197,12 @@ export class RtdsWebSocketManager
     }
     const parsed = RealtimeEventSchema.safeParse(raw);
     if (!parsed.success) return;
-    this.#markSocketFresh();
     this.#subscriptions.dispatch(parsed.data);
   }
 
   #onSocketClose(socket: WebSocket): void {
     if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
@@ -234,32 +222,6 @@ export class RtdsWebSocketManager
 
   #stopHeartbeat(): void {
     this.#heartbeat.stop();
-  }
-
-  // Data staleness watchdog.
-
-  #startStalenessWatchdog(): void {
-    this.#stalenessWatchdog.start();
-  }
-
-  #markSocketFresh(): void {
-    this.#stalenessWatchdog.markFresh();
-  }
-
-  #stopStalenessWatchdog(): void {
-    this.#stalenessWatchdog.stop();
-  }
-
-  #forceReconnect(): void {
-    const socket = this.#connection.current;
-    this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
-    this.#connection.clearSocket();
-
-    closeSocketIfOpen(socket);
-    if (this.#subscriptions.hasActiveSubscriptions()) {
-      this.#scheduleReconnect();
-    }
   }
 
   // RTDS subscribe/unsubscribe frames.

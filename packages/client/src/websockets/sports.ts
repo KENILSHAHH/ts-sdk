@@ -9,7 +9,6 @@ import type {
 } from '../actions/subscriptions';
 import {
   closeSocket,
-  closeSocketIfOpen,
   ReconnectScheduler,
   WebSocketConnection,
 } from './lifecycle';
@@ -17,7 +16,6 @@ import {
   SubscriptionRegistry,
   type SubscriptionRegistryEntry,
 } from './registry';
-import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
 type SportsSubscriptionEntry = SubscriptionRegistryEntry<
@@ -29,7 +27,6 @@ export type SportsWebSocketManagerOptions = {
   url: string;
 };
 
-const STALENESS_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -46,7 +43,6 @@ export class SportsWebSocketManager
   readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
-  readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     SportsSubscription,
@@ -56,10 +52,6 @@ export class SportsWebSocketManager
 
   constructor(options: SportsWebSocketManagerOptions) {
     this.#url = options.url;
-    this.#stalenessWatchdog = new StalenessWatchdog({
-      intervalMs: STALENESS_INTERVAL_MS,
-      onStale: () => this.#forceReconnect(),
-    });
     this.#reconnectScheduler = new ReconnectScheduler({
       baseDelayMs: RECONNECT_BASE_DELAY_MS,
       maxDelayMs: RECONNECT_MAX_DELAY_MS,
@@ -130,7 +122,6 @@ export class SportsWebSocketManager
   }
 
   async #shutdown(): Promise<void> {
-    this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -168,7 +159,6 @@ export class SportsWebSocketManager
   #onSocketOpen(socket: WebSocket): void {
     this.#connection.markOpen(socket);
     this.#reconnectScheduler.resetBackoff();
-    this.#startStalenessWatchdog();
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
@@ -179,7 +169,6 @@ export class SportsWebSocketManager
       if (socket.readyState === WebSocket.OPEN) {
         socket.send('pong');
       }
-      this.#markSocketFresh();
       return;
     }
 
@@ -192,13 +181,11 @@ export class SportsWebSocketManager
 
     const parsed = SportsResultEventSchema.safeParse(raw);
     if (!parsed.success) return;
-    this.#markSocketFresh();
     this.#subscriptions.dispatch(parsed.data);
   }
 
   #onSocketClose(socket: WebSocket): void {
     if (this.#connection.hasDifferentCurrent(socket)) return;
-    this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
@@ -208,31 +195,6 @@ export class SportsWebSocketManager
   #onSocketError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
-  }
-
-  // Data staleness watchdog.
-
-  #startStalenessWatchdog(): void {
-    this.#stalenessWatchdog.start();
-  }
-
-  #markSocketFresh(): void {
-    this.#stalenessWatchdog.markFresh();
-  }
-
-  #stopStalenessWatchdog(): void {
-    this.#stalenessWatchdog.stop();
-  }
-
-  #forceReconnect(): void {
-    const socket = this.#connection.current;
-    this.#stopStalenessWatchdog();
-    this.#connection.clearSocket();
-
-    closeSocketIfOpen(socket);
-    if (this.#subscriptions.hasActiveSubscriptions()) {
-      this.#scheduleReconnect();
-    }
   }
 
   #scheduleReconnect(): void {

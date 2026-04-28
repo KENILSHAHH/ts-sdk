@@ -182,13 +182,3 @@ export async function closeSocket(
     socket.close();
   });
 }
-
-export function closeSocketIfOpen(socket: WebSocket | undefined): void {
-  if (
-    socket !== undefined &&
-    socket.readyState !== WebSocket.CLOSING &&
-    socket.readyState !== WebSocket.CLOSED
-  ) {
-    socket.close();
-  }
-}

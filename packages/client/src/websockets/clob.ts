@@ -14,7 +14,6 @@ import type {
 import {
   ClientPingHeartbeat,
   closeSocket,
-  closeSocketIfOpen,
   ReconnectScheduler,
   WebSocketConnection,
 } from './lifecycle';
@@ -22,7 +21,6 @@ import {
   SubscriptionRegistry,
   type SubscriptionRegistryEntry,
 } from './registry';
-import { StalenessWatchdog } from './staleness';
 import type { WebSocketManager } from './types';
 
 type MarketSubscriptionEntry = SubscriptionRegistryEntry<
@@ -57,7 +55,6 @@ export type ClobUserWebSocketManagerOptions = {
 };
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
-const STALENESS_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_DELAY_MS = 250;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -74,7 +71,6 @@ export class ClobMarketWebSocketManager
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
   readonly #heartbeat = new ClientPingHeartbeat('PING');
-  readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     MarketSubscription,
@@ -84,10 +80,6 @@ export class ClobMarketWebSocketManager
 
   constructor(options: ClobMarketWebSocketManagerOptions) {
     this.#url = options.url;
-    this.#stalenessWatchdog = new StalenessWatchdog({
-      intervalMs: STALENESS_INTERVAL_MS,
-      onStale: () => this.#forceReconnect(),
-    });
     this.#reconnectScheduler = new ReconnectScheduler({
       baseDelayMs: RECONNECT_BASE_DELAY_MS,
       maxDelayMs: RECONNECT_MAX_DELAY_MS,
@@ -171,7 +163,6 @@ export class ClobMarketWebSocketManager
 
   async #shutdown(): Promise<void> {
     this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -211,7 +202,6 @@ export class ClobMarketWebSocketManager
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(socket);
     this.#startHeartbeat(socket);
-    this.#startStalenessWatchdog();
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
@@ -219,7 +209,6 @@ export class ClobMarketWebSocketManager
 
     const data = String(event.data);
     if (data === 'PONG') {
-      this.#markSocketFresh();
       return;
     }
 
@@ -234,7 +223,6 @@ export class ClobMarketWebSocketManager
     for (const eventData of events) {
       const parsed = MarketEventSchema.safeParse(eventData);
       if (!parsed.success) continue;
-      this.#markSocketFresh();
       this.#subscriptions.dispatch(parsed.data);
     }
   }
@@ -242,7 +230,6 @@ export class ClobMarketWebSocketManager
   #onSocketClose(socket: WebSocket): void {
     if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
@@ -262,32 +249,6 @@ export class ClobMarketWebSocketManager
 
   #stopHeartbeat(): void {
     this.#heartbeat.stop();
-  }
-
-  // Data staleness watchdog.
-
-  #startStalenessWatchdog(): void {
-    this.#stalenessWatchdog.start();
-  }
-
-  #markSocketFresh(): void {
-    this.#stalenessWatchdog.markFresh();
-  }
-
-  #stopStalenessWatchdog(): void {
-    this.#stalenessWatchdog.stop();
-  }
-
-  #forceReconnect(): void {
-    const socket = this.#connection.current;
-    this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
-    this.#connection.clearSocket();
-
-    closeSocketIfOpen(socket);
-    if (this.#subscriptions.hasActiveSubscriptions()) {
-      this.#scheduleReconnect();
-    }
   }
 
   // CLOB market subscribe/unsubscribe frames.
@@ -320,7 +281,6 @@ export class ClobUserWebSocketManager
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
   readonly #heartbeat = new ClientPingHeartbeat('PING');
-  readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     UserSubscription,
@@ -331,10 +291,6 @@ export class ClobUserWebSocketManager
   constructor(options: ClobUserWebSocketManagerOptions) {
     this.#url = options.url;
     this.#resolveCredentials = options.resolveCredentials;
-    this.#stalenessWatchdog = new StalenessWatchdog({
-      intervalMs: STALENESS_INTERVAL_MS,
-      onStale: () => this.#forceReconnect(),
-    });
     this.#reconnectScheduler = new ReconnectScheduler({
       baseDelayMs: RECONNECT_BASE_DELAY_MS,
       maxDelayMs: RECONNECT_MAX_DELAY_MS,
@@ -416,7 +372,6 @@ export class ClobUserWebSocketManager
 
   async #shutdown(): Promise<void> {
     this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
     this.#subscriptions.endAll();
 
@@ -458,7 +413,6 @@ export class ClobUserWebSocketManager
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(socket, credentials);
     this.#startHeartbeat(socket);
-    this.#startStalenessWatchdog();
   }
 
   #onSocketMessage(socket: WebSocket, event: MessageEvent): void {
@@ -466,7 +420,6 @@ export class ClobUserWebSocketManager
 
     const data = String(event.data);
     if (data === 'PONG') {
-      this.#markSocketFresh();
       return;
     }
 
@@ -481,7 +434,6 @@ export class ClobUserWebSocketManager
     for (const eventData of events) {
       const parsed = UserEventSchema.safeParse(eventData);
       if (!parsed.success) continue;
-      this.#markSocketFresh();
       this.#subscriptions.dispatch(parsed.data);
     }
   }
@@ -489,7 +441,6 @@ export class ClobUserWebSocketManager
   #onSocketClose(socket: WebSocket): void {
     if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
@@ -509,32 +460,6 @@ export class ClobUserWebSocketManager
 
   #stopHeartbeat(): void {
     this.#heartbeat.stop();
-  }
-
-  // Data staleness watchdog.
-
-  #startStalenessWatchdog(): void {
-    this.#stalenessWatchdog.start();
-  }
-
-  #markSocketFresh(): void {
-    this.#stalenessWatchdog.markFresh();
-  }
-
-  #stopStalenessWatchdog(): void {
-    this.#stalenessWatchdog.stop();
-  }
-
-  #forceReconnect(): void {
-    const socket = this.#connection.current;
-    this.#stopHeartbeat();
-    this.#stopStalenessWatchdog();
-    this.#connection.clearSocket();
-
-    closeSocketIfOpen(socket);
-    if (this.#subscriptions.hasActiveSubscriptions()) {
-      this.#scheduleReconnect();
-    }
   }
 
   // CLOB user subscribe/unsubscribe frames.
