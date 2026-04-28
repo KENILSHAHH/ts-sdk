@@ -59,8 +59,8 @@ export type ImageOptimizationId = Tagged<string, 'ImageOptimizationId'>;
 export type InternalUserId = Tagged<string, 'InternalUserId'>;
 export type IsoCalendarDateString = Tagged<string, 'IsoCalendarDateString'>;
 export type IsoDateTimeString = Tagged<string, 'IsoDateTimeString'>;
-export type LegacyDateTimeString = Tagged<string, 'LegacyDateTimeString'>;
 export type MarketId = Tagged<string, 'MarketId'>;
+export type MixedDateTimeString = Tagged<string, 'MixedDateTimeString'>;
 export type NotificationId = Tagged<number, 'NotificationId'>;
 export type PartnerId = Tagged<number, 'PartnerId'>;
 export type PaginationCursor = Tagged<string, 'PaginationCursor'>;
@@ -146,8 +146,8 @@ export function toIsoDateTimeString(value: string): IsoDateTimeString {
   return toTaggedString<IsoDateTimeString>(value);
 }
 
-export function toLegacyDateTimeString(value: string): LegacyDateTimeString {
-  return toTaggedString<LegacyDateTimeString>(value);
+export function toMixedDateTimeString(value: string): MixedDateTimeString {
+  return toTaggedString<MixedDateTimeString>(value);
 }
 
 export function toMarketId(value: string): MarketId {
@@ -208,6 +208,10 @@ export const EpochMillisecondsSchema = z
   .number()
   .int()
   .transform(toEpochMilliseconds);
+export const EpochSecondsToMillisecondsSchema = z
+  .number()
+  .int()
+  .transform((value) => toEpochMilliseconds(value * 1000));
 export const EventIdSchema = z
   .union([z.string(), z.number().int().transform(String)])
   .transform(toEventId);
@@ -231,9 +235,9 @@ export const IsoCalendarDateStringSchema = z
         toIsoCalendarDateString(value.toISOString().slice(0, 10)),
       ),
   );
-export const LegacyDateTimeStringSchema = z
+export const MixedDateTimeStringSchema = z
   .string()
-  .transform(toLegacyDateTimeString);
+  .transform(toMixedDateTimeString);
 export const ISODateStringSchema = IsoDateTimeStringSchema;
 export const ISOCalendarDateSchema = IsoCalendarDateStringSchema;
 export const ImageOptimizationIdSchema = z

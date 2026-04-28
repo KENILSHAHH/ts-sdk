@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { ConditionIdSchema, TokenIdSchema } from '../shared';
+import {
+  ConditionIdSchema,
+  EpochSecondsToMillisecondsSchema,
+  TokenIdSchema,
+} from '../shared';
 import { ActivityTypeSchema, AddressSchema, SideSchema } from './common';
 
 export const TradeSchema = z
@@ -10,7 +14,7 @@ export const TradeSchema = z
     conditionId: ConditionIdSchema.nullish(),
     size: z.number().nullish(),
     price: z.number().nullish(),
-    timestamp: z.number().int().nullish(),
+    timestamp: EpochSecondsToMillisecondsSchema.nullish(),
     title: z.string().nullish(),
     slug: z.string().nullish(),
     icon: z.string().nullish(),
@@ -32,7 +36,7 @@ export const TradeSchema = z
 export const ActivitySchema = z
   .looseObject({
     proxyWallet: AddressSchema.nullish(),
-    timestamp: z.number().int().nullish(),
+    timestamp: EpochSecondsToMillisecondsSchema.nullish(),
     conditionId: ConditionIdSchema.nullish(),
     type: ActivityTypeSchema.nullish(),
     size: z.number().nullish(),

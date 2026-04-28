@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { ConditionIdSchema, TokenIdSchema } from '../shared';
+import {
+  ConditionIdSchema,
+  EpochSecondsToMillisecondsSchema,
+  IsoCalendarDateStringSchema,
+  MixedDateTimeStringSchema,
+  TokenIdSchema,
+} from '../shared';
 import { AddressSchema } from './common';
 
 export const PositionSchema = z
@@ -28,7 +34,7 @@ export const PositionSchema = z
     outcomeIndex: z.number().int().nullish(),
     oppositeOutcome: z.string().nullish(),
     oppositeAsset: TokenIdSchema.nullish(),
-    endDate: z.string().nullish(),
+    endDate: IsoCalendarDateStringSchema.nullish(),
     negativeRisk: z.boolean().nullish(),
   })
   .transform(({ asset, oppositeAsset, ...rest }) => ({
@@ -46,7 +52,7 @@ export const ClosedPositionSchema = z
     totalBought: z.number().nullish(),
     realizedPnl: z.number().nullish(),
     curPrice: z.number().nullish(),
-    timestamp: z.number().int().nullish(),
+    timestamp: EpochSecondsToMillisecondsSchema.nullish(),
     title: z.string().nullish(),
     slug: z.string().nullish(),
     icon: z.string().nullish(),
@@ -55,7 +61,7 @@ export const ClosedPositionSchema = z
     outcomeIndex: z.number().int().nullish(),
     oppositeOutcome: z.string().nullish(),
     oppositeAsset: TokenIdSchema.nullish(),
-    endDate: z.string().nullish(),
+    endDate: MixedDateTimeStringSchema.nullish(),
   })
   .transform(({ asset, oppositeAsset, ...rest }) => ({
     ...rest,

@@ -6,6 +6,8 @@ import {
   runBackendCompatTests,
 } from './testing';
 
+const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
+
 describe.runIf(runBackendCompatTests)('backend compatibility', () => {
   it('validates market responses against the response schemas', async () => {
     const paginator = publicClient.listMarkets({
@@ -138,5 +140,75 @@ describe.runIf(runBackendCompatTests)('backend compatibility', () => {
         break;
       }
     }
+  });
+
+  it('validates trade responses against the response schema', async () => {
+    const paginator = publicClient.listTrades({
+      pageSize: 100,
+    });
+    const firstPage = await paginator.firstPage().then(expectNonEmptyPage);
+
+    let remainingPages = 29;
+
+    for await (const _page of paginator.from(firstPage.nextCursor)) {
+      if (--remainingPages === 0) {
+        break;
+      }
+    }
+  });
+
+  it('validates activity responses against the response schema', async () => {
+    const paginator = publicClient.listActivity({
+      pageSize: 100,
+      type: ['TRADE'],
+      user: TEST_USER,
+    });
+    const firstPage = await paginator.firstPage().then(expectNonEmptyPage);
+
+    let remainingPages = 29;
+
+    for await (const _page of paginator.from(firstPage.nextCursor)) {
+      if (--remainingPages === 0) {
+        break;
+      }
+    }
+  });
+
+  it('validates position responses against the response schema', async () => {
+    const paginator = publicClient.listPositions({
+      pageSize: 100,
+      user: TEST_USER,
+    });
+    const firstPage = await paginator.firstPage().then(expectNonEmptyPage);
+
+    let remainingPages = 99;
+
+    for await (const _page of paginator.from(firstPage.nextCursor)) {
+      if (--remainingPages === 0) {
+        break;
+      }
+    }
+  });
+
+  it('validates closed position responses against the response schema', async () => {
+    const paginator = publicClient.listClosedPositions({
+      pageSize: 100,
+      user: TEST_USER,
+    });
+    const firstPage = await paginator.firstPage().then(expectNonEmptyPage);
+
+    let remainingPages = 99;
+
+    for await (const _page of paginator.from(firstPage.nextCursor)) {
+      if (--remainingPages === 0) {
+        break;
+      }
+    }
+  });
+
+  it('validates builder volume responses against the response schema', async () => {
+    await publicClient.fetchBuilderVolume({
+      timePeriod: 'DAY',
+    });
   });
 });
