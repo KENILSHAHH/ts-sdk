@@ -61,7 +61,10 @@ export class RtdsWebSocketManager
   readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
-  readonly #heartbeat = new ClientPingHeartbeat('PING');
+  readonly #heartbeat = new ClientPingHeartbeat({
+    interval: HEARTBEAT_INTERVAL_MS,
+    message: 'PING',
+  });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     RtdsSpec,
@@ -106,7 +109,7 @@ export class RtdsWebSocketManager
       throw error;
     }
     if (connection.alreadyOpen) {
-      this.#sendSubscribeFrame(connection.socket, subscriptionsToOpen);
+      this.#sendSubscribeFrame(subscriptionsToOpen);
     }
   }
 
@@ -143,16 +146,16 @@ export class RtdsWebSocketManager
       onClose: () => this.#onSocketClose(),
       onError: () => this.#onSocketError(),
       onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: (socket) => this.#onSocketOpen(socket),
+      onOpen: () => this.#onSocketOpen(),
       openErrorMessage: 'RTDS WebSocket failed to open.',
       url: this.#url,
     });
   }
 
-  #onSocketOpen(socket: WebSocket): void {
+  #onSocketOpen(): void {
     this.#reconnectScheduler.resetBackoff();
-    this.#startHeartbeat(socket);
-    this.#resubscribeActiveServerEntries(socket);
+    this.#startHeartbeat();
+    this.#resubscribeActiveServerEntries();
   }
 
   #onSocketMessage(event: MessageEvent): void {
@@ -181,8 +184,8 @@ export class RtdsWebSocketManager
 
   // Heartbeat.
 
-  #startHeartbeat(socket: WebSocket): void {
-    this.#heartbeat.start(socket, HEARTBEAT_INTERVAL_MS);
+  #startHeartbeat(): void {
+    this.#heartbeat.start(this.#connection);
   }
 
   #stopHeartbeat(): void {
@@ -191,31 +194,24 @@ export class RtdsWebSocketManager
 
   // RTDS subscribe/unsubscribe frames.
 
-  #resubscribeActiveServerEntries(socket: WebSocket): void {
+  #resubscribeActiveServerEntries(): void {
     this.#sendSubscribeFrame(
-      socket,
       Array.from(this.#subscriptions.serverState().values()),
     );
   }
 
-  #sendSubscribeFrame(
-    socket: WebSocket,
-    subscriptions: readonly RtdsServerSubscription[],
-  ): void {
-    if (subscriptions.length === 0 || socket.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    socket.send(JSON.stringify(buildSubscribeMessage(subscriptions)));
+  #sendSubscribeFrame(subscriptions: readonly RtdsServerSubscription[]): void {
+    if (subscriptions.length === 0) return;
+    this.#connection.send(JSON.stringify(buildSubscribeMessage(subscriptions)));
   }
 
   #sendUnsubscribeFrame(
     subscriptions: readonly RtdsServerSubscription[],
   ): void {
-    const socket = this.#connection.current;
-    if (subscriptions.length === 0 || socket?.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    socket.send(JSON.stringify(buildUnsubscribeMessage(subscriptions)));
+    if (subscriptions.length === 0) return;
+    this.#connection.send(
+      JSON.stringify(buildUnsubscribeMessage(subscriptions)),
+    );
   }
 
   #scheduleReconnect(): void {

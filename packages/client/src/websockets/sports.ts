@@ -123,7 +123,7 @@ export class SportsWebSocketManager
   #onSocketMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data.toLowerCase() === 'ping') {
-      this.#connection.sendIfOpen('pong');
+      this.#connection.send('pong');
       return;
     }
 

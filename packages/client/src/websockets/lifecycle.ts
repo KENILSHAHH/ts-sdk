@@ -3,21 +3,26 @@ import {
   setNonBlockingTimeout,
 } from '@polymarket/types';
 
+export type ClientPingHeartbeatOptions = {
+  interval: number;
+  message: string;
+};
+
 export class ClientPingHeartbeat {
+  readonly #interval: number;
   readonly #message: string;
   #timer: ReturnType<typeof setInterval> | undefined;
 
-  constructor(message: string) {
-    this.#message = message;
+  constructor(options: ClientPingHeartbeatOptions) {
+    this.#interval = options.interval;
+    this.#message = options.message;
   }
 
-  start(socket: WebSocket, intervalMs: number): void {
+  start(connection: WebSocketConnection): void {
     this.stop();
     this.#timer = setNonBlockingInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(this.#message);
-      }
-    }, intervalMs);
+      connection.send(this.#message);
+    }, this.#interval);
   }
 
   stop(): void {
@@ -42,7 +47,7 @@ export type WebSocketConnectionOptions<TContext = undefined> = {
   onClose: () => void;
   onError: () => void;
   onMessage: (event: MessageEvent) => void;
-  onOpen: (socket: WebSocket, context: TContext) => void;
+  onOpen: (context: TContext) => void;
   openErrorMessage: string;
   prepare?: () => TContext | Promise<TContext>;
   url: string;
@@ -50,7 +55,6 @@ export type WebSocketConnectionOptions<TContext = undefined> = {
 
 export type WebSocketConnectionResult = {
   alreadyOpen: boolean;
-  socket: WebSocket;
 };
 
 export class ReconnectScheduler {
@@ -106,20 +110,40 @@ export class WebSocketConnection {
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocketConnectionResult> | undefined;
 
-  get current(): WebSocket | undefined {
-    return this.#socket;
+  connect<TContext = undefined>(
+    options: WebSocketConnectionOptions<TContext>,
+  ): Promise<WebSocketConnectionResult> {
+    return this.#ensure(() => this.#open(options));
   }
 
-  ensure(open: () => Promise<WebSocket>): Promise<WebSocketConnectionResult> {
+  send(message: string): boolean {
+    if (this.#socket?.readyState !== WebSocket.OPEN) return false;
+    this.#socket.send(message);
+    return true;
+  }
+
+  async close(): Promise<void> {
+    const socket = await this.#takeCurrent();
+    if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
+
+    await new Promise<void>((resolve) => {
+      socket.addEventListener('close', () => resolve(), { once: true });
+      if (socket.readyState !== WebSocket.CLOSING) {
+        socket.close();
+      }
+    });
+  }
+
+  #ensure(open: () => Promise<WebSocket>): Promise<WebSocketConnectionResult> {
     const socket = this.#socket;
     if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve({ alreadyOpen: true, socket });
+      return Promise.resolve({ alreadyOpen: true });
     }
     this.#socket = undefined;
     if (this.#connecting !== undefined) return this.#connecting;
 
     const connecting = open()
-      .then((socket) => ({ alreadyOpen: false, socket }))
+      .then(() => ({ alreadyOpen: false }))
       .catch((error: unknown) => {
         if (this.#connecting === connecting) {
           this.#connecting = undefined;
@@ -128,12 +152,6 @@ export class WebSocketConnection {
       });
     this.#connecting = connecting;
     return connecting;
-  }
-
-  connect<TContext = undefined>(
-    options: WebSocketConnectionOptions<TContext>,
-  ): Promise<WebSocketConnectionResult> {
-    return this.ensure(() => this.#open(options));
   }
 
   async #open<TContext>(
@@ -147,7 +165,7 @@ export class WebSocketConnection {
       const onOpen = () => {
         socket.removeEventListener('error', onOpenError);
         this.#markOpen(socket);
-        options.onOpen(socket, context as TContext);
+        options.onOpen(context as TContext);
         resolve(socket);
       };
       const onOpenError = () => {
@@ -175,13 +193,7 @@ export class WebSocketConnection {
     this.#connecting = undefined;
   }
 
-  sendIfOpen(message: string): boolean {
-    if (this.#socket?.readyState !== WebSocket.OPEN) return false;
-    this.#socket.send(message);
-    return true;
-  }
-
-  async takeCurrent(): Promise<WebSocket | undefined> {
+  async #takeCurrent(): Promise<WebSocket | undefined> {
     const socket = this.#socket;
     const connecting = this.#connecting;
 
@@ -190,13 +202,9 @@ export class WebSocketConnection {
 
     if (socket !== undefined) return socket;
     return connecting?.then(
-      (result) => result.socket,
+      () => this.#socket,
       () => undefined,
     );
-  }
-
-  async close(): Promise<void> {
-    await closeSocket(await this.takeCurrent());
   }
 }
 
@@ -214,25 +222,4 @@ function reconnectDelay(
     options.maxMs,
   );
   return Math.random() * exponentialDelay;
-}
-
-function waitForSocketClose(socket: WebSocket): Promise<void> {
-  return new Promise((resolve) => {
-    socket.addEventListener('close', () => resolve(), { once: true });
-  });
-}
-
-export async function closeSocket(
-  socket: WebSocket | undefined,
-): Promise<void> {
-  if (socket === undefined || socket.readyState === WebSocket.CLOSED) return;
-  if (socket.readyState === WebSocket.CLOSING) {
-    await waitForSocketClose(socket);
-    return;
-  }
-
-  await new Promise<void>((resolve) => {
-    socket.addEventListener('close', () => resolve(), { once: true });
-    socket.close();
-  });
 }

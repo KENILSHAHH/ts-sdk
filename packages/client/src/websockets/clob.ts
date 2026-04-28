@@ -46,6 +46,8 @@ type UserServerSubscription = {
 
 type ApiKeyCredsProvider = () => ApiKeyCreds | Promise<ApiKeyCreds>;
 
+type SendWebSocketMessage = (message: string) => void;
+
 export type ClobMarketWebSocketManagerOptions = {
   url: string;
 };
@@ -71,7 +73,10 @@ export class ClobMarketWebSocketManager
   readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
-  readonly #heartbeat = new ClientPingHeartbeat('PING');
+  readonly #heartbeat = new ClientPingHeartbeat({
+    interval: HEARTBEAT_INTERVAL_MS,
+    message: 'PING',
+  });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     MarketSubscription,
@@ -116,7 +121,11 @@ export class ClobMarketWebSocketManager
       throw error;
     }
     if (connection.alreadyOpen) {
-      syncMarketSubscription(connection.socket, before, after);
+      syncMarketSubscription(
+        (message) => this.#connection.send(message),
+        before,
+        after,
+      );
     }
   }
 
@@ -128,10 +137,11 @@ export class ClobMarketWebSocketManager
       return;
     }
 
-    const socket = this.#connection.current;
-    if (socket?.readyState === WebSocket.OPEN) {
-      syncMarketSubscription(socket, before, after);
-    }
+    syncMarketSubscription(
+      (message) => this.#connection.send(message),
+      before,
+      after,
+    );
   }
 
   // Socket lifecycle.
@@ -158,16 +168,16 @@ export class ClobMarketWebSocketManager
       onClose: () => this.#onSocketClose(),
       onError: () => this.#onSocketError(),
       onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: (socket) => this.#onSocketOpen(socket),
+      onOpen: () => this.#onSocketOpen(),
       openErrorMessage: 'CLOB market WebSocket failed to open.',
       url: this.#url,
     });
   }
 
-  #onSocketOpen(socket: WebSocket): void {
+  #onSocketOpen(): void {
     this.#reconnectScheduler.resetBackoff();
-    this.#sendInitialSubscription(socket);
-    this.#startHeartbeat(socket);
+    this.#sendInitialSubscription();
+    this.#startHeartbeat();
   }
 
   #onSocketMessage(event: MessageEvent): void {
@@ -205,8 +215,8 @@ export class ClobMarketWebSocketManager
 
   // Heartbeat.
 
-  #startHeartbeat(socket: WebSocket): void {
-    this.#heartbeat.start(socket, HEARTBEAT_INTERVAL_MS);
+  #startHeartbeat(): void {
+    this.#heartbeat.start(this.#connection);
   }
 
   #stopHeartbeat(): void {
@@ -215,8 +225,8 @@ export class ClobMarketWebSocketManager
 
   // CLOB market subscribe/unsubscribe frames.
 
-  #sendInitialSubscription(socket: WebSocket): void {
-    socket.send(
+  #sendInitialSubscription(): void {
+    this.#connection.send(
       JSON.stringify(
         buildMarketSubscribeMessage(this.#activeServerSubscription()),
       ),
@@ -242,7 +252,10 @@ export class ClobUserWebSocketManager
   readonly #resolveCredentials: ApiKeyCredsProvider;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection();
-  readonly #heartbeat = new ClientPingHeartbeat('PING');
+  readonly #heartbeat = new ClientPingHeartbeat({
+    interval: HEARTBEAT_INTERVAL_MS,
+    message: 'PING',
+  });
   readonly #reconnectScheduler: ReconnectScheduler;
   readonly #subscriptions = new SubscriptionRegistry<
     UserSubscription,
@@ -288,7 +301,11 @@ export class ClobUserWebSocketManager
       throw error;
     }
     if (connection.alreadyOpen) {
-      syncUserSubscription(connection.socket, before, after);
+      syncUserSubscription(
+        (message) => this.#connection.send(message),
+        before,
+        after,
+      );
     }
   }
 
@@ -300,10 +317,11 @@ export class ClobUserWebSocketManager
       return;
     }
 
-    const socket = this.#connection.current;
-    if (socket?.readyState === WebSocket.OPEN) {
-      syncUserSubscription(socket, before, after);
-    }
+    syncUserSubscription(
+      (message) => this.#connection.send(message),
+      before,
+      after,
+    );
   }
 
   // Socket lifecycle.
@@ -330,17 +348,17 @@ export class ClobUserWebSocketManager
       onClose: () => this.#onSocketClose(),
       onError: () => this.#onSocketError(),
       onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: (socket, credentials) => this.#onSocketOpen(socket, credentials),
+      onOpen: (credentials) => this.#onSocketOpen(credentials),
       openErrorMessage: 'CLOB user WebSocket failed to open.',
       prepare: () => this.#resolveCredentials(),
       url: this.#url,
     });
   }
 
-  #onSocketOpen(socket: WebSocket, credentials: ApiKeyCreds): void {
+  #onSocketOpen(credentials: ApiKeyCreds): void {
     this.#reconnectScheduler.resetBackoff();
-    this.#sendInitialSubscription(socket, credentials);
-    this.#startHeartbeat(socket);
+    this.#sendInitialSubscription(credentials);
+    this.#startHeartbeat();
   }
 
   #onSocketMessage(event: MessageEvent): void {
@@ -378,8 +396,8 @@ export class ClobUserWebSocketManager
 
   // Heartbeat.
 
-  #startHeartbeat(socket: WebSocket): void {
-    this.#heartbeat.start(socket, HEARTBEAT_INTERVAL_MS);
+  #startHeartbeat(): void {
+    this.#heartbeat.start(this.#connection);
   }
 
   #stopHeartbeat(): void {
@@ -388,8 +406,8 @@ export class ClobUserWebSocketManager
 
   // CLOB user subscribe/unsubscribe frames.
 
-  #sendInitialSubscription(socket: WebSocket, credentials: ApiKeyCreds): void {
-    socket.send(
+  #sendInitialSubscription(credentials: ApiKeyCreds): void {
+    this.#connection.send(
       JSON.stringify(
         buildUserSubscribeMessage(
           this.#activeServerSubscription(),
@@ -412,7 +430,7 @@ export class ClobUserWebSocketManager
 }
 
 function syncMarketSubscription(
-  socket: WebSocket,
+  send: SendWebSocketMessage,
   before: MarketServerSubscription,
   after: MarketServerSubscription,
 ): void {
@@ -420,7 +438,7 @@ function syncMarketSubscription(
   const removedAssets = difference(before.assetsIds, after.assetsIds);
 
   if (addedAssets.length > 0) {
-    socket.send(
+    send(
       JSON.stringify(
         buildMarketSubscribeUpdate(addedAssets, after.customFeatureEnabled),
       ),
@@ -434,7 +452,7 @@ function syncMarketSubscription(
   ) {
     // CLOB applies `custom_feature_enabled` before rejecting duplicate assets as
     // "NO NEW ASSETS", so this toggles connection-level custom events in place.
-    socket.send(
+    send(
       JSON.stringify(
         buildMarketSubscribeUpdate(
           [firstActiveAsset],
@@ -444,25 +462,25 @@ function syncMarketSubscription(
     );
   }
   if (removedAssets.length > 0) {
-    socket.send(JSON.stringify(buildMarketUnsubscribeUpdate(removedAssets)));
+    send(JSON.stringify(buildMarketUnsubscribeUpdate(removedAssets)));
   }
 }
 
 function syncUserSubscription(
-  socket: WebSocket,
+  send: SendWebSocketMessage,
   before: UserServerSubscription,
   after: UserServerSubscription,
 ): void {
   if (after.includeAllMarkets) {
     if (!before.includeAllMarkets && before.markets.length > 0) {
-      socket.send(JSON.stringify(buildUserUnsubscribeUpdate(before.markets)));
+      send(JSON.stringify(buildUserUnsubscribeUpdate(before.markets)));
     }
     return;
   }
 
   if (before.includeAllMarkets) {
     if (after.markets.length > 0) {
-      socket.send(JSON.stringify(buildUserSubscribeUpdate(after.markets)));
+      send(JSON.stringify(buildUserSubscribeUpdate(after.markets)));
     }
     return;
   }
@@ -471,10 +489,10 @@ function syncUserSubscription(
   const removedMarkets = difference(before.markets, after.markets);
 
   if (addedMarkets.length > 0) {
-    socket.send(JSON.stringify(buildUserSubscribeUpdate(addedMarkets)));
+    send(JSON.stringify(buildUserSubscribeUpdate(addedMarkets)));
   }
   if (removedMarkets.length > 0) {
-    socket.send(JSON.stringify(buildUserUnsubscribeUpdate(removedMarkets)));
+    send(JSON.stringify(buildUserUnsubscribeUpdate(removedMarkets)));
   }
 }
 
