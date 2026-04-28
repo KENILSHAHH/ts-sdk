@@ -20,7 +20,7 @@
     "release:canary": "changeset publish --tag latest --no-git-tag",
     "release:latest": "node scripts/update-latest-dist-tags.mjs",
     "test:bindings": "vitest --project bindings --passWithNoTests",
-    "test:backend-compat": "POLYMARKET_RUN_BACKEND_COMPAT_TESTS=1 vitest --project client packages/client/src/actions/markets.test.ts packages/client/src/actions/events.test.ts",
+    "test:backend-compat": "POLYMARKET_RUN_BACKEND_COMPAT_TESTS=1 vitest --project backend-compat",
     "test:client": "vitest --project client",
     "test:types": "vitest --project types --passWithNoTests",
     "test": "pnpm test:types && pnpm test:bindings && pnpm test:client",

@@ -10,7 +10,7 @@ export const PublicProfileUserSchema = z.looseObject({
 });
 
 export const ProfileSchema = z.looseObject({
-  id: z.string(),
+  id: z.string().nullish(),
   name: z.string().nullish(),
   user: z.number().int().nullish(),
   referral: z.string().nullish(),
