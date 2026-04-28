@@ -72,7 +72,7 @@ export class SportsWebSocketManager
 
   async #registerSubscriber(entry: SportsSubscriptionEntry): Promise<void> {
     try {
-      await this.#ensureSocket();
+      await this.#connect();
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
@@ -105,22 +105,22 @@ export class SportsWebSocketManager
     await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocketConnectionResult> {
+  #connect(): Promise<WebSocketConnectionResult> {
     return this.#connection.connect({
-      onClose: () => this.#onSocketClose(),
-      onError: () => this.#onSocketError(),
-      onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: () => this.#onSocketOpen(),
+      onClose: () => this.#onConnectionClose(),
+      onError: () => this.#onConnectionError(),
+      onMessage: (event) => this.#onConnectionMessage(event),
+      onOpen: () => this.#onConnectionOpen(),
       openErrorMessage: 'Sports WebSocket failed to open.',
       url: this.#url,
     });
   }
 
-  #onSocketOpen(): void {
+  #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
   }
 
-  #onSocketMessage(event: MessageEvent): void {
+  #onConnectionMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data.toLowerCase() === 'ping') {
       this.#connection.send('pong');
@@ -139,20 +139,20 @@ export class SportsWebSocketManager
     this.#subscriptions.dispatch(parsed.data);
   }
 
-  #onSocketClose(): void {
+  #onConnectionClose(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
 
-  #onSocketError(): void {
+  #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
   }
 
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
-      reconnect: () => this.#ensureSocket(),
+      reconnect: () => this.#connect(),
       shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }

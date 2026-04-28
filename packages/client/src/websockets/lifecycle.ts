@@ -54,7 +54,7 @@ export type WebSocketConnectionOptions<TContext = undefined> = {
 };
 
 export type WebSocketConnectionResult = {
-  alreadyOpen: boolean;
+  reusedOpenSocket: boolean;
 };
 
 export class ReconnectScheduler {
@@ -113,10 +113,28 @@ export class WebSocketConnection {
   connect<TContext = undefined>(
     options: WebSocketConnectionOptions<TContext>,
   ): Promise<WebSocketConnectionResult> {
-    return this.#ensure(() => this.#open(options));
+    const socket = this.#socket;
+    if (socket?.readyState === WebSocket.OPEN) {
+      return Promise.resolve({ reusedOpenSocket: true });
+    }
+    this.#socket = undefined;
+    if (this.#connecting !== undefined) return this.#connecting;
+
+    const connecting = this.#open(options)
+      .then(() => ({ reusedOpenSocket: false }))
+      .catch((error: unknown) => {
+        if (this.#connecting === connecting) {
+          this.#connecting = undefined;
+        }
+        throw error;
+      });
+    this.#connecting = connecting;
+    return connecting;
   }
 
   send(message: string): boolean {
+    // Reconnects and shutdown can race with protocol updates; callers use the
+    // boolean result only when they need to know whether the frame was sent.
     if (this.#socket?.readyState !== WebSocket.OPEN) return false;
     this.#socket.send(message);
     return true;
@@ -132,26 +150,6 @@ export class WebSocketConnection {
         socket.close();
       }
     });
-  }
-
-  #ensure(open: () => Promise<WebSocket>): Promise<WebSocketConnectionResult> {
-    const socket = this.#socket;
-    if (socket?.readyState === WebSocket.OPEN) {
-      return Promise.resolve({ alreadyOpen: true });
-    }
-    this.#socket = undefined;
-    if (this.#connecting !== undefined) return this.#connecting;
-
-    const connecting = open()
-      .then(() => ({ alreadyOpen: false }))
-      .catch((error: unknown) => {
-        if (this.#connecting === connecting) {
-          this.#connecting = undefined;
-        }
-        throw error;
-      });
-    this.#connecting = connecting;
-    return connecting;
   }
 
   async #open<TContext>(

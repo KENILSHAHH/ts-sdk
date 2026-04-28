@@ -113,19 +113,18 @@ export class ClobMarketWebSocketManager
   ): Promise<void> {
     const { before, after } = change;
 
-    let connection: WebSocketConnectionResult;
     try {
-      connection = await this.#ensureSocket();
+      const connection = await this.#connect();
+      if (connection.reusedOpenSocket) {
+        syncMarketSubscription(
+          (message) => this.#connection.send(message),
+          before,
+          after,
+        );
+      }
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
-    }
-    if (connection.alreadyOpen) {
-      syncMarketSubscription(
-        (message) => this.#connection.send(message),
-        before,
-        after,
-      );
     }
   }
 
@@ -163,24 +162,24 @@ export class ClobMarketWebSocketManager
     await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocketConnectionResult> {
+  #connect(): Promise<WebSocketConnectionResult> {
     return this.#connection.connect({
-      onClose: () => this.#onSocketClose(),
-      onError: () => this.#onSocketError(),
-      onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: () => this.#onSocketOpen(),
+      onClose: () => this.#onConnectionClose(),
+      onError: () => this.#onConnectionError(),
+      onMessage: (event) => this.#onConnectionMessage(event),
+      onOpen: () => this.#onConnectionOpen(),
       openErrorMessage: 'CLOB market WebSocket failed to open.',
       url: this.#url,
     });
   }
 
-  #onSocketOpen(): void {
+  #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription();
     this.#startHeartbeat();
   }
 
-  #onSocketMessage(event: MessageEvent): void {
+  #onConnectionMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data === 'PONG') {
       return;
@@ -201,14 +200,14 @@ export class ClobMarketWebSocketManager
     }
   }
 
-  #onSocketClose(): void {
+  #onConnectionClose(): void {
     this.#stopHeartbeat();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
 
-  #onSocketError(): void {
+  #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
   }
@@ -239,7 +238,7 @@ export class ClobMarketWebSocketManager
 
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
-      reconnect: () => this.#ensureSocket(),
+      reconnect: () => this.#connect(),
       shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }
@@ -293,19 +292,18 @@ export class ClobUserWebSocketManager
   ): Promise<void> {
     const { before, after } = change;
 
-    let connection: WebSocketConnectionResult;
     try {
-      connection = await this.#ensureSocket();
+      const connection = await this.#connect();
+      if (connection.reusedOpenSocket) {
+        syncUserSubscription(
+          (message) => this.#connection.send(message),
+          before,
+          after,
+        );
+      }
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
-    }
-    if (connection.alreadyOpen) {
-      syncUserSubscription(
-        (message) => this.#connection.send(message),
-        before,
-        after,
-      );
     }
   }
 
@@ -343,25 +341,25 @@ export class ClobUserWebSocketManager
     await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocketConnectionResult> {
+  #connect(): Promise<WebSocketConnectionResult> {
     return this.#connection.connect({
-      onClose: () => this.#onSocketClose(),
-      onError: () => this.#onSocketError(),
-      onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: (credentials) => this.#onSocketOpen(credentials),
+      onClose: () => this.#onConnectionClose(),
+      onError: () => this.#onConnectionError(),
+      onMessage: (event) => this.#onConnectionMessage(event),
+      onOpen: (credentials) => this.#onConnectionOpen(credentials),
       openErrorMessage: 'CLOB user WebSocket failed to open.',
       prepare: () => this.#resolveCredentials(),
       url: this.#url,
     });
   }
 
-  #onSocketOpen(credentials: ApiKeyCreds): void {
+  #onConnectionOpen(credentials: ApiKeyCreds): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(credentials);
     this.#startHeartbeat();
   }
 
-  #onSocketMessage(event: MessageEvent): void {
+  #onConnectionMessage(event: MessageEvent): void {
     const data = String(event.data);
     if (data === 'PONG') {
       return;
@@ -382,14 +380,14 @@ export class ClobUserWebSocketManager
     }
   }
 
-  #onSocketClose(): void {
+  #onConnectionClose(): void {
     this.#stopHeartbeat();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
 
-  #onSocketError(): void {
+  #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
   }
@@ -423,7 +421,7 @@ export class ClobUserWebSocketManager
 
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
-      reconnect: () => this.#ensureSocket(),
+      reconnect: () => this.#connect(),
       shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }

@@ -98,18 +98,16 @@ export class RtdsWebSocketManager
     entry: RtdsSubscriptionEntry,
     change: SubscriptionRegistryChange<RtdsServerState>,
   ): Promise<void> {
-    const { before, after } = change;
-    const subscriptionsToOpen = serverSubscriptionsAdded(before, after);
-
-    let connection: WebSocketConnectionResult;
     try {
-      connection = await this.#ensureSocket();
+      const connection = await this.#connect();
+      if (connection.reusedOpenSocket) {
+        const { before, after } = change;
+        const subscriptionsToOpen = serverSubscriptionsAdded(before, after);
+        this.#sendSubscribeFrame(subscriptionsToOpen);
+      }
     } catch (error) {
       await this.#closeSubscriber(entry);
       throw error;
-    }
-    if (connection.alreadyOpen) {
-      this.#sendSubscribeFrame(subscriptionsToOpen);
     }
   }
 
@@ -141,24 +139,24 @@ export class RtdsWebSocketManager
     await this.#connection.close();
   }
 
-  #ensureSocket(): Promise<WebSocketConnectionResult> {
+  #connect(): Promise<WebSocketConnectionResult> {
     return this.#connection.connect({
-      onClose: () => this.#onSocketClose(),
-      onError: () => this.#onSocketError(),
-      onMessage: (event) => this.#onSocketMessage(event),
-      onOpen: () => this.#onSocketOpen(),
+      onClose: () => this.#onConnectionClose(),
+      onError: () => this.#onConnectionError(),
+      onMessage: (event) => this.#onConnectionMessage(event),
+      onOpen: () => this.#onConnectionOpen(),
       openErrorMessage: 'RTDS WebSocket failed to open.',
       url: this.#url,
     });
   }
 
-  #onSocketOpen(): void {
+  #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
     this.#startHeartbeat();
     this.#resubscribeActiveServerEntries();
   }
 
-  #onSocketMessage(event: MessageEvent): void {
+  #onConnectionMessage(event: MessageEvent): void {
     let raw: unknown;
     try {
       raw = JSON.parse(String(event.data));
@@ -170,14 +168,14 @@ export class RtdsWebSocketManager
     this.#subscriptions.dispatch(parsed.data);
   }
 
-  #onSocketClose(): void {
+  #onConnectionClose(): void {
     this.#stopHeartbeat();
     if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
 
-  #onSocketError(): void {
+  #onConnectionError(): void {
     // Browser WebSockets report most failures as an error followed by close.
     // Keep iterators alive here so the close path can reconnect active handles.
   }
@@ -216,7 +214,7 @@ export class RtdsWebSocketManager
 
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
-      reconnect: () => this.#ensureSocket(),
+      reconnect: () => this.#connect(),
       shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }
