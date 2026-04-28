@@ -24,6 +24,36 @@ type SportsSubscriber = {
   queue: Pushable<SportsEvent>;
 };
 
+class SportsSubscriptionRegistry {
+  readonly #entries = new Set<SportsSubscriptionEntry>();
+
+  add(entry: SportsSubscriptionEntry): void {
+    this.#entries.add(entry);
+  }
+
+  remove(entry: SportsSubscriptionEntry): void {
+    this.#entries.delete(entry);
+    entry.subscriber.queue.end();
+  }
+
+  dispatch(event: SportsEvent): void {
+    for (const { subscriber } of this.#entries) {
+      subscriber.queue.push(event);
+    }
+  }
+
+  hasActiveSubscriptions(): boolean {
+    return this.#entries.size > 0;
+  }
+
+  endAll(error?: Error): void {
+    for (const { subscriber } of this.#entries) {
+      subscriber.queue.end(error);
+    }
+    this.#entries.clear();
+  }
+}
+
 export type SportsWebSocketManagerOptions = {
   url: string;
 };
@@ -47,7 +77,7 @@ export class SportsWebSocketManager
   readonly #connection = new WebSocketConnection();
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #entries = new Set<SportsSubscriptionEntry>();
+  readonly #subscriptions = new SportsSubscriptionRegistry();
 
   constructor(options: SportsWebSocketManagerOptions) {
     this.#url = options.url;
@@ -77,7 +107,7 @@ export class SportsWebSocketManager
   // Subscription handle lifecycle.
 
   async #registerSubscriber(entry: SportsSubscriptionEntry): Promise<void> {
-    this.#entries.add(entry);
+    this.#subscriptions.add(entry);
 
     try {
       await this.#ensureSocket();
@@ -105,10 +135,9 @@ export class SportsWebSocketManager
   }
 
   async #closeSubscriber(entry: SportsSubscriptionEntry): Promise<void> {
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
+    this.#subscriptions.remove(entry);
 
-    if (this.#entries.size === 0) {
+    if (!this.#subscriptions.hasActiveSubscriptions()) {
       await this.close();
     }
   }
@@ -127,20 +156,13 @@ export class SportsWebSocketManager
   async #shutdown(): Promise<void> {
     this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
-    this.#endSubscribers();
+    this.#subscriptions.endAll();
 
     await closeSocket(await this.#connection.takeCurrent());
   }
 
   #ensureSocket(): Promise<WebSocket> {
     return this.#connection.ensure(() => this.#openSocket());
-  }
-
-  #endSubscribers(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
   }
 
   #openSocket(): Promise<WebSocket> {
@@ -195,20 +217,14 @@ export class SportsWebSocketManager
     const parsed = SportsResultEventSchema.safeParse(raw);
     if (!parsed.success) return;
     this.#markSocketFresh();
-    this.#dispatch(parsed.data);
-  }
-
-  #dispatch(event: SportsEvent): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.push(event);
-    }
+    this.#subscriptions.dispatch(parsed.data);
   }
 
   #onSocketClose(socket: WebSocket): void {
     if (this.#connection.hasDifferentCurrent(socket)) return;
     this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
-    if (this.#entries.size > 0) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -238,7 +254,7 @@ export class SportsWebSocketManager
     this.#connection.clearSocket();
 
     closeSocketIfOpen(socket);
-    if (this.#entries.size > 0) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -246,7 +262,7 @@ export class SportsWebSocketManager
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
       reconnect: () => this.#ensureSocket(),
-      shouldReconnect: () => this.#entries.size > 0,
+      shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }
 }

@@ -51,6 +51,114 @@ type UserServerSubscription = {
   markets: string[];
 };
 
+type MarketServerSubscriptionChange = {
+  before: MarketServerSubscription;
+  after: MarketServerSubscription;
+};
+
+class MarketSubscriptionRegistry {
+  readonly #entries = new Set<MarketSubscriptionEntry>();
+
+  add(entry: MarketSubscriptionEntry): MarketServerSubscriptionChange {
+    const before = this.activeServerSubscription();
+    this.#entries.add(entry);
+    return { before, after: this.activeServerSubscription() };
+  }
+
+  remove(entry: MarketSubscriptionEntry): MarketServerSubscriptionChange {
+    const before = this.activeServerSubscription();
+    this.#entries.delete(entry);
+    entry.subscriber.queue.end();
+    return { before, after: this.activeServerSubscription() };
+  }
+
+  dispatch(event: MarketEvent): void {
+    for (const { subscriber } of this.#entries) {
+      if (subscriber.matches(event)) {
+        subscriber.queue.push(event);
+      }
+    }
+  }
+
+  hasActiveSubscriptions(): boolean {
+    return this.#entries.size > 0;
+  }
+
+  endAll(error?: Error): void {
+    for (const { subscriber } of this.#entries) {
+      subscriber.queue.end(error);
+    }
+    this.#entries.clear();
+  }
+
+  activeServerSubscription(): MarketServerSubscription {
+    const assets = new Set<string>();
+    let customFeatureEnabled = false;
+    for (const { subscription } of this.#entries) {
+      for (const tokenId of subscription.tokenIds) assets.add(tokenId);
+      customFeatureEnabled ||= subscription.customFeatureEnabled === true;
+    }
+    return { assetsIds: Array.from(assets), customFeatureEnabled };
+  }
+}
+
+type UserServerSubscriptionChange = {
+  before: UserServerSubscription;
+  after: UserServerSubscription;
+};
+
+class UserSubscriptionRegistry {
+  readonly #entries = new Set<UserSubscriptionEntry>();
+
+  add(entry: UserSubscriptionEntry): UserServerSubscriptionChange {
+    const before = this.activeServerSubscription();
+    this.#entries.add(entry);
+    return { before, after: this.activeServerSubscription() };
+  }
+
+  remove(entry: UserSubscriptionEntry): UserServerSubscriptionChange {
+    const before = this.activeServerSubscription();
+    this.#entries.delete(entry);
+    entry.subscriber.queue.end();
+    return { before, after: this.activeServerSubscription() };
+  }
+
+  dispatch(event: UserEvent): void {
+    for (const { subscriber } of this.#entries) {
+      if (subscriber.matches(event)) {
+        subscriber.queue.push(event);
+      }
+    }
+  }
+
+  hasActiveSubscriptions(): boolean {
+    return this.#entries.size > 0;
+  }
+
+  endAll(error?: Error): void {
+    for (const { subscriber } of this.#entries) {
+      subscriber.queue.end(error);
+    }
+    this.#entries.clear();
+  }
+
+  activeServerSubscription(): UserServerSubscription {
+    let includeAllMarkets = false;
+    const markets = new Set<string>();
+    for (const { subscription } of this.#entries) {
+      if (isAllMarketsUserSubscription(subscription)) {
+        includeAllMarkets = true;
+        continue;
+      }
+      for (const market of subscription.markets ?? []) markets.add(market);
+    }
+    return {
+      includeAllMarkets,
+      markets: includeAllMarkets ? [] : Array.from(markets),
+    };
+  }
+}
+
 type ApiKeyCredsProvider = () => ApiKeyCreds | Promise<ApiKeyCreds>;
 
 export type ClobMarketWebSocketManagerOptions = {
@@ -82,7 +190,7 @@ export class ClobMarketWebSocketManager
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #entries = new Set<MarketSubscriptionEntry>();
+  readonly #subscriptions = new MarketSubscriptionRegistry();
 
   constructor(options: ClobMarketWebSocketManagerOptions) {
     this.#url = options.url;
@@ -115,9 +223,7 @@ export class ClobMarketWebSocketManager
 
   async #registerSubscriber(entry: MarketSubscriptionEntry): Promise<void> {
     const wasOpen = this.#connection.hasOpenSocket();
-    const before = this.#activeServerSubscription();
-    this.#entries.add(entry);
-    const after = this.#activeServerSubscription();
+    const { before, after } = this.#subscriptions.add(entry);
 
     let socket: WebSocket;
     try {
@@ -149,12 +255,9 @@ export class ClobMarketWebSocketManager
   }
 
   async #closeSubscriber(entry: MarketSubscriptionEntry): Promise<void> {
-    const before = this.#activeServerSubscription();
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
-    const after = this.#activeServerSubscription();
+    const { before, after } = this.#subscriptions.remove(entry);
 
-    if (this.#entries.size === 0) {
+    if (!this.#subscriptions.hasActiveSubscriptions()) {
       await this.close();
       return;
     }
@@ -180,16 +283,9 @@ export class ClobMarketWebSocketManager
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
-    this.#endSubscribers();
+    this.#subscriptions.endAll();
 
     await closeSocket(await this.#connection.takeCurrent());
-  }
-
-  #endSubscribers(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
   }
 
   #ensureSocket(): Promise<WebSocket> {
@@ -249,15 +345,7 @@ export class ClobMarketWebSocketManager
       const parsed = MarketEventSchema.safeParse(eventData);
       if (!parsed.success) continue;
       this.#markSocketFresh();
-      this.#dispatch(parsed.data);
-    }
-  }
-
-  #dispatch(event: MarketEvent): void {
-    for (const { subscriber } of this.#entries) {
-      if (subscriber.matches(event)) {
-        subscriber.queue.push(event);
-      }
+      this.#subscriptions.dispatch(parsed.data);
     }
   }
 
@@ -266,7 +354,7 @@ export class ClobMarketWebSocketManager
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
-    if (this.#entries.size > 0) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -307,7 +395,7 @@ export class ClobMarketWebSocketManager
     this.#connection.clearSocket();
 
     closeSocketIfOpen(socket);
-    if (this.#entries.size > 0) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -323,19 +411,13 @@ export class ClobMarketWebSocketManager
   }
 
   #activeServerSubscription(): MarketServerSubscription {
-    const assets = new Set<string>();
-    let customFeatureEnabled = false;
-    for (const { subscription } of this.#entries) {
-      for (const tokenId of subscription.tokenIds) assets.add(tokenId);
-      customFeatureEnabled ||= subscription.customFeatureEnabled === true;
-    }
-    return { assetsIds: Array.from(assets), customFeatureEnabled };
+    return this.#subscriptions.activeServerSubscription();
   }
 
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
       reconnect: () => this.#ensureSocket(),
-      shouldReconnect: () => this.#entries.size > 0,
+      shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }
 }
@@ -350,7 +432,7 @@ export class ClobUserWebSocketManager
   readonly #heartbeat = new ClientPingHeartbeat('PING');
   readonly #stalenessWatchdog: StalenessWatchdog;
   readonly #reconnectScheduler: ReconnectScheduler;
-  readonly #entries = new Set<UserSubscriptionEntry>();
+  readonly #subscriptions = new UserSubscriptionRegistry();
 
   constructor(options: ClobUserWebSocketManagerOptions) {
     this.#url = options.url;
@@ -384,9 +466,7 @@ export class ClobUserWebSocketManager
 
   async #registerSubscriber(entry: UserSubscriptionEntry): Promise<void> {
     const wasOpen = this.#connection.hasOpenSocket();
-    const before = this.#activeServerSubscription();
-    this.#entries.add(entry);
-    const after = this.#activeServerSubscription();
+    const { before, after } = this.#subscriptions.add(entry);
 
     let socket: WebSocket;
     try {
@@ -416,12 +496,9 @@ export class ClobUserWebSocketManager
   }
 
   async #closeSubscriber(entry: UserSubscriptionEntry): Promise<void> {
-    const before = this.#activeServerSubscription();
-    this.#entries.delete(entry);
-    entry.subscriber.queue.end();
-    const after = this.#activeServerSubscription();
+    const { before, after } = this.#subscriptions.remove(entry);
 
-    if (this.#entries.size === 0) {
+    if (!this.#subscriptions.hasActiveSubscriptions()) {
       await this.close();
       return;
     }
@@ -447,16 +524,9 @@ export class ClobUserWebSocketManager
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
     this.#reconnectScheduler.stop();
-    this.#endSubscribers();
+    this.#subscriptions.endAll();
 
     await closeSocket(await this.#connection.takeCurrent());
-  }
-
-  #endSubscribers(error?: Error): void {
-    for (const { subscriber } of this.#entries) {
-      subscriber.queue.end(error);
-    }
-    this.#entries.clear();
   }
 
   #ensureSocket(): Promise<WebSocket> {
@@ -518,15 +588,7 @@ export class ClobUserWebSocketManager
       const parsed = UserEventSchema.safeParse(eventData);
       if (!parsed.success) continue;
       this.#markSocketFresh();
-      this.#dispatch(parsed.data);
-    }
-  }
-
-  #dispatch(event: UserEvent): void {
-    for (const { subscriber } of this.#entries) {
-      if (subscriber.matches(event)) {
-        subscriber.queue.push(event);
-      }
+      this.#subscriptions.dispatch(parsed.data);
     }
   }
 
@@ -535,7 +597,7 @@ export class ClobUserWebSocketManager
     this.#stopHeartbeat();
     this.#stopStalenessWatchdog();
     this.#connection.clearSocket();
-    if (this.#entries.size > 0) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -576,7 +638,7 @@ export class ClobUserWebSocketManager
     this.#connection.clearSocket();
 
     closeSocketIfOpen(socket);
-    if (this.#entries.size > 0) {
+    if (this.#subscriptions.hasActiveSubscriptions()) {
       this.#scheduleReconnect();
     }
   }
@@ -595,25 +657,13 @@ export class ClobUserWebSocketManager
   }
 
   #activeServerSubscription(): UserServerSubscription {
-    let includeAllMarkets = false;
-    const markets = new Set<string>();
-    for (const { subscription } of this.#entries) {
-      if (isAllMarketsUserSubscription(subscription)) {
-        includeAllMarkets = true;
-        continue;
-      }
-      for (const market of subscription.markets ?? []) markets.add(market);
-    }
-    return {
-      includeAllMarkets,
-      markets: includeAllMarkets ? [] : Array.from(markets),
-    };
+    return this.#subscriptions.activeServerSubscription();
   }
 
   #scheduleReconnect(): void {
     this.#reconnectScheduler.schedule({
       reconnect: () => this.#ensureSocket(),
-      shouldReconnect: () => this.#entries.size > 0,
+      shouldReconnect: () => this.#subscriptions.hasActiveSubscriptions(),
     });
   }
 }
