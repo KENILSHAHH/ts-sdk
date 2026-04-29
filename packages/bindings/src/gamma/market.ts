@@ -24,7 +24,6 @@ import {
   TokenIdSchema,
 } from '../shared';
 import {
-  CategoryReferenceSchema,
   type ClobRewards,
   ClobRewardsSchema,
   type FeeSchedule,
@@ -38,7 +37,7 @@ import {
 const StringPairSchema = z.tuple([z.string(), z.string()]);
 const TokenIdPairValueSchema = z.tuple([TokenIdSchema, TokenIdSchema]);
 const EmptyArraySchema = z.tuple([]).transform(() => null);
-const GammaMarketEventSchema = z.looseObject({
+const GammaMarketEventSchema = z.object({
   id: EventIdSchema,
   slug: z.string().nullish(),
   title: z.string().nullish(),
@@ -70,6 +69,8 @@ export enum UmaResolutionStatus {
   Disputed = 'disputed',
   Resolved = 'resolved',
 }
+
+const UmaResolutionStatusSchema = z.enum(UmaResolutionStatus);
 
 export type MarketState = {
   active?: boolean | null;
@@ -132,7 +133,7 @@ export type MarketTrading = {
 export type MarketResolution = {
   questionId: QuestionId | null;
   negRiskRequestId: ResolutionRequestId | null;
-  umaResolutionStatus?: string | null;
+  umaResolutionStatus: UmaResolutionStatus | null;
   source?: string | null;
   resolvedBy: EvmAddress | null;
 };
@@ -184,7 +185,7 @@ export type Market = {
   tags: MarketTag[];
 };
 
-export const GammaMarketSchema = z.looseObject({
+export const GammaMarketSchema = z.object({
   id: MarketIdSchema,
   question: z.string().nullish(),
   conditionId: ConditionIdSchema,
@@ -234,17 +235,23 @@ export const GammaMarketSchema = z.looseObject({
   twitterCardLastRefreshed: IsoDateTimeStringSchema.nullish(),
   twitterCardLastValidated: IsoDateTimeStringSchema.nullish(),
   archived: z.boolean().nullish(),
-  resolvedBy: z.string().nullish(),
+  resolvedBy: z
+    .preprocess(emptyStringToNull, EvmAddressSchema.nullish())
+    .transform(nullishToNull),
   restricted: z.boolean().nullish(),
   marketGroup: z.number().int().nullish(),
   groupItemTitle: z.string().nullish(),
   groupItemThreshold: z.string().nullish(),
-  questionID: z.string().nullish(),
+  questionID: z
+    .preprocess(emptyStringToNull, QuestionIdSchema.nullish())
+    .transform(nullishToNull),
   umaEndDate: MixedDateTimeStringSchema.nullish(),
   enableOrderBook: z.boolean().nullish(),
   orderPriceMinTickSize: TickSizeValueSchema.nullish(),
   orderMinSize: z.number().nullish(),
-  umaResolutionStatus: z.string().nullish(),
+  umaResolutionStatus: z
+    .preprocess(emptyStringToNull, UmaResolutionStatusSchema.nullish())
+    .transform(nullishToNull),
   curationOrder: z.number().int().nullish(),
   volumeNum: z.number().nullish(),
   liquidityNum: z.number().nullish(),
@@ -286,13 +293,16 @@ export const GammaMarketSchema = z.looseObject({
   acceptingOrders: z.boolean().nullish(),
   negRisk: z.boolean().nullish(),
   negRiskMarketID: z.string().nullish(),
-  negRiskRequestID: z.string().nullish(),
+  negRiskRequestID: z
+    .preprocess(emptyStringToNull, ResolutionRequestIdSchema.nullish())
+    .transform(nullishToNull),
   notificationsEnabled: z.boolean().nullish(),
   score: z.number().int().nullish(),
   imageOptimized: ImageOptimizationSchema.nullish(),
   iconOptimized: ImageOptimizationSchema.nullish(),
   events: z.array(GammaMarketEventSchema).nullish(),
-  categories: z.array(CategoryReferenceSchema).nullish(),
+  // Parsed for raw Gamma compatibility; normalized Market intentionally uses category/tags only.
+  categories: z.array(z.unknown()).nullish(),
   markets: z.array(RelatedMarketSchema).nullish(),
   creator: z.string().nullish(),
   ready: z.boolean().nullish(),
@@ -429,14 +439,11 @@ function normalizeMarket(market: GammaMarket): Market {
       feeSchedule: market.feeSchedule,
     },
     resolution: {
-      questionId: parseOptionalString(QuestionIdSchema, market.questionID),
-      negRiskRequestId: parseOptionalString(
-        ResolutionRequestIdSchema,
-        market.negRiskRequestID,
-      ),
+      questionId: market.questionID,
+      negRiskRequestId: market.negRiskRequestID,
       umaResolutionStatus: market.umaResolutionStatus,
       source: market.resolutionSource,
-      resolvedBy: parseOptionalString(EvmAddressSchema, market.resolvedBy),
+      resolvedBy: market.resolvedBy,
     },
     rewards: {
       clobRewards: market.clobRewards,
@@ -452,8 +459,8 @@ function normalizeMarket(market: GammaMarket): Market {
     },
     events: (market.events ?? []).map((event) => ({
       id: event.id,
-      slug: readOptionalString(event.slug),
-      title: readOptionalString(event.title),
+      slug: event.slug ?? null,
+      title: event.title ?? null,
     })),
     tags: (market.tags ?? []).map((tag) => ({
       id: tag.id,
@@ -463,19 +470,12 @@ function normalizeMarket(market: GammaMarket): Market {
   };
 }
 
-function parseOptionalString<T>(
-  schema: z.ZodType<T>,
-  value: string | null | undefined,
-): T | null {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-
-  return schema.parse(value);
+function emptyStringToNull(value: unknown): unknown {
+  return value === '' ? null : value;
 }
 
-function readOptionalString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
+function nullishToNull<T>(value: T | null | undefined): T | null {
+  return value ?? null;
 }
 
 function parseJsonString(value: unknown): unknown {

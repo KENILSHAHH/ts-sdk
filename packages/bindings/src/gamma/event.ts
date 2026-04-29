@@ -39,7 +39,7 @@ const SportIdSchema = z.number().int().transform(toSportId);
 const TeamIdSchema = z.number().int().transform(toTeamId);
 const TemplateIdSchema = z.string().transform(toTemplateId);
 
-export const CollectionReferenceSchema = z.looseObject({
+export const CollectionReferenceSchema = z.object({
   id: CollectionIdSchema,
   ticker: z.string().nullish(),
   slug: z.string().nullish(),
@@ -69,7 +69,7 @@ export const CollectionReferenceSchema = z.looseObject({
   commentsEnabled: z.boolean().nullish(),
 });
 
-export const SeriesReferenceSchema = z.looseObject({
+export const SeriesReferenceSchema = z.object({
   id: SeriesIdSchema,
   ticker: z.string().nullish(),
   slug: z.string().nullish(),
@@ -107,7 +107,7 @@ export const SeriesReferenceSchema = z.looseObject({
   requiresTranslation: z.boolean().nullish(),
 });
 
-export const TemplateReferenceSchema = z.looseObject({
+export const TemplateReferenceSchema = z.object({
   id: TemplateIdSchema,
   displayName: z.string().nullish(),
   eventTitle: z.string().nullish(),
@@ -125,7 +125,7 @@ export const TemplateReferenceSchema = z.looseObject({
   updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
-export const ChatSchema = z.looseObject({
+export const ChatSchema = z.object({
   id: ChatIdSchema,
   channelId: z.string().nullish(),
   channelName: z.string().nullish(),
@@ -135,7 +135,7 @@ export const ChatSchema = z.looseObject({
   endTime: IsoDateTimeStringSchema.nullish(),
 });
 
-export const EventCreatorSchema = z.looseObject({
+export const EventCreatorSchema = z.object({
   id: EventCreatorIdSchema,
   creatorName: z.string().nullish(),
   creatorHandle: z.string().nullish(),
@@ -145,7 +145,7 @@ export const EventCreatorSchema = z.looseObject({
   updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
-export const PartnerSchema = z.looseObject({
+export const PartnerSchema = z.object({
   id: PartnerIdSchema,
   slug: z.string(),
   name: z.string(),
@@ -153,7 +153,7 @@ export const PartnerSchema = z.looseObject({
   updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
-export const EventExternalPartnerMappingSchema = z.looseObject({
+export const EventExternalPartnerMappingSchema = z.object({
   id: EventExternalPartnerMappingIdSchema,
   eventId: z.number().int(),
   partnerId: z.number().int(),
@@ -163,13 +163,13 @@ export const EventExternalPartnerMappingSchema = z.looseObject({
   updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
-export const BestLineSchema = z.looseObject({
+export const BestLineSchema = z.object({
   id: BestLineIdSchema,
   lineType: z.string().nullish(),
   line: z.number().nullish(),
 });
 
-export const TeamSchema = z.looseObject({
+export const TeamSchema = z.object({
   id: TeamIdSchema,
   name: z.string().nullish(),
   league: z.string().nullish(),
@@ -183,7 +183,7 @@ export const TeamSchema = z.looseObject({
   color: z.string().nullish(),
 });
 
-export const SportsMetadataSchema = z.looseObject({
+export const SportsMetadataSchema = z.object({
   id: SportIdSchema,
   sport: z.string(),
   image: z.string(),
@@ -197,7 +197,7 @@ export const SportsMetadataSchema = z.looseObject({
 
 export const ListTeamsResponseSchema = z.array(TeamSchema);
 export const ListSportsMetadataResponseSchema = z.array(SportsMetadataSchema);
-export const SportsMarketTypesResponseSchema = z.looseObject({
+export const SportsMarketTypesResponseSchema = z.object({
   marketTypes: z.array(z.string()).nullish(),
 });
 

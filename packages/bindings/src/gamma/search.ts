@@ -15,12 +15,12 @@ export const SearchTagSchema = z
     eventCount: event_count,
   }));
 
-export const SearchPaginationSchema = z.looseObject({
+export const SearchPaginationSchema = z.object({
   hasMore: z.boolean().nullish(),
   totalResults: z.number().int().nullish(),
 });
 
-export const PublicSearchResponseSchema = z.looseObject({
+export const PublicSearchResponseSchema = z.object({
   events: z.array(EventSchema).nullish(),
   tags: z.array(SearchTagSchema).nullish(),
   profiles: z.array(ProfileSchema).nullish(),

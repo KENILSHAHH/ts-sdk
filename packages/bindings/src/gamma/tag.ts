@@ -8,7 +8,7 @@ export const TagSchema = TagReferenceSchema.extend({
   templates: z.array(TemplateReferenceSchema).nullish(),
 });
 
-export const RelatedTagSchema = z.looseObject({
+export const RelatedTagSchema = z.object({
   id: z.string(),
   tagID: z.number().int().nullish(),
   relatedTagID: z.number().int().nullish(),

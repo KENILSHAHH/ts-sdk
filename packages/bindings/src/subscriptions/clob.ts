@@ -35,7 +35,7 @@ export enum UserOrderStatus {
 
 const UserOrderStatusSchema = z.enum(UserOrderStatus);
 
-const OrderBookLevelSchema = z.looseObject({
+const OrderBookLevelSchema = z.object({
   price: z.string(),
   size: z.string(),
 });
@@ -229,7 +229,7 @@ export const MarketBestBidAskEventSchema = z
 
 export type MarketBestBidAskEvent = z.infer<typeof MarketBestBidAskEventSchema>;
 
-const MarketEventMessageSchema = z.looseObject({
+const MarketEventMessageSchema = z.object({
   id: z.string(),
   ticker: z.string().nullish(),
   slug: z.string().nullish(),
