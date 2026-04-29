@@ -494,7 +494,9 @@ class BaseSecureClient<
     return this.context.credentials;
   }
 
-  /** @internal */
+  /**
+   * The authenticated account identity associated with this client, including the signer and wallet addresses and wallet type.
+   */
   get account(): AccountIdentity {
     return this.context.account;
   }
