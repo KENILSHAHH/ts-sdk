@@ -61,9 +61,7 @@ export type RelayerExecuteRequest = z.input<typeof RelayerExecuteRequestSchema>;
 export const RelayerExecuteResponseSchema = z
   .object({
     state: RelayerTransactionStateSchema,
-    transactionHash: z
-      .union([z.literal(''), TxHashSchema])
-      .transform((value) => (value === '' ? null : value)),
+    transactionHash: TxHashSchema.nullish().transform((value) => value ?? null),
     transactionID: TransactionIdSchema,
   })
   .transform(({ transactionHash, transactionID, ...rest }) => ({

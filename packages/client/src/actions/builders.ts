@@ -1,4 +1,5 @@
 import {
+  BuilderCodeSchema,
   PaginationCursorSchema,
   toPaginationCursor,
 } from '@polymarket/bindings';
@@ -7,7 +8,6 @@ import {
   END_CURSOR,
   PaginatedBuilderTradesSchema,
 } from '@polymarket/bindings/clob';
-import type { HexString } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
 import {
@@ -21,13 +21,12 @@ import {
 import { parseUserInput } from '../input';
 import { type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
-import { isBytes32 } from './orders';
 import { snakeCase, toSearchParams } from './params';
 
 const ListBuilderTradesRequestSchema = z.object({
   after: z.string().optional(),
   before: z.string().optional(),
-  builderCode: z.custom<HexString>(isBytes32),
+  builderCode: BuilderCodeSchema,
   cursor: PaginationCursorSchema.optional(),
   id: z.string().optional(),
   market: z.string().optional(),

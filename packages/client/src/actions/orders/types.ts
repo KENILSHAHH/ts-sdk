@@ -1,11 +1,11 @@
-import type { OrderSide, OrderType, TokenId } from '@polymarket/bindings';
+import type {
+  BuilderCode,
+  OrderSide,
+  OrderType,
+  TokenId,
+} from '@polymarket/bindings';
 import type { OrderResponse, SignatureType } from '@polymarket/bindings/clob';
-import {
-  type EvmAddress,
-  type EvmSignature,
-  type HexString,
-  isHexString,
-} from '@polymarket/types';
+import type { EvmAddress, EvmSignature, HexString } from '@polymarket/types';
 import type { TransactionHandle, TypedDataPayload } from '../../types';
 import type { SignOrderRequest } from '../../workflow';
 import type {
@@ -74,7 +74,7 @@ export type PrepareLimitOrderRequest = {
 };
 
 export type OrderDraft = {
-  builderCode?: HexString;
+  builderCode?: BuilderCode;
   chainId: number;
   exchangeAddress: EvmAddress;
   expiration: number;
@@ -149,8 +149,4 @@ export function signOrder(payload: TypedDataPayload): SignOrderRequest {
     kind: 'signOrder',
     payload,
   };
-}
-
-export function isBytes32(value: unknown): value is HexString {
-  return isHexString(value) && value.length === 66;
 }

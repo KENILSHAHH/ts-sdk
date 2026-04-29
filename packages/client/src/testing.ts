@@ -1,16 +1,11 @@
+import { type BuilderCode, BuilderCodeSchema } from '@polymarket/bindings';
 import type { Market } from '@polymarket/bindings/gamma';
-import type {
-  EvmAddress,
-  HexString,
-  NonEmptyArray,
-  PrivateKey,
-} from '@polymarket/types';
+import type { EvmAddress, NonEmptyArray, PrivateKey } from '@polymarket/types';
 import {
   expectEvmAddress,
   expectNonEmptyArray,
   expectPresent,
   invariant,
-  isHexString,
   isPrivateKey,
   never,
 } from '@polymarket/types';
@@ -80,17 +75,12 @@ function loadTestSafeWallet(): EvmAddress {
 
 export const safeWalletAddress = loadTestSafeWallet();
 
-function loadTestBuilderCode(): HexString {
+function loadTestBuilderCode(): BuilderCode {
   const value = process.env.POLYMARKET_BUILDER_CODE;
 
   invariant(value, 'POLYMARKET_BUILDER_CODE is not set');
 
-  invariant(
-    isHexString(value) && value.length === 66,
-    'POLYMARKET_BUILDER_CODE must be a bytes32 hex string',
-  );
-
-  return value;
+  return BuilderCodeSchema.parse(value);
 }
 
 export const testBuilderCode = loadTestBuilderCode();

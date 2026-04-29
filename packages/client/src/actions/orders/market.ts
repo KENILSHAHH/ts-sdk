@@ -1,28 +1,25 @@
 import {
+  BuilderCodeSchema,
   OrderSide,
   OrderSideSchema,
   OrderType,
   type TickSizeValue,
   TokenIdSchema,
 } from '@polymarket/bindings';
-import type { EvmAddress, HexString } from '@polymarket/types';
+import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
 import { fetchNegRisk, fetchTickSize } from '../clob';
 import { resolveExchangeAddress, resolveRoundingConfig } from './context';
 import { resolveEstimatedMarketPrice } from './estimate';
 import { decimalPlaces, parseAmount, roundDown, roundUp } from './math';
-import {
-  isBytes32,
-  type OrderDraft,
-  type PrepareMarketOrderRequest,
-} from './types';
+import type { OrderDraft, PrepareMarketOrderRequest } from './types';
 
 export const PrepareMarketOrderParamsSchema = z.object({
   tokenId: TokenIdSchema,
   amount: z.number().positive(),
   side: OrderSideSchema,
-  builderCode: z.custom<HexString>(isBytes32).optional(),
+  builderCode: BuilderCodeSchema.optional(),
   orderType: z
     .union([z.literal(OrderType.FAK), z.literal(OrderType.FOK)])
     .default(OrderType.FAK),

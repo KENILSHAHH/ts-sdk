@@ -1,11 +1,12 @@
 import {
+  BuilderCodeSchema,
   OrderSide,
   OrderSideSchema,
   OrderType,
   type TickSizeValue,
   TokenIdSchema,
 } from '@polymarket/bindings';
-import type { EvmAddress, HexString } from '@polymarket/types';
+import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
 import { UserInputError } from '../../errors';
@@ -18,11 +19,7 @@ import {
   roundNormal,
   roundUp,
 } from './math';
-import {
-  isBytes32,
-  type OrderDraft,
-  type PrepareLimitOrderRequest,
-} from './types';
+import type { OrderDraft, PrepareLimitOrderRequest } from './types';
 
 export const PrepareLimitOrderParamsSchema = z
   .strictObject({
@@ -30,7 +27,7 @@ export const PrepareLimitOrderParamsSchema = z
     price: z.number().positive(),
     size: z.number().positive(),
     side: OrderSideSchema,
-    builderCode: z.custom<HexString>(isBytes32).optional(),
+    builderCode: BuilderCodeSchema.optional(),
     postOnly: z.boolean().default(false),
     expiration: z.number().int().nonnegative().optional(),
   })
