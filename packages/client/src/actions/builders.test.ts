@@ -17,7 +17,7 @@ describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder-attributed trades', async () => {
       const existingTrades = await publicClientWithBuilderKey
-        .listBuilderTrades({ builder: testBuilderCode })
+        .listBuilderTrades({ builderCode: testBuilderCode })
         .firstPage()
         .then((page) => page.items);
 
@@ -71,7 +71,7 @@ async function waitForBuilderTrades(
 ) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const { items } = await client
-      .listBuilderTrades({ builder: testBuilderCode, tokenId })
+      .listBuilderTrades({ builderCode: testBuilderCode, tokenId })
       .firstPage();
 
     if (items.length > 0) {
@@ -82,7 +82,7 @@ async function waitForBuilderTrades(
   }
 
   return client
-    .listBuilderTrades({ builder: testBuilderCode, tokenId })
+    .listBuilderTrades({ builderCode: testBuilderCode, tokenId })
     .firstPage()
     .then(expectNonEmptyPage)
     .then((page) => page.items);
