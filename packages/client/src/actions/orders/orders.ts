@@ -1,28 +1,30 @@
-import { ZERO_ADDRESS } from '@polymarket/types';
+import type { HexString } from '@polymarket/types';
 import type { AccountIdentity } from '../../account';
 import { toSignatureType } from '../../account';
 import type { OrderDraft, SignedOrder, UnsignedOrder } from './types';
+
+const BYTES32_ZERO =
+  '0x0000000000000000000000000000000000000000000000000000000000000000' satisfies HexString;
 
 export function createUnsignedOrder(
   order: OrderDraft,
   account: AccountIdentity,
 ): UnsignedOrder {
   return {
+    builder: order.builderCode ?? BYTES32_ZERO,
     chainId: order.chainId,
     exchangeAddress: order.exchangeAddress,
     expiration: order.expiration,
-    feeRateBps: order.feeRateBps,
     maker: order.funderAddress,
     makerAmount: order.offeredAmount.toString(),
-    // CLOB v1 still requires a nonce on the order, even though it is expected to disappear in v2.
-    nonce: 0,
+    metadata: BYTES32_ZERO,
     orderType: order.orderType,
     salt: generateOrderSalt().toString(),
     side: order.side,
     signatureType: toSignatureType(account.walletType),
     signer: order.signer,
-    taker: order.allowedTaker ?? ZERO_ADDRESS,
     takerAmount: order.requestedAmount.toString(),
+    timestamp: Date.now().toString(),
     tokenId: order.tokenId,
   };
 }

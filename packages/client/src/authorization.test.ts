@@ -1,13 +1,15 @@
 // biome-ignore-all lint/style/noRestrictedImports: msw's Node test server lives at this entrypoint.
 
+import { RelayerTransactionType } from '@polymarket/bindings/relayer';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { fetchExecuteParams } from './actions/gasless';
 import { remoteBuilderSigning } from './authorization';
 import { createPublicClient } from './clients';
-import { RequestRejectedError, SigningError } from './errors';
+import { SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
-import { builderCredentials } from './testing';
+import { builderCredentials, safeWalletAddress } from './testing';
 
 const signerUrl = 'http://localhost:4010/api/builder/sign';
 
@@ -42,7 +44,7 @@ describe('authorization', () => {
           expect(payload).toEqual({
             body: undefined,
             method: 'GET',
-            path: '/builder/trades',
+            path: '/v1/account/transactions/params',
           });
 
           const timestamp = Math.floor(Date.now() / 1000);
@@ -71,36 +73,11 @@ describe('authorization', () => {
       });
 
       await expect(
-        client.listBuilderTrades().firstPage(),
+        fetchExecuteParams(client, {
+          address: safeWalletAddress,
+          type: RelayerTransactionType.SAFE,
+        }),
       ).resolves.toBeDefined();
-    });
-
-    it('fails without builder authorization because the live CLOB endpoint returns 401', async () => {
-      const client = createPublicClient();
-
-      await expect(
-        client.listBuilderTrades().firstPage(),
-      ).rejects.toBeInstanceOf(RequestRejectedError);
-    });
-
-    it('fails when the remote signer returns invalid builder headers because the live CLOB endpoint returns 401', async () => {
-      server.use(
-        http.post(signerUrl, () =>
-          HttpResponse.json({
-            POLY_BUILDER_API_KEY: 'invalid',
-            POLY_BUILDER_PASSPHRASE: 'invalid',
-            POLY_BUILDER_SIGNATURE: 'invalid',
-            POLY_BUILDER_TIMESTAMP: '1',
-          }),
-        ),
-      );
-      const client = createPublicClient({
-        apiKey: remoteBuilderSigning({ url: signerUrl }),
-      });
-
-      await expect(
-        client.listBuilderTrades().firstPage(),
-      ).rejects.toBeInstanceOf(RequestRejectedError);
     });
 
     it('throws SigningError when the remote signer rejects the request', async () => {

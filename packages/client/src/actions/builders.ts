@@ -1,4 +1,5 @@
 import {
+  BuilderCodeSchema,
   PaginationCursorSchema,
   toPaginationCursor,
 } from '@polymarket/bindings';
@@ -25,7 +26,7 @@ import { snakeCase, toSearchParams } from './params';
 const ListBuilderTradesRequestSchema = z.object({
   after: z.string().optional(),
   before: z.string().optional(),
-  builder: z.string().optional(),
+  builderCode: BuilderCodeSchema,
   cursor: PaginationCursorSchema.optional(),
   id: z.string().optional(),
   market: z.string().optional(),
@@ -81,7 +82,7 @@ export const ListBuilderTradesError = makeErrorGuard(
  */
 export function listBuilderTrades(
   client: BaseClient,
-  request: ListBuilderTradesRequest = {},
+  request: ListBuilderTradesRequest,
 ): Paginated<BuilderTrade> {
   const { cursor, ...params } = parseUserInput(
     request,
@@ -95,6 +96,7 @@ export function listBuilderTrades(
           params: toSearchParams(
             { ...params, nextCursor },
             snakeCase({
+              builderCode: 'builder_code',
               tokenId: 'asset_id',
             }),
           ),

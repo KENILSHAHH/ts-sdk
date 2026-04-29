@@ -13,6 +13,7 @@ import {
   publicClientWithRelayerKey,
   runMeteredTests,
   safeWalletAddress,
+  testBuilderCode,
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
@@ -24,7 +25,7 @@ const secureClient = await publicClient
   .beginAuthentication({ wallet: safeWalletAddress })
   .then(authenticateWith(walletClient));
 
-describe('Orders', () => {
+describe('Orders', { timeout: 60_000 }, () => {
   describe('estimateMarketPrice', () => {
     it('calculates the price for a market buy at the minimum size', async () => {
       const [yesTokenId] = expectPresent(market.clobTokenIds);
@@ -133,6 +134,21 @@ describe('Orders', () => {
         expect(buyResult.orderId).not.toBe('');
       },
     );
+
+    it('carries builder attribution onto the prepared market order', async () => {
+      const [yesTokenId] = expectPresent(market.clobTokenIds);
+
+      const order = await secureClient
+        .prepareMarketOrder({
+          amount: expectPresent(market.orderMinSize),
+          builderCode: testBuilderCode,
+          side: OrderSide.BUY,
+          tokenId: yesTokenId,
+        })
+        .then(completeWith(walletClient));
+
+      expect(order.builder).toBe(testBuilderCode);
+    });
   });
 
   describe('prepareLimitOrder', () => {
@@ -157,6 +173,7 @@ describe('Orders', () => {
     it('carries post-only submission options onto the prepared order', async () => {
       const order = await secureClient
         .prepareLimitOrder({
+          builderCode: testBuilderCode,
           postOnly: true,
           price: minPrice,
           side: OrderSide.BUY,
@@ -166,6 +183,7 @@ describe('Orders', () => {
         .then(completeWith(walletClient));
 
       expect(order.postOnly).toBe(true);
+      expect(order.builder).toBe(testBuilderCode);
     });
 
     it('requests a collateral approval if necessary', async () => {

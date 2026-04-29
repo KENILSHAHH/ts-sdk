@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   root: './',
@@ -12,6 +12,7 @@ export default defineConfig({
         test: {
           name: 'bindings',
           include: ['packages/bindings/**/*.test.ts'],
+          exclude: [...configDefaults.exclude],
           environment: 'node',
         },
       },
@@ -20,6 +21,7 @@ export default defineConfig({
         test: {
           name: 'types',
           include: ['packages/types/**/*.test.ts'],
+          exclude: [...configDefaults.exclude],
           environment: 'node',
           typecheck: {
             enabled: true,
@@ -33,7 +35,10 @@ export default defineConfig({
         test: {
           name: 'client',
           include: ['packages/client/**/*.test.ts'],
-          exclude: ['packages/client/src/backend-compat.test.ts'],
+          exclude: [
+            ...configDefaults.exclude,
+            'packages/client/src/backend-compat.test.ts',
+          ],
           environment: 'node',
           testTimeout: 10_000,
           typecheck: {
@@ -48,6 +53,7 @@ export default defineConfig({
         test: {
           name: 'backend-compat',
           include: ['packages/client/src/backend-compat.test.ts'],
+          exclude: [...configDefaults.exclude],
           environment: 'node',
           testTimeout: 600_000,
         },

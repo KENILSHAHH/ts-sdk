@@ -40,6 +40,7 @@ function toTaggedInteger<T extends number>(value: number): T {
 }
 
 export type BestLineId = Tagged<string, 'BestLineId'>;
+export type BuilderCode = Tagged<HexString, 'BuilderCode'>;
 export type Uuid = Tagged<string, 'Uuid'>;
 export type ApiKey = Tagged<string, 'ApiKey'>;
 export type CategoryId = Tagged<string, 'CategoryId'>;
@@ -74,6 +75,14 @@ export type TokenId = Tagged<string, 'TokenId'>;
 
 export function toBestLineId(value: string): BestLineId {
   return toTaggedString<BestLineId>(value);
+}
+
+export function toBuilderCode(value: string): BuilderCode {
+  if (!isHexString(value) || value.length !== 66) {
+    throw new TypeError(`Expected a 32-byte hex string, received: ${value}`);
+  }
+
+  return value as BuilderCode;
 }
 
 export function toUuid(value: string): Uuid {
@@ -196,6 +205,7 @@ export function toTokenId(value: string): TokenId {
 
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
+export const BuilderCodeSchema = z.string().transform(toBuilderCode);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
 export const CommentIdSchema = z.string().transform(toCommentId);
 export const ConditionIdSchema = z.string().transform(toConditionId);

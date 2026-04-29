@@ -22,6 +22,7 @@ jobs:
       - name: Test Backend Compatibility
         run: pnpm test:backend-compat
         env:
+          POLYMARKET_BUILDER_CODE: ${{ vars.POLYMARKET_BUILDER_CODE }}
           POLYMARKET_BUILDER_API_KEY: ${{ vars.POLYMARKET_BUILDER_API_KEY }}
           POLYMARKET_BUILDER_PASSPHRASE: ${{ secrets.POLYMARKET_BUILDER_PASSPHRASE }}
           POLYMARKET_BUILDER_SECRET: ${{ secrets.POLYMARKET_BUILDER_SECRET }}

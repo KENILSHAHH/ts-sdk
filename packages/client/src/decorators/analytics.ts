@@ -32,7 +32,7 @@ export type AnalyticsActions = {
    * Fetch the first page of results:
    * ```ts
    * const paginator = client.listBuilderTrades({
-   *   pageSize: 10,
+   *   builderCode: '0x...',
    * });
    *
    * const firstPage = await paginator.firstPage();
@@ -47,7 +47,7 @@ export type AnalyticsActions = {
    * Loop through all pages with `for await`:
    * ```ts
    * const paginator = client.listBuilderTrades({
-   *   pageSize: 10,
+   *   builderCode: '0x...',
    * });
    *
    * for await (const page of paginator) {
@@ -55,9 +55,7 @@ export type AnalyticsActions = {
    * }
    * ```
    */
-  listBuilderTrades(
-    request?: ListBuilderTradesRequest,
-  ): Paginated<BuilderTrade>;
+  listBuilderTrades(request: ListBuilderTradesRequest): Paginated<BuilderTrade>;
 
   /**
    * Lists builder leaderboard rankings.
