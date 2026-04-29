@@ -12,16 +12,12 @@ import {
   fetchApiKeys,
   fetchBalanceAllowance,
   fetchMarket,
-  prepareLimitOrderPosting,
-  prepareTradingApprovals,
 } from './actions';
-import { isGaslessReady, prepareGaslessWallet } from './actions/gasless';
+import { isGaslessReady } from './actions/gasless';
+import { createSecureClient } from './clients';
+import { type PrivyWalletConfig, signerFrom } from './privy';
 import {
-  authenticateWith,
-  completeWith,
-  type PrivyWalletConfig,
-} from './privy';
-import {
+  builderAuthorization,
   publicClient,
   publicClientWithBuilderKey,
   runMeteredTests,
@@ -63,18 +59,23 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
         wallet: safeWalletAddress,
       }))
     ) {
-      const handle = await prepareGaslessWallet(
-        publicClientWithBuilderKey,
-      ).then(completeWith(wallet));
+      const secureClient = await createSecureClient({
+        apiKey: builderAuthorization,
+        signer: signerFrom(wallet),
+        wallet: safeWalletAddress,
+      });
+      const handle = await secureClient.setupGaslessWallet();
 
       expect(handle.wallet).toBe(safeWalletAddress);
       await handle.wait();
     }
 
     if (runMeteredTests) {
-      const secureClient = await publicClientWithBuilderKey
-        .beginAuthentication({ wallet: safeWalletAddress })
-        .then(authenticateWith(wallet));
+      const secureClient = await createSecureClient({
+        apiKey: builderAuthorization,
+        signer: signerFrom(wallet),
+        wallet: safeWalletAddress,
+      });
 
       hasCollateralBalance =
         (
@@ -84,26 +85,25 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
         ).balance !== '0';
 
       if (hasCollateralBalance) {
-        const handle = await prepareTradingApprovals(secureClient).then(
-          completeWith(wallet),
-        );
+        const handle = await secureClient.setupTradingApprovals();
 
         await handle.wait();
       }
     }
   }, 120_000);
 
-  describe('authenticateWith', () => {
-    it('authenticates a secure client from an authentication workflow', async () => {
-      const secureClient = await publicClient
-        .beginAuthentication({ wallet: safeWalletAddress })
-        .then(authenticateWith(wallet));
+  describe('signerFrom', () => {
+    it('authenticates a secure client', async () => {
+      const secureClient = await createSecureClient({
+        signer: signerFrom(wallet),
+        wallet: safeWalletAddress,
+      });
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
   });
 
-  describe('completeWith', () => {
+  describe('wallet operations', () => {
     it.runIf(runMeteredTests)(
       'places and cancels a limit order',
       async () => {
@@ -113,20 +113,21 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
         const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
         const price = expectPresent(market.trading.minimumTickSize);
         const size = expectPresent(market.trading.minimumOrderSize);
-        const secureClient = await publicClient
-          .beginAuthentication({ wallet: safeWalletAddress })
-          .then(authenticateWith(wallet));
+        const secureClient = await createSecureClient({
+          signer: signerFrom(wallet),
+          wallet: safeWalletAddress,
+        });
 
         if (!hasCollateralBalance) {
           return;
         }
 
-        const response = await prepareLimitOrderPosting(secureClient, {
+        const response = await secureClient.placeLimitOrder({
           price,
           size,
           side: OrderSide.BUY,
           tokenId: yesTokenId,
-        }).then(completeWith(wallet));
+        });
 
         expect(response.ok).toBe(true);
         const acceptedResponse = expectAcceptedOrderResponse(response);

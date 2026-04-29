@@ -2,12 +2,10 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import { invariant } from '@polymarket/types';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  createTestSecureClient,
   publicClient,
-  publicClientWithRelayerKey,
-  safeWalletAddress,
-  walletClient,
+  relayerAuthorization,
 } from '../testing';
-import { authenticateWith, completeWith } from '../viem';
 
 const TEST_MARKET_SLUG = 'eth-flipped-in-2026';
 
@@ -15,9 +13,9 @@ const market = await publicClient.fetchMarket({
   slug: TEST_MARKET_SLUG,
 });
 
-const secureClient = await publicClientWithRelayerKey
-  .beginAuthentication({ wallet: safeWalletAddress })
-  .then(authenticateWith(walletClient));
+const secureClient = await createTestSecureClient({
+  apiKey: relayerAuthorization,
+});
 
 invariant(
   secureClient.account.walletType === WalletType.POLY_GNOSIS_SAFE,
@@ -27,11 +25,10 @@ invariant(
 describe('Positions', () => {
   it('splits a market position', async () => {
     await secureClient
-      .prepareSplitPosition({
+      .splitPosition({
         amount: 1_000_000n,
         conditionId: market.conditionId,
       })
-      .then(completeWith(walletClient))
       .then((handle) => handle.wait());
 
     await vi.waitFor(
@@ -61,11 +58,10 @@ describe('Positions', () => {
     }
 
     await secureClient
-      .prepareMergePositions({
+      .mergePositions({
         amount: 'max',
         conditionId: market.conditionId,
       })
-      .then(completeWith(walletClient))
       .then((handle) => handle.wait());
 
     await vi.waitFor(

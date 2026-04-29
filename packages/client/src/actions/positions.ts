@@ -18,17 +18,23 @@ import {
 } from '../abis';
 import type { BaseSecureClient } from '../clients';
 import {
+  CancelledSigningError,
   makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
+  SigningError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import { expectTransactionHandle, type TransactionHandle } from '../types';
-import type { SignerTransactionRequest } from '../workflow';
 import {
+  expectTransactionHandle,
+  type SignerTransactionRequest,
+  type TransactionHandle,
+} from '../types';
+import {
+  completeWith,
   type SendMergePositionsTransactionRequest,
   type SendRedeemPositionsTransactionRequest,
   type SendSplitPositionTransactionRequest,
@@ -110,6 +116,15 @@ export type PrepareRedeemPositionsRequest = z.input<
 
 export type PrepareSplitPositionError = UserInputError;
 export const PrepareSplitPositionError = makeErrorGuard(UserInputError);
+export type SplitPositionError =
+  | PrepareSplitPositionError
+  | CancelledSigningError
+  | SigningError;
+export const SplitPositionError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
 export type PrepareMergePositionsError =
   | RateLimitError
   | RequestRejectedError
@@ -119,6 +134,19 @@ export type PrepareMergePositionsError =
 export const PrepareMergePositionsError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+export type MergePositionsError =
+  | PrepareMergePositionsError
+  | CancelledSigningError
+  | SigningError;
+export const MergePositionsError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -136,21 +164,33 @@ export const PrepareRedeemPositionsError = makeErrorGuard(
   UnexpectedResponseError,
   UserInputError,
 );
+export type RedeemPositionsError =
+  | PrepareRedeemPositionsError
+  | CancelledSigningError
+  | SigningError;
+export const RedeemPositionsError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Starts a split workflow for a market condition.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @example
  * ```ts
- * const handle = await prepareSplitPosition(client, {
+ * const workflow = await prepareSplitPosition(client, {
  *   amount: 1n,
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
- * }).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * });
  * ```
  *
  * @throws {@link PrepareSplitPositionError}
@@ -192,19 +232,33 @@ export async function prepareSplitPosition(
 }
 
 /**
+ * Splits collateral into market positions.
+ *
+ * @throws {@link SplitPositionError}
+ * Thrown on failure.
+ */
+export function splitPosition(
+  client: BaseSecureClient,
+  request: PrepareSplitPositionRequest,
+): Promise<TransactionHandle> {
+  return prepareSplitPosition(client, request).then(
+    completeWith(client.signer),
+  );
+}
+
+/**
  * Starts a workflow to merge complementary positions in a market back into collateral.
+ *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
  *
  * @example
  * ```ts
- * const handle = await prepareMergePositions(client, {
+ * const workflow = await prepareMergePositions(client, {
  *   amount: 'max',
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
- * }).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * });
  * ```
  *
  * @throws {@link PrepareMergePositionsError}
@@ -259,18 +313,32 @@ export async function prepareMergePositions(
 }
 
 /**
+ * Merges complementary market positions back into collateral.
+ *
+ * @throws {@link MergePositionsError}
+ * Thrown on failure.
+ */
+export function mergePositions(
+  client: BaseSecureClient,
+  request: PrepareMergePositionsRequest,
+): Promise<TransactionHandle> {
+  return prepareMergePositions(client, request).then(
+    completeWith(client.signer),
+  );
+}
+
+/**
  * Starts a redemption workflow for resolved positions.
+ *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
  *
  * @example
  * ```ts
- * const handle = await prepareRedeemPositions(client, {
+ * const workflow = await prepareRedeemPositions(client, {
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
- * }).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * });
  * ```
  *
  * @throws {@link PrepareRedeemPositionsError}
@@ -321,6 +389,21 @@ export async function prepareRedeemPositions(
         `Redeem positions for condition ${params.conditionId}`,
     });
   }.call(null);
+}
+
+/**
+ * Redeems resolved market positions.
+ *
+ * @throws {@link RedeemPositionsError}
+ * Thrown on failure.
+ */
+export function redeemPositions(
+  client: BaseSecureClient,
+  request: PrepareRedeemPositionsRequest,
+): Promise<TransactionHandle> {
+  return prepareRedeemPositions(client, request).then(
+    completeWith(client.signer),
+  );
 }
 
 function sendSplitPositionTransaction(

@@ -64,20 +64,19 @@ export const PrepareMarketOrderError = makeErrorGuard(
 /**
  * Starts the market-order workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @throws {@link PrepareMarketOrderError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const response = await prepareMarketOrder(client, {
+ * const workflow = await prepareMarketOrder(client, {
  *   amount: 10,
  *   side: OrderSide.BUY,
  *   tokenId: '123',
- * })
- *   .then(completeWith(wallet))
- *   .then(postOrder(client));
- *
- * // response: OrderResponse
+ * });
  * ```
  */
 export async function prepareMarketOrder(
@@ -120,21 +119,21 @@ export const PrepareLimitOrderError = makeErrorGuard(
 /**
  * Starts the limit-order workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @throws {@link PrepareLimitOrderError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const order = await prepareLimitOrder(client, {
+ * const workflow = await prepareLimitOrder(client, {
  *   postOnly: true,
  *   price: 0.52,
  *   side: OrderSide.BUY,
  *   size: 10,
  *   tokenId: '123',
- * }).then(completeWith(wallet))
- *   .then(postOrder(client));
- *
- * // response: OrderResponse
+ * });
  * ```
  */
 export async function prepareLimitOrder(
@@ -166,18 +165,19 @@ export const PrepareMarketOrderPostingError = PrepareMarketOrderError;
 /**
  * Starts and posts a market-order workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @throws {@link PrepareMarketOrderPostingError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const response = await prepareMarketOrderPosting(client, {
+ * const workflow = await prepareMarketOrderPosting(client, {
  *   amount: 10,
  *   side: OrderSide.BUY,
  *   tokenId: '123',
- * }).then(completeWith(wallet));
- *
- * // response: OrderResponse
+ * });
  * ```
  */
 export async function prepareMarketOrderPosting(
@@ -196,20 +196,21 @@ export const PrepareLimitOrderPostingError = PrepareLimitOrderError;
 /**
  * Starts and posts a limit-order workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @throws {@link PrepareLimitOrderPostingError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const response = await prepareLimitOrderPosting(client, {
+ * const workflow = await prepareLimitOrderPosting(client, {
  *   postOnly: true,
  *   price: 0.52,
  *   side: OrderSide.BUY,
  *   size: 10,
  *   tokenId: '123',
- * }).then(completeWith(wallet));
- *
- * // response: OrderResponse
+ * });
  * ```
  */
 export async function prepareLimitOrderPosting(

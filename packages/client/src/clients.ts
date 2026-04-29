@@ -21,12 +21,21 @@ import {
   type SecureActions,
 } from './decorators';
 import { type EnvironmentConfig, production } from './environments';
-import { RequestRejectedError, SigningError } from './errors';
+import {
+  CancelledSigningError,
+  makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+} from './errors';
 import { buildHmacSignature } from './hmac';
 import { parseUserInput } from './input';
 import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
-import type { ApiKeyAuthorization } from './types';
+import type { ApiKeyAuthorization, Signer } from './types';
 import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
@@ -35,7 +44,11 @@ import {
   type SecureWebSocketManagers,
   SportsWebSocketManager,
 } from './websockets';
-import { type AuthenticationWorkflow, requestAddress } from './workflow';
+import {
+  type AuthenticationWorkflow,
+  authenticateWith,
+  requestAddress,
+} from './workflow';
 
 type PublicContext = {
   /** @internal */
@@ -164,26 +177,7 @@ const BeginAuthenticationCredentialsSchema = z.object({
   secret: z.string(),
 });
 
-/**
- * Persistable authenticated session state that can later be passed to
- * {@link PublicClient.beginAuthentication}.
- */
-export type SessionSnapshot = {
-  /**
-   * Wallet address to authenticate as.
-   *
-   * Pass the signer address itself to authenticate as an EOA account.
-   */
-  wallet: string;
-
-  /**
-   * Existing API credentials to reuse when they remain valid.
-   */
-  credentials: ApiKeyCreds;
-  nonce?: never;
-};
-
-export type FreshAuthenticationRequest = {
+export type BeginAuthenticationRequest = {
   /**
    * Wallet address to authenticate as.
    *
@@ -194,15 +188,20 @@ export type FreshAuthenticationRequest = {
   /**
    * Nonce used when creating or deriving fresh credentials.
    *
+   * Mutually exclusive with `credentials`.
+   *
    * @defaultValue 0
    */
   nonce?: number;
-  credentials?: never;
-};
 
-export type BeginAuthenticationRequest =
-  | SessionSnapshot
-  | FreshAuthenticationRequest;
+  /**
+   * Existing API credentials to reuse when they remain valid.
+   *
+   * If these credentials are revoked or invalid, authentication falls back to
+   * fresh authentication and the signer may be asked to sign again.
+   */
+  credentials?: ApiKeyCreds;
+};
 
 const BeginAuthenticationRequestSchema: z.ZodType<BeginAuthenticationRequest> =
   z
@@ -295,7 +294,7 @@ class BasePublicClient<
    * @example
    * ```ts
    * if (client.isPublicClient()) {
-   *   client.beginAuthentication(...); // PublicClient
+   *   client.closeSubscriptions(); // PublicClient
    * }
    * ```
    */
@@ -344,12 +343,14 @@ class BasePublicClient<
    * Begins an authentication workflow that produces a {@link SecureClient}.
    *
    * @remarks
-   * Pass a {@link SessionSnapshot} to reuse stored credentials when they remain
-   * valid. If the stored credential is no longer valid, the workflow falls back
-   * to fresh authentication.
+   * This is a low-level method for building wallet-interactive workflows. Most
+   * applications should use {@link createSecureClient} instead.
+   *
+   * @internal
    */
   beginAuthentication(
     request: BeginAuthenticationRequest,
+    signer?: Signer,
   ): Promise<
     AuthenticationWorkflow<SecureClient<TPublicActions, TSecureActions>>
   > {
@@ -361,16 +362,20 @@ class BasePublicClient<
       ): AuthenticationWorkflow<SecureClient<TPublicActions, TSecureActions>> {
         const timestamp = Math.floor(Date.now() / 1000);
         const nonce = params?.nonce ?? 0;
-        const signer = expectEvmAddress(yield requestAddress());
+        const signerAddress = expectEvmAddress(yield requestAddress());
         const wallet = expectEvmAddress(params.wallet);
         const identity = resolveAccountIdentity(
           this.environment,
-          signer,
+          signerAddress,
           wallet,
         );
 
         if (params.credentials !== undefined) {
-          const client = this.#createSecureClient(params.credentials, identity);
+          const client = this.#createSecureClient(
+            params.credentials,
+            identity,
+            signer,
+          );
 
           try {
             const apiKeys = await fetchApiKeys(client);
@@ -390,20 +395,20 @@ class BasePublicClient<
         const signature = yield {
           kind: 'signAuthMessage',
           payload: createApiKeyAuthTypedDataPayload({
-            address: signer,
+            address: signerAddress,
             chainId: this.environment.chainId,
             nonce,
             timestamp,
           }),
         };
         const credentials = await createOrDeriveApiKey(this, {
-          address: signer,
+          address: signerAddress,
           nonce,
           signature: expectEvmSignature(signature),
           timestamp,
         });
 
-        return this.#createSecureClient(credentials, identity);
+        return this.#createSecureClient(credentials, identity, signer);
       }.call(this as unknown as PublicClient<TPublicActions, TSecureActions>),
     );
   }
@@ -411,12 +416,14 @@ class BasePublicClient<
   #createSecureClient(
     credentials: ApiKeyCreds,
     account: AccountIdentity,
+    signer?: Signer,
   ): SecureClient<TPublicActions, TSecureActions> {
     const client = new BaseSecureClient({
       account: account,
       apiKey: this.context.apiKey,
       credentials,
       environment: this.environment,
+      signer,
     });
 
     for (const decorator of this.decorators) {
@@ -456,6 +463,7 @@ class BaseSecureClient<
       credentials: config.credentials,
       apiKey: config.apiKey,
       environment: config.environment,
+      signer: config.signer,
       clob: new ServiceClient({
         root: config.environment.clob,
         resolveHeaders: (request) => this.resolveClobHeaders(request),
@@ -489,7 +497,14 @@ class BaseSecureClient<
     });
   }
 
-  /** @internal */
+  /**
+   * API credentials for the authenticated session.
+   *
+   * @remarks
+   * These credentials are sensitive. Store them securely if you want to create
+   * another secure client later without requiring a new authentication signature
+   * while the credentials remain valid.
+   */
   get credentials(): ApiKeyCreds {
     return this.context.credentials;
   }
@@ -499,6 +514,16 @@ class BaseSecureClient<
    */
   get account(): AccountIdentity {
     return this.context.account;
+  }
+
+  /** @internal */
+  get signer(): Signer {
+    invariant(
+      this.context.signer !== undefined,
+      'Secure client does not have a signer. Create secure clients with createSecureClient to use wallet-interactive methods.',
+    );
+
+    return this.context.signer;
   }
 
   /** @internal */
@@ -553,7 +578,7 @@ class BaseSecureClient<
    * @example
    * ```ts
    * if (client.isPublicClient()) {
-   *   client.beginAuthentication(...); // PublicClient
+   *   client.closeSubscriptions(); // PublicClient
    * }
    * ```
    */
@@ -577,28 +602,6 @@ class BaseSecureClient<
       TPublicActions,
       Prettify<TSecureActions & DecoratorSecureActions<TDecorator>>
     >;
-  }
-
-  /**
-   * Returns a persistable snapshot of the current authenticated session.
-   *
-   * @remarks
-   * Pass the returned snapshot to {@link PublicClient.beginAuthentication} to
-   * reuse the current session in a later authentication attempt. Capture the
-   * snapshot before calling {@link endAuthentication}; ending authentication
-   * revokes the current credential, so reusing an older snapshot will fall back
-   * to fresh authentication.
-   *
-   * @example
-   * ```ts
-   * const snapshot = secureClient.getSessionSnapshot();
-   * ```
-   */
-  getSessionSnapshot(): SessionSnapshot {
-    return {
-      wallet: this.account.wallet,
-      credentials: this.credentials,
-    };
   }
 
   /**
@@ -667,6 +670,8 @@ type SecureContext = PublicContext & {
   /** @internal */
   credentials: ApiKeyCreds;
   /** @internal */
+  signer?: Signer;
+  /** @internal */
   secureClob: ServiceClient;
   /** @internal */
   webSockets: SecureWebSocketManagers;
@@ -675,6 +680,7 @@ type SecureContext = PublicContext & {
 type SecureClientConfig = PublicClientConfig & {
   account: AccountIdentity;
   credentials: ApiKeyCreds;
+  signer?: Signer;
 };
 
 export type PublicClient<
@@ -717,6 +723,55 @@ export type PublicClientOptions = {
   apiKey?: ApiKeyAuthorization;
 };
 
+export type CreateSecureClientOptions = PublicClientOptions & {
+  /**
+   * Wallet address to authenticate as.
+   *
+   * Pass the signer address itself to authenticate as an EOA account.
+   */
+  wallet: string;
+
+  /**
+   * Wallet-library adapter used to authenticate and complete wallet operations.
+   */
+  signer: Signer;
+} & (
+    | {
+        /**
+         * Existing API credentials to reuse when they remain valid.
+         */
+        credentials?: ApiKeyCreds;
+        nonce?: never;
+      }
+    | {
+        credentials?: never;
+        /**
+         * Nonce used when creating or deriving fresh credentials.
+         *
+         * @defaultValue 0
+         */
+        nonce?: number;
+      }
+  );
+
+export type CreateSecureClientError =
+  | CancelledSigningError
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const CreateSecureClientError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
 /**
  * Creates a new `PublicClient` instance.
  *
@@ -732,4 +787,38 @@ export function createPublicClient(
     environment: options.environment ?? production,
     apiKey: options.apiKey,
   }).extend(allActions);
+}
+
+/**
+ * Creates a new authenticated `SecureClient` instance.
+ *
+ * @example
+ * ```ts
+ * const secureClient = await createSecureClient({
+ *   signer,
+ *   wallet,
+ * });
+ * ```
+ *
+ * @throws {@link CreateSecureClientError}
+ * Thrown on failure.
+ */
+export async function createSecureClient(
+  options: CreateSecureClientOptions,
+): Promise<SecureClient<PublicActions, SecureActions>> {
+  const client = createPublicClient({
+    environment: options.environment,
+    apiKey: options.apiKey,
+  });
+
+  return client
+    .beginAuthentication(
+      {
+        wallet: options.wallet,
+        credentials: options.credentials,
+        nonce: options.nonce,
+      },
+      options.signer,
+    )
+    .then(authenticateWith(options.signer));
 }

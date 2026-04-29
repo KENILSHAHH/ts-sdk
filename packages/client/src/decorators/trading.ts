@@ -4,7 +4,6 @@ import type {
   OrderResponse,
   OrderResponses,
 } from '@polymarket/bindings/clob';
-import type { OrderWorkflow } from '../actions';
 import {
   type CancelMarketOrdersRequest,
   type CancelOrderRequest,
@@ -13,20 +12,19 @@ import {
   cancelMarketOrders,
   cancelOrder,
   cancelOrders,
+  createLimitOrder,
+  createMarketOrder,
   type FetchOrderRequest,
   fetchOrder,
   type ListOpenOrdersRequest,
   listOpenOrders,
-  type OrderPostingWorkflow,
   type PostOrdersRequest,
   type PrepareLimitOrderRequest,
   type PrepareMarketOrderRequest,
+  placeLimitOrder,
+  placeMarketOrder,
   postOrder,
   postOrders,
-  prepareLimitOrder,
-  prepareLimitOrderPosting,
-  prepareMarketOrder,
-  prepareMarketOrderPosting,
 } from '../actions';
 import type { SignedOrder } from '../actions/orders';
 import type { BaseSecureClient } from '../clients';
@@ -34,91 +32,77 @@ import type { Paginated } from '../pagination';
 
 export type TradingActions = {
   /**
-   * Starts the market-order workflow.
+   * Creates a signed market order for the authenticated account.
    *
-   * @throws {@link PrepareMarketOrderError}
+   * @throws {@link CreateMarketOrderError}
    * Thrown on failure.
    *
    * @example
    * ```ts
-   * const order = await client.prepareMarketOrder({
+   * const order = await client.createMarketOrder({
    *   amount: 10,
    *   side: OrderSide.BUY,
    *   tokenId: '123',
-   * }).then(completeWith(wallet));
+   * });
+   * ```
+   */
+  createMarketOrder(request: PrepareMarketOrderRequest): Promise<SignedOrder>;
+  /**
+   * Creates and posts a market order for the authenticated account.
    *
-   * const response = await client.postOrder(order);
+   * @throws {@link PlaceMarketOrderError}
+   * Thrown on failure.
+   *
+   * @example
+   * ```ts
+   * const response = await client.placeMarketOrder({
+   *   amount: 10,
+   *   side: OrderSide.BUY,
+   *   tokenId: '123',
+   * });
    *
    * // response: OrderResponse
    * ```
    */
-  prepareMarketOrder(
-    request: PrepareMarketOrderRequest,
-  ): Promise<OrderWorkflow>;
+  placeMarketOrder(request: PrepareMarketOrderRequest): Promise<OrderResponse>;
   /**
-   * Starts and posts a market-order workflow.
+   * Creates a signed limit order for the authenticated account.
    *
-   * @throws {@link PrepareMarketOrderPostingError}
+   * @throws {@link CreateLimitOrderError}
    * Thrown on failure.
    *
    * @example
    * ```ts
-   * const response = await client.prepareMarketOrderPosting({
-   *   amount: 10,
-   *   side: OrderSide.BUY,
-   *   tokenId: '123',
-   * }).then(completeWith(wallet));
-   *
-   * // response: OrderResponse
-   * ```
-   */
-  prepareMarketOrderPosting(
-    request: PrepareMarketOrderRequest,
-  ): Promise<OrderPostingWorkflow>;
-  /**
-   * Starts the limit-order workflow.
-   *
-   * @throws {@link PrepareLimitOrderError}
-   * Thrown on failure.
-   *
-   * @example
-   * ```ts
-   * const order = await client.prepareLimitOrder({
+   * const order = await client.createLimitOrder({
    *   postOnly: true,
    *   price: 0.52,
    *   side: OrderSide.BUY,
    *   size: 10,
    *   tokenId: '123',
-   * }).then(completeWith(wallet));
-   *
-   * const response = await client.postOrder(order);
-   *
-   * // response: OrderResponse
+   * });
    * ```
    */
-  prepareLimitOrder(request: PrepareLimitOrderRequest): Promise<OrderWorkflow>;
+  createLimitOrder(request: PrepareLimitOrderRequest): Promise<SignedOrder>;
   /**
-   * Starts and posts a limit-order workflow.
+   * Creates and posts a limit order for the authenticated account.
    *
-   * @throws {@link PrepareLimitOrderPostingError}
+   * @throws {@link PlaceLimitOrderError}
    * Thrown on failure.
    *
    * @example
    * ```ts
-   * const response = await client.prepareLimitOrderPosting({
+   * const response = await client.placeLimitOrder({
    *   postOnly: true,
    *   price: 0.52,
    *   side: OrderSide.BUY,
    *   size: 10,
    *   tokenId: '123',
-   * }).then(completeWith(wallet));
+   * });
    *
    * // response: OrderResponse
    * ```
    */
-  prepareLimitOrderPosting(
-    request: PrepareLimitOrderRequest,
-  ): Promise<OrderPostingWorkflow>;
+  placeLimitOrder(request: PrepareLimitOrderRequest): Promise<OrderResponse>;
   /**
    * Posts a signed order for the authenticated account.
    *
@@ -257,10 +241,10 @@ export type TradingActions = {
 export function tradingActions(client: BaseSecureClient): TradingActions;
 export function tradingActions(client: BaseSecureClient): TradingActions {
   return {
-    prepareMarketOrder: prepareMarketOrder.bind(null, client),
-    prepareMarketOrderPosting: prepareMarketOrderPosting.bind(null, client),
-    prepareLimitOrder: prepareLimitOrder.bind(null, client),
-    prepareLimitOrderPosting: prepareLimitOrderPosting.bind(null, client),
+    createMarketOrder: createMarketOrder.bind(null, client),
+    placeMarketOrder: placeMarketOrder.bind(null, client),
+    createLimitOrder: createLimitOrder.bind(null, client),
+    placeLimitOrder: placeLimitOrder.bind(null, client),
     postOrder: postOrder(client),
     postOrders: postOrders(client),
     cancelOrder: cancelOrder.bind(null, client),
@@ -280,12 +264,12 @@ export {
   CancelMarketOrdersError,
   CancelOrderError,
   CancelOrdersError,
+  CreateLimitOrderError,
+  CreateMarketOrderError,
   FetchOrderError,
   ListOpenOrdersError,
+  PlaceLimitOrderError,
+  PlaceMarketOrderError,
   PostOrderError,
   PostOrdersError,
-  PrepareLimitOrderError,
-  PrepareLimitOrderPostingError,
-  PrepareMarketOrderError,
-  PrepareMarketOrderPostingError,
 } from '../actions';

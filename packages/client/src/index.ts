@@ -14,15 +14,14 @@ export type {
 } from './authorization';
 export { relayerApiKey, remoteBuilderSigning } from './authorization';
 export type * from './clients';
-export { createPublicClient } from './clients';
+export {
+  CreateSecureClientError,
+  createPublicClient,
+  createSecureClient,
+} from './clients';
 export * from './decorators';
 export * from './environments';
 export * from './errors';
 export * from './hmac';
 export type * from './pagination';
 export * from './types';
-export type {
-  AuthenticationWorkflow,
-  AuthenticationWorkflowRequest,
-} from './workflow';
-export { AuthenticateWithError, CompleteWithError } from './workflow';

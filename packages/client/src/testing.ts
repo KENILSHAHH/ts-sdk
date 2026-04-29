@@ -14,10 +14,11 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { deriveProxyWalletAddress } from './account';
 import { relayerApiKey } from './authorization';
-import { createPublicClient } from './clients';
+import { createPublicClient, createSecureClient } from './clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
 import { builderApiKey } from './node';
 import type { Page } from './pagination';
+import { signerFrom } from './viem';
 
 if (process.env.CI !== 'true') {
   try {
@@ -39,15 +40,19 @@ export const builderCredentials = {
   passphrase: expectPresent(process.env.POLYMARKET_BUILDER_PASSPHRASE),
 } as const;
 
+export const builderAuthorization = builderApiKey(builderCredentials);
+
 export const publicClientWithBuilderKey = createPublicClient({
-  apiKey: builderApiKey(builderCredentials),
+  apiKey: builderAuthorization,
+});
+
+export const relayerAuthorization = relayerApiKey({
+  key: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY),
+  address: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY_ADDRESS),
 });
 
 export const publicClientWithRelayerKey = createPublicClient({
-  apiKey: relayerApiKey({
-    key: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY),
-    address: expectPresent(process.env.POLYMARKET_RELAYER_API_KEY_ADDRESS),
-  }),
+  apiKey: relayerAuthorization,
 });
 
 function loadTestPrivateKey(): PrivateKey {
@@ -97,6 +102,18 @@ export const walletClient = createWalletClient({
   chain: polygon,
   transport: http(),
 });
+
+export const signer = signerFrom(walletClient);
+
+export function createTestSecureClient(
+  options: Partial<Parameters<typeof createSecureClient>[0]> = {},
+) {
+  return createSecureClient({
+    signer,
+    wallet: safeWalletAddress,
+    ...options,
+  });
+}
 
 export function createRandomWalletClient() {
   const privateKey = generatePrivateKey();

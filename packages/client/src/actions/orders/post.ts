@@ -60,13 +60,12 @@ export const PostOrdersError = makeErrorGuard(
  *
  * @example
  * ```ts
- * const response = await prepareMarketOrder(client, {
+ * const order = await client.createMarketOrder({
  *   amount: 10,
  *   side: OrderSide.BUY,
  *   tokenId: '123',
- * })
- *   .then(completeWith(wallet))
- *   .then(postOrder(client));
+ * });
+ * const response = await postOrder(client)(order);
  * ```
  *
  * @throws {@link PostOrderError}

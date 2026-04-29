@@ -8,22 +8,18 @@ import { expectPresent } from '@polymarket/types';
 import { afterAll, describe, expect, it } from 'vitest';
 import { InsufficientLiquidityError } from '../errors';
 import {
+  createTestSecureClient,
   findHighVolumeLowPriceMarket,
   publicClient,
-  publicClientWithRelayerKey,
+  relayerAuthorization,
   runMeteredTests,
-  safeWalletAddress,
   testBuilderCode,
-  walletClient,
 } from '../testing';
-import { authenticateWith, completeWith } from '../viem';
 import { fetchNegRisk } from './clob';
 
 const market = await findHighVolumeLowPriceMarket();
 
-const secureClient = await publicClient
-  .beginAuthentication({ wallet: safeWalletAddress })
-  .then(authenticateWith(walletClient));
+const secureClient = await createTestSecureClient();
 
 describe('Orders', { timeout: 60_000 }, () => {
   describe('estimateMarketPrice', () => {
@@ -73,12 +69,11 @@ describe('Orders', { timeout: 60_000 }, () => {
       );
 
       await secureClient
-        .prepareMarketOrderPosting({
+        .placeMarketOrder({
           amount: expectPresent(position?.size),
           side: OrderSide.SELL,
           tokenId: expectPresent(position?.tokenId),
         })
-        .then(completeWith(walletClient))
         .then(expectAcceptedOrderResponse);
     });
 
@@ -103,13 +98,11 @@ describe('Orders', { timeout: 60_000 }, () => {
           // leftover inventory, and use that cleanup path to exercise market
           // order posting.
           const result = await secureClient
-            .prepareMarketOrder({
+            .placeMarketOrder({
               amount: expectPresent(position.size),
               side: OrderSide.SELL,
               tokenId: expectPresent(position.tokenId),
             })
-            .then(completeWith(walletClient))
-            .then(secureClient.postOrder)
             .then(expectAcceptedOrderResponse);
 
           expect(result.orderId).not.toBe('');
@@ -122,13 +115,11 @@ describe('Orders', { timeout: 60_000 }, () => {
 
         const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
         const buyResult = await secureClient
-          .prepareMarketOrder({
+          .placeMarketOrder({
             amount: expectPresent(1),
             side: OrderSide.BUY,
             tokenId: yesTokenId,
           })
-          .then(completeWith(walletClient))
-          .then(secureClient.postOrder)
           .then(expectAcceptedOrderResponse);
 
         expect(buyResult.orderId).not.toBe('');
@@ -138,14 +129,12 @@ describe('Orders', { timeout: 60_000 }, () => {
     it('carries builder attribution onto the prepared market order', async () => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
-      const order = await secureClient
-        .prepareMarketOrder({
-          amount: expectPresent(market.trading.minimumOrderSize),
-          builderCode: testBuilderCode,
-          side: OrderSide.BUY,
-          tokenId: yesTokenId,
-        })
-        .then(completeWith(walletClient));
+      const order = await secureClient.createMarketOrder({
+        amount: expectPresent(market.trading.minimumOrderSize),
+        builderCode: testBuilderCode,
+        side: OrderSide.BUY,
+        tokenId: yesTokenId,
+      });
 
       expect(order.builder).toBe(testBuilderCode);
     });
@@ -157,62 +146,53 @@ describe('Orders', { timeout: 60_000 }, () => {
     const minSize = expectPresent(market.trading.minimumOrderSize);
 
     it('allows to place a limit order for the desired size and price', async () => {
-      const result = await secureClient
-        .prepareLimitOrder({
-          price: minPrice,
-          side: OrderSide.BUY,
-          size: minSize,
-          tokenId: yesTokenId,
-        })
-        .then(completeWith(walletClient))
-        .then(secureClient.postOrder);
+      const result = await secureClient.placeLimitOrder({
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      });
 
       expect(result.ok).toBe(true);
     });
 
     it('carries post-only submission options onto the prepared order', async () => {
-      const order = await secureClient
-        .prepareLimitOrder({
-          builderCode: testBuilderCode,
-          postOnly: true,
-          price: minPrice,
-          side: OrderSide.BUY,
-          size: minSize,
-          tokenId: yesTokenId,
-        })
-        .then(completeWith(walletClient));
+      const order = await secureClient.createLimitOrder({
+        builderCode: testBuilderCode,
+        postOnly: true,
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      });
 
       expect(order.postOnly).toBe(true);
       expect(order.builder).toBe(testBuilderCode);
     });
 
     it('requests a collateral approval if necessary', async () => {
-      const gaslessClient = await publicClientWithRelayerKey
-        .beginAuthentication({ wallet: safeWalletAddress })
-        .then(authenticateWith(walletClient));
+      const gaslessClient = await createTestSecureClient({
+        apiKey: relayerAuthorization,
+      });
       const exchangeAddress = await resolveExchangeAddressForToken(
         gaslessClient,
         yesTokenId,
       );
 
       await gaslessClient
-        .prepareErc20Approval({
+        .approveErc20({
           amount: 0n,
           spenderAddress: exchangeAddress,
           tokenAddress: gaslessClient.environment.collateralToken,
         })
-        .then(completeWith(walletClient))
         .then((handle) => handle.wait());
 
-      const response = await gaslessClient
-        .prepareLimitOrder({
-          price: minPrice,
-          side: OrderSide.BUY,
-          size: minSize,
-          tokenId: yesTokenId,
-        })
-        .then(completeWith(walletClient))
-        .then((order) => gaslessClient.postOrder(order));
+      const response = await gaslessClient.placeLimitOrder({
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      });
 
       expect(response.ok).toBe(true);
       const acceptedResponse = expectAcceptedOrderResponse(response);
@@ -231,15 +211,13 @@ describe('Orders', { timeout: 60_000 }, () => {
     const minSize = expectPresent(market.trading.minimumOrderSize);
 
     it('creates, signs, and posts a limit order in one workflow', async () => {
-      const response = await secureClient
-        .prepareLimitOrderPosting({
-          postOnly: true,
-          price: minPrice,
-          side: OrderSide.BUY,
-          size: minSize,
-          tokenId: yesTokenId,
-        })
-        .then(completeWith(walletClient));
+      const response = await secureClient.placeLimitOrder({
+        postOnly: true,
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      });
 
       expect(response.ok).toBe(true);
       const acceptedResponse = expectAcceptedOrderResponse(response);
@@ -326,14 +304,12 @@ async function createRestingLimitOrder(): Promise<{
   const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
   const tickSize = expectPresent(market.trading.minimumTickSize);
   const size = expectPresent(market.trading.minimumOrderSize);
-  const response = await secureClient
-    .prepareLimitOrderPosting({
-      price: tickSize,
-      side: OrderSide.BUY,
-      size,
-      tokenId: yesTokenId,
-    })
-    .then(completeWith(walletClient));
+  const response = await secureClient.placeLimitOrder({
+    price: tickSize,
+    side: OrderSide.BUY,
+    size,
+    tokenId: yesTokenId,
+  });
   expect(response.ok).toBe(true);
   const acceptedResponse = expectAcceptedOrderResponse(response);
 
@@ -351,14 +327,12 @@ async function createSignedRestingLimitOrder() {
   const tickSize = expectPresent(market.trading.minimumTickSize);
   const size = expectPresent(market.trading.minimumOrderSize);
 
-  return secureClient
-    .prepareLimitOrder({
-      price: tickSize,
-      side: OrderSide.BUY,
-      size,
-      tokenId: yesTokenId,
-    })
-    .then(completeWith(walletClient));
+  return secureClient.createLimitOrder({
+    price: tickSize,
+    side: OrderSide.BUY,
+    size,
+    tokenId: yesTokenId,
+  });
 }
 
 async function resolveExchangeAddressForToken(

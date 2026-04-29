@@ -27,15 +27,12 @@ import {
   TransportError,
 } from './errors';
 import type {
+  Signer,
+  SignerTransactionRequest,
   TransactionHandle,
   TransactionOutcome,
   TypedDataPayload,
 } from './types';
-import type {
-  AuthenticateWith,
-  CompleteWith,
-  SignerTransactionRequest,
-} from './workflow';
 
 invariant(
   process.release.name === 'node',
@@ -54,89 +51,23 @@ export type PrivyWalletConfig = {
 
 const allChains = Object.values(viemChains) as Chain[];
 
-/**
- * Drives an authentication workflow with a Privy Node SDK wallet.
- *
- * @throws {@link AuthenticateWithError}
- * Thrown when the required wallet signature cannot be produced.
- */
-export function authenticateWith(config: PrivyWalletConfig): AuthenticateWith {
-  return async function authenticate(workflow) {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'requestAddress':
-            result = await workflow.next(await resolveAddress(config));
-            break;
-          case 'signAuthMessage':
-            result = await workflow.next(
-              await signTypedData(config, result.value.payload),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
-  };
-}
-
-/**
- * Drives a workflow with a Privy Node SDK wallet.
- *
- * Supports the current non-auth workflow set, including order signing,
- * approvals, transfers, redemptions, and gasless wallet preparation.
- *
- * @throws {@link CompleteWithError}
- * Thrown when the required wallet signature or submission cannot be produced.
- */
-export function completeWith(config: PrivyWalletConfig): CompleteWith {
-  return async function complete(workflow) {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'sendErc20ApprovalTransaction':
-          case 'sendErc1155ApprovalForAllTransaction':
-          case 'sendErc20TransferTransaction':
-          case 'sendMergePositionsTransaction':
-          case 'sendRedeemPositionsTransaction':
-          case 'sendSplitPositionTransaction': {
-            const hash = await sendTransaction(config, result.value.request);
-            result = await workflow.next(
-              new DirectTransactionHandle(hash, result.value.request.chainId),
-            );
-            break;
-          }
-
-          case 'requestAddress':
-            result = await workflow.next(await resolveAddress(config));
-            break;
-
-          case 'signGaslessTypedData':
-          case 'signOrder':
-            result = await workflow.next(
-              await signTypedData(config, result.value.payload),
-            );
-            break;
-
-          case 'signGaslessMessage':
-            result = await workflow.next(
-              await signMessage(config, result.value.payload),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
+export function signerFrom(config: PrivyWalletConfig): Signer {
+  return {
+    getAddress() {
+      return resolveAddress(config);
+    },
+    signTypedData(payload) {
+      return signTypedData(config, payload);
+    },
+    signMessage(message) {
+      return signMessage(config, message);
+    },
+    async sendTransaction(request) {
+      return new DirectTransactionHandle(
+        await sendTransaction(config, request),
+        request.chainId,
+      );
+    },
   };
 }
 

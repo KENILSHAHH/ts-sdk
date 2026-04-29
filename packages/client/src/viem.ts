@@ -25,8 +25,7 @@ import {
   TransactionFailedError,
   TransportError,
 } from './errors';
-import type { TransactionHandle } from './types';
-import type { AuthenticateWith, CompleteWith } from './workflow';
+import type { Signer, TransactionHandle } from './types';
 
 function isWalletClientWithAccount(
   walletClient: WalletClient,
@@ -34,13 +33,7 @@ function isWalletClientWithAccount(
   return walletClient.account !== undefined;
 }
 
-/**
- * Drives an authentication workflow with a viem wallet client.
- *
- * @throws {@link AuthenticateWithError}
- * Thrown when the required wallet signature is rejected or cannot be produced.
- */
-export function authenticateWith(walletClient: WalletClient): AuthenticateWith {
+export function signerFrom(walletClient: WalletClient): Signer {
   invariant(
     isWalletClientWithAccount(walletClient),
     'Wallet client with account is required',
@@ -53,114 +46,34 @@ export function authenticateWith(walletClient: WalletClient): AuthenticateWith {
       : walletClient.account.address,
   );
 
-  return async function authenticate(workflow) {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'requestAddress':
-            result = await workflow.next(address);
-            break;
-          case 'signAuthMessage':
-            result = await workflow.next(
-              expectEvmSignature(
-                await signTypedData(walletClient, {
-                  account,
-                  ...result.value.payload,
-                }),
-              ),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
-  };
-}
-
-/**
- * Drives a workflow with a viem wallet client.
- *
- * Supports the current non-auth workflow set, including order signing,
- * approvals, transfers, redemptions, and gasless wallet preparation.
- *
- * @throws {@link CompleteWithError}
- * Thrown when the required wallet signature or submission is rejected or cannot be produced.
- */
-export function completeWith(walletClient: WalletClient): CompleteWith {
-  invariant(
-    isWalletClientWithAccount(walletClient),
-    'Wallet client with account is required',
-  );
-
-  const account = walletClient.account;
-  const address = expectEvmAddress(
-    typeof walletClient.account === 'string'
-      ? walletClient.account
-      : walletClient.account.address,
-  );
-
-  return async function complete(workflow) {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'sendErc20ApprovalTransaction':
-          case 'sendErc1155ApprovalForAllTransaction':
-          case 'sendErc20TransferTransaction':
-          case 'sendMergePositionsTransaction':
-          case 'sendRedeemPositionsTransaction':
-          case 'sendSplitPositionTransaction': {
-            const { chainId, ...request } = result.value.request;
-            await assertChainId(walletClient, chainId);
-            const hash = await sendTransaction(walletClient, {
-              account,
-              ...request,
-            });
-            result = await workflow.next(
-              new DirectTransactionHandle(hash, walletClient),
-            );
-            break;
-          }
-
-          case 'requestAddress':
-            result = await workflow.next(address);
-            break;
-
-          case 'signGaslessTypedData':
-          case 'signOrder':
-            result = await workflow.next(
-              expectEvmSignature(
-                await signTypedData(walletClient, {
-                  account,
-                  ...result.value.payload,
-                }),
-              ),
-            );
-            break;
-
-          case 'signGaslessMessage':
-            result = await workflow.next(
-              expectEvmSignature(
-                await signMessage(walletClient, {
-                  account,
-                  message: { raw: result.value.payload },
-                }),
-              ),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
+  return {
+    getAddress() {
+      return Promise.resolve(address);
+    },
+    async signTypedData(payload) {
+      return expectEvmSignature(
+        await signTypedData(walletClient, {
+          account,
+          ...payload,
+        }),
+      );
+    },
+    async signMessage(message) {
+      return expectEvmSignature(
+        await signMessage(walletClient, {
+          account,
+          message: { raw: message },
+        }),
+      );
+    },
+    async sendTransaction({ chainId, ...request }) {
+      await assertChainId(walletClient, chainId);
+      const hash = await sendTransaction(walletClient, {
+        account,
+        ...request,
+      });
+      return new DirectTransactionHandle(hash, walletClient);
+    },
   };
 }
 

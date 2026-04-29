@@ -12,8 +12,12 @@ import {
   TransactionFailedError,
   TransportError,
 } from './errors';
-import type { TransactionHandle, TypedData, TypedDataPayload } from './types';
-import type { AuthenticateWith, CompleteWith } from './workflow';
+import type {
+  Signer,
+  TransactionHandle,
+  TypedData,
+  TypedDataPayload,
+} from './types';
 
 type EthersV5Signer = ethers.Signer & {
   _signTypedData(
@@ -23,94 +27,22 @@ type EthersV5Signer = ethers.Signer & {
   ): Promise<string>;
 };
 
-/**
- * Drives an authentication workflow with an ethers v5 signer.
- *
- * @throws {@link AuthenticateWithError}
- * Thrown when the required wallet signature is rejected or cannot be produced.
- */
-export function authenticateWith(signer: EthersV5Signer): AuthenticateWith {
-  return async function authenticate(workflow) {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'requestAddress': {
-            const address = await getAddress(signer);
-            result = await workflow.next(address);
-            break;
-          }
-          case 'signAuthMessage':
-            result = await workflow.next(
-              await signTypedData(signer, result.value.payload),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
-  };
-}
-
-/**
- * Drives a workflow with an ethers v5 signer.
- *
- * Supports the current non-auth workflow set, including order signing,
- * approvals, transfers, redemptions, and gasless wallet preparation.
- *
- * @throws {@link CompleteWithError}
- * Thrown when the required wallet signature or submission is rejected or cannot be produced.
- */
-export function completeWith(signer: EthersV5Signer): CompleteWith {
-  return async function complete(workflow) {
-    let result = await workflow.next();
-
-    while (!result.done) {
-      try {
-        switch (result.value.kind) {
-          case 'sendErc20ApprovalTransaction':
-          case 'sendErc1155ApprovalForAllTransaction':
-          case 'sendErc20TransferTransaction':
-          case 'sendMergePositionsTransaction':
-          case 'sendRedeemPositionsTransaction':
-          case 'sendSplitPositionTransaction': {
-            const response = await sendTransaction(
-              signer,
-              result.value.request,
-            );
-            result = await workflow.next(new DirectTransactionHandle(response));
-            break;
-          }
-
-          case 'requestAddress': {
-            const address = await getAddress(signer);
-            result = await workflow.next(address);
-            break;
-          }
-
-          case 'signGaslessTypedData':
-          case 'signOrder':
-            result = await workflow.next(
-              await signTypedData(signer, result.value.payload),
-            );
-            break;
-
-          case 'signGaslessMessage':
-            result = await workflow.next(
-              await signMessage(signer, result.value.payload),
-            );
-            break;
-        }
-      } catch (error) {
-        result = await workflow.throw(error);
-      }
-    }
-
-    return result.value;
+export function signerFrom(signer: EthersV5Signer): Signer {
+  return {
+    getAddress() {
+      return getAddress(signer);
+    },
+    signTypedData(payload) {
+      return signTypedData(signer, payload);
+    },
+    signMessage(message) {
+      return signMessage(signer, message);
+    },
+    async sendTransaction(request) {
+      return new DirectTransactionHandle(
+        await sendTransaction(signer, request),
+      );
+    },
   };
 }
 

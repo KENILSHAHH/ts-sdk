@@ -34,9 +34,11 @@ import { encodeProxyCall, encodeSafeMultisendCall } from '../abis';
 import { deriveSafeWalletAddress } from '../account';
 import type { BaseClient, BaseSecureClient } from '../clients';
 import {
+  CancelledSigningError,
   makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
+  SigningError,
   TimeoutError,
   TransactionFailedError,
   TransportError,
@@ -54,6 +56,7 @@ import type {
   TypedDataPayload,
 } from '../types';
 import {
+  completeWith,
   type RequestAddressRequest,
   requestAddress,
   type SignGaslessMessageRequest,
@@ -217,19 +220,32 @@ export const PrepareGaslessWalletError = makeErrorGuard(
   UserInputError,
 );
 
+export type SetupGaslessWalletError =
+  | PrepareGaslessWalletError
+  | CancelledSigningError
+  | SigningError;
+export const SetupGaslessWalletError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
 /**
  * Starts preparing the wallet for gasless transactions.
+ *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
  *
  * @throws {@link PrepareGaslessWalletError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const handle = await prepareGaslessWallet(client).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * const workflow = await prepareGaslessWallet(client);
  * ```
  */
 export async function prepareGaslessWallet(
@@ -286,6 +302,18 @@ export async function prepareGaslessWallet(
 
     return new GaslessWalletHandle(safeWallet, handle);
   }.call(null);
+}
+
+/**
+ * Sets up a wallet for gasless transactions.
+ *
+ * @throws {@link SetupGaslessWalletError}
+ * Thrown on failure.
+ */
+export function setupGaslessWallet(
+  client: BaseSecureClient,
+): Promise<DeployTransactionHandle> {
+  return prepareGaslessWallet(client).then(completeWith(client.signer));
 }
 
 /**

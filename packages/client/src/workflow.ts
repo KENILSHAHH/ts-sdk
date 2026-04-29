@@ -1,17 +1,12 @@
 import type { EvmAddress, EvmSignature, HexString } from '@polymarket/types';
 import { CancelledSigningError, makeErrorGuard, SigningError } from './errors';
 import type {
+  Signer,
+  SignerTransactionRequest,
   TransactionCall,
   TransactionHandle,
   TypedDataPayload,
 } from './types';
-
-export type SignerTransactionRequest = {
-  chainId: number;
-  data?: HexString;
-  to: EvmAddress;
-  value?: bigint;
-};
 
 export type RequestAddressRequest = {
   kind: 'requestAddress';
@@ -112,6 +107,77 @@ export type CompleteWorkflowNext =
 export type CompleteWith = <TRequest extends CompleteWorkflowRequest, TReturn>(
   workflow: AsyncGenerator<TRequest, TReturn, CompleteWorkflowNext>,
 ) => Promise<TReturn>;
+
+/** @internal */
+export function authenticateWith(signer: Signer): AuthenticateWith {
+  return async function authenticate(workflow) {
+    let result = await workflow.next();
+
+    while (!result.done) {
+      try {
+        switch (result.value.kind) {
+          case 'requestAddress':
+            result = await workflow.next(await signer.getAddress());
+            break;
+          case 'signAuthMessage':
+            result = await workflow.next(
+              await signer.signTypedData(result.value.payload),
+            );
+            break;
+        }
+      } catch (error) {
+        result = await workflow.throw(error);
+      }
+    }
+
+    return result.value;
+  };
+}
+
+/** @internal */
+export function completeWith(signer: Signer): CompleteWith {
+  return async function complete(workflow) {
+    let result = await workflow.next();
+
+    while (!result.done) {
+      try {
+        switch (result.value.kind) {
+          case 'requestAddress':
+            result = await workflow.next(await signer.getAddress());
+            break;
+
+          case 'signGaslessTypedData':
+          case 'signOrder':
+            result = await workflow.next(
+              await signer.signTypedData(result.value.payload),
+            );
+            break;
+
+          case 'signGaslessMessage':
+            result = await workflow.next(
+              await signer.signMessage(result.value.payload),
+            );
+            break;
+
+          case 'sendErc20ApprovalTransaction':
+          case 'sendErc1155ApprovalForAllTransaction':
+          case 'sendErc20TransferTransaction':
+          case 'sendMergePositionsTransaction':
+          case 'sendRedeemPositionsTransaction':
+          case 'sendSplitPositionTransaction':
+            result = await workflow.next(
+              await signer.sendTransaction(result.value.request),
+            );
+            break;
+        }
+      } catch (error) {
+        result = await workflow.throw(error);
+      }
+    }
+
+    return result.value;
+  };
+}
 
 export function requestAddress(): RequestAddressRequest {
   return {
