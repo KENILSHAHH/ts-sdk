@@ -35,7 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - verify
-      - test
+      # Temporarily do not block publishing on tests while checks are blocked by backend issues.
+      # Tests still run as a separate job after verify.
+      # - test
       # Temporarily do not block publishing on backend compatibility while checks are blocked by a BE bug.
       # - backend-compat
 
