@@ -1,4 +1,3 @@
-import type { MarketEvent } from '@polymarket/bindings/subscriptions';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
 import {
@@ -11,6 +10,7 @@ import {
   vi,
 } from 'vitest';
 import { production } from '../../environments';
+import { captureConnection, collectFrames } from '../testing';
 import { ClobMarketWebSocketManager } from './market';
 
 const clobMarket = ws.link(production.clobMarketWs);
@@ -36,15 +36,7 @@ describe('ClobMarketWebSocketManager', () => {
   });
 
   it('adds and removes assets on the shared socket', async () => {
-    let frames: unknown[] = [];
-
-    server.use(
-      clobMarket.addEventListener('connection', ({ client }) => {
-        client.addEventListener('message', (event) => {
-          frames.push(JSON.parse(String(event.data)));
-        });
-      }),
-    );
+    const frames = collectFrames(server, clobMarket);
 
     const firstHandle = await manager.subscribe({
       tokenIds: ['token-a'],
@@ -67,7 +59,7 @@ describe('ClobMarketWebSocketManager', () => {
       ]);
     });
 
-    frames = [];
+    frames.length = 0;
     await firstHandle.close();
     expect(frames).toEqual([
       { assets_ids: ['token-a'], operation: 'unsubscribe' },
@@ -75,15 +67,7 @@ describe('ClobMarketWebSocketManager', () => {
   });
 
   it('updates the custom feature flag on the shared socket', async () => {
-    let frames: unknown[] = [];
-
-    server.use(
-      clobMarket.addEventListener('connection', ({ client }) => {
-        client.addEventListener('message', (event) => {
-          frames.push(JSON.parse(String(event.data)));
-        });
-      }),
-    );
+    const frames = collectFrames(server, clobMarket);
 
     await manager.subscribe({ tokenIds: ['token-a'], topic: 'market' });
     const customHandle = await manager.subscribe({
@@ -107,7 +91,7 @@ describe('ClobMarketWebSocketManager', () => {
       ]);
     });
 
-    frames = [];
+    frames.length = 0;
     await customHandle.close();
     expect(frames).toEqual([
       {
@@ -119,35 +103,21 @@ describe('ClobMarketWebSocketManager', () => {
   });
 
   it('fans out events to matching subscriptions', async () => {
-    let clientConnection: { send: (data: string) => void } | undefined;
-
-    server.use(
-      clobMarket.addEventListener('connection', ({ client }) => {
-        clientConnection = client;
-      }),
-    );
+    const connection = captureConnection(server, clobMarket);
 
     const handle = await manager.subscribe({
       tokenIds: ['token-a'],
       topic: 'market',
     });
-    const next = (handle as AsyncIterable<MarketEvent>)
-      [Symbol.asyncIterator]()
-      .next();
+    const next = handle[Symbol.asyncIterator]().next();
 
-    await vi.waitFor(() => {
-      expect(clientConnection).toBeDefined();
+    await connection.send({
+      asks: [],
+      asset_id: 'token-a',
+      bids: [],
+      event_type: 'book',
+      market: '0xmarket',
     });
-
-    clientConnection?.send(
-      JSON.stringify({
-        asks: [],
-        asset_id: 'token-a',
-        bids: [],
-        event_type: 'book',
-        market: '0xmarket',
-      }),
-    );
 
     await expect(next).resolves.toMatchObject({
       done: false,
@@ -160,13 +130,7 @@ describe('ClobMarketWebSocketManager', () => {
   });
 
   it('delivers custom events only to custom-enabled subscriptions', async () => {
-    let clientConnection: { send: (data: string) => void } | undefined;
-
-    server.use(
-      clobMarket.addEventListener('connection', ({ client }) => {
-        clientConnection = client;
-      }),
-    );
+    const connection = captureConnection(server, clobMarket);
 
     const standardHandle = await manager.subscribe({
       tokenIds: ['token-a'],
@@ -177,26 +141,16 @@ describe('ClobMarketWebSocketManager', () => {
       tokenIds: ['token-a'],
       topic: 'market',
     });
-    const standardNext = (standardHandle as AsyncIterable<MarketEvent>)
-      [Symbol.asyncIterator]()
-      .next();
-    const customNext = (customHandle as AsyncIterable<MarketEvent>)
-      [Symbol.asyncIterator]()
-      .next();
+    const standardNext = standardHandle[Symbol.asyncIterator]().next();
+    const customNext = customHandle[Symbol.asyncIterator]().next();
 
-    await vi.waitFor(() => {
-      expect(clientConnection).toBeDefined();
+    await connection.send({
+      asset_id: 'token-a',
+      best_ask: '0.51',
+      best_bid: '0.49',
+      event_type: 'best_bid_ask',
+      market: '0xmarket',
     });
-
-    clientConnection?.send(
-      JSON.stringify({
-        asset_id: 'token-a',
-        best_ask: '0.51',
-        best_bid: '0.49',
-        event_type: 'best_bid_ask',
-        market: '0xmarket',
-      }),
-    );
 
     await expect(customNext).resolves.toMatchObject({
       done: false,
