@@ -95,6 +95,7 @@ export function listBuilderTrades(
           params: toSearchParams(
             { ...params, nextCursor },
             snakeCase({
+              builder: 'builder_code',
               tokenId: 'asset_id',
             }),
           ),

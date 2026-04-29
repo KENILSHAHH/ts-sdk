@@ -2,11 +2,11 @@ import { OrderSide } from '@polymarket/bindings';
 import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import {
-  builderCredentials,
   expectNonEmptyPage,
   findHighVolumeLowPriceMarket,
   publicClientWithBuilderKey,
   safeWalletAddress,
+  testBuilderCode,
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
@@ -17,14 +17,14 @@ describe('Builders', () => {
   describe('listBuilderTrades', () => {
     it('lists builder-attributed trades', async () => {
       const existingTrades = await publicClientWithBuilderKey
-        .listBuilderTrades()
+        .listBuilderTrades({ builder: testBuilderCode })
         .firstPage()
         .then((page) => page.items);
 
       if (existingTrades.length > 0) {
         expect(existingTrades[0]).toEqual(
           expect.objectContaining({
-            builder: builderCredentials.key,
+            builderCode: testBuilderCode,
             id: expect.any(String),
           }),
         );
@@ -41,6 +41,7 @@ describe('Builders', () => {
       const response = await secureClient
         .prepareMarketOrder({
           amount: expectPresent(market.orderMinSize),
+          builderCode: testBuilderCode,
           side: OrderSide.BUY,
           tokenId,
         })
@@ -56,7 +57,7 @@ describe('Builders', () => {
 
       expect(newTrades[0]).toEqual(
         expect.objectContaining({
-          builder: builderCredentials.key,
+          builderCode: testBuilderCode,
           id: expect.any(String),
         }),
       );
@@ -69,7 +70,9 @@ async function waitForBuilderTrades(
   tokenId: string,
 ) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const { items } = await client.listBuilderTrades({ tokenId }).firstPage();
+    const { items } = await client
+      .listBuilderTrades({ builder: testBuilderCode, tokenId })
+      .firstPage();
 
     if (items.length > 0) {
       return items;
@@ -79,7 +82,7 @@ async function waitForBuilderTrades(
   }
 
   return client
-    .listBuilderTrades({ tokenId })
+    .listBuilderTrades({ builder: testBuilderCode, tokenId })
     .firstPage()
     .then(expectNonEmptyPage)
     .then((page) => page.items);
