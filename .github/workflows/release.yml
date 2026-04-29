@@ -36,7 +36,8 @@ jobs:
     needs:
       - verify
       - test
-      - backend-compat
+      # Temporarily do not block publishing on backend compatibility while checks are blocked by a BE bug.
+      # - backend-compat
 
     steps:
       - name: Checkout Repository
