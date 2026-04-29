@@ -253,7 +253,7 @@ async function selectLiquidClobTokenId(): Promise<string> {
     .then((page) => page.items);
 
   for (const market of markets) {
-    const [tokenId] = expectPresent(market.clobTokenIds);
+    const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
     return tokenId;
   }

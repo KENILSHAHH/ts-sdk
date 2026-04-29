@@ -378,11 +378,11 @@ async function resolveMarketNegativeRiskFlag(
     `No market found for condition ${conditionId}`,
   );
   invariant(
-    isPresent(market.negRisk),
+    isPresent(market.state.negRisk),
     `Missing negRisk flag for condition ${conditionId}`,
   );
 
-  return market.negRisk;
+  return market.state.negRisk;
 }
 
 function resolveMergeTargetAddress(client: BaseSecureClient, negRisk: boolean) {

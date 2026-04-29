@@ -110,9 +110,9 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
         const market = await fetchMarket(publicClient, {
           slug: TEST_MARKET_SLUG,
         });
-        const [yesTokenId] = expectPresent(market.clobTokenIds);
-        const price = expectPresent(market.orderPriceMinTickSize);
-        const size = expectPresent(market.orderMinSize);
+        const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+        const price = expectPresent(market.trading.minimumTickSize);
+        const size = expectPresent(market.trading.minimumOrderSize);
         const secureClient = await publicClient
           .beginAuthentication({ wallet: safeWalletAddress })
           .then(authenticateWith(wallet));

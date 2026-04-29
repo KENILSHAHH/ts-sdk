@@ -135,12 +135,11 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
 
 function hasRequiredOrderFields(candidate: Market) {
   return (
-    candidate.enableOrderBook === true &&
-    candidate.acceptingOrders !== false &&
-    candidate.orderMinSize !== null &&
-    candidate.orderMinSize !== undefined &&
-    candidate.clobTokenIds !== null &&
-    candidate.clobTokenIds !== undefined
+    candidate.state.enableOrderBook === true &&
+    candidate.state.acceptingOrders !== false &&
+    candidate.trading.minimumOrderSize !== null &&
+    candidate.trading.minimumOrderSize !== undefined &&
+    candidate.outcomes.yes.tokenId !== null
   );
 }
 
@@ -159,28 +158,30 @@ async function isEligibleTradeCandidate(candidate: Market) {
 
 function hasTradableBestAsk(candidate: Market) {
   return (
-    candidate.bestAsk !== null &&
-    candidate.bestAsk !== undefined &&
-    candidate.bestAsk < 1
+    candidate.prices.bestAsk !== null &&
+    candidate.prices.bestAsk !== undefined &&
+    candidate.prices.bestAsk < 1
   );
 }
 
 function hasTradableBestBid(candidate: Market) {
   return (
-    candidate.bestBid !== null &&
-    candidate.bestBid !== undefined &&
-    candidate.bestBid > 0
+    candidate.prices.bestBid !== null &&
+    candidate.prices.bestBid !== undefined &&
+    candidate.prices.bestBid > 0
   );
 }
 
 function hasClobLiquidity(candidate: Market) {
-  return (candidate.liquidityClob ?? candidate.liquidityNum ?? 0) > 0;
+  return (
+    (candidate.metrics.liquidityClob ?? candidate.metrics.liquidityNum ?? 0) > 0
+  );
 }
 
 async function hasLiveOrderBook(candidate: Market) {
-  const tokenId = candidate.clobTokenIds?.[0];
+  const tokenId = candidate.outcomes.yes.tokenId;
 
-  if (tokenId === undefined) {
+  if (tokenId === null) {
     return false;
   }
 

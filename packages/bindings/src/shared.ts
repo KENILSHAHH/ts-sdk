@@ -65,6 +65,8 @@ export type MixedDateTimeString = Tagged<string, 'MixedDateTimeString'>;
 export type NotificationId = Tagged<number, 'NotificationId'>;
 export type PartnerId = Tagged<number, 'PartnerId'>;
 export type PaginationCursor = Tagged<string, 'PaginationCursor'>;
+export type QuestionId = Tagged<HexString, 'QuestionId'>;
+export type ResolutionRequestId = Tagged<HexString, 'ResolutionRequestId'>;
 export type SeriesId = Tagged<string, 'SeriesId'>;
 export type SportId = Tagged<number, 'SportId'>;
 export type TagId = Tagged<string, 'TagId'>;
@@ -110,11 +112,7 @@ export function toCommentId(value: string): CommentId {
 }
 
 export function toConditionId(value: string): ConditionId {
-  if (!isHexString(value) || value.length !== 66) {
-    throw new TypeError(`Expected a 32-byte hex string, received: ${value}`);
-  }
-
-  return value as ConditionId;
+  return to32ByteHexString(value) as ConditionId;
 }
 
 export function toCollectionId(value: string): CollectionId {
@@ -173,6 +171,14 @@ export function toPartnerId(value: number): PartnerId {
 
 export function toPaginationCursor(value: string): PaginationCursor {
   return toTaggedString<PaginationCursor>(value);
+}
+
+export function toQuestionId(value: string): QuestionId {
+  return to32ByteHexString(value) as QuestionId;
+}
+
+export function toResolutionRequestId(value: string): ResolutionRequestId {
+  return to32ByteHexString(value) as ResolutionRequestId;
 }
 
 export function toSeriesId(value: string): SeriesId {
@@ -303,6 +309,10 @@ export const PaginationCursorSchema = z
   .string()
   .min(1)
   .transform(toPaginationCursor);
+export const QuestionIdSchema = z.string().transform(toQuestionId);
+export const ResolutionRequestIdSchema = z
+  .string()
+  .transform(toResolutionRequestId);
 export const TagIdSchema = z.string().transform(toTagId);
 export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);
@@ -320,4 +330,12 @@ function toEvmAddress(value: string): EvmAddress {
 
 function toTxHash(value: string): TxHash {
   return expectTxHash(value);
+}
+
+function to32ByteHexString(value: string): HexString {
+  if (!isHexString(value) || value.length !== 66) {
+    throw new TypeError(`Expected a 32-byte hex string, received: ${value}`);
+  }
+
+  return value;
 }

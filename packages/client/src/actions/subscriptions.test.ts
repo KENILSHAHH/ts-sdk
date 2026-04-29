@@ -44,7 +44,7 @@ describe('subscribe', () => {
     timeout: 20_000,
   }, async () => {
     const market = await findHighVolumeLowPriceMarket();
-    const [tokenId] = expectPresent(market.clobTokenIds);
+    const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
     const handle = await publicClient.subscribe([
       { tokenIds: [tokenId], topic: 'market' },
@@ -84,7 +84,7 @@ describe('subscribe', () => {
     timeout: 20_000,
   }, async () => {
     const market = await findHighVolumeLowPriceMarket();
-    const [tokenId] = expectPresent(market.clobTokenIds);
+    const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
     const handle = await publicClient.subscribe([
       { tokenIds: [tokenId], topic: 'market' },
