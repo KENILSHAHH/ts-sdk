@@ -19,6 +19,8 @@ import { authenticateWith, completeWith } from '../viem';
 import { fetchNegRisk } from './clob';
 
 const market = await findHighVolumeLowPriceMarket();
+const builderCode =
+  '0x0000000000000000000000000000000000000000000000000000000000000123';
 
 const secureClient = await publicClient
   .beginAuthentication({ wallet: safeWalletAddress })
@@ -133,6 +135,21 @@ describe('Orders', () => {
         expect(buyResult.orderId).not.toBe('');
       },
     );
+
+    it('carries builder attribution onto the prepared market order', async () => {
+      const [yesTokenId] = expectPresent(market.clobTokenIds);
+
+      const order = await secureClient
+        .prepareMarketOrder({
+          amount: expectPresent(market.orderMinSize),
+          builderCode,
+          side: OrderSide.BUY,
+          tokenId: yesTokenId,
+        })
+        .then(completeWith(walletClient));
+
+      expect(order.builder).toBe(builderCode);
+    });
   });
 
   describe('prepareLimitOrder', () => {
@@ -157,6 +174,7 @@ describe('Orders', () => {
     it('carries post-only submission options onto the prepared order', async () => {
       const order = await secureClient
         .prepareLimitOrder({
+          builderCode,
           postOnly: true,
           price: minPrice,
           side: OrderSide.BUY,
@@ -166,6 +184,7 @@ describe('Orders', () => {
         .then(completeWith(walletClient));
 
       expect(order.postOnly).toBe(true);
+      expect(order.builder).toBe(builderCode);
     });
 
     it('requests a collateral approval if necessary', async () => {

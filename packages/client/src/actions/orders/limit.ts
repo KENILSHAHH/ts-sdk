@@ -1,21 +1,16 @@
 import {
-  EvmAddressSchema,
   OrderSide,
   OrderSideSchema,
   OrderType,
   type TickSizeValue,
   TokenIdSchema,
 } from '@polymarket/bindings';
-import type { EvmAddress } from '@polymarket/types';
+import type { EvmAddress, HexString } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
 import { UserInputError } from '../../errors';
 import { fetchNegRisk, fetchTickSize } from '../clob';
-import {
-  resolveExchangeAddress,
-  resolveFeeRateBps,
-  resolveRoundingConfig,
-} from './context';
+import { resolveExchangeAddress, resolveRoundingConfig } from './context';
 import {
   decimalPlaces,
   parseAmount,
@@ -23,7 +18,11 @@ import {
   roundNormal,
   roundUp,
 } from './math';
-import type { OrderDraft, PrepareLimitOrderRequest } from './types';
+import {
+  isBytes32,
+  type OrderDraft,
+  type PrepareLimitOrderRequest,
+} from './types';
 
 export const PrepareLimitOrderParamsSchema = z
   .strictObject({
@@ -31,7 +30,7 @@ export const PrepareLimitOrderParamsSchema = z
     price: z.number().positive(),
     size: z.number().positive(),
     side: OrderSideSchema,
-    taker: EvmAddressSchema.optional(),
+    builderCode: z.custom<HexString>(isBytes32).optional(),
     postOnly: z.boolean().default(false),
     expiration: z.number().int().nonnegative().optional(),
   })
@@ -74,16 +73,15 @@ export async function prepareLimitOrderDraft(
   });
 
   return {
+    builderCode: params.builderCode,
     chainId: client.environment.chainId,
     exchangeAddress: context.exchangeAddress,
     expiration: params.expiration ?? 0,
-    feeRateBps: context.feeRateBps,
     funderAddress: context.funderAddress,
     offeredAmount: amounts.offeredAmount,
     orderType: params.expiration === undefined ? OrderType.GTC : OrderType.GTD,
     side: params.side,
     signer: context.signerAddress,
-    allowedTaker: params.taker,
     requestedAmount: amounts.requestedAmount,
     tokenId: params.tokenId,
   };
@@ -91,7 +89,6 @@ export async function prepareLimitOrderDraft(
 
 type LimitOrderContext = {
   exchangeAddress: EvmAddress;
-  feeRateBps: number;
   funderAddress: EvmAddress;
   negRisk: boolean;
   price: number;
@@ -107,14 +104,12 @@ async function resolveLimitOrderContext(
   const tickSize = await fetchTickSize(client, {
     tokenId: params.tokenId,
   });
-  const feeRateBps = await resolveFeeRateBps(client, params.tokenId);
   const negRisk = await fetchNegRisk(client, {
     tokenId: params.tokenId,
   });
 
   return {
     exchangeAddress: resolveExchangeAddress(client, negRisk),
-    feeRateBps,
     funderAddress: account.wallet,
     negRisk,
     price: resolvePrice(params.price, tickSize),

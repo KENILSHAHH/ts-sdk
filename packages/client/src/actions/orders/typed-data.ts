@@ -1,5 +1,5 @@
 import { OrderSide } from '@polymarket/bindings';
-import type { EvmAddress } from '@polymarket/types';
+import type { EvmAddress, HexString } from '@polymarket/types';
 import type { TypedDataField, TypedDataPayload } from '../../types';
 import type { UnsignedOrder } from './types';
 
@@ -14,32 +14,30 @@ const ORDER_STRUCTURE: readonly TypedDataField[] = [
   { name: 'salt', type: 'uint256' },
   { name: 'maker', type: 'address' },
   { name: 'signer', type: 'address' },
-  { name: 'taker', type: 'address' },
   { name: 'tokenId', type: 'uint256' },
   { name: 'makerAmount', type: 'uint256' },
   { name: 'takerAmount', type: 'uint256' },
-  { name: 'expiration', type: 'uint256' },
-  { name: 'nonce', type: 'uint256' },
-  { name: 'feeRateBps', type: 'uint256' },
   { name: 'side', type: 'uint8' },
   { name: 'signatureType', type: 'uint8' },
+  { name: 'timestamp', type: 'uint256' },
+  { name: 'metadata', type: 'bytes32' },
+  { name: 'builder', type: 'bytes32' },
 ];
 
 const PROTOCOL_NAME = 'Polymarket CTF Exchange';
-const PROTOCOL_VERSION = '1';
+const PROTOCOL_VERSION = '2';
 
 type OrderTypedDataMessage = {
-  expiration: bigint;
-  feeRateBps: bigint;
+  builder: HexString;
   maker: EvmAddress;
   makerAmount: bigint;
-  nonce: bigint;
+  metadata: HexString;
   salt: bigint;
   side: number;
   signatureType: UnsignedOrder['signatureType'];
   signer: EvmAddress;
-  taker: EvmAddress;
   takerAmount: bigint;
+  timestamp: bigint;
   tokenId: bigint;
 };
 
@@ -66,18 +64,16 @@ function createOrderTypedDataMessage(
   order: UnsignedOrder,
 ): OrderTypedDataMessage {
   return {
-    expiration: BigInt(order.expiration),
-    feeRateBps: BigInt(order.feeRateBps),
+    builder: order.builder,
     maker: order.maker,
     makerAmount: BigInt(order.makerAmount),
-    // CLOB v1 still signs nonce, even though it is expected to disappear in v2.
-    nonce: BigInt(order.nonce),
+    metadata: order.metadata,
     salt: BigInt(order.salt),
     side: encodeOrderSide(order.side),
     signatureType: order.signatureType,
     signer: order.signer,
-    taker: order.taker,
     takerAmount: BigInt(order.takerAmount),
+    timestamp: BigInt(order.timestamp),
     tokenId: BigInt(order.tokenId),
   };
 }

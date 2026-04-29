@@ -1,29 +1,28 @@
 import {
-  EvmAddressSchema,
   OrderSide,
   OrderSideSchema,
   OrderType,
   type TickSizeValue,
   TokenIdSchema,
 } from '@polymarket/bindings';
-import type { EvmAddress } from '@polymarket/types';
+import type { EvmAddress, HexString } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
 import { fetchNegRisk, fetchTickSize } from '../clob';
-import {
-  resolveExchangeAddress,
-  resolveFeeRateBps,
-  resolveRoundingConfig,
-} from './context';
+import { resolveExchangeAddress, resolveRoundingConfig } from './context';
 import { resolveEstimatedMarketPrice } from './estimate';
 import { decimalPlaces, parseAmount, roundDown, roundUp } from './math';
-import type { OrderDraft, PrepareMarketOrderRequest } from './types';
+import {
+  isBytes32,
+  type OrderDraft,
+  type PrepareMarketOrderRequest,
+} from './types';
 
 export const PrepareMarketOrderParamsSchema = z.object({
   tokenId: TokenIdSchema,
   amount: z.number().positive(),
   side: OrderSideSchema,
-  taker: EvmAddressSchema.optional(),
+  builderCode: z.custom<HexString>(isBytes32).optional(),
   orderType: z
     .union([z.literal(OrderType.FAK), z.literal(OrderType.FOK)])
     .default(OrderType.FAK),
@@ -46,16 +45,15 @@ export async function prepareMarketOrderDraft(
   });
 
   return {
+    builderCode: params.builderCode,
     chainId: client.environment.chainId,
     exchangeAddress: context.exchangeAddress,
     expiration: 0,
-    feeRateBps: context.feeRateBps,
     funderAddress: context.funderAddress,
     offeredAmount: amounts.offeredAmount,
     orderType: params.orderType,
     side: params.side,
     signer: context.signerAddress,
-    allowedTaker: params.taker,
     requestedAmount: amounts.requestedAmount,
     tokenId: params.tokenId,
   };
@@ -70,7 +68,6 @@ type ResolveMarketOrderContextParams = {
 
 type MarketOrderContext = {
   exchangeAddress: EvmAddress;
-  feeRateBps: number;
   funderAddress: EvmAddress;
   negRisk: boolean;
   price: number;
@@ -86,7 +83,6 @@ async function resolveMarketOrderContext(
   const tickSize = await fetchTickSize(client, {
     tokenId: params.tokenId,
   });
-  const feeRateBps = await resolveFeeRateBps(client, params.tokenId);
   const price = await resolveEstimatedMarketPrice(client, {
     amount: params.amount,
     orderType: params.orderType,
@@ -100,7 +96,6 @@ async function resolveMarketOrderContext(
 
   return {
     exchangeAddress: resolveExchangeAddress(client, negRisk),
-    feeRateBps,
     funderAddress: account.wallet,
     negRisk,
     price,

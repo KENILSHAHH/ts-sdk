@@ -1,6 +1,11 @@
 import type { OrderSide, OrderType, TokenId } from '@polymarket/bindings';
 import type { OrderResponse, SignatureType } from '@polymarket/bindings/clob';
-import type { EvmAddress, EvmSignature } from '@polymarket/types';
+import {
+  type EvmAddress,
+  type EvmSignature,
+  type HexString,
+  isHexString,
+} from '@polymarket/types';
 import type { TransactionHandle, TypedDataPayload } from '../../types';
 import type { SignOrderRequest } from '../../workflow';
 import type {
@@ -21,8 +26,8 @@ export type PrepareMarketOrderRequest = {
   /** Side of the order */
   side: OrderSide;
 
-  /** Taker address. Omit for public orders (zero address is equivalent). */
-  taker?: string;
+  /** Optional builder attribution code. */
+  builderCode?: HexString;
 
   /**
    * Specifies the type of order execution.
@@ -47,8 +52,8 @@ export type PrepareLimitOrderRequest = {
   /** Side of the order */
   side: OrderSide;
 
-  /** Taker address. Omit for public orders (zero address is equivalent). */
-  taker?: string;
+  /** Optional builder attribution code. */
+  builderCode?: HexString;
 
   /**
    * Posts the prepared order as post-only when submitted.
@@ -69,16 +74,15 @@ export type PrepareLimitOrderRequest = {
 };
 
 export type OrderDraft = {
+  builderCode?: HexString;
   chainId: number;
   exchangeAddress: EvmAddress;
   expiration: number;
-  feeRateBps: number;
   funderAddress: EvmAddress;
   offeredAmount: bigint;
   orderType: OrderType;
   side: OrderSide;
   signer: EvmAddress;
-  allowedTaker?: EvmAddress;
   requestedAmount: bigint;
   tokenId: TokenId;
 };
@@ -88,35 +92,35 @@ export type OrderDraft = {
  */
 export type UnsignedOrder = {
   chainId: number;
+  builder: HexString;
   exchangeAddress: EvmAddress;
   expiration: number;
-  feeRateBps: number;
   maker: EvmAddress;
   makerAmount: string;
-  nonce: number;
+  metadata: HexString;
   orderType: OrderType;
   salt: string;
   side: OrderSide;
   signatureType: SignatureType;
   signer: EvmAddress;
-  taker: EvmAddress;
   takerAmount: string;
+  timestamp: string;
   tokenId: TokenId;
 };
 
 export type SignedOrder = {
+  builder: HexString;
   expiration: number;
-  feeRateBps: number;
   maker: EvmAddress;
   makerAmount: string;
-  nonce: number;
+  metadata: HexString;
   orderType: OrderType;
   salt: string;
   side: OrderSide;
   signatureType: SignatureType;
   signer: EvmAddress;
-  taker: EvmAddress;
   takerAmount: string;
+  timestamp: string;
   tokenId: TokenId;
   signature: EvmSignature;
   postOnly?: boolean;
@@ -145,4 +149,8 @@ export function signOrder(payload: TypedDataPayload): SignOrderRequest {
     kind: 'signOrder',
     payload,
   };
+}
+
+export function isBytes32(value: unknown): value is HexString {
+  return isHexString(value) && value.length === 66;
 }

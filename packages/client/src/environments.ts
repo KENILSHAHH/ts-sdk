@@ -76,10 +76,10 @@ export const production: EnvironmentConfig = {
     '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296',
   ),
   standardExchange: expectEvmAddress(
-    '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E',
+    '0xE111180000d2663C0091e4f400237545B87B996B',
   ),
   negRiskExchange: expectEvmAddress(
-    '0xC5d563A36AE78145C45a50134d48A1215220f80a',
+    '0xe2222d279d744050d28e00520010520000310F59',
   ),
   safeMultisend: expectEvmAddress('0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761'),
   relayHub: expectEvmAddress('0xD216153c06E857cD7f72665E0aF1d7D82172F494'),

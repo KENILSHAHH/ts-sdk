@@ -109,7 +109,7 @@ export async function findHighVolumeLowPriceMarket(): Promise<Market> {
 
   for await (const page of paginator) {
     for (const candidate of page.items) {
-      if (!isEligibleTradeCandidate(candidate)) {
+      if (!(await isEligibleTradeCandidate(candidate))) {
         continue;
       }
 
@@ -133,13 +133,17 @@ function hasRequiredOrderFields(candidate: Market) {
   );
 }
 
-function isEligibleTradeCandidate(candidate: Market) {
-  return (
-    hasRequiredOrderFields(candidate) &&
-    hasTradableBestAsk(candidate) &&
-    hasTradableBestBid(candidate) &&
-    hasClobLiquidity(candidate)
-  );
+async function isEligibleTradeCandidate(candidate: Market) {
+  if (
+    !hasRequiredOrderFields(candidate) ||
+    !hasTradableBestAsk(candidate) ||
+    !hasTradableBestBid(candidate) ||
+    !hasClobLiquidity(candidate)
+  ) {
+    return false;
+  }
+
+  return hasLiveOrderBook(candidate);
 }
 
 function hasTradableBestAsk(candidate: Market) {
@@ -160,6 +164,22 @@ function hasTradableBestBid(candidate: Market) {
 
 function hasClobLiquidity(candidate: Market) {
   return (candidate.liquidityClob ?? candidate.liquidityNum ?? 0) > 0;
+}
+
+async function hasLiveOrderBook(candidate: Market) {
+  const tokenId = candidate.clobTokenIds?.[0];
+
+  if (tokenId === undefined) {
+    return false;
+  }
+
+  try {
+    const book = await publicClient.fetchOrderBook({ tokenId });
+
+    return book.asks.length > 0 && book.bids.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export function expectNonEmptyPage<T>(
