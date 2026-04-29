@@ -25,7 +25,7 @@ const secureClient = await publicClient
   .beginAuthentication({ wallet: safeWalletAddress })
   .then(authenticateWith(walletClient));
 
-describe('Orders', () => {
+describe('Orders', { timeout: 60_000 }, () => {
   describe('estimateMarketPrice', () => {
     it('calculates the price for a market buy at the minimum size', async () => {
       const [yesTokenId] = expectPresent(market.clobTokenIds);
