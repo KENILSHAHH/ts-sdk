@@ -1,6 +1,10 @@
-import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { expectNonEmptyPage, publicClient } from '../testing';
+
+const TEST_TAG = {
+  id: '144',
+  slug: 'elections',
+} as const;
 
 describe('Tags', () => {
   describe('listTags', () => {
@@ -23,41 +27,23 @@ describe('Tags', () => {
 
   describe('fetchTag', () => {
     it('fetches a tag by id and slug', async () => {
-      const {
-        items: [tag],
-      } = await publicClient
-        .listTags({
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
-      const tagById = await publicClient.fetchTag({ id: tag.id });
+      const tagById = await publicClient.fetchTag({ id: TEST_TAG.id });
       const tagBySlug = await publicClient.fetchTag({
-        slug: expectPresent(tag.slug),
+        slug: TEST_TAG.slug,
       });
 
-      expect(tagById.id).toBe(tag.id);
-      expect(tagBySlug.id).toBe(tag.id);
+      expect(tagById.id).toBe(TEST_TAG.id);
+      expect(tagBySlug.id).toBe(TEST_TAG.id);
     });
   });
 
   describe('fetchRelatedTags', () => {
     it('fetches related tag relationships by id and slug', async () => {
-      const {
-        items: [tag],
-      } = await publicClient
-        .listTags({
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
       const relatedById = await publicClient.fetchRelatedTags({
-        id: tag.id,
+        id: TEST_TAG.id,
       });
       const relatedBySlug = await publicClient.fetchRelatedTags({
-        slug: expectPresent(tag.slug),
+        slug: TEST_TAG.slug,
       });
 
       expect(relatedById).toEqual(expect.any(Array));
@@ -67,20 +53,11 @@ describe('Tags', () => {
 
   describe('fetchRelatedTagResources', () => {
     it('fetches related tags by id and slug', async () => {
-      const {
-        items: [tag],
-      } = await publicClient
-        .listTags({
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
       const relatedTagsById = await publicClient.fetchRelatedTagResources({
-        id: tag.id,
+        id: TEST_TAG.id,
       });
       const relatedTagsBySlug = await publicClient.fetchRelatedTagResources({
-        slug: expectPresent(tag.slug),
+        slug: TEST_TAG.slug,
       });
 
       expect(relatedTagsById).toEqual(expect.any(Array));
