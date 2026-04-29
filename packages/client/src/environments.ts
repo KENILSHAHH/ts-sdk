@@ -67,7 +67,7 @@ export const production: EnvironmentConfig = {
       '0x2bce2127ff07fb632d16c8347c4ebf501f4841168bed00d9e6ef715ddb6fcecf',
   },
   collateralToken: expectEvmAddress(
-    '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+    '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB',
   ),
   conditionalTokens: expectEvmAddress(
     '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045',
