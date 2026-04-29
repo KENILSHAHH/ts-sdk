@@ -59,3 +59,9 @@ export function captureConnection(
     },
   };
 }
+
+export function waitForNextEvent<TEvent>(
+  handle: AsyncIterable<TEvent>,
+): Promise<IteratorResult<TEvent>> {
+  return handle[Symbol.asyncIterator]().next();
+}

@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest';
 import { production } from '../../environments';
-import { captureConnection, collectFrames } from '../testing';
+import { captureConnection, collectFrames, waitForNextEvent } from '../testing';
 import { ClobMarketWebSocketManager } from './market';
 
 const clobMarket = ws.link(production.clobMarketWs);
@@ -109,7 +109,7 @@ describe('ClobMarketWebSocketManager', () => {
       tokenIds: ['token-a'],
       topic: 'market',
     });
-    const next = handle[Symbol.asyncIterator]().next();
+    const next = waitForNextEvent(handle);
 
     await connection.send({
       asks: [],
@@ -141,8 +141,8 @@ describe('ClobMarketWebSocketManager', () => {
       tokenIds: ['token-a'],
       topic: 'market',
     });
-    const standardNext = standardHandle[Symbol.asyncIterator]().next();
-    const customNext = customHandle[Symbol.asyncIterator]().next();
+    const standardNext = waitForNextEvent(standardHandle);
+    const customNext = waitForNextEvent(customHandle);
 
     await connection.send({
       asset_id: 'token-a',
@@ -203,7 +203,6 @@ describe('ClobMarketWebSocketManager', () => {
       }),
     );
 
-    vi.spyOn(Math, 'random').mockReturnValue(1);
     vi.useFakeTimers();
 
     await manager.subscribe({ tokenIds: ['token-a'], topic: 'market' });
@@ -219,7 +218,7 @@ describe('ClobMarketWebSocketManager', () => {
     });
 
     firstClient?.close();
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersToNextTimer();
 
     await vi.waitFor(() => {
       expect(connectionFrames[1] ?? []).toEqual([
