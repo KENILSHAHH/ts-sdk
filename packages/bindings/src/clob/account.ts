@@ -170,11 +170,19 @@ export const ClobTradesPageSchema = createCursorPageSchema(ClobTradeSchema);
 
 export type ClobTradesPage = z.infer<typeof ClobTradesPageSchema>;
 
+const NotificationTimestampSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  return /^\d+$/.test(value) ? Number(value) : Date.parse(value);
+}, EpochMillisecondsSchema);
+
 export const NotificationSchema = z.object({
   id: NotificationIdSchema,
   owner: z.string(),
   payload: z.unknown(),
-  timestamp: EpochMillisecondsSchema,
+  timestamp: NotificationTimestampSchema,
   type: z.number(),
 });
 
