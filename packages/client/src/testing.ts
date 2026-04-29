@@ -1,10 +1,16 @@
 import type { Market } from '@polymarket/bindings/gamma';
-import type { EvmAddress, NonEmptyArray, PrivateKey } from '@polymarket/types';
+import type {
+  EvmAddress,
+  HexString,
+  NonEmptyArray,
+  PrivateKey,
+} from '@polymarket/types';
 import {
   expectEvmAddress,
   expectNonEmptyArray,
   expectPresent,
   invariant,
+  isHexString,
   isPrivateKey,
   never,
 } from '@polymarket/types';
@@ -73,6 +79,21 @@ function loadTestSafeWallet(): EvmAddress {
 }
 
 export const safeWalletAddress = loadTestSafeWallet();
+
+function loadTestBuilderCode(): HexString {
+  const value = process.env.POLYMARKET_BUILDER_CODE;
+
+  invariant(value, 'POLYMARKET_BUILDER_CODE is not set');
+
+  invariant(
+    isHexString(value) && value.length === 66,
+    'POLYMARKET_BUILDER_CODE must be a bytes32 hex string',
+  );
+
+  return value;
+}
+
+export const testBuilderCode = loadTestBuilderCode();
 
 export function deriveProxyAddress(signerAddress: EvmAddress): EvmAddress {
   return deriveProxyWalletAddress(

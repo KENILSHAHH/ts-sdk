@@ -13,14 +13,13 @@ import {
   publicClientWithRelayerKey,
   runMeteredTests,
   safeWalletAddress,
+  testBuilderCode,
   walletClient,
 } from '../testing';
 import { authenticateWith, completeWith } from '../viem';
 import { fetchNegRisk } from './clob';
 
 const market = await findHighVolumeLowPriceMarket();
-const builderCode =
-  '0x0000000000000000000000000000000000000000000000000000000000000123';
 
 const secureClient = await publicClient
   .beginAuthentication({ wallet: safeWalletAddress })
@@ -142,13 +141,13 @@ describe('Orders', () => {
       const order = await secureClient
         .prepareMarketOrder({
           amount: expectPresent(market.orderMinSize),
-          builderCode,
+          builderCode: testBuilderCode,
           side: OrderSide.BUY,
           tokenId: yesTokenId,
         })
         .then(completeWith(walletClient));
 
-      expect(order.builder).toBe(builderCode);
+      expect(order.builder).toBe(testBuilderCode);
     });
   });
 
@@ -174,7 +173,7 @@ describe('Orders', () => {
     it('carries post-only submission options onto the prepared order', async () => {
       const order = await secureClient
         .prepareLimitOrder({
-          builderCode,
+          builderCode: testBuilderCode,
           postOnly: true,
           price: minPrice,
           side: OrderSide.BUY,
@@ -184,7 +183,7 @@ describe('Orders', () => {
         .then(completeWith(walletClient));
 
       expect(order.postOnly).toBe(true);
-      expect(order.builder).toBe(builderCode);
+      expect(order.builder).toBe(testBuilderCode);
     });
 
     it('requests a collateral approval if necessary', async () => {
