@@ -4,11 +4,20 @@ import type { EvmSignature } from '@polymarket/types';
 import { z } from 'zod';
 import { erc20TransferCall } from '../abis';
 import type { BaseSecureClient } from '../clients';
-import { makeErrorGuard, UserInputError } from '../errors';
-import { parseUserInput } from '../input';
-import { expectTransactionHandle, type TransactionHandle } from '../types';
-import type { SignerTransactionRequest } from '../workflow';
 import {
+  CancelledSigningError,
+  makeErrorGuard,
+  SigningError,
+  UserInputError,
+} from '../errors';
+import { parseUserInput } from '../input';
+import {
+  expectTransactionHandle,
+  type SignerTransactionRequest,
+  type TransactionHandle,
+} from '../types';
+import {
+  completeWith,
   type SendErc20TransferTransactionRequest,
   signerTransactionRequest,
 } from '../workflow';
@@ -45,17 +54,16 @@ export const PrepareErc20TransferError = makeErrorGuard(UserInputError);
 /**
  * Starts an ERC-20 transfer workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @example
  * ```ts
- * const handle = await prepareErc20Transfer(client, {
+ * const workflow = await prepareErc20Transfer(client, {
  *   amount: 1n,
  *   recipientAddress: client.account.signer,
  *   tokenAddress: client.environment.collateralToken,
- * }).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * });
  * ```
  *
  * @throws {@link PrepareErc20TransferError}
@@ -96,6 +104,31 @@ export async function prepareErc20Transfer(
         `Transfer ${params.amount} of ${params.tokenAddress} to ${params.recipientAddress}`,
     });
   }.call(null);
+}
+
+export type TransferErc20Error =
+  | PrepareErc20TransferError
+  | CancelledSigningError
+  | SigningError;
+export const TransferErc20Error = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
+
+/**
+ * Transfers ERC-20 tokens from the authenticated account.
+ *
+ * @throws {@link TransferErc20Error}
+ * Thrown on failure.
+ */
+export function transferErc20(
+  client: BaseSecureClient,
+  request: PrepareErc20TransferRequest,
+): Promise<TransactionHandle> {
+  return prepareErc20Transfer(client, request).then(
+    completeWith(client.signer),
+  );
 }
 
 function sendErc20TransferTransaction(

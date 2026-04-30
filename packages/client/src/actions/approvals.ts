@@ -8,11 +8,20 @@ import {
   MAX_UINT256,
 } from '../abis';
 import type { BaseSecureClient } from '../clients';
-import { makeErrorGuard, UserInputError } from '../errors';
-import { parseUserInput } from '../input';
-import { expectTransactionHandle, type TransactionHandle } from '../types';
-import type { SignerTransactionRequest } from '../workflow';
 import {
+  CancelledSigningError,
+  makeErrorGuard,
+  SigningError,
+  UserInputError,
+} from '../errors';
+import { parseUserInput } from '../input';
+import {
+  expectTransactionHandle,
+  type SignerTransactionRequest,
+  type TransactionHandle,
+} from '../types';
+import {
+  completeWith,
   type SendErc20ApprovalTransactionRequest,
   type SendErc1155ApprovalForAllTransactionRequest,
   signerTransactionRequest,
@@ -50,17 +59,16 @@ export const PrepareErc20ApprovalError = makeErrorGuard(UserInputError);
 /**
  * Starts an ERC-20 approval workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @example
  * ```ts
- * const handle = await prepareErc20Approval(client, {
+ * const workflow = await prepareErc20Approval(client, {
  *   amount: 'max',
  *   spenderAddress: '0x1234…',
  *   tokenAddress: '0x5678…',
- * }).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * });
  * ```
  *
  * @throws {@link PrepareErc20ApprovalError}
@@ -100,6 +108,31 @@ export async function prepareErc20Approval(
   }.call(null);
 }
 
+export type ApproveErc20Error =
+  | PrepareErc20ApprovalError
+  | CancelledSigningError
+  | SigningError;
+export const ApproveErc20Error = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
+
+/**
+ * Approves ERC-20 token spending for the authenticated account.
+ *
+ * @throws {@link ApproveErc20Error}
+ * Thrown on failure.
+ */
+export function approveErc20(
+  client: BaseSecureClient,
+  request: PrepareErc20ApprovalRequest,
+): Promise<TransactionHandle> {
+  return prepareErc20Approval(client, request).then(
+    completeWith(client.signer),
+  );
+}
+
 export type Erc1155ApprovalForAllWorkflowRequest =
   | GaslessWorkflowRequest
   | SendErc1155ApprovalForAllTransactionRequest;
@@ -127,16 +160,15 @@ export const PrepareErc1155ApprovalForAllError = makeErrorGuard(UserInputError);
 /**
  * Starts an ERC-1155 approval-for-all workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * @example
  * ```ts
- * const handle = await prepareErc1155ApprovalForAll(client, {
+ * const workflow = await prepareErc1155ApprovalForAll(client, {
  *   operatorAddress: '0x1234…',
  *   tokenAddress: '0x5678…',
- * }).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * });
  * ```
  *
  * @throws {@link PrepareErc1155ApprovalForAllError}
@@ -182,6 +214,31 @@ export async function prepareErc1155ApprovalForAll(
   }.call(null);
 }
 
+export type ApproveErc1155ForAllError =
+  | PrepareErc1155ApprovalForAllError
+  | CancelledSigningError
+  | SigningError;
+export const ApproveErc1155ForAllError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
+
+/**
+ * Approves or revokes ERC-1155 operator access for the authenticated account.
+ *
+ * @throws {@link ApproveErc1155ForAllError}
+ * Thrown on failure.
+ */
+export function approveErc1155ForAll(
+  client: BaseSecureClient,
+  request: PrepareErc1155ApprovalForAllRequest,
+): Promise<TransactionHandle> {
+  return prepareErc1155ApprovalForAll(client, request).then(
+    completeWith(client.signer),
+  );
+}
+
 export type TradingApprovalsWorkflowRequest =
   | GaslessWorkflowRequest
   | SendErc20ApprovalTransactionRequest
@@ -199,6 +256,9 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
 /**
  * Starts a trading-setup approval workflow.
  *
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
  * Prepares all approvals required for trading, including collateral and
  * position token approvals for both standard and neg-risk market flows.
  * The neg-risk adapter approvals cover split, merge, and redemption workflows
@@ -206,11 +266,7 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
  *
  * @example
  * ```ts
- * const handle = await prepareTradingApprovals(client).then(completeWith(wallet));
- *
- * const outcome = await handle.wait();
- *
- * // outcome.transactionHash: TxHash
+ * const workflow = await prepareTradingApprovals(client);
  * ```
  *
  * @throws {@link PrepareTradingApprovalsError}
@@ -301,6 +357,28 @@ export async function prepareTradingApprovals(
       metadata: 'Trading setup approvals',
     });
   }.call(null);
+}
+
+export type SetupTradingApprovalsError =
+  | PrepareTradingApprovalsError
+  | CancelledSigningError
+  | SigningError;
+export const SetupTradingApprovalsError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
+
+/**
+ * Sets up the approvals required for trading.
+ *
+ * @throws {@link SetupTradingApprovalsError}
+ * Thrown on failure.
+ */
+export function setupTradingApprovals(
+  client: BaseSecureClient,
+): Promise<TransactionHandle> {
+  return prepareTradingApprovals(client).then(completeWith(client.signer));
 }
 
 function sendErc20ApprovalTransaction(

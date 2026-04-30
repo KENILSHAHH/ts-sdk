@@ -1,16 +1,13 @@
 import { AssetType } from '@polymarket/bindings/clob';
 import { describe, expect, it } from 'vitest';
 import type { AccountActions } from '../decorators';
-import { publicClient, safeWalletAddress, walletClient } from '../testing';
-import { authenticateWith } from '../viem';
+import { createTestSecureClient } from '../testing';
 import { fetchBalanceAllowance } from './account';
 
 describe('Account', () => {
   describe('authenticated reads', () => {
     it('fetches authenticated account state', async () => {
-      const secureClient = await publicClient
-        .beginAuthentication({ wallet: safeWalletAddress })
-        .then(authenticateWith(walletClient));
+      const secureClient = await createTestSecureClient();
 
       const [closedOnly, openOrders, trades, notifications, balanceAllowance] =
         await Promise.all([
@@ -38,9 +35,7 @@ describe('Account', () => {
 
   describe('dropNotifications', () => {
     it('marks notifications as read by id', async () => {
-      const secureClient = await publicClient
-        .beginAuthentication({ wallet: safeWalletAddress })
-        .then(authenticateWith(walletClient));
+      const secureClient = await createTestSecureClient();
 
       const notifications = await secureClient.fetchNotifications();
 

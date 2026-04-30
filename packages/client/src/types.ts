@@ -1,6 +1,7 @@
 import type { TransactionId } from '@polymarket/bindings';
 import {
   type EvmAddress,
+  type EvmSignature,
   type HexString,
   invariant,
   type TxHash,
@@ -41,6 +42,13 @@ export type TypedDataPayload = {
 
 export type TransactionCall = {
   data: HexString;
+  to: EvmAddress;
+  value?: bigint;
+};
+
+export type SignerTransactionRequest = {
+  chainId: number;
+  data?: HexString;
   to: EvmAddress;
   value?: bigint;
 };
@@ -111,6 +119,15 @@ export interface DeployTransactionHandle extends TransactionHandle {
    */
   readonly wallet: EvmAddress;
 }
+
+export type Signer = {
+  getAddress(): Promise<EvmAddress>;
+  signTypedData(payload: TypedDataPayload): Promise<EvmSignature>;
+  signMessage(message: HexString): Promise<EvmSignature>;
+  sendTransaction(
+    request: SignerTransactionRequest,
+  ): Promise<TransactionHandle>;
+};
 
 /** @internal */
 export function expectTransactionHandle(

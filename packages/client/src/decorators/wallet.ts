@@ -1,35 +1,28 @@
 import type { Prettify } from '@polymarket/types';
 import {
-  type Erc20ApprovalWorkflow,
-  type Erc20TransferWorkflow,
-  type Erc1155ApprovalForAllWorkflow,
-  type GaslessWalletWorkflow,
+  approveErc20,
+  approveErc1155ForAll,
   type IsGaslessReadyRequest,
   isGaslessReady,
-  type MergePositionsWorkflow,
+  mergePositions,
   type PrepareErc20ApprovalRequest,
   type PrepareErc20TransferRequest,
   type PrepareErc1155ApprovalForAllRequest,
   type PrepareMergePositionsRequest,
   type PrepareRedeemPositionsRequest,
   type PrepareSplitPositionRequest,
-  prepareErc20Approval,
-  prepareErc20Transfer,
-  prepareErc1155ApprovalForAll,
-  prepareGaslessWallet,
-  prepareMergePositions,
-  prepareRedeemPositions,
-  prepareSplitPosition,
-  prepareTradingApprovals,
-  type RedeemPositionsWorkflow,
-  type SplitPositionWorkflow,
-  type TradingApprovalsWorkflow,
+  redeemPositions,
+  setupGaslessWallet,
+  setupTradingApprovals,
+  splitPosition,
+  transferErc20,
 } from '../actions';
 import type {
   BaseClient,
   BasePublicClient,
   BaseSecureClient,
 } from '../clients';
+import type { DeployTransactionHandle, TransactionHandle } from '../types';
 
 export type PublicWalletActions = {
   /**
@@ -46,179 +39,169 @@ export type PublicWalletActions = {
    * ```
    */
   isGaslessReady(request: IsGaslessReadyRequest): Promise<boolean>;
-  /**
-   * Starts preparing the wallet for gasless transactions.
-   *
-   * @throws {@link PrepareGaslessWalletError}
-   * Thrown on failure.
-   *
-   * @example
-   * ```ts
-   * const handle = await client.prepareGaslessWallet().then(completeWith(wallet));
-   *
-   * const outcome = await handle.wait();
-   *
-   * // outcome.transactionHash: TxHash
-   * ```
-   */
-  prepareGaslessWallet(): Promise<GaslessWalletWorkflow>;
 };
 
 export type SecureWalletActions = Prettify<
   PublicWalletActions & {
     /**
-     * Starts a trading-setup approval workflow.
+     * Sets up the approvals required for trading.
      *
-     * @throws {@link PrepareTradingApprovalsError}
+     * @throws {@link SetupTradingApprovalsError}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareTradingApprovals().then(completeWith(wallet));
+     * const handle = await client.setupTradingApprovals();
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareTradingApprovals(): Promise<TradingApprovalsWorkflow>;
+    setupTradingApprovals(): Promise<TransactionHandle>;
     /**
-     * Starts an ERC-20 approval workflow.
+     * Approves ERC-20 token spending for the authenticated account.
      *
-     * @throws {@link PrepareErc20ApprovalError}
+     * @throws {@link ApproveErc20Error}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareErc20Approval({
+     * const handle = await client.approveErc20({
      *   amount: 'max',
      *   spenderAddress: '0x1234…',
      *   tokenAddress: '0x5678…',
-     * }).then(completeWith(wallet));
+     * });
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareErc20Approval(
+    approveErc20(
       request: PrepareErc20ApprovalRequest,
-    ): Promise<Erc20ApprovalWorkflow>;
+    ): Promise<TransactionHandle>;
     /**
-     * Starts an ERC-1155 approval-for-all workflow.
+     * Approves or revokes ERC-1155 operator access for the authenticated account.
      *
-     * @throws {@link PrepareErc1155ApprovalForAllError}
+     * @throws {@link ApproveErc1155ForAllError}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareErc1155ApprovalForAll({
+     * const handle = await client.approveErc1155ForAll({
      *   operatorAddress: '0x1234…',
      *   tokenAddress: '0x5678…',
-     * }).then(completeWith(wallet));
+     * });
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareErc1155ApprovalForAll(
+    approveErc1155ForAll(
       request: PrepareErc1155ApprovalForAllRequest,
-    ): Promise<Erc1155ApprovalForAllWorkflow>;
+    ): Promise<TransactionHandle>;
     /**
-     * Starts an ERC-20 transfer workflow.
+     * Transfers ERC-20 tokens from the authenticated account.
      *
-     * @throws {@link PrepareErc20TransferError}
+     * @throws {@link TransferErc20Error}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareErc20Transfer({
+     * const handle = await client.transferErc20({
      *   amount: 1n,
      *   recipientAddress: client.account.signer,
      *   tokenAddress: client.environment.collateralToken,
-     * }).then(completeWith(wallet));
+     * });
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareErc20Transfer(
+    transferErc20(
       request: PrepareErc20TransferRequest,
-    ): Promise<Erc20TransferWorkflow>;
+    ): Promise<TransactionHandle>;
     /**
-     * Starts a split workflow for a market condition.
+     * Splits collateral into market positions.
      *
-     * @throws {@link PrepareSplitPositionError}
+     * @throws {@link SplitPositionError}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareSplitPosition({
+     * const handle = await client.splitPosition({
      *   amount: 1n,
      *   conditionId:
      *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-     * }).then(completeWith(wallet));
+     * });
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareSplitPosition(
+    splitPosition(
       request: PrepareSplitPositionRequest,
-    ): Promise<SplitPositionWorkflow>;
+    ): Promise<TransactionHandle>;
     /**
-     * Starts a workflow to merge complementary positions in a market back into collateral.
+     * Merges complementary market positions back into collateral.
      *
-     * @throws {@link PrepareMergePositionsError}
+     * @throws {@link MergePositionsError}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareMergePositions({
+     * const handle = await client.mergePositions({
      *   amount: 'max',
      *   conditionId:
      *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-     * }).then(completeWith(wallet));
+     * });
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareMergePositions(
+    mergePositions(
       request: PrepareMergePositionsRequest,
-    ): Promise<MergePositionsWorkflow>;
+    ): Promise<TransactionHandle>;
     /**
-     * Starts a redemption workflow for resolved positions.
+     * Redeems resolved market positions.
      *
-     * @throws {@link PrepareRedeemPositionsError}
+     * @throws {@link RedeemPositionsError}
      * Thrown on failure.
      *
      * @example
      * ```ts
-     * const handle = await client.prepareRedeemPositions({
+     * const handle = await client.redeemPositions({
      *   conditionId:
      *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-     * }).then(completeWith(wallet));
+     * });
      *
      * const outcome = await handle.wait();
      *
      * // outcome.transactionHash: TxHash
      * ```
      */
-    prepareRedeemPositions(
+    redeemPositions(
       request: PrepareRedeemPositionsRequest,
-    ): Promise<RedeemPositionsWorkflow>;
+    ): Promise<TransactionHandle>;
+    /**
+     * Sets up a wallet for gasless transactions.
+     *
+     * @throws {@link SetupGaslessWalletError}
+     * Thrown on failure.
+     */
+    setupGaslessWallet(): Promise<DeployTransactionHandle>;
   }
 >;
 
 function publicWalletActions(client: BaseClient): PublicWalletActions {
   return {
     isGaslessReady: isGaslessReady.bind(null, client),
-    prepareGaslessWallet: prepareGaslessWallet.bind(null, client),
   };
 }
 
@@ -235,16 +218,14 @@ export function walletActions(
 
   return {
     ...actions,
-    prepareTradingApprovals: prepareTradingApprovals.bind(null, client),
-    prepareErc20Approval: prepareErc20Approval.bind(null, client),
-    prepareErc1155ApprovalForAll: prepareErc1155ApprovalForAll.bind(
-      null,
-      client,
-    ),
-    prepareErc20Transfer: prepareErc20Transfer.bind(null, client),
-    prepareSplitPosition: prepareSplitPosition.bind(null, client),
-    prepareMergePositions: prepareMergePositions.bind(null, client),
-    prepareRedeemPositions: prepareRedeemPositions.bind(null, client),
+    setupTradingApprovals: setupTradingApprovals.bind(null, client),
+    approveErc20: approveErc20.bind(null, client),
+    approveErc1155ForAll: approveErc1155ForAll.bind(null, client),
+    transferErc20: transferErc20.bind(null, client),
+    splitPosition: splitPosition.bind(null, client),
+    mergePositions: mergePositions.bind(null, client),
+    redeemPositions: redeemPositions.bind(null, client),
+    setupGaslessWallet: setupGaslessWallet.bind(null, client),
   };
 }
 
@@ -252,13 +233,13 @@ export function walletActions(
 // Surfaced at the root entry point through `export * from './decorators'`.
 // Keep this list in sync with the methods on PublicWalletActions / SecureWalletActions.
 export {
+  ApproveErc20Error,
+  ApproveErc1155ForAllError,
   IsGaslessReadyError,
-  PrepareErc20ApprovalError,
-  PrepareErc20TransferError,
-  PrepareErc1155ApprovalForAllError,
-  PrepareGaslessWalletError,
-  PrepareMergePositionsError,
-  PrepareRedeemPositionsError,
-  PrepareSplitPositionError,
-  PrepareTradingApprovalsError,
+  MergePositionsError,
+  RedeemPositionsError,
+  SetupGaslessWalletError,
+  SetupTradingApprovalsError,
+  SplitPositionError,
+  TransferErc20Error,
 } from '../actions';

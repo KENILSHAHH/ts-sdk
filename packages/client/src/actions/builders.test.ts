@@ -2,14 +2,13 @@ import { OrderSide } from '@polymarket/bindings';
 import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import {
+  builderAuthorization,
+  createTestSecureClient,
   expectNonEmptyPage,
   findHighVolumeLowPriceMarket,
   publicClientWithBuilderKey,
-  safeWalletAddress,
   testBuilderCode,
-  walletClient,
 } from '../testing';
-import { authenticateWith, completeWith } from '../viem';
 
 const market = await findHighVolumeLowPriceMarket();
 
@@ -31,22 +30,19 @@ describe('Builders', () => {
         return;
       }
 
-      const secureClient = await publicClientWithBuilderKey
-        .beginAuthentication({ wallet: safeWalletAddress })
-        .then(authenticateWith(walletClient));
+      const secureClient = await createTestSecureClient({
+        apiKey: builderAuthorization,
+      });
 
       console.log(market.slug);
       const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
-      const response = await secureClient
-        .prepareMarketOrder({
-          amount: expectPresent(market.trading.minimumOrderSize),
-          builderCode: testBuilderCode,
-          side: OrderSide.BUY,
-          tokenId,
-        })
-        .then(completeWith(walletClient))
-        .then(secureClient.postOrder);
+      const response = await secureClient.placeMarketOrder({
+        amount: expectPresent(market.trading.minimumOrderSize),
+        builderCode: testBuilderCode,
+        side: OrderSide.BUY,
+        tokenId,
+      });
 
       expect(response.ok).toBe(true);
 
