@@ -50,15 +50,6 @@ export type PrepareErc20TransferRequest = z.input<
 
 export type PrepareErc20TransferError = UserInputError;
 export const PrepareErc20TransferError = makeErrorGuard(UserInputError);
-export type TransferErc20Error =
-  | PrepareErc20TransferError
-  | CancelledSigningError
-  | SigningError;
-export const TransferErc20Error = makeErrorGuard(
-  CancelledSigningError,
-  SigningError,
-  UserInputError,
-);
 
 /**
  * Starts an ERC-20 transfer workflow.
@@ -114,6 +105,16 @@ export async function prepareErc20Transfer(
     });
   }.call(null);
 }
+
+export type TransferErc20Error =
+  | PrepareErc20TransferError
+  | CancelledSigningError
+  | SigningError;
+export const TransferErc20Error = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
 
 /**
  * Transfers ERC-20 tokens from the authenticated account.

@@ -220,20 +220,6 @@ export const PrepareGaslessWalletError = makeErrorGuard(
   UserInputError,
 );
 
-export type SetupGaslessWalletError =
-  | PrepareGaslessWalletError
-  | CancelledSigningError
-  | SigningError;
-export const SetupGaslessWalletError = makeErrorGuard(
-  CancelledSigningError,
-  RateLimitError,
-  RequestRejectedError,
-  SigningError,
-  TransportError,
-  UnexpectedResponseError,
-  UserInputError,
-);
-
 /**
  * Starts preparing the wallet for gasless transactions.
  *
@@ -303,6 +289,20 @@ export async function prepareGaslessWallet(
     return new GaslessWalletHandle(safeWallet, handle);
   }.call(null);
 }
+
+export type SetupGaslessWalletError =
+  | PrepareGaslessWalletError
+  | CancelledSigningError
+  | SigningError;
+export const SetupGaslessWalletError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Sets up a wallet for gasless transactions.

@@ -56,16 +56,6 @@ export type PrepareErc20ApprovalRequest = z.input<
 export type PrepareErc20ApprovalError = UserInputError;
 export const PrepareErc20ApprovalError = makeErrorGuard(UserInputError);
 
-export type ApproveErc20Error =
-  | PrepareErc20ApprovalError
-  | CancelledSigningError
-  | SigningError;
-export const ApproveErc20Error = makeErrorGuard(
-  CancelledSigningError,
-  SigningError,
-  UserInputError,
-);
-
 /**
  * Starts an ERC-20 approval workflow.
  *
@@ -118,6 +108,16 @@ export async function prepareErc20Approval(
   }.call(null);
 }
 
+export type ApproveErc20Error =
+  | PrepareErc20ApprovalError
+  | CancelledSigningError
+  | SigningError;
+export const ApproveErc20Error = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
+
 /**
  * Approves ERC-20 token spending for the authenticated account.
  *
@@ -156,16 +156,6 @@ export type PrepareErc1155ApprovalForAllRequest = z.input<
 
 export type PrepareErc1155ApprovalForAllError = UserInputError;
 export const PrepareErc1155ApprovalForAllError = makeErrorGuard(UserInputError);
-
-export type ApproveErc1155ForAllError =
-  | PrepareErc1155ApprovalForAllError
-  | CancelledSigningError
-  | SigningError;
-export const ApproveErc1155ForAllError = makeErrorGuard(
-  CancelledSigningError,
-  SigningError,
-  UserInputError,
-);
 
 /**
  * Starts an ERC-1155 approval-for-all workflow.
@@ -224,6 +214,16 @@ export async function prepareErc1155ApprovalForAll(
   }.call(null);
 }
 
+export type ApproveErc1155ForAllError =
+  | PrepareErc1155ApprovalForAllError
+  | CancelledSigningError
+  | SigningError;
+export const ApproveErc1155ForAllError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
+
 /**
  * Approves or revokes ERC-1155 operator access for the authenticated account.
  *
@@ -252,16 +252,6 @@ export type TradingApprovalsWorkflow = AsyncGenerator<
 
 export type PrepareTradingApprovalsError = UserInputError;
 export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
-
-export type SetupTradingApprovalsError =
-  | PrepareTradingApprovalsError
-  | CancelledSigningError
-  | SigningError;
-export const SetupTradingApprovalsError = makeErrorGuard(
-  CancelledSigningError,
-  SigningError,
-  UserInputError,
-);
 
 /**
  * Starts a trading-setup approval workflow.
@@ -368,6 +358,16 @@ export async function prepareTradingApprovals(
     });
   }.call(null);
 }
+
+export type SetupTradingApprovalsError =
+  | PrepareTradingApprovalsError
+  | CancelledSigningError
+  | SigningError;
+export const SetupTradingApprovalsError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
 
 /**
  * Sets up the approvals required for trading.

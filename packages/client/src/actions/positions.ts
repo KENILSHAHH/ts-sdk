@@ -116,15 +116,6 @@ export type PrepareRedeemPositionsRequest = z.input<
 
 export type PrepareSplitPositionError = UserInputError;
 export const PrepareSplitPositionError = makeErrorGuard(UserInputError);
-export type SplitPositionError =
-  | PrepareSplitPositionError
-  | CancelledSigningError
-  | SigningError;
-export const SplitPositionError = makeErrorGuard(
-  CancelledSigningError,
-  SigningError,
-  UserInputError,
-);
 export type PrepareMergePositionsError =
   | RateLimitError
   | RequestRejectedError
@@ -138,19 +129,6 @@ export const PrepareMergePositionsError = makeErrorGuard(
   UnexpectedResponseError,
   UserInputError,
 );
-export type MergePositionsError =
-  | PrepareMergePositionsError
-  | CancelledSigningError
-  | SigningError;
-export const MergePositionsError = makeErrorGuard(
-  CancelledSigningError,
-  RateLimitError,
-  RequestRejectedError,
-  SigningError,
-  TransportError,
-  UnexpectedResponseError,
-  UserInputError,
-);
 export type PrepareRedeemPositionsError =
   | RateLimitError
   | RequestRejectedError
@@ -160,19 +138,6 @@ export type PrepareRedeemPositionsError =
 export const PrepareRedeemPositionsError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
-  TransportError,
-  UnexpectedResponseError,
-  UserInputError,
-);
-export type RedeemPositionsError =
-  | PrepareRedeemPositionsError
-  | CancelledSigningError
-  | SigningError;
-export const RedeemPositionsError = makeErrorGuard(
-  CancelledSigningError,
-  RateLimitError,
-  RequestRejectedError,
-  SigningError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -230,6 +195,16 @@ export async function prepareSplitPosition(
     });
   }.call(null);
 }
+
+export type SplitPositionError =
+  | PrepareSplitPositionError
+  | CancelledSigningError
+  | SigningError;
+export const SplitPositionError = makeErrorGuard(
+  CancelledSigningError,
+  SigningError,
+  UserInputError,
+);
 
 /**
  * Splits collateral into market positions.
@@ -312,6 +287,20 @@ export async function prepareMergePositions(
   }.call(null);
 }
 
+export type MergePositionsError =
+  | PrepareMergePositionsError
+  | CancelledSigningError
+  | SigningError;
+export const MergePositionsError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
 /**
  * Merges complementary market positions back into collateral.
  *
@@ -390,6 +379,20 @@ export async function prepareRedeemPositions(
     });
   }.call(null);
 }
+
+export type RedeemPositionsError =
+  | PrepareRedeemPositionsError
+  | CancelledSigningError
+  | SigningError;
+export const RedeemPositionsError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 
 /**
  * Redeems resolved market positions.

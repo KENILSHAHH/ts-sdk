@@ -754,6 +754,23 @@ export type CreateSecureClientOptions = PublicClientOptions & {
       }
   );
 
+/**
+ * Creates a new `PublicClient` instance.
+ *
+ * @example
+ * ```ts
+ * const client = createPublicClient();
+ * ```
+ */
+export function createPublicClient(
+  options: PublicClientOptions = {},
+): PublicClient<PublicActions, SecureActions> {
+  return new BasePublicClient({
+    environment: options.environment ?? production,
+    apiKey: options.apiKey,
+  }).extend(allActions);
+}
+
 export type CreateSecureClientError =
   | CancelledSigningError
   | RateLimitError
@@ -771,23 +788,6 @@ export const CreateSecureClientError = makeErrorGuard(
   UnexpectedResponseError,
   UserInputError,
 );
-
-/**
- * Creates a new `PublicClient` instance.
- *
- * @example
- * ```ts
- * const client = createPublicClient();
- * ```
- */
-export function createPublicClient(
-  options: PublicClientOptions = {},
-): PublicClient<PublicActions, SecureActions> {
-  return new BasePublicClient({
-    environment: options.environment ?? production,
-    apiKey: options.apiKey,
-  }).extend(allActions);
-}
 
 /**
  * Creates a new authenticated `SecureClient` instance.
