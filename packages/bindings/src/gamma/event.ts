@@ -238,9 +238,6 @@ export type EventSchedule = {
   startDate?: IsoDateTimeString | null;
   creationDate?: IsoDateTimeString | null;
   endDate?: IsoDateTimeString | null;
-  publishedAt?: IsoDateTimeString | null;
-  createdAt?: IsoDateTimeString | null;
-  updatedAt?: IsoDateTimeString | null;
   closedTime?: IsoDateTimeString | null;
   startTime?: IsoDateTimeString | null;
   eventDate?: IsoCalendarDateString | null;
@@ -375,6 +372,9 @@ export type Event = {
   image?: string | null;
   icon?: string | null;
   featuredImage?: string | null;
+  createdAt?: IsoDateTimeString | null;
+  updatedAt?: IsoDateTimeString | null;
+  publishedAt?: IsoDateTimeString | null;
   state: EventState;
   schedule: EventSchedule;
   metrics: EventMetrics;
@@ -563,6 +563,9 @@ function normalizeEvent(event: GammaEvent): Event {
     image: event.image,
     icon: event.icon,
     featuredImage: event.featuredImage,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+    publishedAt: event.published_at,
     state: {
       active: event.active,
       closed: event.closed,
@@ -581,9 +584,6 @@ function normalizeEvent(event: GammaEvent): Event {
       startDate: event.startDate,
       creationDate: event.creationDate,
       endDate: event.endDate,
-      publishedAt: event.published_at,
-      createdAt: event.createdAt,
-      updatedAt: event.updatedAt,
       closedTime: event.closedTime,
       startTime: event.startTime,
       eventDate: event.eventDate,
