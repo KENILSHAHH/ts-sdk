@@ -5,7 +5,7 @@ import type {
 import type {
   Activity,
   ClosedPosition,
-  MetaMarketPositionV1,
+  MetaMarketPosition,
   Position,
   Traded,
   Value,
@@ -179,7 +179,7 @@ export type AccountPublicActions = {
    *
    * // Optionally, fetch additional pages:
    * for await (const page of paginator.from(firstPage.nextCursor)) {
-   *   // page.items: MetaMarketPositionV1[]
+   *   // page.items: MetaMarketPosition[]
    * }
    * ```
    *
@@ -192,13 +192,13 @@ export type AccountPublicActions = {
    * });
    *
    * for await (const page of paginator) {
-   *   // page.items: MetaMarketPositionV1[]
+   *   // page.items: MetaMarketPosition[]
    * }
    * ```
    */
   listMarketPositions(
     request: ListMarketPositionsRequest,
-  ): Paginated<MetaMarketPositionV1>;
+  ): Paginated<MetaMarketPosition>;
   /**
    * Lists wallet activity.
    *

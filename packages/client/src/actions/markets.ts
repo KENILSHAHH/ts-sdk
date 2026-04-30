@@ -7,7 +7,7 @@ import {
   ListMarketPositionsResponseSchema,
   ListOpenInterestResponseSchema,
   type MetaHolder,
-  type MetaMarketPositionV1,
+  type MetaMarketPosition,
   type OpenInterest,
 } from '@polymarket/bindings/data';
 import {
@@ -423,7 +423,7 @@ export const ListMarketPositionsError = makeErrorGuard(
  *
  * // Optionally, fetch additional pages:
  * for await (const page of result.from(firstPage.nextCursor)) {
- *   // page.items: MetaMarketPositionV1[]
+ *   // page.items: MetaMarketPosition[]
  * }
  * ```
  *
@@ -436,14 +436,14 @@ export const ListMarketPositionsError = makeErrorGuard(
  * });
  *
  * for await (const page of result) {
- *   // page.items: MetaMarketPositionV1[]
+ *   // page.items: MetaMarketPosition[]
  * }
  * ```
  */
 export function listMarketPositions(
   client: BaseClient,
   request: ListMarketPositionsRequest,
-): Paginated<MetaMarketPositionV1> {
+): Paginated<MetaMarketPosition> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListMarketPositionsRequestSchema,
