@@ -723,7 +723,7 @@ export type PublicClientOptions = {
   apiKey?: ApiKeyAuthorization;
 };
 
-export type CreateSecureClientOptions = PublicClientOptions & {
+export type SecureClientOptions = PublicClientOptions & {
   /**
    * Wallet address to authenticate as.
    *
@@ -804,7 +804,7 @@ export const CreateSecureClientError = makeErrorGuard(
  * Thrown on failure.
  */
 export async function createSecureClient(
-  options: CreateSecureClientOptions,
+  options: SecureClientOptions,
 ): Promise<SecureClient<PublicActions, SecureActions>> {
   const client = createPublicClient({
     environment: options.environment,

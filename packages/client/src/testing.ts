@@ -103,13 +103,11 @@ export const walletClient = createWalletClient({
   transport: http(),
 });
 
-export const signer = signerFrom(walletClient);
-
 export function createTestSecureClient(
   options: Partial<Parameters<typeof createSecureClient>[0]> = {},
 ) {
   return createSecureClient({
-    signer,
+    signer: signerFrom(walletClient),
     wallet: safeWalletAddress,
     ...options,
   });
