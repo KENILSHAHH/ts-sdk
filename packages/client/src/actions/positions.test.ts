@@ -1,5 +1,5 @@
 import { WalletType } from '@polymarket/bindings/gamma';
-import { invariant } from '@polymarket/types';
+import { expectPresent, invariant } from '@polymarket/types';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createTestSecureClient,
@@ -12,6 +12,7 @@ const TEST_MARKET_SLUG = 'eth-flipped-in-2026';
 const market = await publicClient.fetchMarket({
   slug: TEST_MARKET_SLUG,
 });
+const conditionId = expectPresent(market.conditionId);
 
 const secureClient = await createTestSecureClient({
   apiKey: relayerAuthorization,
@@ -27,7 +28,7 @@ describe('Positions', () => {
     await secureClient
       .splitPosition({
         amount: 1_000_000n,
-        conditionId: market.conditionId,
+        conditionId,
       })
       .then((handle) => handle.wait());
 
@@ -36,7 +37,7 @@ describe('Positions', () => {
         const positions = await secureClient
           .listPositions({
             user: secureClient.account.wallet,
-            market: [market.conditionId],
+            market: [conditionId],
           })
           .firstPage();
         expect(positions.items).toHaveLength(2);
@@ -49,7 +50,7 @@ describe('Positions', () => {
     const positions = await secureClient
       .listPositions({
         user: secureClient.account.wallet,
-        market: [market.conditionId],
+        market: [conditionId],
       })
       .firstPage();
 
@@ -60,7 +61,7 @@ describe('Positions', () => {
     await secureClient
       .mergePositions({
         amount: 'max',
-        conditionId: market.conditionId,
+        conditionId,
       })
       .then((handle) => handle.wait());
 
@@ -69,7 +70,7 @@ describe('Positions', () => {
         const positions = await secureClient
           .listPositions({
             user: secureClient.account.wallet,
-            market: [market.conditionId],
+            market: [conditionId],
           })
           .firstPage();
         expect(positions.items).toHaveLength(0);
