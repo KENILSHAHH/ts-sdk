@@ -202,7 +202,9 @@ export class ServiceClient {
   }
 
   async #extractResponseErrorMessage(response: Response) {
-    if (response.headers.get('content-type')?.includes('application/json')) {
+    const contentType = response.headers.get('content-type')?.toLowerCase();
+
+    if (contentType?.includes('application/json')) {
       const { error } = await response
         .clone()
         .json()
@@ -210,16 +212,30 @@ export class ServiceClient {
       if (error) return String(error);
     }
 
-    const text = await response
-      .clone()
-      .text()
-      .then(
-        (body) => body.trim(),
-        () => '',
-      );
+    if (contentType?.includes('text/plain')) {
+      const text = await response
+        .clone()
+        .text()
+        .then(
+          (body) => body.trim(),
+          () => '',
+        );
 
-    if (text) {
-      return text;
+      if (text) {
+        return text;
+      }
+    }
+
+    const server = response.headers.get('server')?.toLowerCase();
+    if (server?.includes('cloudflare')) {
+      return `Request to ${response.url} was blocked by Cloudflare with status ${response.status}`;
+    }
+
+    if (
+      contentType?.includes('text/html') ||
+      contentType?.includes('application/xhtml+xml')
+    ) {
+      return `Request to ${response.url} failed with status ${response.status} and an unexpected HTML response body`;
     }
 
     return `Request to ${response.url} failed with status ${response.status} and unreadable response body`;
