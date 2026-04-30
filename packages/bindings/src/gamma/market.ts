@@ -167,7 +167,7 @@ export type MarketTag = {
 export type Market = {
   id: MarketId;
   slug?: string | null;
-  conditionId: ConditionId;
+  conditionId: ConditionId | null;
   question?: string | null;
   description?: string | null;
   category?: string | null;
@@ -188,7 +188,9 @@ export type Market = {
 export const GammaMarketSchema = z.object({
   id: MarketIdSchema,
   question: z.string().nullish(),
-  conditionId: ConditionIdSchema,
+  conditionId: z
+    .preprocess(emptyStringToNull, ConditionIdSchema.nullish())
+    .transform(nullishToNull),
   slug: z.string().nullish(),
   twitterCardImage: z.string().nullish(),
   resolutionSource: z.string().nullish(),

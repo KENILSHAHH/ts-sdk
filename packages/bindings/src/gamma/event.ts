@@ -56,11 +56,6 @@ const SportIdSchema = z.number().int().transform(toSportId);
 const TeamIdSchema = z.number().int().transform(toTeamId);
 const TemplateIdSchema = z.string().transform(toTemplateId);
 
-const GammaEventMarketsSchema = z.preprocess(
-  filterDeployableMarkets,
-  z.array(MarketSchema),
-);
-
 export const CollectionReferenceSchema = z.object({
   id: CollectionIdSchema,
   ticker: z.string().nullish(),
@@ -358,7 +353,6 @@ export type EventCreator = {
 
 export type EventPartner = {
   id: EventExternalPartnerMappingId;
-  eventId: EventId;
   externalId: string;
   partner: {
     id: PartnerId;
@@ -449,7 +443,7 @@ export const GammaEventSchema = z.object({
   iconOptimized: ImageOptimizationSchema.nullish(),
   featuredImageOptimized: ImageOptimizationSchema.nullish(),
   subEvents: z.array(z.string()).nullish(),
-  markets: GammaEventMarketsSchema.nullish(),
+  markets: z.array(MarketSchema).nullish(),
   series: z.array(SeriesReferenceSchema).nullish(),
   categories: z.array(CategoryReferenceSchema).nullish(),
   collections: z.array(CollectionReferenceSchema).nullish(),
@@ -663,7 +657,6 @@ function normalizeEvent(event: GammaEvent): Event {
     },
     partners: (event.externalPartners ?? []).map((partner) => ({
       id: partner.id,
-      eventId: partner.eventId,
       externalId: partner.externalId,
       partner: partner.partner
         ? {
@@ -707,19 +700,4 @@ function normalizeEvent(event: GammaEvent): Event {
       updatedAt: creator.updatedAt,
     })),
   };
-}
-
-function filterDeployableMarkets(value: unknown): unknown {
-  if (!Array.isArray(value)) {
-    return value;
-  }
-
-  return value.filter((market) => {
-    if (!market || typeof market !== 'object') {
-      return false;
-    }
-
-    const conditionId = (market as { conditionId?: unknown }).conditionId;
-    return typeof conditionId === 'string' && conditionId.length > 0;
-  });
 }
