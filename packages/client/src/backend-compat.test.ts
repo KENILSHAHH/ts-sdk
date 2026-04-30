@@ -216,7 +216,7 @@ describe.runIf(runBackendCompatTests)('backend compatibility', () => {
 
   it('validates order book responses against the response schema', async () => {
     const market = await findHighVolumeLowPriceMarket();
-    const [tokenId] = expectPresent(market.clobTokenIds);
+    const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
     await publicClient.fetchOrderBook({ tokenId });
     await publicClient.fetchOrderBooks([{ tokenId }]);

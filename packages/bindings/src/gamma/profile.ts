@@ -2,14 +2,14 @@ import { z } from 'zod';
 import { EvmAddressSchema, IsoDateTimeStringSchema } from '../shared';
 import { ImageOptimizationSchema } from './common';
 
-export const PublicProfileUserSchema = z.looseObject({
+export const PublicProfileUserSchema = z.object({
   id: z.string(),
   communityMod: z.boolean().nullish(),
   creator: z.boolean().nullish(),
   mod: z.boolean().nullish(),
 });
 
-export const ProfileSchema = z.looseObject({
+export const ProfileSchema = z.object({
   id: z.string().nullish(),
   name: z.string().nullish(),
   user: z.number().int().nullish(),
@@ -42,7 +42,7 @@ export const ProfileSchema = z.looseObject({
   isReferralRestricted: z.boolean().nullish(),
 });
 
-export const PublicProfileSchema = z.looseObject({
+export const PublicProfileSchema = z.object({
   createdAt: IsoDateTimeStringSchema.nullish(),
   proxyWallet: EvmAddressSchema.nullish(),
   profileImage: z.string().nullish(),

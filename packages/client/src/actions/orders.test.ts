@@ -28,10 +28,10 @@ const secureClient = await publicClient
 describe('Orders', { timeout: 60_000 }, () => {
   describe('estimateMarketPrice', () => {
     it('calculates the price for a market buy at the minimum size', async () => {
-      const [yesTokenId] = expectPresent(market.clobTokenIds);
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
       const result = await publicClient.estimateMarketPrice({
-        amount: expectPresent(market.orderMinSize),
+        amount: expectPresent(market.trading.minimumOrderSize),
         orderType: OrderType.FAK,
         side: OrderSide.BUY,
         tokenId: yesTokenId,
@@ -43,7 +43,7 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
 
     it('throws an explicit liquidity error when an FOK amount cannot fully fill', async () => {
-      const [yesTokenId] = expectPresent(market.clobTokenIds);
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
       await expect(
         publicClient.estimateMarketPrice({
@@ -69,7 +69,7 @@ describe('Orders', { timeout: 60_000 }, () => {
       }
 
       const position = page.items.find(
-        (candidate) => candidate.tokenId === market.clobTokenIds?.[0],
+        (candidate) => candidate.tokenId === market.outcomes.yes.tokenId,
       );
 
       await secureClient
@@ -120,7 +120,7 @@ describe('Orders', { timeout: 60_000 }, () => {
           'No existing positions found, placing a minimum-size buy market order…',
         );
 
-        const [yesTokenId] = expectPresent(market.clobTokenIds);
+        const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
         const buyResult = await secureClient
           .prepareMarketOrder({
             amount: expectPresent(1),
@@ -136,11 +136,11 @@ describe('Orders', { timeout: 60_000 }, () => {
     );
 
     it('carries builder attribution onto the prepared market order', async () => {
-      const [yesTokenId] = expectPresent(market.clobTokenIds);
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
       const order = await secureClient
         .prepareMarketOrder({
-          amount: expectPresent(market.orderMinSize),
+          amount: expectPresent(market.trading.minimumOrderSize),
           builderCode: testBuilderCode,
           side: OrderSide.BUY,
           tokenId: yesTokenId,
@@ -152,9 +152,9 @@ describe('Orders', { timeout: 60_000 }, () => {
   });
 
   describe('prepareLimitOrder', () => {
-    const [yesTokenId] = expectPresent(market.clobTokenIds);
-    const minPrice = expectPresent(market.orderPriceMinTickSize);
-    const minSize = expectPresent(market.orderMinSize);
+    const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+    const minPrice = expectPresent(market.trading.minimumTickSize);
+    const minSize = expectPresent(market.trading.minimumOrderSize);
 
     it('allows to place a limit order for the desired size and price', async () => {
       const result = await secureClient
@@ -226,9 +226,9 @@ describe('Orders', { timeout: 60_000 }, () => {
   });
 
   describe('prepareLimitOrderPosting', () => {
-    const [yesTokenId] = expectPresent(market.clobTokenIds);
-    const minPrice = expectPresent(market.orderPriceMinTickSize);
-    const minSize = expectPresent(market.orderMinSize);
+    const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+    const minPrice = expectPresent(market.trading.minimumTickSize);
+    const minSize = expectPresent(market.trading.minimumOrderSize);
 
     it('creates, signs, and posts a limit order in one workflow', async () => {
       const response = await secureClient
@@ -323,9 +323,9 @@ async function createRestingLimitOrder(): Promise<{
   tokenId: string;
   orderId: string;
 }> {
-  const [yesTokenId] = expectPresent(market.clobTokenIds);
-  const tickSize = expectPresent(market.orderPriceMinTickSize);
-  const size = expectPresent(market.orderMinSize);
+  const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+  const tickSize = expectPresent(market.trading.minimumTickSize);
+  const size = expectPresent(market.trading.minimumOrderSize);
   const response = await secureClient
     .prepareLimitOrderPosting({
       price: tickSize,
@@ -341,15 +341,15 @@ async function createRestingLimitOrder(): Promise<{
   expect(acceptedResponse.status).toBe(OrderPostStatus.LIVE);
 
   return {
-    tokenId: expectPresent(market.clobTokenIds)[0],
+    tokenId: expectPresent(market.outcomes.yes.tokenId),
     orderId: acceptedResponse.orderId,
   };
 }
 
 async function createSignedRestingLimitOrder() {
-  const [yesTokenId] = expectPresent(market.clobTokenIds);
-  const tickSize = expectPresent(market.orderPriceMinTickSize);
-  const size = expectPresent(market.orderMinSize);
+  const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+  const tickSize = expectPresent(market.trading.minimumTickSize);
+  const size = expectPresent(market.trading.minimumOrderSize);
 
   return secureClient
     .prepareLimitOrder({

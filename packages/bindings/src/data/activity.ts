@@ -62,7 +62,7 @@ export const ActivitySchema = z
     tokenId: asset,
   }));
 
-export const TradedSchema = z.looseObject({
+export const TradedSchema = z.object({
   user: AddressSchema.nullish(),
   traded: z.number().int().nullish(),
 });

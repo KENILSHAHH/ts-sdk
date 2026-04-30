@@ -36,11 +36,11 @@ describe('Builders', () => {
         .then(authenticateWith(walletClient));
 
       console.log(market.slug);
-      const [tokenId] = expectPresent(market.clobTokenIds);
+      const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
       const response = await secureClient
         .prepareMarketOrder({
-          amount: expectPresent(market.orderMinSize),
+          amount: expectPresent(market.trading.minimumOrderSize),
           builderCode: testBuilderCode,
           side: OrderSide.BUY,
           tokenId,

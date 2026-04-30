@@ -10,7 +10,7 @@ import {
   EpochMillisecondsSchema,
 } from '../shared';
 
-const CommentRemovedPayloadSchema = z.looseObject({
+const CommentRemovedPayloadSchema = z.object({
   id: z.string(),
   body: z.string().nullish(),
   parentEntityType: CommentParentEntityTypeSchema.nullish(),
@@ -30,7 +30,7 @@ const CommentRemovedPayloadSchema = z.looseObject({
 
 export type CommentRemovedPayload = z.infer<typeof CommentRemovedPayloadSchema>;
 
-export const CommentCreatedEventSchema = z.looseObject({
+export const CommentCreatedEventSchema = z.object({
   topic: z.literal('comments'),
   type: z.literal('comment_created'),
   timestamp: EpochMillisecondsSchema,
@@ -39,7 +39,7 @@ export const CommentCreatedEventSchema = z.looseObject({
 
 export type CommentCreatedEvent = z.infer<typeof CommentCreatedEventSchema>;
 
-export const CommentRemovedEventSchema = z.looseObject({
+export const CommentRemovedEventSchema = z.object({
   topic: z.literal('comments'),
   type: z.literal('comment_removed'),
   timestamp: EpochMillisecondsSchema,
@@ -48,7 +48,7 @@ export const CommentRemovedEventSchema = z.looseObject({
 
 export type CommentRemovedEvent = z.infer<typeof CommentRemovedEventSchema>;
 
-export const ReactionCreatedEventSchema = z.looseObject({
+export const ReactionCreatedEventSchema = z.object({
   topic: z.literal('comments'),
   type: z.literal('reaction_created'),
   timestamp: EpochMillisecondsSchema,
@@ -57,7 +57,7 @@ export const ReactionCreatedEventSchema = z.looseObject({
 
 export type ReactionCreatedEvent = z.infer<typeof ReactionCreatedEventSchema>;
 
-export const ReactionRemovedEventSchema = z.looseObject({
+export const ReactionRemovedEventSchema = z.object({
   topic: z.literal('comments'),
   type: z.literal('reaction_removed'),
   timestamp: EpochMillisecondsSchema,
@@ -66,7 +66,7 @@ export const ReactionRemovedEventSchema = z.looseObject({
 
 export type ReactionRemovedEvent = z.infer<typeof ReactionRemovedEventSchema>;
 
-const PriceUpdatePayloadSchema = z.looseObject({
+const PriceUpdatePayloadSchema = z.object({
   symbol: z.string(),
   timestamp: EpochMillisecondsSchema,
   value: z.number(),
@@ -98,7 +98,7 @@ const CryptoPricesChainlinkTopicSchema: z.ZodType<CryptoPricesChainlinkTopic> =
     return CRYPTO_PRICES_CHAINLINK_TOPIC;
   });
 
-export const CryptoPricesBinanceEventSchema = z.looseObject({
+export const CryptoPricesBinanceEventSchema = z.object({
   topic: CryptoPricesBinanceTopicSchema,
   type: z.literal('update'),
   timestamp: EpochMillisecondsSchema,
@@ -109,7 +109,7 @@ export type CryptoPricesBinanceEvent = z.infer<
   typeof CryptoPricesBinanceEventSchema
 >;
 
-export const CryptoPricesChainlinkEventSchema = z.looseObject({
+export const CryptoPricesChainlinkEventSchema = z.object({
   topic: CryptoPricesChainlinkTopicSchema,
   type: z.literal('update'),
   timestamp: EpochMillisecondsSchema,
@@ -149,7 +149,7 @@ export type EquityPriceUpdatePayload = z.infer<
   typeof EquityPriceUpdatePayloadSchema
 >;
 
-const EquityPriceSnapshotPointSchema = z.looseObject({
+const EquityPriceSnapshotPointSchema = z.object({
   timestamp: z.number(),
   value: z.number(),
 });
@@ -158,7 +158,7 @@ export type EquityPriceSnapshotPoint = z.infer<
   typeof EquityPriceSnapshotPointSchema
 >;
 
-const EquityPriceSubscribePayloadSchema = z.looseObject({
+const EquityPriceSubscribePayloadSchema = z.object({
   symbol: z.string(),
   data: z.array(EquityPriceSnapshotPointSchema),
 });
@@ -178,7 +178,7 @@ const EquityPricesTopicSchema: z.ZodType<EquityPricesTopic> =
     return EQUITY_PRICES_TOPIC;
   });
 
-export const EquityPricesUpdateEventSchema = z.looseObject({
+export const EquityPricesUpdateEventSchema = z.object({
   topic: EquityPricesTopicSchema,
   type: z.literal('update'),
   timestamp: EpochMillisecondsSchema,
@@ -189,7 +189,7 @@ export type EquityPricesUpdateEvent = z.infer<
   typeof EquityPricesUpdateEventSchema
 >;
 
-export const EquityPricesSubscribeEventSchema = z.looseObject({
+export const EquityPricesSubscribeEventSchema = z.object({
   topic: EquityPricesTopicSchema,
   type: z.literal('subscribe'),
   timestamp: EpochMillisecondsSchema,

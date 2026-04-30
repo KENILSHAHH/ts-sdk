@@ -69,7 +69,7 @@ export const ClosedPositionSchema = z
     oppositeTokenId: oppositeAsset,
   }));
 
-export const ValueSchema = z.looseObject({
+export const ValueSchema = z.object({
   user: AddressSchema.nullish(),
   value: z.number().nullish(),
 });
@@ -98,7 +98,7 @@ export const MarketPositionV1Schema = z
     tokenId: asset,
   }));
 
-export const MetaMarketPositionV1Schema = z.looseObject({
+export const MetaMarketPositionV1Schema = z.object({
   token: z.string().nullish(),
   positions: z.array(MarketPositionV1Schema).nullish(),
 });

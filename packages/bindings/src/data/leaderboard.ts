@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { IsoDateTimeStringSchema } from '../shared';
 import { AddressSchema } from './common';
 
-export const LeaderboardEntrySchema = z.looseObject({
+export const LeaderboardEntrySchema = z.object({
   rank: z.string().nullish(),
   builder: z.string().nullish(),
   volume: z.number().nullish(),
@@ -26,7 +26,7 @@ export const BuilderVolumeEntrySchema = z
     bucketAt: dt,
   }));
 
-export const TraderLeaderboardEntrySchema = z.looseObject({
+export const TraderLeaderboardEntrySchema = z.object({
   rank: z.string().nullish(),
   proxyWallet: AddressSchema.nullish(),
   userName: z.string().nullish(),

@@ -11,7 +11,7 @@ export enum PriceHistoryInterval {
 
 export const PriceHistoryIntervalSchema = z.enum(PriceHistoryInterval);
 
-export const MidpointSchema = z.looseObject({
+export const MidpointSchema = z.object({
   mid: z.string(),
 });
 export type Midpoint = z.infer<typeof MidpointSchema>;
@@ -19,7 +19,7 @@ export type Midpoint = z.infer<typeof MidpointSchema>;
 export const MidpointsSchema = z.record(z.string(), z.string());
 export type Midpoints = z.infer<typeof MidpointsSchema>;
 
-export const PriceSchema = z.looseObject({
+export const PriceSchema = z.object({
   price: z.string(),
 });
 export type Price = z.infer<typeof PriceSchema>;
@@ -30,7 +30,7 @@ export type PricesBySide = z.infer<typeof PricesBySideSchema>;
 export const PricesSchema = z.record(z.string(), PricesBySideSchema);
 export type Prices = z.infer<typeof PricesSchema>;
 
-export const SpreadSchema = z.looseObject({
+export const SpreadSchema = z.object({
   spread: z.string(),
 });
 export type Spread = z.infer<typeof SpreadSchema>;
@@ -38,7 +38,7 @@ export type Spread = z.infer<typeof SpreadSchema>;
 export const SpreadsSchema = z.record(z.string(), z.string());
 export type Spreads = z.infer<typeof SpreadsSchema>;
 
-export const LastTradePriceSchema = z.looseObject({
+export const LastTradePriceSchema = z.object({
   price: z.string(),
   side: OrderSideSchema,
 });
@@ -79,7 +79,7 @@ const PriceHistoryPointSchema = z.object({
 });
 export type PriceHistoryPoint = z.infer<typeof PriceHistoryPointSchema>;
 
-export const PriceHistorySchema = z.looseObject({
+export const PriceHistorySchema = z.object({
   history: z.array(PriceHistoryPointSchema),
 });
 export type PriceHistory = z.infer<typeof PriceHistorySchema>;

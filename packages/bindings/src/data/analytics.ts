@@ -20,22 +20,22 @@ export const HolderSchema = z
     tokenId: asset,
   }));
 
-export const MetaHolderSchema = z.looseObject({
+export const MetaHolderSchema = z.object({
   token: z.string().nullish(),
   holders: z.array(HolderSchema).nullish(),
 });
 
-export const OpenInterestSchema = z.looseObject({
+export const OpenInterestSchema = z.object({
   market: Hash64Schema.nullish(),
   value: z.number().nullish(),
 });
 
-export const MarketVolumeSchema = z.looseObject({
+export const MarketVolumeSchema = z.object({
   market: Hash64Schema.nullish(),
   value: z.number().nullish(),
 });
 
-export const LiveVolumeSchema = z.looseObject({
+export const LiveVolumeSchema = z.object({
   total: z.number().nullish(),
   markets: z.array(MarketVolumeSchema).nullish(),
 });

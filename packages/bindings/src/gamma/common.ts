@@ -13,7 +13,7 @@ import {
   TagIdSchema,
 } from '../shared';
 
-export const ImageOptimizationSchema = z.looseObject({
+export const ImageOptimizationSchema = z.object({
   id: ImageOptimizationIdSchema,
   imageUrlSource: z.string().nullish(),
   imageUrlOptimized: z.string().nullish(),
@@ -26,16 +26,16 @@ export const ImageOptimizationSchema = z.looseObject({
   relname: z.string().nullish(),
 });
 
-export const FeeScheduleSchema = z.looseObject({
+export const FeeScheduleSchema = z.object({
   exponent: z.number(),
   rate: z.number(),
   takerOnly: z.boolean(),
   rebateRate: z.number(),
 });
 
-export const EventReferenceSchema = z.looseObject({ id: EventIdSchema });
+export const EventReferenceSchema = z.object({ id: EventIdSchema });
 
-export const CategoryReferenceSchema = z.looseObject({
+export const CategoryReferenceSchema = z.object({
   id: CategoryIdSchema,
   label: z.string().nullish(),
   parentCategory: z.string().nullish(),
@@ -47,7 +47,7 @@ export const CategoryReferenceSchema = z.looseObject({
   updatedAt: IsoDateTimeStringSchema.nullish(),
 });
 
-export const TagReferenceSchema = z.looseObject({
+export const TagReferenceSchema = z.object({
   id: TagIdSchema,
   label: z.string().nullish(),
   slug: z.string().nullish(),
@@ -63,7 +63,7 @@ export const TagReferenceSchema = z.looseObject({
   activeEventsCount: z.number().int().nullish(),
 });
 
-export const RelatedMarketSchema = z.looseObject({
+export const RelatedMarketSchema = z.object({
   id: MarketIdSchema,
   conditionId: OptionalConditionIdSchema,
   slug: z.string().nullish(),
@@ -76,7 +76,7 @@ export const RelatedMarketSchema = z.looseObject({
   eventSlug: z.string().nullish(),
 });
 
-export const ClobRewardsSchema = z.looseObject({
+export const ClobRewardsSchema = z.object({
   id: ClobRewardIdSchema,
   conditionId: ConditionIdSchema,
   assetAddress: z.string(),
@@ -86,7 +86,7 @@ export const ClobRewardsSchema = z.looseObject({
   endDate: IsoCalendarDateStringSchema.nullish(),
 });
 
-export const InternalUserSchema = z.looseObject({
+export const InternalUserSchema = z.object({
   id: InternalUserIdSchema,
   username: z.string().nullish(),
 });

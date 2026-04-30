@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { EpochMillisecondsStringSchema, TokenIdSchema } from '../shared';
 
-export const OrderBookLevelSchema = z.looseObject({
+export const OrderBookLevelSchema = z.object({
   price: z.string(),
   size: z.string(),
 });

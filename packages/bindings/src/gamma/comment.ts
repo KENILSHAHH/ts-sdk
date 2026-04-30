@@ -9,12 +9,12 @@ import {
 import { ImageOptimizationSchema } from './common';
 import { SeriesIdSchema } from './event';
 
-export const CommentPositionSchema = z.looseObject({
+export const CommentPositionSchema = z.object({
   tokenId: TokenIdSchema.nullish(),
   positionSize: z.string().nullish(),
 });
 
-export const CommentProfileSchema = z.looseObject({
+export const CommentProfileSchema = z.object({
   name: z.string().nullish(),
   pseudonym: z.string().nullish(),
   displayUsernamePublic: z.boolean().nullish(),
@@ -34,7 +34,7 @@ export enum ReactionType {
 
 export const ReactionTypeSchema = z.enum(ReactionType);
 
-export const ReactionSchema = z.looseObject({
+export const ReactionSchema = z.object({
   id: z.string(),
   commentID: z.number().int().nullish(),
   reactionType: ReactionTypeSchema.nullish(),
@@ -44,7 +44,7 @@ export const ReactionSchema = z.looseObject({
   profile: CommentProfileSchema.nullish(),
 });
 
-export const CommentMediaSchema = z.looseObject({
+export const CommentMediaSchema = z.object({
   id: z.string(),
   commentID: z.number().int().nullish(),
   provider: z.string().nullish(),
@@ -55,7 +55,7 @@ export const CommentMediaSchema = z.looseObject({
   createdAt: IsoDateTimeStringSchema.nullish(),
 });
 
-export const CommentSchema = z.looseObject({
+export const CommentSchema = z.object({
   id: CommentIdSchema,
   body: z.string().nullish(),
   parentEntityType: CommentParentEntityTypeSchema.nullish(),
