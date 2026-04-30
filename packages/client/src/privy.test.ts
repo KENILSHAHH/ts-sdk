@@ -92,57 +92,53 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
     }
   }, 120_000);
 
-  describe('signerFrom', () => {
-    it('authenticates a secure client', async () => {
+  it('authenticates a secure client', async () => {
+    const secureClient = await createSecureClient({
+      signer: signerFrom(wallet),
+      wallet: safeWalletAddress,
+    });
+
+    await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
+  });
+
+  it.runIf(runMeteredTests)(
+    'places and cancels a limit order',
+    async () => {
+      const market = await fetchMarket(publicClient, {
+        slug: TEST_MARKET_SLUG,
+      });
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      const price = expectPresent(market.trading.minimumTickSize);
+      const size = expectPresent(market.trading.minimumOrderSize);
       const secureClient = await createSecureClient({
         signer: signerFrom(wallet),
         wallet: safeWalletAddress,
       });
 
-      await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
-    });
-  });
+      if (!hasCollateralBalance) {
+        return;
+      }
 
-  describe('wallet operations', () => {
-    it.runIf(runMeteredTests)(
-      'places and cancels a limit order',
-      async () => {
-        const market = await fetchMarket(publicClient, {
-          slug: TEST_MARKET_SLUG,
-        });
-        const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
-        const price = expectPresent(market.trading.minimumTickSize);
-        const size = expectPresent(market.trading.minimumOrderSize);
-        const secureClient = await createSecureClient({
-          signer: signerFrom(wallet),
-          wallet: safeWalletAddress,
-        });
+      const response = await secureClient.placeLimitOrder({
+        price,
+        size,
+        side: OrderSide.BUY,
+        tokenId: yesTokenId,
+      });
 
-        if (!hasCollateralBalance) {
-          return;
-        }
+      expect(response.ok).toBe(true);
+      const acceptedResponse = expectAcceptedOrderResponse(response);
 
-        const response = await secureClient.placeLimitOrder({
-          price,
-          size,
-          side: OrderSide.BUY,
-          tokenId: yesTokenId,
-        });
-
-        expect(response.ok).toBe(true);
-        const acceptedResponse = expectAcceptedOrderResponse(response);
-
-        await expect(
-          cancelOrder(secureClient, { orderId: acceptedResponse.orderId }),
-        ).resolves.toEqual(
-          expect.objectContaining({
-            canceled: expect.arrayContaining([acceptedResponse.orderId]),
-          }),
-        );
-      },
-      120_000,
-    );
-  });
+      await expect(
+        cancelOrder(secureClient, { orderId: acceptedResponse.orderId }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          canceled: expect.arrayContaining([acceptedResponse.orderId]),
+        }),
+      );
+    },
+    120_000,
+  );
 });
 
 function expectAcceptedOrderResponse(response: unknown): AcceptedOrderResponse {
