@@ -11,6 +11,8 @@ export const ActivityTypeSchema = z.enum([
   'REWARD',
   'CONVERSION',
   'MAKER_REBATE',
+  'REFERRAL_REWARD',
+  'YIELD',
 ]);
 
 export const SideSchema = z.enum(['BUY', 'SELL']);

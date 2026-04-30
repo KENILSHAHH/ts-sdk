@@ -38,8 +38,8 @@ describe('Activity', () => {
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
-          proxyWallet: TEST_USER,
           type: expect.any(String),
+          wallet: TEST_USER,
         }),
       );
     });
