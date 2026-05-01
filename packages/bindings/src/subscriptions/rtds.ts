@@ -10,6 +10,7 @@ import {
   CommentParentEntityTypeSchema,
   DecimalStringSchema,
   EpochMillisecondsSchema,
+  toDecimalString,
 } from '../shared';
 
 const CommentRemovedPayloadSchema = z.object({
@@ -132,16 +133,22 @@ export type CryptoPricesEvent = z.infer<typeof CryptoPricesEventSchema>;
 const EquityPriceUpdatePayloadSchema = z
   .looseObject({
     symbol: z.string(),
-    value: ApproxNumberSchema,
-    full_accuracy_value: DecimalStringSchema,
+    value: z.number(),
+    full_accuracy_value: DecimalStringSchema.nullish(),
     timestamp: EpochMillisecondsSchema,
     received_at: EpochMillisecondsSchema.nullish(),
     is_carried_forward: z.boolean().nullish(),
   })
   .transform(
-    ({ full_accuracy_value, received_at, is_carried_forward, ...rest }) => ({
+    ({
+      full_accuracy_value,
+      received_at,
+      is_carried_forward,
+      value,
+      ...rest
+    }) => ({
       ...rest,
-      fullAccuracyValue: full_accuracy_value,
+      value: full_accuracy_value ?? toDecimalString(String(value)),
       receivedAt: received_at,
       isCarriedForward: is_carried_forward,
     }),
