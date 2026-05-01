@@ -36,6 +36,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
+import { parsePolymarketSlugUrl } from '../polymarket-url';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
@@ -88,9 +89,16 @@ const FetchMarketBySlugRequestSchema = z.object({
   locale: z.string().optional(),
 });
 
+const FetchMarketByUrlRequestSchema = z.object({
+  url: z.string(),
+  includeTag: z.boolean().optional(),
+  locale: z.string().optional(),
+});
+
 const FetchMarketRequestSchema = z.union([
   FetchMarketByIdRequestSchema,
   FetchMarketBySlugRequestSchema,
+  FetchMarketByUrlRequestSchema,
 ]);
 
 export type FetchMarketRequest = z.input<typeof FetchMarketRequestSchema>;
@@ -244,6 +252,14 @@ export const FetchMarketError = makeErrorGuard(
  *   id: '12345',
  * });
  *
+ * const marketBySlug = await fetchMarket(client, {
+ *   slug: 'some-market-slug',
+ * });
+ *
+ * const marketByUrl = await fetchMarket(client, {
+ *   url: 'https://polymarket.com/market/some-market-slug',
+ * });
+ *
  * // market === Market
  * ```
  */
@@ -255,6 +271,14 @@ export async function fetchMarket(
 
   if ('id' in params) {
     return fetchMarketById(client, params);
+  }
+
+  if ('url' in params) {
+    return fetchMarketBySlug(client, {
+      includeTag: params.includeTag,
+      locale: params.locale,
+      slug: parsePolymarketSlugUrl(params.url, 'market'),
+    });
   }
 
   return fetchMarketBySlug(client, params);

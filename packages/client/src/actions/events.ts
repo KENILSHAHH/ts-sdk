@@ -27,6 +27,7 @@ import {
 } from '../errors';
 import { parseUserInput } from '../input';
 import { PageSizeSchema, type Paginated, paginate } from '../pagination';
+import { parsePolymarketSlugUrl } from '../polymarket-url';
 import { validateWith } from '../response';
 import { snakeCase, toDataSearchParams, toSearchParams } from './params';
 
@@ -85,6 +86,13 @@ const FetchEventRequestSchema = z.union([
   }),
   z.object({
     slug: z.string(),
+    includeBestLines: z.boolean().optional(),
+    includeChat: z.boolean().optional(),
+    includeTemplate: z.boolean().optional(),
+    locale: z.string().optional(),
+  }),
+  z.object({
+    url: z.string(),
     includeBestLines: z.boolean().optional(),
     includeChat: z.boolean().optional(),
     includeTemplate: z.boolean().optional(),
@@ -210,6 +218,14 @@ export const FetchEventError = makeErrorGuard(
  *   id: '12345',
  * });
  *
+ * const eventBySlug = await fetchEvent(client, {
+ *   slug: 'presidential-election-2028',
+ * });
+ *
+ * const eventByUrl = await fetchEvent(client, {
+ *   url: 'https://polymarket.com/event/presidential-election-2028',
+ * });
+ *
  * // event === Event
  * ```
  */
@@ -229,9 +245,12 @@ export async function fetchEvent(
     );
   }
 
+  const slug =
+    'url' in params ? parsePolymarketSlugUrl(params.url, 'event') : params.slug;
+
   return unwrap(
     client.gamma
-      .get(`events/slug/${params.slug}`, {
+      .get(`events/slug/${slug}`, {
         params: toFetchEventBySlugSearchParams(params),
       })
       .andThen(validateWith(EventSchema)),
@@ -354,7 +373,10 @@ function toFetchEventByIdSearchParams(
 }
 
 function toFetchEventBySlugSearchParams(
-  params: Extract<z.output<typeof FetchEventRequestSchema>, { slug: string }>,
+  params: Extract<
+    z.output<typeof FetchEventRequestSchema>,
+    { slug: string } | { url: string }
+  >,
 ): URLSearchParams {
   return toSearchParams(
     {

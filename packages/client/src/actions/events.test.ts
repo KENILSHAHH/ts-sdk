@@ -1,5 +1,6 @@
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
+import { UserInputError } from '../errors';
 import { expectNonEmptyPage, publicClient } from '../testing';
 
 describe('Events', () => {
@@ -48,6 +49,44 @@ describe('Events', () => {
 
       expect(eventById.id).toBe(event.id);
       expect(eventBySlug.id).toBe(event.id);
+    });
+
+    it('fetches an event by URL', async () => {
+      const {
+        items: [event],
+      } = await publicClient
+        .listEvents({
+          closed: false,
+          pageSize: 1,
+        })
+        .firstPage()
+        .then(expectNonEmptyPage);
+
+      const eventByUrl = await publicClient.fetchEvent({
+        url: `https://polymarket.com/event/${expectPresent(event.slug)}`,
+      });
+
+      expect(eventByUrl.id).toBe(event.id);
+    });
+
+    it('rejects invalid and non-event URLs', async () => {
+      await expect(
+        publicClient.fetchEvent({
+          url: 'not-a-url',
+        }),
+      ).rejects.toThrow(UserInputError);
+
+      await expect(
+        publicClient.fetchEvent({
+          url: 'https://example.com/event/presidential-election-2028',
+        }),
+      ).rejects.toThrow(UserInputError);
+
+      await expect(
+        publicClient.fetchEvent({
+          url: 'https://polymarket.com/market/some-market-slug',
+        }),
+      ).rejects.toThrow(UserInputError);
     });
   });
 
