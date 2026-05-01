@@ -86,7 +86,7 @@ export const ListTeamsError = makeErrorGuard(
 export function listTeams(
   client: BaseClient,
   request: ListTeamsRequest = {},
-): Paginated<Team> {
+): Paginated<Team[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListTeamsRequestSchema,

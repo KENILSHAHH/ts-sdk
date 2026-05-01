@@ -138,7 +138,7 @@ export const ListTagsError = makeErrorGuard(
 export function listTags(
   client: BaseClient,
   request: ListTagsRequest = {},
-): Paginated<Tag> {
+): Paginated<Tag[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListTagsRequestSchema,

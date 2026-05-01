@@ -55,7 +55,9 @@ export type AnalyticsActions = {
    * }
    * ```
    */
-  listBuilderTrades(request: ListBuilderTradesRequest): Paginated<BuilderTrade>;
+  listBuilderTrades(
+    request: ListBuilderTradesRequest,
+  ): Paginated<BuilderTrade[]>;
 
   /**
    * Lists builder leaderboard rankings.
@@ -94,7 +96,7 @@ export type AnalyticsActions = {
    */
   listBuilderLeaderboard(
     request?: ListBuilderLeaderboardRequest,
-  ): Paginated<LeaderboardEntry>;
+  ): Paginated<LeaderboardEntry[]>;
 
   /**
    * Lists daily builder volume entries.
@@ -152,7 +154,7 @@ export type AnalyticsActions = {
    */
   listTraderLeaderboard(
     request?: ListTraderLeaderboardRequest,
-  ): Paginated<TraderLeaderboardEntry>;
+  ): Paginated<TraderLeaderboardEntry[]>;
 };
 
 export function analyticsActions(client: BasePublicClient): AnalyticsActions;

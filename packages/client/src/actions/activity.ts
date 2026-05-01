@@ -131,7 +131,7 @@ export const ListTradesError = makeErrorGuard(
 export function listTrades(
   client: BaseClient,
   request: ListTradesRequest = {},
-): Paginated<Trade> {
+): Paginated<Trade[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListTradesRequestSchema,
@@ -218,7 +218,7 @@ export const ListActivityError = makeErrorGuard(
 export function listActivity(
   client: BaseClient,
   request: ListActivityRequest,
-): Paginated<Activity> {
+): Paginated<Activity[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListActivityRequestSchema,

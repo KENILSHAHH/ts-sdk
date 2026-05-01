@@ -3,7 +3,6 @@ import type {
   Event,
   Market,
   PublicProfile,
-  PublicSearchResponse,
   RelatedTag,
   Series,
   SportsMarketTypesResponse,
@@ -50,6 +49,7 @@ import {
   listTags,
   listTeams,
   type SearchRequest,
+  type SearchResults,
   search,
 } from '../actions';
 import type {
@@ -93,7 +93,7 @@ export type DiscoveryActions = {
    * }
    * ```
    */
-  listEvents(request?: ListEventsRequest): Paginated<Event>;
+  listEvents(request?: ListEventsRequest): Paginated<Event[]>;
 
   /**
    * Fetches an event.
@@ -168,7 +168,7 @@ export type DiscoveryActions = {
    * }
    * ```
    */
-  listMarkets(request?: ListMarketsRequest): Paginated<Market>;
+  listMarkets(request?: ListMarketsRequest): Paginated<Market[]>;
 
   /**
    * Fetches a market.
@@ -241,7 +241,7 @@ export type DiscoveryActions = {
    * }
    * ```
    */
-  listSeries(request?: ListSeriesRequest): Paginated<Series>;
+  listSeries(request?: ListSeriesRequest): Paginated<Series[]>;
 
   /**
    * Fetches a series.
@@ -291,7 +291,7 @@ export type DiscoveryActions = {
    * }
    * ```
    */
-  listTags(request?: ListTagsRequest): Paginated<Tag>;
+  listTags(request?: ListTagsRequest): Paginated<Tag[]>;
 
   /**
    * Fetches a tag by id or slug.
@@ -347,13 +347,24 @@ export type DiscoveryActions = {
    * Thrown on failure.
    *
    * @example
+   * Fetch the first page of results:
    * ```ts
-   * const results = await client.search({
-   *   query: 'election',
+   * const paginator = client.search({
+   *   q: 'election',
+   *   pageSize: 10,
    * });
+   *
+   * const firstPage = await paginator.firstPage();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items.events: Event[]
+   *   // page.items.tags: SearchTag[]
+   *   // page.items.profiles: Profile[]
+   * }
    * ```
    */
-  search(request: SearchRequest): Promise<PublicSearchResponse>;
+  search(request: SearchRequest): Paginated<SearchResults>;
 
   /**
    * Lists available sports metadata.
@@ -414,7 +425,7 @@ export type DiscoveryActions = {
    * }
    * ```
    */
-  listTeams(request?: ListTeamsRequest): Paginated<Team>;
+  listTeams(request?: ListTeamsRequest): Paginated<Team[]>;
 
   /**
    * Fetches a public profile by wallet address.
@@ -470,7 +481,7 @@ export type DiscoveryActions = {
    * }
    * ```
    */
-  listComments(request: ListCommentsRequest): Paginated<Comment>;
+  listComments(request: ListCommentsRequest): Paginated<Comment[]>;
 
   /**
    * Fetches a comment thread by comment id.
@@ -527,7 +538,7 @@ export type DiscoveryActions = {
    */
   listCommentsByUserAddress(
     request: ListCommentsByUserAddressRequest,
-  ): Paginated<Comment>;
+  ): Paginated<Comment[]>;
 };
 
 export function discoveryActions(client: BasePublicClient): DiscoveryActions;

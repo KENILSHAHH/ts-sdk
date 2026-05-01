@@ -117,12 +117,14 @@ describe.runIf(runBackendCompatTests)('backend compatibility', () => {
   });
 
   it('validates search responses against the response schema', async () => {
-    await publicClient.search({
-      limitPerType: 10,
-      q: 'polymarket',
-      searchProfiles: true,
-      searchTags: true,
-    });
+    await publicClient
+      .search({
+        pageSize: 10,
+        q: 'polymarket',
+        searchProfiles: true,
+        searchTags: true,
+      })
+      .firstPage();
   });
 
   it('validates sports metadata against the response schema', async () => {
