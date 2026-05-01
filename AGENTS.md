@@ -19,11 +19,16 @@
 - Example: if `packages/bindings` changes and you are validating `packages/client`, run `pnpm --filter @polymarket/bindings build` before `pnpm test:client`.
 - If multiple packages changed or the dependency chain is unclear, prefer root-level verification such as `pnpm build` and `pnpm test`.
 
-## Guardrails
+## Product and API guardrails
 
 - This repo is the home for Polymarket's TypeScript SDKs. The first shipping target is `@polymarket/client`.
 - `@polymarket/client` unifies Polymarket's 4 current API surfaces: CLOB, Gamma, data, and relayer.
-- The SDK should present one cohesive consumer interface, follow developer workflows, and hide service boundaries where possible.
+- The SDK should present one cohesive consumer interface, follow developer workflows, and hide service boundaries where possible. Do not cargo-cult the shape of underlying APIs, older SDKs, migration notes, or ticket wording when a better public SDK shape exists.
+- When changing exported SDK APIs, first identify the user intent the API should express. Prefer intent-based options over implementation-detail options. Legacy behavior may need to be preserved, but the legacy API shape should not be preserved automatically.
+- Before deciding a public API shape for a likely common SDK pattern, look at comparable SDK/API interfaces or ask a short question. Examples include fee handling, slippage, pagination, signing workflows, balance/allowance handling, idempotency, and retries.
+- For order construction APIs, distinguish between order intent, execution constraints, and account/backend state. Prefer exposing order intent and execution constraints. Avoid asking callers for account state or cached backend data only so the SDK can infer intent.
+- Defaults are part of the API. Make the default behavior explicit, choose the least surprising default for the common workflow, and document how callers opt into materially different behavior.
+- Make asymmetric trading semantics explicit when they matter, such as BUY vs SELL, maker vs taker, platform fees vs builder fees, and fees paid on top vs deducted from amount.
 - When you discover a real boundary inconsistency between underlying CLOB, Gamma, Data, and relayer APIs, append a concise note to `docs/api-boundary-notes.md`.
 - Future work includes `@polymarket/react`, which should build on the same core model with a higher-level frontend-oriented surface.
 - Each action in `packages/client/src/actions/` has a corresponding bound method in a decorator under `packages/client/src/decorators/`. When you change an action — its signature, parameter types, TSDoc, or examples — verify the matching decorator method is also updated. The decorator method is the public surface most consumers see.
@@ -44,7 +49,7 @@
 - Treat property-access-derived types like `SecureClient['signatureType']` as a code smell in most cases. Prefer a named domain type when the value is part of the public or shared model.
 - Prefer simple, local code. Accept small duplication when it keeps logic easier to read.
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
-- Shape abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
+- Shape implementation abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
 - When translating one public error into another at an action boundary, prefer `ResultAsync.mapErr(...)` on the request pipeline over `try`/`catch` around `unwrap(...)` when the remap can stay inside the result chain.
 - Prefer TypeScript enums with `z.enum(MyEnum)` over `z.union([z.literal(...), ...])` for string-valued sets. This gives consumers dot-notation access, keeps the schema and type in sync, and avoids `z.nativeEnum` which is deprecated in Zod v4.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
