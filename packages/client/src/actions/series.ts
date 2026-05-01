@@ -103,7 +103,7 @@ export const ListSeriesError = makeErrorGuard(
 export function listSeries(
   client: BaseClient,
   request: ListSeriesRequest = {},
-): Paginated<Series> {
+): Paginated<Series[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListSeriesRequestSchema,

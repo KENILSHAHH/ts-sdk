@@ -114,7 +114,7 @@ export const ListBuilderLeaderboardError = makeErrorGuard(
 export function listBuilderLeaderboard(
   client: BaseClient,
   request: ListBuilderLeaderboardRequest = {},
-): Paginated<LeaderboardEntry> {
+): Paginated<LeaderboardEntry[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListBuilderLeaderboardRequestSchema,
@@ -247,7 +247,7 @@ export const ListTraderLeaderboardError = makeErrorGuard(
 export function listTraderLeaderboard(
   client: BaseClient,
   request: ListTraderLeaderboardRequest = {},
-): Paginated<TraderLeaderboardEntry> {
+): Paginated<TraderLeaderboardEntry[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListTraderLeaderboardRequestSchema,

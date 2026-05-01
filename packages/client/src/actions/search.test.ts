@@ -4,29 +4,33 @@ import { publicClient } from '../testing';
 describe('Search', () => {
   describe('search', () => {
     it('fetches public search results', async () => {
-      const result = await publicClient.search({
+      const paginator = publicClient.search({
         q: 'trump',
-        limitPerType: 1,
+        pageSize: 1,
       });
+      const firstPage = await paginator.firstPage();
 
-      expect(result).toEqual(
+      expect(firstPage).toEqual(
         expect.objectContaining({
-          pagination: expect.objectContaining({
-            hasMore: expect.any(Boolean),
+          hasMore: expect.any(Boolean),
+          items: expect.objectContaining({
+            events: expect.any(Array),
+            profiles: expect.any(Array),
+            tags: expect.any(Array),
           }),
         }),
       );
 
-      if (result.events) {
-        expect(result.events).toEqual(expect.any(Array));
-      }
+      if (firstPage.hasMore) {
+        const nextPage = await paginator.from(firstPage.nextCursor).firstPage();
 
-      if (result.tags) {
-        expect(result.tags).toEqual(expect.any(Array));
-      }
-
-      if (result.profiles) {
-        expect(result.profiles).toEqual(expect.any(Array));
+        expect(nextPage.items).toEqual(
+          expect.objectContaining({
+            events: expect.any(Array),
+            profiles: expect.any(Array),
+            tags: expect.any(Array),
+          }),
+        );
       }
     });
   });

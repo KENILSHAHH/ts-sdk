@@ -142,7 +142,7 @@ export const ListOpenOrdersError = makeErrorGuard(
 export function listOpenOrders(
   client: BaseSecureClient,
   request?: ListOpenOrdersRequest,
-): Paginated<OpenOrder> {
+): Paginated<OpenOrder[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListOpenOrdersRequestSchema,
@@ -285,7 +285,7 @@ export const ListAccountTradesError = makeErrorGuard(
 export function listAccountTrades(
   client: BaseSecureClient,
   request?: ListAccountTradesRequest,
-): Paginated<ClobTrade> {
+): Paginated<ClobTrade[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListAccountTradesRequestSchema,
@@ -689,7 +689,7 @@ export const ListUserEarningsForDayError = makeErrorGuard(
 export function listUserEarningsForDay(
   client: BaseSecureClient,
   request: ListUserEarningsForDayRequest,
-): Paginated<UserEarning> {
+): Paginated<UserEarning[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListUserEarningsForDayRequestSchema,
@@ -839,7 +839,7 @@ export const ListUserEarningsAndMarketsConfigError = makeErrorGuard(
 export function listUserEarningsAndMarketsConfig(
   client: BaseSecureClient,
   request: ListUserEarningsAndMarketsConfigRequest,
-): Paginated<UserRewardsEarning> {
+): Paginated<UserRewardsEarning[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListUserEarningsAndMarketsConfigRequestSchema,

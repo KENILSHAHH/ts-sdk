@@ -214,8 +214,8 @@ async function hasLiveOrderBook(candidate: Market) {
 }
 
 export function expectNonEmptyPage<T>(
-  page: Page<T>,
-): Omit<Page<T>, 'items'> & { items: NonEmptyArray<T> } {
+  page: Page<T[]>,
+): Omit<Page<T[]>, 'items'> & { items: NonEmptyArray<T> } {
   return {
     ...page,
     items: expectNonEmptyArray(page.items),

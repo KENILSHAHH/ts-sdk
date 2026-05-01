@@ -223,7 +223,7 @@ export type TradingActions = {
    * }
    * ```
    */
-  listOpenOrders(request?: ListOpenOrdersRequest): Paginated<OpenOrder>;
+  listOpenOrders(request?: ListOpenOrdersRequest): Paginated<OpenOrder[]>;
   /**
    * Fetches a single order for the authenticated account.
    *

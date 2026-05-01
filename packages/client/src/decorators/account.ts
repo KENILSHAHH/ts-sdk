@@ -76,7 +76,7 @@ export type AccountPublicActions = {
    * }
    * ```
    */
-  listPositions(request: ListPositionsRequest): Paginated<Position>;
+  listPositions(request: ListPositionsRequest): Paginated<Position[]>;
   /**
    * Lists closed positions for a wallet.
    *
@@ -114,7 +114,7 @@ export type AccountPublicActions = {
    */
   listClosedPositions(
     request: ListClosedPositionsRequest,
-  ): Paginated<ClosedPosition>;
+  ): Paginated<ClosedPosition[]>;
   /**
    * Fetches the total value for a wallet's positions.
    *
@@ -198,7 +198,7 @@ export type AccountPublicActions = {
    */
   listMarketPositions(
     request: ListMarketPositionsRequest,
-  ): Paginated<MetaMarketPosition>;
+  ): Paginated<MetaMarketPosition[]>;
   /**
    * Lists wallet activity.
    *
@@ -234,7 +234,7 @@ export type AccountPublicActions = {
    * }
    * ```
    */
-  listActivity(request: ListActivityRequest): Paginated<Activity>;
+  listActivity(request: ListActivityRequest): Paginated<Activity[]>;
 };
 
 export type AccountActions = Prettify<
@@ -272,7 +272,9 @@ export type AccountActions = Prettify<
      * }
      * ```
      */
-    listAccountTrades(request?: ListAccountTradesRequest): Paginated<ClobTrade>;
+    listAccountTrades(
+      request?: ListAccountTradesRequest,
+    ): Paginated<ClobTrade[]>;
     /**
      * Fetches notifications for the authenticated account.
      *

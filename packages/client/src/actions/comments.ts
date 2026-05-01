@@ -117,7 +117,7 @@ export const ListCommentsError = makeErrorGuard(
 export function listComments(
   client: BaseClient,
   request: ListCommentsRequest,
-): Paginated<Comment> {
+): Paginated<Comment[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListCommentsRequestSchema,
@@ -264,7 +264,7 @@ export const ListCommentsByUserAddressError = makeErrorGuard(
 export function listCommentsByUserAddress(
   client: BaseClient,
   request: ListCommentsByUserAddressRequest,
-): Paginated<Comment> {
+): Paginated<Comment[]> {
   const { address, cursor, pageSize, ...params } = parseUserInput(
     request,
     ListCommentsByUserAddressRequestSchema,

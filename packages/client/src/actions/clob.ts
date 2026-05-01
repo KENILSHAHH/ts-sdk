@@ -898,7 +898,7 @@ export const ListCurrentRewardsError = makeErrorGuard(
 export function listCurrentRewards(
   client: BaseClient,
   request: ListCurrentRewardsRequest = {},
-): Paginated<CurrentReward> {
+): Paginated<CurrentReward[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListCurrentRewardsRequestSchema,
@@ -992,7 +992,7 @@ export const ListMarketRewardsError = makeErrorGuard(
 export function listMarketRewards(
   client: BaseClient,
   request: ListMarketRewardsRequest,
-): Paginated<MarketReward> {
+): Paginated<MarketReward[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListMarketRewardsRequestSchema,

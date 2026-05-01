@@ -290,7 +290,7 @@ export type DataActions = {
    * }
    * ```
    */
-  listTrades(request?: ListTradesRequest): Paginated<Trade>;
+  listTrades(request?: ListTradesRequest): Paginated<Trade[]>;
 };
 
 export function dataActions(client: BasePublicClient): DataActions;

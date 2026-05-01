@@ -9,7 +9,7 @@ import { UserInputError } from './errors';
 export const PageSizeSchema = z.number().int().positive();
 
 export type Page<T> = {
-  items: T[];
+  items: T;
   hasMore: boolean;
   nextCursor?: PaginationCursor;
   totalCount?: number;
@@ -36,12 +36,13 @@ const OffsetCursorStateSchema = z.object({
 export function paginate<T, TError>(
   fetchPage: (cursor?: PaginationCursor) => ResultAsync<Page<T>, TError>,
   initialCursor?: PaginationCursor,
+  emptyItems: T = [] as T,
 ): Paginated<T> {
   function createEmptyPaginator(): Paginated<T> {
     return {
       async firstPage() {
         return {
-          items: [],
+          items: emptyItems,
           hasMore: false,
         };
       },

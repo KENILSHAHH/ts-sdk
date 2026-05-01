@@ -64,7 +64,7 @@ export type RewardsPublicActions = {
    */
   listCurrentRewards(
     request?: ListCurrentRewardsRequest,
-  ): Paginated<CurrentReward>;
+  ): Paginated<CurrentReward[]>;
   /**
    * Lists reward configurations for a market.
    *
@@ -100,7 +100,9 @@ export type RewardsPublicActions = {
    * }
    * ```
    */
-  listMarketRewards(request: ListMarketRewardsRequest): Paginated<MarketReward>;
+  listMarketRewards(
+    request: ListMarketRewardsRequest,
+  ): Paginated<MarketReward[]>;
 };
 
 export type RewardsActions = Prettify<
@@ -170,7 +172,7 @@ export type RewardsActions = Prettify<
      */
     listUserEarningsForDay(
       request: ListUserEarningsForDayRequest,
-    ): Paginated<UserEarning>;
+    ): Paginated<UserEarning[]>;
     /**
      * Fetches total earnings for the authenticated account on a given day.
      *
@@ -222,7 +224,7 @@ export type RewardsActions = Prettify<
      */
     listUserEarningsAndMarketsConfig(
       request: ListUserEarningsAndMarketsConfigRequest,
-    ): Paginated<UserRewardsEarning>;
+    ): Paginated<UserRewardsEarning[]>;
     /**
      * Fetches reward percentages for the authenticated account.
      *

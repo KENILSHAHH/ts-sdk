@@ -83,7 +83,7 @@ export const ListBuilderTradesError = makeErrorGuard(
 export function listBuilderTrades(
   client: BaseClient,
   request: ListBuilderTradesRequest,
-): Paginated<BuilderTrade> {
+): Paginated<BuilderTrade[]> {
   const { cursor, ...params } = parseUserInput(
     request,
     ListBuilderTradesRequestSchema,

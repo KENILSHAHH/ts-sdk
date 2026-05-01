@@ -204,7 +204,7 @@ export const ListMarketsError = makeErrorGuard(
 export function listMarkets(
   client: BaseClient,
   request: ListMarketsRequest = {},
-): Paginated<Market> {
+): Paginated<Market[]> {
   const params = parseUserInput(request, ListMarketsRequestSchema);
 
   return paginate(
@@ -467,7 +467,7 @@ export const ListMarketPositionsError = makeErrorGuard(
 export function listMarketPositions(
   client: BaseClient,
   request: ListMarketPositionsRequest,
-): Paginated<MetaMarketPosition> {
+): Paginated<MetaMarketPosition[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListMarketPositionsRequestSchema,

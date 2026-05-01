@@ -167,7 +167,7 @@ export const ListPositionsError = makeErrorGuard(
 export function listPositions(
   client: BaseClient,
   request: ListPositionsRequest,
-): Paginated<Position> {
+): Paginated<Position[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListPositionsRequestSchema,
@@ -254,7 +254,7 @@ export const ListClosedPositionsError = makeErrorGuard(
 export function listClosedPositions(
   client: BaseClient,
   request: ListClosedPositionsRequest,
-): Paginated<ClosedPosition> {
+): Paginated<ClosedPosition[]> {
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListClosedPositionsRequestSchema,

@@ -170,7 +170,7 @@ export const ListEventsError = makeErrorGuard(
 export function listEvents(
   client: BaseClient,
   request: ListEventsRequest = {},
-): Paginated<Event> {
+): Paginated<Event[]> {
   const params = parseUserInput(request, ListEventsRequestSchema);
 
   return paginate(
