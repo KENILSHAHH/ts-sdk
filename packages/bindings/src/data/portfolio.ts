@@ -12,7 +12,7 @@ export const PositionSchema = z
   .looseObject({
     proxyWallet: AddressSchema.nullish(),
     asset: TokenIdSchema.nullish(),
-    conditionId: ConditionIdSchema.nullish(),
+    conditionId: ConditionIdSchema,
     size: z.number().nullish(),
     avgPrice: z.number().nullish(),
     initialValue: z.number().nullish(),

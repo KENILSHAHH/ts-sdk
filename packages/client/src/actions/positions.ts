@@ -48,10 +48,9 @@ import {
 import { listMarkets } from './markets';
 import { listPositions } from './portfolio';
 
-type BinaryPositions = readonly [
-  yes: Position | undefined,
-  no: Position | undefined,
-];
+type BinaryPositions =
+  | readonly [yes: Position, no: Position | undefined]
+  | readonly [yes: undefined, no: Position];
 
 type PositiveAmount = bigint;
 
@@ -67,10 +66,18 @@ const PrepareMergePositionsRequestSchema = z.object({
   metadata: GaslessTransactionMetadataSchema.optional(),
 });
 
-const PrepareRedeemPositionsRequestSchema = z.object({
-  conditionId: ConditionIdSchema,
-  metadata: GaslessTransactionMetadataSchema.optional(),
-});
+const PrepareRedeemPositionsRequestSchema = z.union([
+  z.object({
+    conditionId: ConditionIdSchema,
+    marketId: z.never().optional(),
+    metadata: GaslessTransactionMetadataSchema.optional(),
+  }),
+  z.object({
+    conditionId: z.never().optional(),
+    marketId: z.string().min(1),
+    metadata: GaslessTransactionMetadataSchema.optional(),
+  }),
+]);
 
 export type SplitPositionWorkflowRequest =
   | GaslessWorkflowRequest
@@ -251,16 +258,9 @@ export async function prepareMergePositions(
   })
     .firstPage()
     .then((page) => page.items);
-  const binaryPositions = expectBinaryPositions(params.conditionId, positions);
-  const negativeRisk = expectNegativeRiskFlag(
-    params.conditionId,
-    binaryPositions,
-  );
-  const amount = resolveMergeAmount(
-    params.conditionId,
-    binaryPositions,
-    params.amount,
-  );
+  const binaryPositions = expectBinaryPositions(positions);
+  const negativeRisk = expectNegativeRiskFlag(binaryPositions);
+  const amount = resolveMergeAmount(binaryPositions, params.amount);
   const call = mergePositionsCall(
     resolveMergeTargetAddress(client, negativeRisk),
     client.environment.collateralToken,
@@ -330,6 +330,13 @@ export function mergePositions(
  * });
  * ```
  *
+ * @example
+ * ```ts
+ * const workflow = await prepareRedeemPositions(client, {
+ *   marketId: '12345',
+ * });
+ * ```
+ *
  * @throws {@link PrepareRedeemPositionsError}
  * Thrown on failure.
  */
@@ -340,26 +347,24 @@ export async function prepareRedeemPositions(
   const params = parseUserInput(request, PrepareRedeemPositionsRequestSchema);
   const positions = await listPositions(client, {
     user: client.account.wallet,
-    market: [params.conditionId],
+    market: [params.conditionId ?? params.marketId],
     sizeThreshold: 0,
   })
     .firstPage()
     .then((page) => page.items);
-  const binaryPositions = expectBinaryPositions(params.conditionId, positions);
-  const negativeRisk = expectNegativeRiskFlag(
-    params.conditionId,
-    binaryPositions,
-  );
+  const binaryPositions = expectBinaryPositions(positions);
+  const conditionId = resolveBinaryPositionsConditionId(binaryPositions);
+  const negativeRisk = expectNegativeRiskFlag(binaryPositions);
   const call = negativeRisk
     ? negRiskRedeemPositionsCall(
         client.environment.negRiskAdapter,
-        params.conditionId,
+        conditionId,
         deriveNegRiskRedeemAmounts(binaryPositions),
       )
     : ctfRedeemPositionsCall(
         client.environment.conditionalTokens,
         client.environment.collateralToken,
-        params.conditionId,
+        conditionId,
       );
 
   return async function* (): RedeemPositionsWorkflow {
@@ -374,8 +379,7 @@ export async function prepareRedeemPositions(
     return yield* await prepareGaslessTransaction(client, {
       calls: [call],
       metadata:
-        params.metadata ??
-        `Redeem positions for condition ${params.conditionId}`,
+        params.metadata ?? `Redeem positions for condition ${conditionId}`,
     });
   }.call(null);
 }
@@ -484,16 +488,13 @@ function deriveNegRiskRedeemAmounts([
   return [toPositionAmount(yesPosition, 0), toPositionAmount(noPosition, 1)];
 }
 
-function expectNegativeRiskFlag(
-  conditionId: ConditionId,
-  [yesPosition, noPosition]: BinaryPositions,
-): boolean {
+function expectNegativeRiskFlag([
+  yesPosition,
+  noPosition,
+]: BinaryPositions): boolean {
   const first = yesPosition ?? noPosition;
+  const conditionId = first.conditionId;
 
-  invariant(
-    first !== undefined,
-    `You have no positions for condition ${conditionId}`,
-  );
   invariant(
     isPresent(first.negativeRisk),
     `Missing negativeRisk flag for condition ${conditionId}`,
@@ -518,14 +519,15 @@ function expectNegativeRiskFlag(
 }
 
 function expectBinaryPositions(
-  conditionId: ConditionId,
   positions: readonly Position[],
 ): BinaryPositions {
-  if (positions.length === 0) {
-    throw new UserInputError(
-      `You have no positions for condition ${conditionId}`,
-    );
+  const firstPosition = positions[0];
+
+  if (firstPosition === undefined) {
+    throw new UserInputError('You have no positions');
   }
+
+  const conditionId = firstPosition.conditionId;
 
   invariant(
     positions.length <= 2,
@@ -557,15 +559,30 @@ function expectBinaryPositions(
     noPosition = position;
   }
 
-  return [yesPosition, noPosition];
+  if (yesPosition !== undefined) {
+    return [yesPosition, noPosition];
+  }
+
+  invariant(
+    noPosition !== undefined,
+    `Expected positions for condition ${conditionId}`,
+  );
+
+  return [undefined, noPosition];
+}
+
+function resolveBinaryPositionsConditionId(
+  positions: BinaryPositions,
+): ConditionId {
+  return (positions[0] ?? positions[1]).conditionId;
 }
 
 function resolveMergeAmount(
-  conditionId: ConditionId,
   positions: BinaryPositions,
   requestedAmount: bigint | 'max',
 ): PositiveAmount {
   const maxAmount = calculateMaxMergeAmount(positions);
+  const conditionId = resolveBinaryPositionsConditionId(positions);
 
   if (maxAmount === 0n) {
     throw new UserInputError(
