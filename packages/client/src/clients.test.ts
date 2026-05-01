@@ -5,8 +5,11 @@ import { fetchApiKeys } from './actions';
 import { createSecureClient } from './clients';
 import {
   createRandomWalletClient,
-  createTestSecureClient,
+  createSecureClientWithSafeWallet,
   deriveProxyAddress,
+  relayerAuthorization,
+  runMeteredTests,
+  safeWalletAddress,
   walletClient,
 } from './testing';
 import { signerFrom } from './viem';
@@ -14,23 +17,38 @@ import { signerFrom } from './viem';
 describe('clients', () => {
   describe('createSecureClient', () => {
     it('authenticates a secure client from an authentication workflow', async () => {
-      const secureClient = await createTestSecureClient();
+      const secureClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+      });
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
     it('authenticates with a non-zero nonce', async () => {
-      const secureClient = await createTestSecureClient({ nonce: 1 });
+      const secureClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        nonce: 1,
+      });
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
     it('authenticates twice with the same nonce', async () => {
-      const firstClient = await createTestSecureClient({ nonce: 2 });
+      const firstClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        nonce: 2,
+      });
 
       await expect(fetchApiKeys(firstClient)).resolves.toBeDefined();
 
-      const secondClient = await createTestSecureClient({ nonce: 2 });
+      const secondClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        nonce: 2,
+      });
 
       await expect(fetchApiKeys(secondClient)).resolves.toBeDefined();
     });
@@ -39,7 +57,8 @@ describe('clients', () => {
       const signerAddress = expectEvmAddress(walletClient.account.address);
       const proxyWallet = deriveProxyAddress(signerAddress);
 
-      const secureClient = await createTestSecureClient({
+      const secureClient = await createSecureClient({
+        signer: signerFrom(walletClient),
         wallet: proxyWallet,
       });
 
@@ -50,12 +69,14 @@ describe('clients', () => {
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
-    it('authenticates as EOA when wallet equals signer address', async () => {
-      const signerAddress = walletClient.account.address;
-      const secureClient = await createTestSecureClient({
-        wallet: signerAddress,
+    it('authenticates as EOA when wallet is omitted', async () => {
+      const secureClient = await createSecureClient({
+        signer: signerFrom(walletClient),
       });
 
+      expect(secureClient.account.signer).toBe(walletClient.account.address);
+      expect(secureClient.account.wallet).toBe(walletClient.account.address);
+      expect(secureClient.account.walletType).toBe(WalletType.EOA);
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
@@ -71,17 +92,31 @@ describe('clients', () => {
     });
 
     it('reuses stored credentials during authentication when they remain valid', async () => {
-      const initialClient = await createTestSecureClient();
-      const { credentials } = initialClient;
+      const initialClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+      });
 
-      const secureClient = await createTestSecureClient({ credentials });
+      const secureClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        credentials: initialClient.credentials,
+      });
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
     it('falls back to fresh authentication when stored credentials have been revoked', async () => {
-      const controlClient = await createTestSecureClient({ nonce: 1997 });
-      const secureClient = await createTestSecureClient({ nonce: 1998 });
+      const controlClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        nonce: 1997,
+      });
+      const secureClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        nonce: 1998,
+      });
       const { credentials } = secureClient;
       const revokedKey = credentials.key;
 
@@ -89,7 +124,11 @@ describe('clients', () => {
 
       await secureClient.endAuthentication();
 
-      const resumedClient = await createTestSecureClient({ credentials });
+      const resumedClient = await createSecureClient({
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+        credentials,
+      });
       const remainingApiKeys = await fetchApiKeys(controlClient);
 
       expect(resumedClient.credentials.key).not.toBe(revokedKey);
@@ -99,10 +138,50 @@ describe('clients', () => {
     });
   });
 
+  describe('SecureClient.setupGaslessWallet', () => {
+    it('returns a secure client for an already deployed Safe wallet', async () => {
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthorization,
+        signer: signerFrom(walletClient),
+        wallet: safeWalletAddress,
+      });
+      await expect(secureClient.isGaslessReady()).resolves.toBe(true);
+
+      const gaslessClient = await secureClient.setupGaslessWallet();
+
+      expect(gaslessClient.account.walletType).toBe(
+        WalletType.POLY_GNOSIS_SAFE,
+      );
+    });
+
+    it.runIf(runMeteredTests)(
+      'deploys the signer Safe and returns a secure client bound to it',
+      async () => {
+        const walletClient = createRandomWalletClient();
+
+        const secureClient = await createSecureClient({
+          apiKey: relayerAuthorization,
+          signer: signerFrom(walletClient),
+        });
+
+        await expect(secureClient.isGaslessReady()).resolves.toBe(false);
+
+        const gaslessClient = await secureClient.setupGaslessWallet();
+
+        await expect(gaslessClient.isGaslessReady()).resolves.toBe(true);
+      },
+      20_000,
+    );
+  });
+
   describe('SecureClient.endAuthentication', () => {
     it('returns a public client and invalidates the secure client', async () => {
-      const controlClient = await createTestSecureClient({ nonce: 997 });
-      const secureClient = await createTestSecureClient({ nonce: 998 });
+      const controlClient = await createSecureClientWithSafeWallet({
+        nonce: 997,
+      });
+      const secureClient = await createSecureClientWithSafeWallet({
+        nonce: 998,
+      });
       const revokedKey = secureClient.credentials.key;
       const signer = secureClient.account.signer;
 
@@ -122,7 +201,9 @@ describe('clients', () => {
     });
 
     it('closes active subscription iterators before ending authentication', async () => {
-      const secureClient = await createTestSecureClient({ nonce: 999 });
+      const secureClient = await createSecureClientWithSafeWallet({
+        nonce: 999,
+      });
       const handle = await secureClient.subscribe([{ topic: 'user' }]);
 
       await secureClient.endAuthentication();

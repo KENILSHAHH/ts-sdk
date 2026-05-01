@@ -13,7 +13,6 @@ import {
   fetchBalanceAllowance,
   fetchMarket,
 } from './actions';
-import { isGaslessReady } from './actions/gasless';
 import { createSecureClient } from './clients';
 import { type PrivyWalletConfig, signerFrom } from './privy';
 import {
@@ -33,7 +32,7 @@ const hasPrivyTestConfig =
 describe.runIf(hasPrivyTestConfig)('privy', () => {
   let hasCollateralBalance = false;
   let wallet: PrivyWalletConfig;
-  let safeWalletAddress: `0x${string}`;
+  let walletAddress: `0x${string}`;
 
   beforeAll(async () => {
     const privy = new PrivyClient({
@@ -49,32 +48,28 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
       privy,
       walletId,
     };
-    safeWalletAddress = deriveSafeWalletAddress(
+    walletAddress = deriveSafeWalletAddress(
       signerAddress,
       publicClientWithBuilderKey.environment.walletDerivation,
     );
 
-    if (
-      !(await isGaslessReady(publicClientWithBuilderKey, {
-        wallet: safeWalletAddress,
-      }))
-    ) {
-      const secureClient = await createSecureClient({
-        apiKey: builderAuthorization,
-        signer: signerFrom(wallet),
-        wallet: safeWalletAddress,
-      });
-      const handle = await secureClient.setupGaslessWallet();
+    const secureClient = await createSecureClient({
+      apiKey: builderAuthorization,
+      signer: signerFrom(wallet),
+      wallet: walletAddress,
+    });
 
-      expect(handle.wallet).toBe(safeWalletAddress);
-      await handle.wait();
+    if (!(await secureClient.isGaslessReady())) {
+      const gaslessClient = await secureClient.setupGaslessWallet();
+
+      expect(gaslessClient.account.wallet).toBe(walletAddress);
     }
 
     if (runMeteredTests) {
       const secureClient = await createSecureClient({
         apiKey: builderAuthorization,
         signer: signerFrom(wallet),
-        wallet: safeWalletAddress,
+        wallet: walletAddress,
       });
 
       hasCollateralBalance =
@@ -95,7 +90,7 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
   it('authenticates a secure client', async () => {
     const secureClient = await createSecureClient({
       signer: signerFrom(wallet),
-      wallet: safeWalletAddress,
+      wallet: walletAddress,
     });
 
     await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
@@ -112,7 +107,7 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
       const size = expectPresent(market.trading.minimumOrderSize);
       const secureClient = await createSecureClient({
         signer: signerFrom(wallet),
-        wallet: safeWalletAddress,
+        wallet: walletAddress,
       });
 
       if (!hasCollateralBalance) {

@@ -2,7 +2,7 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import { expectPresent, invariant } from '@polymarket/types';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createTestSecureClient,
+  createSecureClientWithSafeWallet,
   publicClient,
   relayerAuthorization,
 } from '../testing';
@@ -14,7 +14,7 @@ const market = await publicClient.fetchMarket({
 });
 const conditionId = expectPresent(market.conditionId);
 
-const secureClient = await createTestSecureClient({
+const secureClient = await createSecureClientWithSafeWallet({
   apiKey: relayerAuthorization,
 });
 

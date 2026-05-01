@@ -5,7 +5,7 @@ import { createSecureClient } from '../clients';
 import { SigningError } from '../errors';
 import {
   createRandomWalletClient,
-  createTestSecureClient,
+  createSecureClientWithSafeWallet,
   relayerAuthorization,
 } from '../testing';
 import { signerFrom } from '../viem';
@@ -13,7 +13,7 @@ import { signerFrom } from '../viem';
 describe('Approvals', () => {
   describe('prepareErc20Approval', () => {
     it('submits a collateral approval for the standard exchange', async () => {
-      const secureClient = await createTestSecureClient({
+      const secureClient = await createSecureClientWithSafeWallet({
         apiKey: relayerAuthorization,
       });
 
@@ -31,7 +31,6 @@ describe('Approvals', () => {
     it('supports EOA approvals as traditional transactions', async () => {
       const walletClient = createRandomWalletClient();
       const secureClient = await createSecureClient({
-        wallet: walletClient.account.address,
         signer: signerFrom(walletClient),
       });
 
@@ -51,7 +50,7 @@ describe('Approvals', () => {
 
   describe('prepareErc1155ApprovalForAll', () => {
     it('submits a Conditional Tokens approval for the standard exchange', async () => {
-      const secureClient = await createTestSecureClient({
+      const secureClient = await createSecureClientWithSafeWallet({
         apiKey: relayerAuthorization,
       });
 
@@ -68,7 +67,7 @@ describe('Approvals', () => {
 
   describe('prepareTradingApprovals', () => {
     it('submits a combined trading-setup approval workflow', async () => {
-      const secureClient = await createTestSecureClient({
+      const secureClient = await createSecureClientWithSafeWallet({
         apiKey: relayerAuthorization,
       });
 

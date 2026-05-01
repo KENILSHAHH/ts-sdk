@@ -3,7 +3,7 @@ import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import {
   builderAuthorization,
-  createTestSecureClient,
+  createSecureClientWithSafeWallet,
   expectNonEmptyPage,
   findHighVolumeLowPriceMarket,
   publicClientWithBuilderKey,
@@ -30,7 +30,7 @@ describe('Builders', () => {
         return;
       }
 
-      const secureClient = await createTestSecureClient({
+      const secureClient = await createSecureClientWithSafeWallet({
         apiKey: builderAuthorization,
       });
 
