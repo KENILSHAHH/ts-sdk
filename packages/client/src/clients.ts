@@ -4,6 +4,7 @@ import {
   expectEvmAddress,
   expectEvmSignature,
   invariant,
+  isSameEvmAddress,
   type Prettify,
 } from '@polymarket/types';
 import { z } from 'zod';
@@ -518,7 +519,6 @@ class BaseSecureClient<
     return this.context.credentials;
   }
 
-  // TODO remove
   /**
    * The authenticated account identity associated with this client, including the signer and wallet addresses and wallet type.
    */
@@ -554,8 +554,8 @@ class BaseSecureClient<
     const signerAddress = expectEvmAddress(await this.signer.getAddress());
 
     invariant(
-      signerAddress.toLowerCase() === this.account.signer.toLowerCase(),
-      'Wallet client address does not match the authenticated signer',
+      isSameEvmAddress(signerAddress, this.account.signer),
+      'The current signer address does not match the authenticated signer for this client.',
     );
 
     const safeWallet = deriveSafeWalletAddress(
