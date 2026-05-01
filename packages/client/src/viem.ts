@@ -3,12 +3,16 @@ import {
   expectEvmSignature,
   expectTxHash,
   invariant,
+  isPrivateKey,
+  type PrivateKey,
   type TxHash,
 } from '@polymarket/types';
 import {
   type Account,
   type Chain,
+  createWalletClient,
   type Hash,
+  http,
   type SendTransactionParameters,
   type SendTransactionRequest,
   TransactionExecutionError,
@@ -17,15 +21,25 @@ import {
   WaitForTransactionReceiptTimeoutError,
   type WalletClient,
 } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { waitForTransactionReceipt } from 'viem/actions';
+import { polygon } from 'viem/chains';
 import {
   CancelledSigningError,
   SigningError,
   TimeoutError,
   TransactionFailedError,
   TransportError,
+  UserInputError,
 } from './errors';
 import type { Signer, TransactionHandle } from './types';
+
+export type PrivateKeySignerOptions = {
+  /** Chain used when sending direct EOA transactions. */
+  chain?: Chain;
+  /** Transport used when sending direct EOA transactions. */
+  transport?: Transport;
+};
 
 function isWalletClientWithAccount(
   walletClient: WalletClient,
@@ -75,6 +89,34 @@ export function signerFrom(walletClient: WalletClient): Signer {
       return new DirectTransactionHandle(hash, walletClient);
     },
   };
+}
+
+/**
+ * Creates a signer from a private key using viem local account signing.
+ *
+ * @example
+ * ```ts
+ * const secureClient = await createSecureClient({
+ *   signer: privateKey(process.env.PRIVATE_KEY),
+ *   wallet: '0x...',
+ * });
+ * ```
+ */
+export function privateKey(
+  value: PrivateKey | string | undefined,
+  options: PrivateKeySignerOptions = {},
+): Signer {
+  if (!isPrivateKey(value)) {
+    throw new UserInputError('Expected a hex-encoded 32-byte private key.');
+  }
+
+  return signerFrom(
+    createWalletClient({
+      account: privateKeyToAccount(value),
+      chain: options.chain ?? polygon,
+      transport: options.transport ?? http(),
+    }),
+  );
 }
 
 async function sendTransaction<
