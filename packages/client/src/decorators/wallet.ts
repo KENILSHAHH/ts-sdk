@@ -169,6 +169,10 @@ export type WalletActions = {
    *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
    * });
    *
+   * const handle = await client.redeemPositions({
+   *   marketId: '12345',
+   * });
+   *
    * const outcome = await handle.wait();
    *
    * // outcome.transactionHash: TxHash
