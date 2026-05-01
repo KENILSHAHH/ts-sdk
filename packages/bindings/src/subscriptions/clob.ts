@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  DecimalStringSchema,
   EpochMillisecondsStringSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   type OrderSide,
@@ -36,8 +37,8 @@ export enum UserOrderStatus {
 const UserOrderStatusSchema = z.enum(UserOrderStatus);
 
 const OrderBookLevelSchema = z.object({
-  price: z.string(),
-  size: z.string(),
+  price: DecimalStringSchema,
+  size: DecimalStringSchema,
 });
 
 const EpochSecondsStringToIsoDateTimeStringSchema = z
@@ -67,10 +68,10 @@ export const MarketBookEventSchema = z
     asks: z.array(OrderBookLevelSchema),
     hash: z.string().nullish(),
     timestamp: EpochMillisecondsStringSchema.nullish(),
-    min_order_size: z.string().nullish(),
-    tick_size: z.string().nullish(),
+    min_order_size: DecimalStringSchema.nullish(),
+    tick_size: DecimalStringSchema.nullish(),
     neg_risk: z.boolean().nullish(),
-    last_trade_price: z.string().nullish(),
+    last_trade_price: DecimalStringSchema.nullish(),
   })
   .transform(
     ({
@@ -103,12 +104,12 @@ export type MarketBookEvent = z.infer<typeof MarketBookEventSchema>;
 const PriceChangeSchema = z
   .looseObject({
     asset_id: TokenIdSchema,
-    price: z.string(),
-    size: z.string(),
+    price: DecimalStringSchema,
+    size: DecimalStringSchema,
     side: NormalizedOrderSideSchema,
     hash: z.string().nullish(),
-    best_bid: z.string().nullish(),
-    best_ask: z.string().nullish(),
+    best_bid: DecimalStringSchema.nullish(),
+    best_ask: DecimalStringSchema.nullish(),
   })
   .transform(({ asset_id, best_bid, best_ask, ...rest }) => ({
     ...rest,
@@ -147,9 +148,9 @@ export const MarketLastTradePriceEventSchema = z
     event_type: z.literal('last_trade_price'),
     market: z.string(),
     asset_id: TokenIdSchema,
-    price: z.string(),
-    size: z.string().nullish(),
-    fee_rate_bps: z.string().nullish(),
+    price: DecimalStringSchema,
+    size: DecimalStringSchema.nullish(),
+    fee_rate_bps: DecimalStringSchema.nullish(),
     side: NormalizedOrderSideSchema,
     timestamp: EpochMillisecondsStringSchema.nullish(),
     transaction_hash: z.string().nullish(),
@@ -179,8 +180,8 @@ export const MarketTickSizeChangeEventSchema = z
     event_type: z.literal('tick_size_change'),
     market: z.string(),
     asset_id: TokenIdSchema,
-    old_tick_size: z.string().nullish(),
-    new_tick_size: z.string(),
+    old_tick_size: DecimalStringSchema.nullish(),
+    new_tick_size: DecimalStringSchema,
     timestamp: EpochMillisecondsStringSchema.nullish(),
   })
   .transform(
@@ -208,9 +209,9 @@ export const MarketBestBidAskEventSchema = z
     event_type: z.literal('best_bid_ask'),
     market: z.string(),
     asset_id: TokenIdSchema,
-    best_bid: z.string().nullish(),
-    best_ask: z.string().nullish(),
-    spread: z.string().nullish(),
+    best_bid: DecimalStringSchema.nullish(),
+    best_ask: DecimalStringSchema.nullish(),
+    spread: DecimalStringSchema.nullish(),
     timestamp: EpochMillisecondsStringSchema.nullish(),
   })
   .transform(({ event_type, asset_id, best_bid, best_ask, ...rest }) => {
@@ -256,11 +257,11 @@ export const NewMarketEventSchema = z
     active: z.boolean().nullish(),
     clob_token_ids: z.array(z.string()).nullish(),
     sports_market_type: z.string().nullish(),
-    line: z.string().nullish(),
+    line: DecimalStringSchema.nullish(),
     game_start_time: EpochMillisecondsToIsoDateTimeStringSchema.nullish(),
-    order_price_min_tick_size: z.string().nullish(),
+    order_price_min_tick_size: DecimalStringSchema.nullish(),
     group_item_title: z.string().nullish(),
-    taker_base_fee: z.string().nullish(),
+    taker_base_fee: DecimalStringSchema.nullish(),
     fees_enabled: z.boolean().nullish(),
     fee_schedule: z.unknown().nullish(),
   })
@@ -359,9 +360,9 @@ export const UserOrderEventSchema = z
     asset_id: TokenIdSchema,
     side: NormalizedOrderSideSchema,
     order_owner: z.string().nullish(),
-    original_size: z.string(),
-    size_matched: z.string(),
-    price: z.string(),
+    original_size: DecimalStringSchema,
+    size_matched: DecimalStringSchema,
+    price: DecimalStringSchema,
     associate_trades: z.array(z.string()).nullish(),
     outcome: z.string().nullish(),
     type: UserOrderEventTypeSchema,
@@ -415,9 +416,9 @@ const TradeMakerOrderSchema = z
     order_id: z.string(),
     owner: z.string(),
     maker_address: z.string().nullish(),
-    matched_amount: z.string(),
-    price: z.string(),
-    fee_rate_bps: z.string().nullish(),
+    matched_amount: DecimalStringSchema,
+    price: DecimalStringSchema,
+    fee_rate_bps: DecimalStringSchema.nullish(),
     asset_id: TokenIdSchema,
     outcome: z.string().nullish(),
     outcome_index: z.number().int().nullish(),
@@ -454,9 +455,9 @@ export const UserTradeEventSchema = z
     market: z.string(),
     asset_id: TokenIdSchema,
     side: NormalizedOrderSideSchema,
-    size: z.string(),
-    fee_rate_bps: z.string().nullish(),
-    price: z.string(),
+    size: DecimalStringSchema,
+    fee_rate_bps: DecimalStringSchema.nullish(),
+    price: DecimalStringSchema,
     status: TradeStatusSchema,
     match_time: EpochSecondsStringToIsoDateTimeStringSchema.nullish(),
     matchtime: EpochSecondsStringToIsoDateTimeStringSchema.nullish(),

@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { ApproxNumberSchema } from '../shared';
 
 export const FeeRateSchema = z
   .looseObject({
-    base_fee: z.number(),
+    base_fee: ApproxNumberSchema,
   })
   .transform(({ base_fee, ...rest }) => ({
     ...rest,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TokenIdSchema } from '../shared';
+import { ApproxNumberSchema, TokenIdSchema } from '../shared';
 import { AddressSchema, Hash64Schema } from './common';
 
 export const HolderSchema = z
@@ -8,7 +8,7 @@ export const HolderSchema = z
     bio: z.string().nullish(),
     asset: TokenIdSchema.nullish(),
     pseudonym: z.string().nullish(),
-    amount: z.number().nullish(),
+    amount: ApproxNumberSchema.nullish(),
     displayUsernamePublic: z.boolean().nullish(),
     outcomeIndex: z.number().int().nullish(),
     name: z.string().nullish(),
@@ -27,16 +27,16 @@ export const MetaHolderSchema = z.object({
 
 export const OpenInterestSchema = z.object({
   market: Hash64Schema.nullish(),
-  value: z.number().nullish(),
+  value: ApproxNumberSchema.nullish(),
 });
 
 export const MarketVolumeSchema = z.object({
   market: Hash64Schema.nullish(),
-  value: z.number().nullish(),
+  value: ApproxNumberSchema.nullish(),
 });
 
 export const LiveVolumeSchema = z.object({
-  total: z.number().nullish(),
+  total: ApproxNumberSchema.nullish(),
   markets: z.array(MarketVolumeSchema).nullish(),
 });
 

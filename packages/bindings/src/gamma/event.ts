@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import {
+  type ApproxNumber,
+  ApproxNumberSchema,
+  type DecimalString,
+  DecimalStringSchema,
   type EventCreatorId,
   type EventExternalPartnerMappingId,
   type EventId,
@@ -113,9 +117,9 @@ export const SeriesReferenceSchema = z.object({
   updatedAt: IsoDateTimeStringSchema.nullish(),
   commentsEnabled: z.boolean().nullish(),
   competitive: z.string().nullish(),
-  volume24hr: z.number().nullish(),
-  volume: z.number().nullish(),
-  liquidity: z.number().nullish(),
+  volume24hr: ApproxNumberSchema.nullish(),
+  volume: ApproxNumberSchema.nullish(),
+  liquidity: ApproxNumberSchema.nullish(),
   startDate: IsoDateTimeStringSchema.nullish(),
   pythTokenID: z.string().nullish(),
   cgAssetName: z.string().nullish(),
@@ -184,7 +188,7 @@ export const EventExternalPartnerMappingSchema = z.object({
 export const BestLineSchema = z.object({
   id: BestLineIdSchema,
   lineType: z.string().nullish(),
-  line: z.number().nullish(),
+  line: ApproxNumberSchema.nullish(),
 });
 
 export const TeamSchema = z.object({
@@ -246,15 +250,15 @@ export type EventSchedule = {
 };
 
 export type EventMetrics = {
-  liquidity?: number | null;
-  liquidityAmm?: number | null;
-  liquidityClob?: number | null;
-  volume?: number | null;
-  volume24hr?: number | null;
-  volume1wk?: number | null;
-  volume1mo?: number | null;
-  volume1yr?: number | null;
-  openInterest?: number | null;
+  liquidity?: ApproxNumber | null;
+  liquidityAmm?: ApproxNumber | null;
+  liquidityClob?: ApproxNumber | null;
+  volume?: ApproxNumber | null;
+  volume24hr?: ApproxNumber | null;
+  volume1wk?: ApproxNumber | null;
+  volume1mo?: ApproxNumber | null;
+  volume1yr?: ApproxNumber | null;
+  openInterest?: ApproxNumber | null;
   competitive?: number | null;
   commentCount?: number | null;
   tweetCount?: number | null;
@@ -278,7 +282,7 @@ export type EventTrading = {
   enableOrderBook?: boolean | null;
   negRisk?: boolean | null;
   negRiskMarketId?: string | null;
-  negRiskFeeBips?: number | null;
+  negRiskFeeBips?: ApproxNumber | null;
   enableNegRisk?: boolean | null;
   negRiskAugmented?: boolean | null;
   cumulativeMarkets?: boolean | null;
@@ -292,7 +296,7 @@ export type EventResolution = {
 export type EventEstimation = {
   estimateValue?: boolean | null;
   cantEstimate?: boolean | null;
-  estimatedValue?: string | null;
+  estimatedValue?: DecimalString | null;
 };
 
 export type EventSportsMetadata = {
@@ -306,8 +310,8 @@ export type EventSportsMetadata = {
   sportsradarMatchId?: string | null;
   homeTeamName?: string | null;
   awayTeamName?: string | null;
-  spreadsMainLine?: number | null;
-  totalsMainLine?: number | null;
+  spreadsMainLine?: ApproxNumber | null;
+  totalsMainLine?: ApproxNumber | null;
   bestLines: BestLine[];
   teams: Team[];
   sport?: SportsMetadata | null;
@@ -327,8 +331,8 @@ export type EventSeries = {
   active?: boolean | null;
   closed?: boolean | null;
   archived?: boolean | null;
-  volume?: number | null;
-  liquidity?: number | null;
+  volume?: ApproxNumber | null;
+  liquidity?: ApproxNumber | null;
   startDate?: IsoDateTimeString | null;
 };
 
@@ -410,9 +414,9 @@ export const GammaEventSchema = z.object({
   new: z.boolean().nullish(),
   featured: z.boolean().nullish(),
   restricted: z.boolean().nullish(),
-  liquidity: z.number().nullish(),
-  volume: z.number().nullish(),
-  openInterest: z.number().nullish(),
+  liquidity: ApproxNumberSchema.nullish(),
+  volume: ApproxNumberSchema.nullish(),
+  openInterest: ApproxNumberSchema.nullish(),
   sortBy: z.string().nullish(),
   category: z.string().nullish(),
   subcategory: z.string().nullish(),
@@ -425,19 +429,19 @@ export const GammaEventSchema = z.object({
   updatedAt: IsoDateTimeStringSchema.nullish(),
   commentsEnabled: z.boolean().nullish(),
   competitive: z.number().nullish(),
-  volume24hr: z.number().nullish(),
-  volume1wk: z.number().nullish(),
-  volume1mo: z.number().nullish(),
-  volume1yr: z.number().nullish(),
+  volume24hr: ApproxNumberSchema.nullish(),
+  volume1wk: ApproxNumberSchema.nullish(),
+  volume1mo: ApproxNumberSchema.nullish(),
+  volume1yr: ApproxNumberSchema.nullish(),
   featuredImage: z.string().nullish(),
   disqusThread: z.string().nullish(),
   parentEventId: z.number().int().nullish(),
   enableOrderBook: z.boolean().nullish(),
-  liquidityAmm: z.number().nullish(),
-  liquidityClob: z.number().nullish(),
+  liquidityAmm: ApproxNumberSchema.nullish(),
+  liquidityClob: ApproxNumberSchema.nullish(),
   negRisk: z.boolean().nullish(),
   negRiskMarketID: z.string().nullish(),
-  negRiskFeeBips: z.number().int().nullish(),
+  negRiskFeeBips: ApproxNumberSchema.nullish(),
   commentCount: z.number().int().nullish(),
   imageOptimized: ImageOptimizationSchema.nullish(),
   iconOptimized: ImageOptimizationSchema.nullish(),
@@ -478,11 +482,11 @@ export const GammaEventSchema = z.object({
   featuredOrder: z.number().int().nullish(),
   estimateValue: z.boolean().nullish(),
   cantEstimate: z.boolean().nullish(),
-  estimatedValue: z.string().nullish(),
+  estimatedValue: DecimalStringSchema.nullish(),
   cumulativeMarkets: z.boolean().nullish(),
   templates: z.array(TemplateReferenceSchema).nullish(),
-  spreadsMainLine: z.number().nullish(),
-  totalsMainLine: z.number().nullish(),
+  spreadsMainLine: ApproxNumberSchema.nullish(),
+  totalsMainLine: ApproxNumberSchema.nullish(),
   carouselMap: z.string().nullish(),
   pendingDeployment: z.boolean().nullish(),
   deploying: z.boolean().nullish(),

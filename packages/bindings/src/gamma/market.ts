@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import {
+  type ApproxNumber,
+  ApproxNumberSchema,
   type ConditionId,
   ConditionIdSchema,
+  type DecimalString,
+  DecimalStringSchema,
   type EventId,
   EventIdSchema,
   type EvmAddress,
@@ -35,6 +39,10 @@ import {
 } from './common';
 
 const StringPairSchema = z.tuple([z.string(), z.string()]);
+const DecimalStringPairSchema = z.tuple([
+  DecimalStringSchema,
+  DecimalStringSchema,
+]);
 const TokenIdPairValueSchema = z.tuple([TokenIdSchema, TokenIdSchema]);
 const EmptyArraySchema = z.tuple([]).transform(() => null);
 const GammaMarketEventSchema = z.object({
@@ -48,7 +56,12 @@ const OutcomePairSchema = z.preprocess(parseJsonString, StringPairSchema);
 const OutcomePricePairSchema = z
   .preprocess(
     parseJsonString,
-    z.union([StringPairSchema, EmptyArraySchema, z.null(), z.undefined()]),
+    z.union([
+      DecimalStringPairSchema,
+      EmptyArraySchema,
+      z.null(),
+      z.undefined(),
+    ]),
   )
   .transform((value) => value ?? null);
 
@@ -87,7 +100,7 @@ export type MarketState = {
 export type MarketOutcome = {
   label: string;
   tokenId: TokenId | null;
-  price: string | null;
+  price: DecimalString | null;
 };
 
 export type MarketOutcomes = {
@@ -96,33 +109,33 @@ export type MarketOutcomes = {
 };
 
 export type MarketMetrics = {
-  volume?: string | null;
-  volumeNum?: number | null;
-  volume24hr?: number | null;
-  volume1wk?: number | null;
-  volume1mo?: number | null;
-  volume1yr?: number | null;
-  volumeAmm?: number | null;
-  volumeClob?: number | null;
-  liquidity?: string | null;
-  liquidityNum?: number | null;
-  liquidityClob?: number | null;
+  volume?: DecimalString | null;
+  volumeNum?: ApproxNumber | null;
+  volume24hr?: ApproxNumber | null;
+  volume1wk?: ApproxNumber | null;
+  volume1mo?: ApproxNumber | null;
+  volume1yr?: ApproxNumber | null;
+  volumeAmm?: ApproxNumber | null;
+  volumeClob?: ApproxNumber | null;
+  liquidity?: DecimalString | null;
+  liquidityNum?: ApproxNumber | null;
+  liquidityClob?: ApproxNumber | null;
 };
 
 export type MarketPrices = {
-  bestBid?: number | null;
-  bestAsk?: number | null;
-  lastTradePrice?: number | null;
-  spread?: number | null;
-  oneHourPriceChange?: number | null;
-  oneDayPriceChange?: number | null;
-  oneWeekPriceChange?: number | null;
-  oneMonthPriceChange?: number | null;
-  oneYearPriceChange?: number | null;
+  bestBid?: ApproxNumber | null;
+  bestAsk?: ApproxNumber | null;
+  lastTradePrice?: ApproxNumber | null;
+  spread?: ApproxNumber | null;
+  oneHourPriceChange?: ApproxNumber | null;
+  oneDayPriceChange?: ApproxNumber | null;
+  oneWeekPriceChange?: ApproxNumber | null;
+  oneMonthPriceChange?: ApproxNumber | null;
+  oneYearPriceChange?: ApproxNumber | null;
 };
 
 export type MarketTrading = {
-  minimumOrderSize?: number | null;
+  minimumOrderSize?: ApproxNumber | null;
   minimumTickSize?: TickSizeValue | null;
   secondsDelay?: number | null;
   feesEnabled?: boolean | null;
@@ -140,14 +153,14 @@ export type MarketResolution = {
 
 export type MarketRewards = {
   clobRewards?: ClobRewards[] | null;
-  rewardsMinSize?: number | null;
-  rewardsMaxSpread?: number | null;
+  rewardsMinSize?: ApproxNumber | null;
+  rewardsMaxSpread?: ApproxNumber | null;
   holdingRewardsEnabled?: boolean | null;
 };
 
 export type MarketSportsMetadata = {
   sportsMarketType?: string | null;
-  line?: number | null;
+  line?: ApproxNumber | null;
   gameId?: string | null;
   gameStartTime?: IsoDateTimeString | null;
 };
@@ -197,22 +210,22 @@ export const GammaMarketSchema = z.object({
   endDate: IsoDateTimeStringSchema.nullish(),
   category: z.string().nullish(),
   ammType: z.string().nullish(),
-  liquidity: z.string().nullish(),
+  liquidity: DecimalStringSchema.nullish(),
   sponsorName: z.string().nullish(),
   sponsorImage: z.string().nullish(),
   startDate: IsoDateTimeStringSchema.nullish(),
   xAxisValue: z.string().nullish(),
   yAxisValue: z.string().nullish(),
   denominationToken: z.string().nullish(),
-  fee: z.string().nullish(),
+  fee: DecimalStringSchema.nullish(),
   image: z.string().nullish(),
   icon: z.string().nullish(),
-  lowerBound: z.string().nullish(),
-  upperBound: z.string().nullish(),
+  lowerBound: DecimalStringSchema.nullish(),
+  upperBound: DecimalStringSchema.nullish(),
   description: z.string().nullish(),
   outcomes: OutcomePairSchema,
   outcomePrices: OutcomePricePairSchema,
-  volume: z.string().nullish(),
+  volume: DecimalStringSchema.nullish(),
   active: z.boolean().nullish(),
   marketType: z.string().nullish(),
   formatType: z.string().nullish(),
@@ -243,30 +256,30 @@ export const GammaMarketSchema = z.object({
   restricted: z.boolean().nullish(),
   marketGroup: z.number().int().nullish(),
   groupItemTitle: z.string().nullish(),
-  groupItemThreshold: z.string().nullish(),
+  groupItemThreshold: DecimalStringSchema.nullish(),
   questionID: z
     .preprocess(emptyStringToNull, QuestionIdSchema.nullish())
     .transform(nullishToNull),
   umaEndDate: MixedDateTimeStringSchema.nullish(),
   enableOrderBook: z.boolean().nullish(),
   orderPriceMinTickSize: TickSizeValueSchema.nullish(),
-  orderMinSize: z.number().nullish(),
+  orderMinSize: ApproxNumberSchema.nullish(),
   umaResolutionStatus: z
     .preprocess(emptyStringToNull, UmaResolutionStatusSchema.nullish())
     .transform(nullishToNull),
   curationOrder: z.number().int().nullish(),
-  volumeNum: z.number().nullish(),
-  liquidityNum: z.number().nullish(),
+  volumeNum: ApproxNumberSchema.nullish(),
+  liquidityNum: ApproxNumberSchema.nullish(),
   endDateIso: IsoCalendarDateStringSchema.nullish(),
   startDateIso: IsoCalendarDateStringSchema.nullish(),
   umaEndDateIso: IsoCalendarDateStringSchema.nullish(),
   hasReviewedDates: z.boolean().nullish(),
   readyForCron: z.boolean().nullish(),
   commentsEnabled: z.boolean().nullish(),
-  volume24hr: z.number().nullish(),
-  volume1wk: z.number().nullish(),
-  volume1mo: z.number().nullish(),
-  volume1yr: z.number().nullish(),
+  volume24hr: ApproxNumberSchema.nullish(),
+  volume1wk: ApproxNumberSchema.nullish(),
+  volume1mo: ApproxNumberSchema.nullish(),
+  volume1yr: ApproxNumberSchema.nullish(),
   gameStartTime: IsoDateTimeStringSchema.nullish(),
   secondsDelay: z.number().int().nullish(),
   clobTokenIds: TokenIdPairSchema,
@@ -274,23 +287,23 @@ export const GammaMarketSchema = z.object({
   shortOutcomes: z.string().nullish(),
   teamAID: z.string().nullish(),
   teamBID: z.string().nullish(),
-  umaBond: z.string().nullish(),
-  umaReward: z.string().nullish(),
+  umaBond: DecimalStringSchema.nullish(),
+  umaReward: DecimalStringSchema.nullish(),
   fpmmLive: z.boolean().nullish(),
-  volume24hrAmm: z.number().nullish(),
-  volume1wkAmm: z.number().nullish(),
-  volume1moAmm: z.number().nullish(),
-  volume1yrAmm: z.number().nullish(),
-  volume24hrClob: z.number().nullish(),
-  volume1wkClob: z.number().nullish(),
-  volume1moClob: z.number().nullish(),
-  volume1yrClob: z.number().nullish(),
-  volumeAmm: z.number().nullish(),
-  volumeClob: z.number().nullish(),
-  liquidityAmm: z.number().nullish(),
-  liquidityClob: z.number().nullish(),
-  makerBaseFee: z.number().int().nullish(),
-  takerBaseFee: z.number().int().nullish(),
+  volume24hrAmm: ApproxNumberSchema.nullish(),
+  volume1wkAmm: ApproxNumberSchema.nullish(),
+  volume1moAmm: ApproxNumberSchema.nullish(),
+  volume1yrAmm: ApproxNumberSchema.nullish(),
+  volume24hrClob: ApproxNumberSchema.nullish(),
+  volume1wkClob: ApproxNumberSchema.nullish(),
+  volume1moClob: ApproxNumberSchema.nullish(),
+  volume1yrClob: ApproxNumberSchema.nullish(),
+  volumeAmm: ApproxNumberSchema.nullish(),
+  volumeClob: ApproxNumberSchema.nullish(),
+  liquidityAmm: ApproxNumberSchema.nullish(),
+  liquidityClob: ApproxNumberSchema.nullish(),
+  makerBaseFee: ApproxNumberSchema.nullish(),
+  takerBaseFee: ApproxNumberSchema.nullish(),
   customLiveness: z.number().int().nullish(),
   acceptingOrders: z.boolean().nullish(),
   negRisk: z.boolean().nullish(),
@@ -319,18 +332,18 @@ export const GammaMarketSchema = z.object({
   pagerDutyNotificationEnabled: z.boolean().nullish(),
   approved: z.boolean().nullish(),
   clobRewards: z.array(ClobRewardsSchema).nullish(),
-  rewardsMinSize: z.number().nullish(),
-  rewardsMaxSpread: z.number().nullish(),
-  spread: z.number().nullish(),
+  rewardsMinSize: ApproxNumberSchema.nullish(),
+  rewardsMaxSpread: ApproxNumberSchema.nullish(),
+  spread: ApproxNumberSchema.nullish(),
   automaticallyResolved: z.boolean().nullish(),
-  oneDayPriceChange: z.number().nullish(),
-  oneHourPriceChange: z.number().nullish(),
-  oneWeekPriceChange: z.number().nullish(),
-  oneMonthPriceChange: z.number().nullish(),
-  oneYearPriceChange: z.number().nullish(),
-  lastTradePrice: z.number().nullish(),
-  bestBid: z.number().nullish(),
-  bestAsk: z.number().nullish(),
+  oneDayPriceChange: ApproxNumberSchema.nullish(),
+  oneHourPriceChange: ApproxNumberSchema.nullish(),
+  oneWeekPriceChange: ApproxNumberSchema.nullish(),
+  oneMonthPriceChange: ApproxNumberSchema.nullish(),
+  oneYearPriceChange: ApproxNumberSchema.nullish(),
+  lastTradePrice: ApproxNumberSchema.nullish(),
+  bestBid: ApproxNumberSchema.nullish(),
+  bestAsk: ApproxNumberSchema.nullish(),
   automaticallyActive: z.boolean().nullish(),
   clearBookOnStart: z.boolean().nullish(),
   chartColor: z.string().nullish(),
@@ -342,7 +355,7 @@ export const GammaMarketSchema = z.object({
   gameId: z.string().nullish(),
   groupItemRange: z.string().nullish(),
   sportsMarketType: z.string().nullish(),
-  line: z.number().nullish(),
+  line: ApproxNumberSchema.nullish(),
   umaResolutionStatuses: z.string().nullish(),
   pendingDeployment: z.boolean().nullish(),
   deploying: z.boolean().nullish(),
@@ -354,9 +367,9 @@ export const GammaMarketSchema = z.object({
   holdingRewardsEnabled: z.boolean().nullish(),
   feesEnabled: z.boolean().nullish(),
   requiresTranslation: z.boolean().nullish(),
-  makerRebatesFeeShareBps: z.number().int().nullish(),
-  feeRate: z.number().nullish(),
-  feeExponent: z.number().nullish(),
+  makerRebatesFeeShareBps: ApproxNumberSchema.nullish(),
+  feeRate: ApproxNumberSchema.nullish(),
+  feeExponent: ApproxNumberSchema.nullish(),
   feeType: z.string().nullish(),
   feeSchedule: FeeScheduleSchema.nullish(),
 });

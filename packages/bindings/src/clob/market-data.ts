@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { OrderSideSchema, TokenIdSchema } from '../shared';
+import {
+  ApproxNumberSchema,
+  DecimalStringSchema,
+  OrderSideSchema,
+  TokenIdSchema,
+} from '../shared';
 
 export enum PriceHistoryInterval {
   MAX = 'max',
@@ -12,41 +17,44 @@ export enum PriceHistoryInterval {
 export const PriceHistoryIntervalSchema = z.enum(PriceHistoryInterval);
 
 export const MidpointSchema = z.object({
-  mid: z.string(),
+  mid: DecimalStringSchema,
 });
 export type Midpoint = z.infer<typeof MidpointSchema>;
 
-export const MidpointsSchema = z.record(z.string(), z.string());
+export const MidpointsSchema = z.record(z.string(), DecimalStringSchema);
 export type Midpoints = z.infer<typeof MidpointsSchema>;
 
 export const PriceSchema = z.object({
-  price: z.string(),
+  price: DecimalStringSchema,
 });
 export type Price = z.infer<typeof PriceSchema>;
 
-const PricesBySideSchema = z.record(OrderSideSchema, z.string().optional());
+const PricesBySideSchema = z.record(
+  OrderSideSchema,
+  DecimalStringSchema.optional(),
+);
 export type PricesBySide = z.infer<typeof PricesBySideSchema>;
 
 export const PricesSchema = z.record(z.string(), PricesBySideSchema);
 export type Prices = z.infer<typeof PricesSchema>;
 
 export const SpreadSchema = z.object({
-  spread: z.string(),
+  spread: DecimalStringSchema,
 });
 export type Spread = z.infer<typeof SpreadSchema>;
 
-export const SpreadsSchema = z.record(z.string(), z.string());
+export const SpreadsSchema = z.record(z.string(), DecimalStringSchema);
 export type Spreads = z.infer<typeof SpreadsSchema>;
 
 export const LastTradePriceSchema = z.object({
-  price: z.string(),
+  price: DecimalStringSchema,
   side: OrderSideSchema,
 });
 export type LastTradePrice = z.infer<typeof LastTradePriceSchema>;
 
 const LastTradePriceForTokenResponseSchema = z
   .object({
-    price: z.string(),
+    price: DecimalStringSchema,
     side: OrderSideSchema,
     token_id: TokenIdSchema,
   })
@@ -61,7 +69,7 @@ export type LastTradePriceForTokenResponse = z.infer<
 
 const LastTradePriceForTokenSchema = z.object({
   tokenId: TokenIdSchema,
-  price: z.string(),
+  price: DecimalStringSchema,
   side: OrderSideSchema,
 });
 export type LastTradePriceForToken = z.infer<
@@ -75,7 +83,7 @@ export type LastTradePrices = z.infer<typeof LastTradePricesSchema>;
 
 const PriceHistoryPointSchema = z.object({
   t: z.number().int(),
-  p: z.number(),
+  p: ApproxNumberSchema,
 });
 export type PriceHistoryPoint = z.infer<typeof PriceHistoryPointSchema>;
 
