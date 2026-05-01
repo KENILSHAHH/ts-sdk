@@ -1,19 +1,28 @@
 import { ApiKeySchema, EvmAddressSchema } from '@polymarket/bindings';
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
+import { WalletType } from '@polymarket/bindings/gamma';
 import {
   expectEvmAddress,
   expectEvmSignature,
   invariant,
+  isSameEvmAddress,
   type Prettify,
 } from '@polymarket/types';
 import { z } from 'zod';
 import type { AccountIdentity } from './account';
-import { resolveAccountIdentity } from './account';
+import { deriveSafeWalletAddress, resolveAccountIdentity } from './account';
 import {
   createOrDeriveApiKey,
   deleteApiKey,
   fetchApiKeys,
 } from './actions/auth';
+import {
+  type DeployGaslessWalletError,
+  deployGaslessWallet,
+  type IsGaslessReadyError,
+  isGaslessReady,
+  type WaitForGaslessTransactionError,
+} from './actions/gasless';
 import { createApiKeyAuthTypedDataPayload } from './authentication';
 import {
   allActions,
@@ -27,6 +36,8 @@ import {
   RateLimitError,
   RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -526,6 +537,69 @@ class BaseSecureClient<
     return this.context.signer;
   }
 
+  /**
+   * Sets up the authenticated signer's gasless wallet and returns a secure client bound to it.
+   *
+   * @remarks
+   * If the deterministic Safe wallet is already deployed, this reuses the
+   * current credentials and returns a new `SecureClient` for that wallet. If it
+   * is not deployed, this deploys the wallet, waits for settlement, and returns
+   * the new `SecureClient` after deployment.
+   *
+   * @throws {@link SetupGaslessWalletError}
+   * Thrown on failure.
+   */
+  async setupGaslessWallet(): Promise<
+    SecureClient<TPublicActions, TSecureActions>
+  > {
+    const signerAddress = expectEvmAddress(await this.signer.getAddress());
+
+    invariant(
+      isSameEvmAddress(signerAddress, this.account.signer),
+      'The current signer address does not match the authenticated signer for this client.',
+    );
+
+    if (this.account.walletType === WalletType.POLY_PROXY) {
+      return this.#createSecureClientForWallet(
+        this.account.wallet,
+        signerAddress,
+      );
+    }
+
+    const safeWallet = deriveSafeWalletAddress(
+      signerAddress,
+      this.environment.walletDerivation,
+    );
+
+    if (await isGaslessReady(this, { wallet: safeWallet })) {
+      return this.#createSecureClientForWallet(safeWallet, signerAddress);
+    }
+
+    const handle = await deployGaslessWallet(this);
+    await handle.wait();
+
+    return this.#createSecureClientForWallet(handle.wallet, signerAddress);
+  }
+
+  #createSecureClientForWallet(
+    wallet: AccountIdentity['wallet'],
+    signerAddress: AccountIdentity['signer'],
+  ): SecureClient<TPublicActions, TSecureActions> {
+    const client = new BaseSecureClient<TPublicActions, TSecureActions>({
+      account: resolveAccountIdentity(this.environment, signerAddress, wallet),
+      apiKey: this.context.apiKey,
+      credentials: this.credentials,
+      environment: this.environment,
+      signer: this.context.signer,
+    });
+
+    for (const decorator of this.decorators) {
+      client.extend(decorator);
+    }
+
+    return client as SecureClient<TPublicActions, TSecureActions>;
+  }
+
   /** @internal */
   get secureClob(): ServiceClient {
     return this.context.secureClob;
@@ -725,11 +799,16 @@ export type PublicClientOptions = {
 
 export type SecureClientOptions = PublicClientOptions & {
   /**
-   * Wallet address to authenticate as.
+   * Wallet address to use as the account wallet.
    *
-   * Pass the signer address itself to authenticate as an EOA account.
+   * If omitted, the client uses the signer address as the account wallet and
+   * operates as an EOA account. EOA clients do not use gasless relayer flows:
+   * approvals, transfers, and other wallet operations are submitted directly by
+   * the signer and require the signer wallet to hold gas. Pass a supported Poly Safe
+   * or Poly Proxy wallet address to use that wallet as the account/funder and enable
+   * gasless wallet operations when an API key strategy supports them.
    */
-  wallet: string;
+  wallet?: string;
 
   /**
    * Wallet-library adapter used to authenticate and complete wallet operations.
@@ -789,6 +868,22 @@ export const CreateSecureClientError = makeErrorGuard(
   UserInputError,
 );
 
+export type SetupGaslessWalletError =
+  | DeployGaslessWalletError
+  | IsGaslessReadyError
+  | WaitForGaslessTransactionError;
+export const SetupGaslessWalletError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TimeoutError,
+  TransactionFailedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
 /**
  * Creates a new authenticated `SecureClient` instance.
  *
@@ -796,7 +891,6 @@ export const CreateSecureClientError = makeErrorGuard(
  * ```ts
  * const secureClient = await createSecureClient({
  *   signer,
- *   wallet,
  * });
  * ```
  *
@@ -810,11 +904,12 @@ export async function createSecureClient(
     environment: options.environment,
     apiKey: options.apiKey,
   });
+  const wallet = options.wallet ?? (await options.signer.getAddress());
 
   return client
     .beginAuthentication(
       {
-        wallet: options.wallet,
+        wallet,
         credentials: options.credentials,
         nonce: options.nonce,
       },

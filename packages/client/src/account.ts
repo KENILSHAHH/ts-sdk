@@ -5,14 +5,18 @@ import {
   type EvmAddress,
   expectEvmAddress,
   expectHexString,
+  isSameEvmAddress,
   never,
 } from '@polymarket/types';
 import { AbiParameters, ContractAddress, Hash } from 'ox';
 import type { EnvironmentConfig, WalletDerivationConfig } from './environments';
 
 export type AccountIdentity = {
+  /** Authenticated EOA that signs API authentication, orders, and wallet operations. */
   signer: EvmAddress;
+  /** Active Polymarket account/funder wallet used for balances, positions, and execution. */
   wallet: EvmAddress;
+  /** Wallet classification used for order signatures and transaction routing. */
   walletType: WalletType;
 };
 
@@ -83,26 +87,22 @@ export function deriveSafeWalletAddress(
   );
 }
 
-function sameAddress(left: EvmAddress, right: EvmAddress): boolean {
-  return left.toLowerCase() === right.toLowerCase();
-}
-
 function classifyWalletType(
   environment: EnvironmentConfig,
   signer: EvmAddress,
   wallet: EvmAddress,
 ): WalletType {
-  if (sameAddress(wallet, signer)) {
+  if (isSameEvmAddress(wallet, signer)) {
     return WalletType.EOA;
   }
 
   const config = environment.walletDerivation;
 
-  if (sameAddress(wallet, deriveProxyWalletAddress(signer, config))) {
+  if (isSameEvmAddress(wallet, deriveProxyWalletAddress(signer, config))) {
     return WalletType.POLY_PROXY;
   }
 
-  if (sameAddress(wallet, deriveSafeWalletAddress(signer, config))) {
+  if (isSameEvmAddress(wallet, deriveSafeWalletAddress(signer, config))) {
     return WalletType.POLY_GNOSIS_SAFE;
   }
 

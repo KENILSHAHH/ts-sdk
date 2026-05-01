@@ -33,6 +33,13 @@ export function isHexString(value: unknown): value is HexString {
 }
 
 /**
+ * Returns `true` when two EVM addresses are equal, ignoring checksum casing.
+ */
+export function isSameEvmAddress(left: EvmAddress, right: EvmAddress): boolean {
+  return left.toLowerCase() === right.toLowerCase();
+}
+
+/**
  * Checks whether a value is a hex-encoded 32-byte private key.
  */
 export function isPrivateKey(value: unknown): value is PrivateKey {

@@ -1,11 +1,14 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
-import { createTestSecureClient, relayerAuthorization } from '../testing';
+import {
+  createSecureClientWithSafeWallet,
+  relayerAuthorization,
+} from '../testing';
 
 describe('Transfers', () => {
   describe('prepareErc20Transfer', () => {
     it('submits a self-transfer for the collateral token', async () => {
-      const secureClient = await createTestSecureClient({
+      const secureClient = await createSecureClientWithSafeWallet({
         apiKey: relayerAuthorization,
       });
 

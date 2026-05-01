@@ -18,6 +18,7 @@ export {
   CreateSecureClientError,
   createPublicClient,
   createSecureClient,
+  SetupGaslessWalletError,
 } from './clients';
 export * from './decorators';
 export * from './environments';

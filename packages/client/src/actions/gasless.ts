@@ -290,11 +290,11 @@ export async function prepareGaslessWallet(
   }.call(null);
 }
 
-export type SetupGaslessWalletError =
+export type DeployGaslessWalletError =
   | PrepareGaslessWalletError
   | CancelledSigningError
   | SigningError;
-export const SetupGaslessWalletError = makeErrorGuard(
+export const DeployGaslessWalletError = makeErrorGuard(
   CancelledSigningError,
   RateLimitError,
   RequestRejectedError,
@@ -305,12 +305,15 @@ export const SetupGaslessWalletError = makeErrorGuard(
 );
 
 /**
- * Sets up a wallet for gasless transactions.
+ * Deploys a wallet for gasless transactions.
  *
- * @throws {@link SetupGaslessWalletError}
+ * @remarks
+ * This is a low-level action that most SDK consumers will not need.
+ *
+ * @throws {@link DeployGaslessWalletError}
  * Thrown on failure.
  */
-export function setupGaslessWallet(
+export function deployGaslessWallet(
   client: BaseSecureClient,
 ): Promise<DeployTransactionHandle> {
   return prepareGaslessWallet(client).then(completeWith(client.signer));

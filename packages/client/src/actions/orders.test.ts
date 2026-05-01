@@ -8,7 +8,7 @@ import { expectPresent } from '@polymarket/types';
 import { afterAll, describe, expect, it } from 'vitest';
 import { InsufficientLiquidityError } from '../errors';
 import {
-  createTestSecureClient,
+  createSecureClientWithSafeWallet,
   findHighVolumeLowPriceMarket,
   publicClient,
   relayerAuthorization,
@@ -19,7 +19,7 @@ import { fetchNegRisk } from './clob';
 
 const market = await findHighVolumeLowPriceMarket();
 
-const secureClient = await createTestSecureClient();
+const secureClient = await createSecureClientWithSafeWallet();
 
 describe('Orders', { timeout: 60_000 }, () => {
   describe('estimateMarketPrice', () => {
@@ -171,7 +171,7 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
 
     it('requests a collateral approval if necessary', async () => {
-      const gaslessClient = await createTestSecureClient({
+      const gaslessClient = await createSecureClientWithSafeWallet({
         apiKey: relayerAuthorization,
       });
       const exchangeAddress = await resolveExchangeAddressForToken(

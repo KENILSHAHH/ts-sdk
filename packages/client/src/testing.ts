@@ -14,7 +14,11 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { deriveProxyWalletAddress } from './account';
 import { relayerApiKey } from './authorization';
-import { createPublicClient, createSecureClient } from './clients';
+import {
+  createPublicClient,
+  createSecureClient,
+  type SecureClientOptions,
+} from './clients';
 // biome-ignore lint/style/noRestrictedImports: intentional
 import { builderApiKey } from './node';
 import type { Page } from './pagination';
@@ -103,8 +107,8 @@ export const walletClient = createWalletClient({
   transport: http(),
 });
 
-export function createTestSecureClient(
-  options: Partial<Parameters<typeof createSecureClient>[0]> = {},
+export function createSecureClientWithSafeWallet(
+  options: Partial<SecureClientOptions> = {},
 ) {
   return createSecureClient({
     signer: signerFrom(walletClient),

@@ -1,6 +1,6 @@
 import { OrderSide, type TokenId } from '@polymarket/bindings';
 import { AssetType } from '@polymarket/bindings/clob';
-import type { EvmAddress } from '@polymarket/types';
+import { type EvmAddress, isSameEvmAddress } from '@polymarket/types';
 import type { BaseSecureClient } from '../../clients';
 import { fetchBalanceAllowance } from '../account';
 
@@ -38,8 +38,8 @@ function resolveAllowanceAmount(
   allowances: Record<EvmAddress, bigint>,
   spender: EvmAddress,
 ): bigint {
-  const match = Object.entries(allowances).find(
-    ([key]) => key.toLowerCase() === spender.toLowerCase(),
+  const match = (Object.entries(allowances) as [EvmAddress, bigint][]).find(
+    ([key]) => isSameEvmAddress(key, spender),
   );
 
   return match?.[1] ?? 0n;

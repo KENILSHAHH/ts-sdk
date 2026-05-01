@@ -60,7 +60,7 @@ export async function createApiKey(
 ): Promise<ApiKeyCreds> {
   return unwrap(
     client.clob
-      .post('auth/api-key', {
+      .post('/auth/api-key', {
         headers: toL1Headers(request),
       })
       .andThen(validateWith(ApiKeyCredsSchema)),
