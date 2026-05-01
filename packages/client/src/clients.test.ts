@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { fetchApiKeys } from './actions';
 import { createSecureClient } from './clients';
 import {
+  builderAuthorization,
   createRandomWalletClient,
   createSecureClientWithSafeWallet,
   deriveProxyAddress,
@@ -176,7 +177,7 @@ describe('clients', () => {
         const walletClient = createRandomWalletClient();
 
         const secureClient = await createSecureClient({
-          apiKey: relayerAuthorization,
+          apiKey: builderAuthorization,
           signer: signerFrom(walletClient),
         });
 
