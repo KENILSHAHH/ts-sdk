@@ -1,5 +1,6 @@
 import { ApiKeySchema, EvmAddressSchema } from '@polymarket/bindings';
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
+import { WalletType } from '@polymarket/bindings/gamma';
 import {
   expectEvmAddress,
   expectEvmSignature,
@@ -557,6 +558,13 @@ class BaseSecureClient<
       isSameEvmAddress(signerAddress, this.account.signer),
       'The current signer address does not match the authenticated signer for this client.',
     );
+
+    if (this.account.walletType === WalletType.POLY_PROXY) {
+      return this.#createSecureClientForWallet(
+        this.account.wallet,
+        signerAddress,
+      );
+    }
 
     const safeWallet = deriveSafeWalletAddress(
       signerAddress,

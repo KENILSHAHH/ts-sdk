@@ -28,6 +28,14 @@ The first shipping target is `@polymarket/client`. Its job is to make Polymarket
 - Normalize the CTF position identifier to `tokenId` in the SDK public model, even when upstream services call the same value `assetId`.
 - Standardize SDK identifier naming on JS/TS-style `...Id` forms such as `orderId`, `tradeId`, `tokenId`, and `marketId`, and translate legacy `...ID` and wire-format variants at the service boundary.
 
+## Wallet Direction
+
+- Existing EOA, Poly Proxy, and Poly Safe wallets must continue to authenticate and trade.
+- The next wallet deployment target is the Deposit Wallet. Once introduced, new wallet setup flows should deploy Deposit Wallets rather than the current gasless Safe wallet.
+- Treat the current `SecureClient.setupGaslessWallet` naming as transitional. Future public APIs may become `SecureClient.setupDepositWallet` and, if needed, a separate `SecureClient.upgradeDepositWallet` migration path.
+- During the transitional period, `SecureClient.setupGaslessWallet` should treat Proxy-bound clients as already gasless and preserve the Proxy binding rather than migrating them to Safe.
+- Do not make proxy-to-deposit migration implicit until the migration product behavior is decided. Existing wallet-bound clients should remain usable while migration is introduced over time.
+
 ## Package Direction
 
 - `@polymarket/client` is the main near-term package.

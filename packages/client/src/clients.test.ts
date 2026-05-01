@@ -154,6 +154,22 @@ describe('clients', () => {
       );
     });
 
+    it('returns a secure client bound to the same Proxy wallet', async () => {
+      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const proxyWallet = deriveProxyAddress(signerAddress);
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthorization,
+        signer: signerFrom(walletClient),
+        wallet: proxyWallet,
+      });
+
+      const gaslessClient = await secureClient.setupGaslessWallet();
+
+      expect(gaslessClient.account.signer).toBe(signerAddress);
+      expect(gaslessClient.account.wallet).toBe(proxyWallet);
+      expect(gaslessClient.account.walletType).toBe(WalletType.POLY_PROXY);
+    });
+
     it.runIf(runMeteredTests)(
       'deploys the signer Safe and returns a secure client bound to it',
       async () => {
