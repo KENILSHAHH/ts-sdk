@@ -1,5 +1,6 @@
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
+import { UserInputError } from '../errors';
 import { expectNonEmptyPage, publicClient } from '../testing';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
@@ -64,6 +65,44 @@ describe('Markets', () => {
 
       expect(marketById.id).toBe(market.id);
       expect(marketBySlug.id).toBe(market.id);
+    });
+
+    it('fetches a market by URL', async () => {
+      const {
+        items: [market],
+      } = await publicClient
+        .listMarkets({
+          closed: false,
+          pageSize: 1,
+        })
+        .firstPage()
+        .then(expectNonEmptyPage);
+
+      const marketByUrl = await publicClient.fetchMarket({
+        url: `https://polymarket.com/market/${expectPresent(market.slug)}`,
+      });
+
+      expect(marketByUrl.id).toBe(market.id);
+    });
+
+    it('rejects invalid and non-market URLs', async () => {
+      await expect(
+        publicClient.fetchMarket({
+          url: 'not-a-url',
+        }),
+      ).rejects.toThrow(UserInputError);
+
+      await expect(
+        publicClient.fetchMarket({
+          url: 'https://example.com/market/some-market-slug',
+        }),
+      ).rejects.toThrow(UserInputError);
+
+      await expect(
+        publicClient.fetchMarket({
+          url: 'https://polymarket.com/event/presidential-election-2028',
+        }),
+      ).rejects.toThrow(UserInputError);
     });
   });
 

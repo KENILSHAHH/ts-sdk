@@ -106,6 +106,14 @@ export type DiscoveryActions = {
    * const event = await client.fetchEvent({
    *   id: '123',
    * });
+   *
+   * const eventBySlug = await client.fetchEvent({
+   *   slug: 'presidential-election-2028',
+   * });
+   *
+   * const eventByUrl = await client.fetchEvent({
+   *   url: 'https://polymarket.com/event/presidential-election-2028',
+   * });
    * ```
    */
   fetchEvent(request: FetchEventRequest): Promise<Event>;
@@ -172,6 +180,14 @@ export type DiscoveryActions = {
    * ```ts
    * const market = await client.fetchMarket({
    *   id: '12345',
+   * });
+   *
+   * const marketBySlug = await client.fetchMarket({
+   *   slug: 'some-market-slug',
+   * });
+   *
+   * const marketByUrl = await client.fetchMarket({
+   *   url: 'https://polymarket.com/market/some-market-slug',
    * });
    * ```
    */
