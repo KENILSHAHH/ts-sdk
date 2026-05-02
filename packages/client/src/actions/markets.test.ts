@@ -164,7 +164,7 @@ describe('Markets', () => {
       expect(result).toEqual([
         expect.objectContaining({
           market,
-          value: expect.any(Number),
+          value: expect.any(String),
         }),
       ]);
     });

@@ -63,7 +63,7 @@ describe('RtdsWebSocketManager', () => {
     await expect(btcNext).resolves.toMatchObject({
       done: false,
       value: {
-        payload: { symbol: 'btcusdt', value: 100 },
+        payload: { symbol: 'btcusdt', value: '100' },
         topic: 'prices.crypto.binance',
         type: 'update',
       },
@@ -71,7 +71,7 @@ describe('RtdsWebSocketManager', () => {
     await expect(ethNext).resolves.toMatchObject({
       done: false,
       value: {
-        payload: { symbol: 'ethusdt', value: 200 },
+        payload: { symbol: 'ethusdt', value: '200' },
         topic: 'prices.crypto.binance',
         type: 'update',
       },
@@ -239,7 +239,7 @@ describe('RtdsWebSocketManager', () => {
     await expect(next).resolves.toMatchObject({
       done: false,
       value: {
-        payload: { symbol: 'btcusdt', value: 100 },
+        payload: { symbol: 'btcusdt', value: '100' },
         topic: 'prices.crypto.binance',
         type: 'update',
       },

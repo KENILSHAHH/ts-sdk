@@ -138,7 +138,7 @@ describe('Events', () => {
       expect(result[0]).toEqual(
         expect.objectContaining({
           markets: expect.any(Array),
-          total: expect.any(Number),
+          total: expect.any(String),
         }),
       );
     });

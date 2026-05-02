@@ -51,7 +51,7 @@ describe('Leaderboards', () => {
         expect.objectContaining({
           builder: expect.any(String),
           bucketAt: expect.any(String),
-          volume: expect.any(Number),
+          volume: expect.any(String),
         }),
       );
     });
