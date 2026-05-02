@@ -1,4 +1,5 @@
 import {
+  ConditionIdSchema,
   IsoDateTimeStringSchema,
   PaginationCursorSchema,
 } from '@polymarket/bindings';
@@ -47,7 +48,7 @@ const ListMarketsRequestSchema = z.object({
   clobTokenIds: z.array(z.string()).optional(),
   cursor: PaginationCursorSchema.optional(),
   pageSize: PageSizeSchema.optional(),
-  conditionIds: z.array(z.string()).optional(),
+  conditionIds: z.array(ConditionIdSchema).optional(),
   cyom: z.boolean().optional(),
   decimalized: z.boolean().optional(),
   endDateMax: IsoDateTimeStringSchema.optional(),

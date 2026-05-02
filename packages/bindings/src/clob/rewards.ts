@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ConditionIdSchema,
   DecimalishSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
@@ -35,7 +36,7 @@ export type CurrentRewardConfig = z.infer<typeof CurrentRewardConfigSchema>;
 
 export const CurrentRewardSchema = z
   .looseObject({
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     rewards_max_spread: z.number().optional(),
     rewards_min_size: DecimalishSchema.optional(),
     rewards_config: z.array(CurrentRewardConfigSchema).optional(),
@@ -125,7 +126,7 @@ export type RewardConfig = z.infer<typeof RewardConfigSchema>;
 
 export const MarketRewardSchema = z
   .looseObject({
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     question: z.string(),
     market_slug: z.string().optional(),
     event_slug: z.string().optional(),

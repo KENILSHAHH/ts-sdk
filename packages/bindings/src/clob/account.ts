@@ -226,7 +226,7 @@ export const UserEarningSchema = z
   .object({
     asset_address: z.string(),
     asset_rate: DecimalishSchema,
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     date: EpochMillisecondsToIsoDateTimeStringSchema,
     earnings: DecimalishSchema,
     maker_address: z.string(),
@@ -317,7 +317,7 @@ export const EarningSchema = z
 
 export const UserRewardsEarningSchema = z
   .object({
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     earning_percentage: z.number(),
     earnings: z.array(EarningSchema),
     event_slug: z.string(),
