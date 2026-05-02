@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   type ConditionId,
   ConditionIdSchema,
+  DecimalishSchema,
+  type DecimalString,
   type EpochMilliseconds,
   EpochSecondsToMillisecondsSchema,
   type TokenId,
@@ -46,11 +48,11 @@ export type TradeActivity = ActivityBase & {
   /** Direction of the wallet's trade in the outcome token. */
   side: Side;
   /** Number of outcome-token shares traded by the wallet. */
-  shares: number;
+  shares: DecimalString;
   /** The notional value of the traded shares in USD. */
-  amount: number;
+  amount: DecimalString;
   /** The execution price per outcome-token share in USD. */
-  price: number;
+  price: DecimalString;
   /** Display label of the outcome token traded by the wallet. */
   outcome: string;
   /** Zero-based index of the outcome token in the market's outcome list. */
@@ -71,7 +73,7 @@ export type SplitActivity = ActivityBase & {
   /** Condition id of the market whose complete set was created. */
   conditionId: ConditionId;
   /** The collateral amount split into the complete set in USD. */
-  amount: number;
+  amount: DecimalString;
   /** Human-readable title of the market whose complete set was created. */
   title: string;
   /** URL slug of the market whose complete set was created. */
@@ -88,7 +90,7 @@ export type MergeActivity = ActivityBase & {
   /** Condition id of the market whose complete set was merged. */
   conditionId: ConditionId;
   /** The collateral amount received from merging the complete set in USD. */
-  amount: number;
+  amount: DecimalString;
   /** Human-readable title of the market whose complete set was merged. */
   title: string;
   /** URL slug of the market whose complete set was merged. */
@@ -105,7 +107,7 @@ export type RedeemActivity = ActivityBase & {
   /** Condition id of the market redeemed by the wallet. */
   conditionId: ConditionId;
   /** The proceeds redeemed from the resolved market in USD. */
-  amount: number;
+  amount: DecimalString;
   /** Human-readable title of the market redeemed by the wallet. */
   title: string;
   /** URL slug of the market redeemed by the wallet. */
@@ -122,7 +124,7 @@ export type ConversionActivity = ActivityBase & {
   /** Condition id of the market involved in the conversion. */
   conditionId: ConditionId;
   /** The amount converted or migrated for the market in USD. */
-  amount: number;
+  amount: DecimalString;
   /** Human-readable title of the market involved in the conversion. */
   title: string;
   /** URL slug of the market involved in the conversion. */
@@ -137,28 +139,28 @@ export type RewardActivity = ActivityBase & {
   /** An account-level reward credit. */
   type: 'REWARD';
   /** The reward amount credited to the wallet in USD. */
-  amount: number;
+  amount: DecimalString;
 };
 
 export type MakerRebateActivity = ActivityBase & {
   /** An account-level maker rebate credit. */
   type: 'MAKER_REBATE';
   /** The maker rebate amount credited to the wallet in USD. */
-  amount: number;
+  amount: DecimalString;
 };
 
 export type ReferralRewardActivity = ActivityBase & {
   /** An account-level referral reward credit. */
   type: 'REFERRAL_REWARD';
   /** The referral reward amount credited to the wallet in USD. */
-  amount: number;
+  amount: DecimalString;
 };
 
 export type YieldActivity = ActivityBase & {
   /** An account-level yield credit. */
   type: 'YIELD';
   /** The yield amount credited to the wallet in USD. */
-  amount: number;
+  amount: DecimalString;
 };
 
 export type Activity =
@@ -183,8 +185,8 @@ export const TradeSchema = z
     side: SideSchema.nullish(),
     asset: TokenIdSchema.nullish(),
     conditionId: ConditionIdSchema.nullish(),
-    size: z.number().nullish(),
-    price: z.number().nullish(),
+    size: DecimalishSchema.nullish(),
+    price: DecimalishSchema.nullish(),
     timestamp: EpochSecondsToMillisecondsSchema.nullish(),
     title: z.string().nullish(),
     slug: z.string().nullish(),
@@ -212,10 +214,10 @@ const RawActivitySchema = z.looseObject({
     ConditionIdSchema.optional(),
   ),
   type: ActivityTypeSchema,
-  size: z.number().nullish(),
-  usdcSize: z.number().nullish(),
+  size: DecimalishSchema.nullish(),
+  usdcSize: DecimalishSchema.nullish(),
   transactionHash: TxHashSchema.nullish(),
-  price: z.number().nullish(),
+  price: DecimalishSchema.nullish(),
   asset: z.preprocess(
     (value) => (value === '' ? undefined : value),
     TokenIdSchema.optional(),
@@ -318,7 +320,7 @@ function normalizeActivityBase(activity: RawActivity): ActivityBase {
   };
 }
 
-function inferAmount(activity: RawActivity): number {
+function inferAmount(activity: RawActivity): DecimalString {
   return expectPresent(activity.usdcSize ?? activity.size, 'usdcSize');
 }
 

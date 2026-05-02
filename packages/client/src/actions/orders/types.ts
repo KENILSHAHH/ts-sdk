@@ -21,7 +21,7 @@ export type PrepareMarketOrderRequest = {
    * BUY orders: dollar amount to spend
    * SELL orders: number of shares to sell
    */
-  amount: number;
+  amount: number | string;
 
   /** Side of the order */
   side: OrderSide;
@@ -44,10 +44,10 @@ export type PrepareLimitOrderRequest = {
   tokenId: string;
 
   /** Price used to create the order */
-  price: number;
+  price: number | string;
 
   /** Size in terms of the conditional token */
-  size: number;
+  size: number | string;
 
   /** Side of the order */
   side: OrderSide;

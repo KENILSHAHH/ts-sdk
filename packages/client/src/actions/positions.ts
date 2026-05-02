@@ -1,4 +1,4 @@
-import type { ConditionId } from '@polymarket/bindings';
+import type { ConditionId, DecimalString } from '@polymarket/bindings';
 import { ConditionIdSchema } from '@polymarket/bindings';
 import type { Position } from '@polymarket/bindings/data';
 import { WalletType } from '@polymarket/bindings/gamma';
@@ -633,12 +633,14 @@ function toPositionAmount(
   return toTokenBaseUnits(position.size);
 }
 
-function toTokenBaseUnits(size: number): bigint {
-  if (!Number.isFinite(size) || size < 0) {
+function toTokenBaseUnits(size: DecimalString): bigint {
+  const numericSize = Number(size);
+
+  if (!Number.isFinite(numericSize) || numericSize < 0) {
     throw new UserInputError(
       'Position size must be a non-negative finite number',
     );
   }
 
-  return BigInt(Math.floor(size * 1e6));
+  return BigInt(Math.floor(numericSize * 1e6));
 }

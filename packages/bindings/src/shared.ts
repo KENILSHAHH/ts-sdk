@@ -74,6 +74,8 @@ export type TeamId = Tagged<number, 'TeamId'>;
 export type TemplateId = Tagged<string, 'TemplateId'>;
 export type TransactionId = Tagged<string, 'TransactionId'>;
 export type TokenId = Tagged<string, 'TokenId'>;
+export type DecimalString = Tagged<string, 'DecimalString'>;
+export type BaseUnits = Tagged<string, 'BaseUnits'>;
 
 export function toBestLineId(value: string): BestLineId {
   return toTaggedString<BestLineId>(value);
@@ -209,6 +211,14 @@ export function toTokenId(value: string): TokenId {
   return toTaggedString<TokenId>(value);
 }
 
+export function toDecimalString(value: string): DecimalString {
+  return toTaggedString<DecimalString>(value);
+}
+
+export function toBaseUnits(value: string): BaseUnits {
+  return toTaggedString<BaseUnits>(value);
+}
+
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
 export const BuilderCodeSchema = z.string().transform(toBuilderCode);
@@ -317,6 +327,15 @@ export const TagIdSchema = z.string().transform(toTagId);
 export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);
 export const TxHashSchema = z.string().transform(toTxHash);
+export const DecimalStringSchema = z.string().transform(toDecimalString);
+export const DecimalishSchema = z.union([
+  DecimalStringSchema,
+  z.number().transform((value) => toDecimalString(String(value))),
+]);
+export const PositiveDecimalNumberSchema = z
+  .union([z.number(), z.string().transform(Number)])
+  .pipe(z.number().positive());
+export const BaseUnitsSchema = z.string().transform(toBaseUnits);
 
 export type ISODateString = IsoDateTimeString;
 export type ISOCalendarDateString = IsoCalendarDateString;

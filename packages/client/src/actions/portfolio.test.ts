@@ -53,7 +53,7 @@ describe('Portfolio', () => {
       expect(result).toEqual([
         expect.objectContaining({
           user: TEST_USER,
-          value: expect.any(Number),
+          value: expect.any(String),
         }),
       ]);
     });

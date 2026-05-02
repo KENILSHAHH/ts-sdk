@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  BaseUnitsSchema,
   CommentIdSchema,
   CommentParentEntityTypeSchema,
   EventIdSchema,
@@ -11,7 +12,7 @@ import { SeriesIdSchema } from './event';
 
 export const CommentPositionSchema = z.object({
   tokenId: TokenIdSchema.nullish(),
-  positionSize: z.string().nullish(),
+  positionSize: BaseUnitsSchema.nullish(),
 });
 
 export const CommentProfileSchema = z.object({

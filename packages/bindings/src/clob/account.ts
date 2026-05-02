@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import {
+  BaseUnitsSchema,
+  ConditionIdSchema,
+  DecimalishSchema,
+  DecimalStringSchema,
   EpochMillisecondsSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   EvmAddressSchema,
@@ -42,12 +46,12 @@ export const OpenOrderSchema = z
     maker_address: z.string(),
     market: z.string(),
     order_type: z.string(),
-    original_size: z.string(),
+    original_size: DecimalStringSchema,
     outcome: z.string(),
     owner: z.string(),
-    price: z.string(),
+    price: DecimalStringSchema,
     side: z.string(),
-    size_matched: z.string(),
+    size_matched: DecimalStringSchema,
     status: z.string(),
   })
   .transform(
@@ -88,13 +92,13 @@ export type OpenOrdersPage = z.infer<typeof OpenOrdersPageSchema>;
 export const MakerOrderSchema = z
   .object({
     asset_id: TokenIdSchema,
-    fee_rate_bps: z.string(),
+    fee_rate_bps: DecimalStringSchema,
     maker_address: z.string(),
-    matched_amount: z.string(),
+    matched_amount: DecimalStringSchema,
     order_id: z.string(),
     outcome: z.string(),
     owner: z.string(),
-    price: z.string(),
+    price: DecimalStringSchema,
     side: z.string(),
   })
   .transform(
@@ -119,7 +123,7 @@ export const ClobTradeSchema = z
   .object({
     asset_id: TokenIdSchema,
     bucket_index: z.number(),
-    fee_rate_bps: z.string(),
+    fee_rate_bps: DecimalStringSchema,
     id: z.string(),
     last_update: EpochMillisecondsToIsoDateTimeStringSchema,
     maker_address: z.string(),
@@ -128,9 +132,9 @@ export const ClobTradeSchema = z
     match_time: EpochMillisecondsToIsoDateTimeStringSchema,
     outcome: z.string(),
     owner: z.string(),
-    price: z.string(),
+    price: DecimalStringSchema,
     side: z.string(),
-    size: z.string(),
+    size: DecimalStringSchema,
     status: z.string(),
     taker_order_id: z.string(),
     trader_side: z.enum(['TAKER', 'MAKER']),
@@ -201,7 +205,7 @@ export const AssetTypeSchema = z.enum(AssetType);
 
 export const BalanceAllowanceResponseSchema = z.object({
   allowances: z.record(EvmAddressSchema, z.string().transform(BigInt)),
-  balance: z.string(),
+  balance: BaseUnitsSchema,
 });
 
 export type BalanceAllowanceResponse = z.infer<
@@ -221,10 +225,10 @@ export type OrdersScoringResponse = z.infer<typeof OrdersScoringResponseSchema>;
 export const UserEarningSchema = z
   .object({
     asset_address: z.string(),
-    asset_rate: z.number(),
-    condition_id: z.string(),
+    asset_rate: DecimalishSchema,
+    condition_id: ConditionIdSchema,
     date: EpochMillisecondsToIsoDateTimeStringSchema,
-    earnings: z.number(),
+    earnings: DecimalishSchema,
     maker_address: z.string(),
   })
   .transform(
@@ -246,9 +250,9 @@ export type UserEarningsPage = z.infer<typeof UserEarningsPageSchema>;
 export const TotalUserEarningSchema = z
   .object({
     asset_address: z.string(),
-    asset_rate: z.number(),
+    asset_rate: DecimalishSchema,
     date: EpochMillisecondsToIsoDateTimeStringSchema,
-    earnings: z.number(),
+    earnings: DecimalishSchema,
     maker_address: z.string(),
   })
   .transform(({ asset_address, asset_rate, maker_address, ...rest }) => ({
@@ -266,14 +270,14 @@ export type TotalUserEarningsResponse = z.infer<
   typeof TotalUserEarningsResponseSchema
 >;
 
-export const RewardsPercentagesSchema = z.record(z.string(), z.number());
+export const RewardsPercentagesSchema = z.record(ConditionIdSchema, z.number());
 
 export type RewardsPercentages = z.infer<typeof RewardsPercentagesSchema>;
 
 export const TokenSchema = z
   .object({
     outcome: z.string(),
-    price: z.number(),
+    price: DecimalishSchema,
     token_id: TokenIdSchema,
   })
   .transform(({ token_id, ...rest }) => ({
@@ -285,9 +289,9 @@ export const RewardsConfigSchema = z
   .object({
     asset_address: z.string(),
     end_date: EpochMillisecondsToIsoDateTimeStringSchema,
-    rate_per_day: z.number(),
+    rate_per_day: DecimalishSchema,
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
-    total_rewards: z.number(),
+    total_rewards: DecimalishSchema,
   })
   .transform(
     ({ asset_address, end_date, rate_per_day, start_date, total_rewards }) => ({
@@ -302,8 +306,8 @@ export const RewardsConfigSchema = z
 export const EarningSchema = z
   .object({
     asset_address: z.string(),
-    asset_rate: z.number(),
-    earnings: z.number(),
+    asset_rate: DecimalishSchema,
+    earnings: DecimalishSchema,
   })
   .transform(({ asset_address, asset_rate, ...rest }) => ({
     ...rest,
@@ -313,7 +317,7 @@ export const EarningSchema = z
 
 export const UserRewardsEarningSchema = z
   .object({
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     earning_percentage: z.number(),
     earnings: z.array(EarningSchema),
     event_slug: z.string(),
@@ -324,7 +328,7 @@ export const UserRewardsEarningSchema = z
     question: z.string(),
     rewards_config: z.array(RewardsConfigSchema),
     rewards_max_spread: z.number(),
-    rewards_min_size: z.number(),
+    rewards_min_size: DecimalishSchema,
     tokens: z.array(TokenSchema),
   })
   .transform(

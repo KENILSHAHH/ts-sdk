@@ -3,6 +3,7 @@ import {
   OrderSide,
   OrderSideSchema,
   OrderType,
+  PositiveDecimalNumberSchema,
   type TickSizeValue,
   TokenIdSchema,
 } from '@polymarket/bindings';
@@ -17,7 +18,7 @@ import type { OrderDraft, PrepareMarketOrderRequest } from './types';
 
 export const PrepareMarketOrderParamsSchema = z.object({
   tokenId: TokenIdSchema,
-  amount: z.number().positive(),
+  amount: PositiveDecimalNumberSchema,
   side: OrderSideSchema,
   builderCode: BuilderCodeSchema.optional(),
   orderType: z

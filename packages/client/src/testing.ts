@@ -179,7 +179,7 @@ function hasTradableBestAsk(candidate: Market) {
   return (
     candidate.prices.bestAsk !== null &&
     candidate.prices.bestAsk !== undefined &&
-    candidate.prices.bestAsk < 1
+    Number(candidate.prices.bestAsk) < 1
   );
 }
 
@@ -187,13 +187,15 @@ function hasTradableBestBid(candidate: Market) {
   return (
     candidate.prices.bestBid !== null &&
     candidate.prices.bestBid !== undefined &&
-    candidate.prices.bestBid > 0
+    Number(candidate.prices.bestBid) > 0
   );
 }
 
 function hasClobLiquidity(candidate: Market) {
   return (
-    (candidate.metrics.liquidityClob ?? candidate.metrics.liquidityNum ?? 0) > 0
+    Number(
+      candidate.metrics.liquidityClob ?? candidate.metrics.liquidityNum ?? 0,
+    ) > 0
   );
 }
 

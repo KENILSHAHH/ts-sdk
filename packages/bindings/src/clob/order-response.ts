@@ -1,14 +1,18 @@
 import { never, type TxHash } from '@polymarket/types';
 import { z } from 'zod';
-import { TxHashSchema } from '../shared';
+import {
+  type DecimalString,
+  DecimalStringSchema,
+  TxHashSchema,
+} from '../shared';
 
 export const RawOrderResponseSchema = z.object({
   errorMsg: z.string(),
-  makingAmount: z.string(),
+  makingAmount: DecimalStringSchema,
   orderID: z.string(),
   status: z.string(),
   success: z.boolean(),
-  takingAmount: z.string(),
+  takingAmount: DecimalStringSchema,
   tradeIDs: z.array(z.string()).default([]),
   transactionsHashes: z.array(z.string()).default([]),
 });
@@ -47,8 +51,8 @@ export type AcceptedOrderResponse = {
   ok: true;
   orderId: string;
   status: OrderPostStatus;
-  makingAmount: string;
-  takingAmount: string;
+  makingAmount: DecimalString;
+  takingAmount: DecimalString;
   transactionsHashes: TxHash[];
   tradeIds: string[];
 };
@@ -67,8 +71,8 @@ export const AcceptedOrderResponseSchema = z.object({
   ok: z.literal(true),
   orderId: z.string().min(1),
   status: OrderPostStatusSchema,
-  makingAmount: z.string(),
-  takingAmount: z.string(),
+  makingAmount: DecimalStringSchema,
+  takingAmount: DecimalStringSchema,
   tradeIds: z.array(z.string()),
   transactionsHashes: z.array(TxHashSchema),
 });

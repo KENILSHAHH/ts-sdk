@@ -1,5 +1,10 @@
-import type { TickSizeValue } from '@polymarket/bindings';
-import { OrderSide, OrderSideSchema, OrderType } from '@polymarket/bindings';
+import {
+  OrderSide,
+  OrderSideSchema,
+  OrderType,
+  PositiveDecimalNumberSchema,
+  type TickSizeValue,
+} from '@polymarket/bindings';
 import type { OrderBookLevel } from '@polymarket/bindings/clob';
 import { invariant } from '@polymarket/types';
 import { z } from 'zod';
@@ -18,7 +23,7 @@ import { fetchOrderBook, fetchTickSize } from '../clob';
 
 const EstimateMarketPriceRequestSchema = z.object({
   tokenId: z.string(),
-  amount: z.number().positive(),
+  amount: PositiveDecimalNumberSchema,
   side: OrderSideSchema,
   orderType: z
     .union([z.literal(OrderType.FAK), z.literal(OrderType.FOK)])

@@ -1,9 +1,13 @@
 import { z } from 'zod';
-import { EpochMillisecondsStringSchema, TokenIdSchema } from '../shared';
+import {
+  DecimalStringSchema,
+  EpochMillisecondsStringSchema,
+  TokenIdSchema,
+} from '../shared';
 
 export const OrderBookLevelSchema = z.object({
-  price: z.string(),
-  size: z.string(),
+  price: DecimalStringSchema,
+  size: DecimalStringSchema,
 });
 
 export const OrderBookSchema = z
@@ -13,10 +17,10 @@ export const OrderBookSchema = z
     timestamp: EpochMillisecondsStringSchema.nullish(),
     bids: z.array(OrderBookLevelSchema),
     asks: z.array(OrderBookLevelSchema),
-    min_order_size: z.string(),
-    tick_size: z.string(),
+    min_order_size: DecimalStringSchema,
+    tick_size: DecimalStringSchema,
     neg_risk: z.boolean(),
-    last_trade_price: z.string().nullish(),
+    last_trade_price: DecimalStringSchema.nullish(),
     hash: z.string(),
   })
   .transform(

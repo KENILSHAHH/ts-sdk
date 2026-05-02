@@ -7,6 +7,8 @@ import {
 } from '../gamma/comment';
 import {
   CommentParentEntityTypeSchema,
+  DecimalishSchema,
+  DecimalStringSchema,
   EpochMillisecondsSchema,
 } from '../shared';
 
@@ -69,7 +71,7 @@ export type ReactionRemovedEvent = z.infer<typeof ReactionRemovedEventSchema>;
 const PriceUpdatePayloadSchema = z.object({
   symbol: z.string(),
   timestamp: EpochMillisecondsSchema,
-  value: z.number(),
+  value: DecimalishSchema,
 });
 
 export type PriceUpdatePayload = z.infer<typeof PriceUpdatePayloadSchema>;
@@ -130,16 +132,22 @@ export type CryptoPricesEvent = z.infer<typeof CryptoPricesEventSchema>;
 const EquityPriceUpdatePayloadSchema = z
   .looseObject({
     symbol: z.string(),
-    value: z.number(),
-    full_accuracy_value: z.string(),
+    value: DecimalishSchema,
+    full_accuracy_value: DecimalStringSchema.nullish(),
     timestamp: EpochMillisecondsSchema,
     received_at: EpochMillisecondsSchema.nullish(),
     is_carried_forward: z.boolean().nullish(),
   })
   .transform(
-    ({ full_accuracy_value, received_at, is_carried_forward, ...rest }) => ({
+    ({
+      full_accuracy_value,
+      received_at,
+      is_carried_forward,
+      value,
+      ...rest
+    }) => ({
       ...rest,
-      fullAccuracyValue: full_accuracy_value,
+      value: full_accuracy_value ?? value,
       receivedAt: received_at,
       isCarriedForward: is_carried_forward,
     }),
@@ -151,7 +159,7 @@ export type EquityPriceUpdatePayload = z.infer<
 
 const EquityPriceSnapshotPointSchema = z.object({
   timestamp: z.number(),
-  value: z.number(),
+  value: DecimalishSchema,
 });
 
 export type EquityPriceSnapshotPoint = z.infer<

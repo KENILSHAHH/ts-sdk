@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  ConditionIdSchema,
+  DecimalishSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
 } from '../shared';
@@ -10,8 +12,8 @@ const CurrentRewardConfigSchema = z
     asset_address: z.string(),
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
     end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
-    rate_per_day: z.number(),
-    total_rewards: z.number().optional(),
+    rate_per_day: DecimalishSchema,
+    total_rewards: DecimalishSchema.optional(),
   })
   .transform(
     ({
@@ -34,14 +36,14 @@ export type CurrentRewardConfig = z.infer<typeof CurrentRewardConfigSchema>;
 
 export const CurrentRewardSchema = z
   .looseObject({
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     rewards_max_spread: z.number().optional(),
-    rewards_min_size: z.number().optional(),
+    rewards_min_size: DecimalishSchema.optional(),
     rewards_config: z.array(CurrentRewardConfigSchema).optional(),
-    sponsored_daily_rate: z.number().optional(),
+    sponsored_daily_rate: DecimalishSchema.optional(),
     sponsors_count: z.number().int().optional(),
-    native_daily_rate: z.number().optional(),
-    total_daily_rate: z.number().optional(),
+    native_daily_rate: DecimalishSchema.optional(),
+    total_daily_rate: DecimalishSchema.optional(),
   })
   .transform(
     ({
@@ -87,7 +89,7 @@ const RewardTokenSchema = z
   .object({
     token_id: TokenIdSchema,
     outcome: z.string(),
-    price: z.number(),
+    price: DecimalishSchema,
   })
   .transform(({ token_id, ...rest }) => ({
     ...rest,
@@ -100,8 +102,8 @@ const RewardConfigSchema = z
     asset_address: z.string(),
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
     end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
-    rate_per_day: z.number(),
-    total_rewards: z.number().optional(),
+    rate_per_day: DecimalishSchema,
+    total_rewards: DecimalishSchema.optional(),
   })
   .transform(
     ({
@@ -124,13 +126,13 @@ export type RewardConfig = z.infer<typeof RewardConfigSchema>;
 
 export const MarketRewardSchema = z
   .looseObject({
-    condition_id: z.string(),
+    condition_id: ConditionIdSchema,
     question: z.string(),
     market_slug: z.string().optional(),
     event_slug: z.string().optional(),
     image: z.string().optional(),
     rewards_max_spread: z.number().optional(),
-    rewards_min_size: z.number().optional(),
+    rewards_min_size: DecimalishSchema.optional(),
     market_competitiveness: z.number().optional(),
     tokens: z.array(RewardTokenSchema),
     rewards_config: z.array(RewardConfigSchema).optional(),
