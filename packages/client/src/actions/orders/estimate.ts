@@ -1,6 +1,5 @@
 import {
   OrderSide,
-  OrderSideSchema,
   OrderType,
   PositiveDecimalNumberSchema,
   type TickSizeValue,
@@ -21,18 +20,63 @@ import {
 import { parseUserInput } from '../../input';
 import { fetchOrderBook, fetchTickSize } from '../clob';
 
-const EstimateMarketPriceRequestSchema = z.object({
+const BaseEstimateMarketPriceRequestSchema = z.object({
   tokenId: z.string(),
-  amount: PositiveDecimalNumberSchema,
-  side: OrderSideSchema,
   orderType: z
     .union([z.literal(OrderType.FAK), z.literal(OrderType.FOK)])
     .default(OrderType.FOK),
 });
 
-export type EstimateMarketPriceRequest = z.input<
-  typeof EstimateMarketPriceRequestSchema
->;
+export type EstimateMarketBuyPriceRequest = {
+  /** TokenID of the Conditional token asset to estimate. */
+  tokenId: string;
+
+  /** Buy side of the estimate. */
+  side: OrderSide.BUY;
+
+  /** Desired USD buy notional to match against current ask depth. */
+  amount: number | string;
+
+  /**
+   * Market order execution type to model.
+   *
+   * @defaultValue OrderType.FOK
+   */
+  orderType?: OrderType.FAK | OrderType.FOK;
+};
+
+export type EstimateMarketSellPriceRequest = {
+  /** TokenID of the Conditional token asset to estimate. */
+  tokenId: string;
+
+  /** Sell side of the estimate. */
+  side: OrderSide.SELL;
+
+  /** Number of conditional-token shares to match against current bid depth. */
+  shares: number | string;
+
+  /**
+   * Market order execution type to model.
+   *
+   * @defaultValue OrderType.FOK
+   */
+  orderType?: OrderType.FAK | OrderType.FOK;
+};
+
+export type EstimateMarketPriceRequest =
+  | EstimateMarketBuyPriceRequest
+  | EstimateMarketSellPriceRequest;
+
+const EstimateMarketPriceRequestSchema = z.discriminatedUnion('side', [
+  BaseEstimateMarketPriceRequestSchema.extend({
+    side: z.literal(OrderSide.BUY),
+    amount: PositiveDecimalNumberSchema,
+  }),
+  BaseEstimateMarketPriceRequestSchema.extend({
+    side: z.literal(OrderSide.SELL),
+    shares: PositiveDecimalNumberSchema,
+  }),
+]) satisfies z.ZodType<EstimateMarketPriceRequest>;
 
 export type EstimateMarketPriceError =
   | InsufficientLiquidityError
@@ -53,8 +97,8 @@ export const EstimateMarketPriceError = makeErrorGuard(
 /**
  * Estimates the price level a market order would cross at current book depth.
  *
- * For BUY orders, `amount` is the amount of collateral to spend. For SELL orders,
- * `amount` is the number of shares to sell.
+ * For BUY orders, `amount` is the amount of collateral to spend. For SELL
+ * orders, `shares` is the number of shares to sell.
  *
  * When `orderType` is `FOK`, this estimate requires enough resting liquidity to
  * satisfy the full requested amount and throws if the book is too thin. When
@@ -86,9 +130,10 @@ export async function estimateMarketPrice(
   const tickSize = await fetchTickSize(client, {
     tokenId: params.tokenId,
   });
+  const amount = params.side === OrderSide.BUY ? params.amount : params.shares;
 
   return resolveEstimatedMarketPrice(client, {
-    amount: params.amount,
+    amount,
     orderType: params.orderType,
     side: params.side,
     tickSize,

@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { DecimalStringSchema, OrderSideSchema, TokenIdSchema } from '../shared';
+import {
+  ConditionIdSchema,
+  DecimalStringSchema,
+  OrderSideSchema,
+  TokenIdSchema,
+} from '../shared';
 
 export enum PriceHistoryInterval {
   MAX = 'max',
@@ -87,3 +92,55 @@ export const PriceHistorySchema = z.object({
   history: z.array(PriceHistoryPointSchema),
 });
 export type PriceHistory = z.infer<typeof PriceHistorySchema>;
+
+export const ConditionByTokenSchema = z
+  .object({
+    condition_id: ConditionIdSchema,
+  })
+  .transform(({ condition_id }) => condition_id);
+
+export const ResolveConditionByTokenResponseSchema = ConditionByTokenSchema;
+
+export type ConditionByToken = z.infer<typeof ConditionByTokenSchema>;
+export type ResolveConditionByTokenResponse = z.infer<
+  typeof ResolveConditionByTokenResponseSchema
+>;
+
+export const MarketFeeInfoSchema = z
+  .object({
+    r: z.number().default(0),
+    e: z.number().default(0),
+  })
+  .transform(({ r, e }) => ({
+    rate: r,
+    exponent: e,
+  }));
+
+export const MarketTokenSchema = z
+  .object({
+    t: TokenIdSchema,
+    o: z.string(),
+  })
+  .transform(({ t, o }) => ({
+    tokenId: t,
+    outcome: o,
+  }));
+
+export const MarketInfoSchema = z
+  .object({
+    fd: MarketFeeInfoSchema.nullish(),
+    t: z.array(MarketTokenSchema),
+  })
+  .transform(({ fd, t }) => ({
+    feeInfo: fd ?? { rate: 0, exponent: 0 },
+    tokens: t,
+  }));
+
+export const FetchMarketInfoResponseSchema = MarketInfoSchema;
+
+export type MarketFeeInfo = z.infer<typeof MarketFeeInfoSchema>;
+export type MarketToken = z.infer<typeof MarketTokenSchema>;
+export type MarketInfo = z.infer<typeof MarketInfoSchema>;
+export type FetchMarketInfoResponse = z.infer<
+  typeof FetchMarketInfoResponseSchema
+>;

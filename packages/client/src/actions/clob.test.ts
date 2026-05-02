@@ -3,7 +3,7 @@ import { PriceHistoryInterval } from '@polymarket/bindings/clob';
 import { expectPresent, never } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import { publicClient } from '../testing';
-import { fetchFeeRate, fetchNegRisk, fetchTickSize } from './clob';
+import { fetchNegRisk, fetchTickSize } from './clob';
 
 describe('CLOB', () => {
   describe('fetchTickSize', () => {
@@ -28,18 +28,6 @@ describe('CLOB', () => {
       });
 
       expect(typeof result).toBe('boolean');
-    });
-  });
-
-  describe('fetchFeeRate', () => {
-    it('fetches the fee rate for a token', async () => {
-      const tokenId = await selectLiquidClobTokenId();
-
-      const result = await fetchFeeRate(publicClient, {
-        tokenId,
-      });
-
-      expect(Number(result)).toBeGreaterThanOrEqual(0);
     });
   });
 

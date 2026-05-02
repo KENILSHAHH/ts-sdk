@@ -70,8 +70,8 @@ describe('Orders', { timeout: 60_000 }, () => {
 
       await secureClient
         .placeMarketOrder({
-          amount: expectPresent(position?.size),
           side: OrderSide.SELL,
+          shares: expectPresent(position?.size),
           tokenId: expectPresent(position?.tokenId),
         })
         .then(expectAcceptedOrderResponse);
@@ -99,8 +99,8 @@ describe('Orders', { timeout: 60_000 }, () => {
           // order posting.
           const result = await secureClient
             .placeMarketOrder({
-              amount: expectPresent(position.size),
               side: OrderSide.SELL,
+              shares: expectPresent(position.size),
               tokenId: expectPresent(position.tokenId),
             })
             .then(expectAcceptedOrderResponse);

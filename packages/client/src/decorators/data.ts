@@ -210,8 +210,8 @@ export type DataActions = {
   /**
    * Estimates the price level a market order would cross at current book depth.
    *
-   * For BUY orders, `amount` is the amount of collateral to spend. For SELL orders,
-   * `amount` is the number of shares to sell.
+   * For BUY orders, `amount` is the amount of collateral to spend. For SELL
+   * orders, `shares` is the number of shares to sell.
    *
    * @throws {@link EstimateMarketPriceError}
    * Thrown on failure.

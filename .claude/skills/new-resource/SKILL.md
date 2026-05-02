@@ -44,7 +44,6 @@ Creates a resource module in `packages/bindings` by investigating a source repo 
 - Keep field names aligned with the external API shape unless the user explicitly asks for normalization
 - Be conservative with nullability and optionality; prefer matching observed source shapes over tightening fields aggressively
 - Keep nested relation schemas shallow unless the user asks for a full deep model
-- Prefer `z.looseObject()` or `.loose()` for externally sourced payloads unless strictness is explicitly requested
 - Follow the existing package conventions already used in `packages/bindings` and `packages/types`
 - Do not add extra package files unless requested
 
