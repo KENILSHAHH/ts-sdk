@@ -3,6 +3,7 @@ import {
   OrderSide,
   OrderSideSchema,
   OrderType,
+  PositiveDecimalNumberSchema,
   type TickSizeValue,
   TokenIdSchema,
 } from '@polymarket/bindings';
@@ -24,8 +25,8 @@ import type { OrderDraft, PrepareLimitOrderRequest } from './types';
 export const PrepareLimitOrderParamsSchema = z
   .strictObject({
     tokenId: TokenIdSchema,
-    price: z.number().positive(),
-    size: z.number().positive(),
+    price: PositiveDecimalNumberSchema,
+    size: PositiveDecimalNumberSchema,
     side: OrderSideSchema,
     builderCode: BuilderCodeSchema.optional(),
     postOnly: z.boolean().default(false),

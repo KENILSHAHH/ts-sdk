@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import {
-  ApproxNumberSchema,
   CategoryIdSchema,
   ClobRewardIdSchema,
   ConditionIdSchema,
+  DecimalishSchema,
   DecimalStringSchema,
   EventIdSchema,
   ImageOptimizationIdSchema,
@@ -29,10 +29,10 @@ export const ImageOptimizationSchema = z.object({
 });
 
 export const FeeScheduleSchema = z.object({
-  exponent: ApproxNumberSchema,
-  rate: ApproxNumberSchema,
+  exponent: z.number(),
+  rate: DecimalishSchema,
   takerOnly: z.boolean(),
-  rebateRate: ApproxNumberSchema,
+  rebateRate: DecimalishSchema,
 });
 
 export const EventReferenceSchema = z.object({ id: EventIdSchema });
@@ -82,8 +82,8 @@ export const ClobRewardsSchema = z.object({
   id: ClobRewardIdSchema,
   conditionId: ConditionIdSchema,
   assetAddress: z.string(),
-  rewardsAmount: ApproxNumberSchema,
-  rewardsDailyRate: ApproxNumberSchema,
+  rewardsAmount: DecimalishSchema,
+  rewardsDailyRate: DecimalishSchema,
   startDate: IsoCalendarDateStringSchema,
   endDate: IsoCalendarDateStringSchema.nullish(),
 });

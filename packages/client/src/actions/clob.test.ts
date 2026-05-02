@@ -39,8 +39,7 @@ describe('CLOB', () => {
         tokenId,
       });
 
-      expect(result).toEqual(expect.any(Number));
-      expect(result).toBeGreaterThanOrEqual(0);
+      expect(Number(result)).toBeGreaterThanOrEqual(0);
     });
   });
 

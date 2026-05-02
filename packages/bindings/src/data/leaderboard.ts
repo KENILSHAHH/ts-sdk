@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { ApproxNumberSchema, IsoDateTimeStringSchema } from '../shared';
+import { DecimalishSchema, IsoDateTimeStringSchema } from '../shared';
 import { AddressSchema } from './common';
 
 export const LeaderboardEntrySchema = z.object({
   rank: z.string().nullish(),
   builder: z.string().nullish(),
-  volume: ApproxNumberSchema.nullish(),
+  volume: DecimalishSchema.nullish(),
   activeUsers: z.number().int().nullish(),
   verified: z.boolean().nullish(),
   builderLogo: z.string().nullish(),
@@ -17,7 +17,7 @@ export const BuilderVolumeEntrySchema = z
     builder: z.string().nullish(),
     builderLogo: z.string().nullish(),
     verified: z.boolean().nullish(),
-    volume: ApproxNumberSchema.nullish(),
+    volume: DecimalishSchema.nullish(),
     activeUsers: z.number().int().nullish(),
     rank: z.string().nullish(),
   })
@@ -30,8 +30,8 @@ export const TraderLeaderboardEntrySchema = z.object({
   rank: z.string().nullish(),
   proxyWallet: AddressSchema.nullish(),
   userName: z.string().nullish(),
-  vol: ApproxNumberSchema.nullish(),
-  pnl: ApproxNumberSchema.nullish(),
+  vol: DecimalishSchema.nullish(),
+  pnl: DecimalishSchema.nullish(),
   profileImage: z.string().nullish(),
   xUsername: z.string().nullish(),
   verifiedBadge: z.boolean().nullish(),

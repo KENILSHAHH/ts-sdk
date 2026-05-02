@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  ApproxNumberSchema,
+  DecimalishSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
 } from '../shared';
@@ -11,8 +11,8 @@ const CurrentRewardConfigSchema = z
     asset_address: z.string(),
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
     end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
-    rate_per_day: ApproxNumberSchema,
-    total_rewards: ApproxNumberSchema.optional(),
+    rate_per_day: DecimalishSchema,
+    total_rewards: DecimalishSchema.optional(),
   })
   .transform(
     ({
@@ -36,13 +36,13 @@ export type CurrentRewardConfig = z.infer<typeof CurrentRewardConfigSchema>;
 export const CurrentRewardSchema = z
   .looseObject({
     condition_id: z.string(),
-    rewards_max_spread: ApproxNumberSchema.optional(),
-    rewards_min_size: ApproxNumberSchema.optional(),
+    rewards_max_spread: z.number().optional(),
+    rewards_min_size: DecimalishSchema.optional(),
     rewards_config: z.array(CurrentRewardConfigSchema).optional(),
-    sponsored_daily_rate: ApproxNumberSchema.optional(),
+    sponsored_daily_rate: DecimalishSchema.optional(),
     sponsors_count: z.number().int().optional(),
-    native_daily_rate: ApproxNumberSchema.optional(),
-    total_daily_rate: ApproxNumberSchema.optional(),
+    native_daily_rate: DecimalishSchema.optional(),
+    total_daily_rate: DecimalishSchema.optional(),
   })
   .transform(
     ({
@@ -88,7 +88,7 @@ const RewardTokenSchema = z
   .object({
     token_id: TokenIdSchema,
     outcome: z.string(),
-    price: ApproxNumberSchema,
+    price: DecimalishSchema,
   })
   .transform(({ token_id, ...rest }) => ({
     ...rest,
@@ -101,8 +101,8 @@ const RewardConfigSchema = z
     asset_address: z.string(),
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
     end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
-    rate_per_day: ApproxNumberSchema,
-    total_rewards: ApproxNumberSchema.optional(),
+    rate_per_day: DecimalishSchema,
+    total_rewards: DecimalishSchema.optional(),
   })
   .transform(
     ({
@@ -130,9 +130,9 @@ export const MarketRewardSchema = z
     market_slug: z.string().optional(),
     event_slug: z.string().optional(),
     image: z.string().optional(),
-    rewards_max_spread: ApproxNumberSchema.optional(),
-    rewards_min_size: ApproxNumberSchema.optional(),
-    market_competitiveness: ApproxNumberSchema.optional(),
+    rewards_max_spread: z.number().optional(),
+    rewards_min_size: DecimalishSchema.optional(),
+    market_competitiveness: z.number().optional(),
     tokens: z.array(RewardTokenSchema),
     rewards_config: z.array(RewardConfigSchema).optional(),
   })

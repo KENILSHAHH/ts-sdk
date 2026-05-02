@@ -76,7 +76,6 @@ export type TransactionId = Tagged<string, 'TransactionId'>;
 export type TokenId = Tagged<string, 'TokenId'>;
 export type DecimalString = Tagged<string, 'DecimalString'>;
 export type BaseUnits = Tagged<string, 'BaseUnits'>;
-export type ApproxNumber = Tagged<number, 'ApproxNumber'>;
 
 export function toBestLineId(value: string): BestLineId {
   return toTaggedString<BestLineId>(value);
@@ -220,10 +219,6 @@ export function toBaseUnits(value: string): BaseUnits {
   return toTaggedString<BaseUnits>(value);
 }
 
-export function toApproxNumber(value: number): ApproxNumber {
-  return value as ApproxNumber;
-}
-
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
 export const BuilderCodeSchema = z.string().transform(toBuilderCode);
@@ -333,8 +328,14 @@ export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);
 export const TxHashSchema = z.string().transform(toTxHash);
 export const DecimalStringSchema = z.string().transform(toDecimalString);
+export const DecimalishSchema = z.union([
+  DecimalStringSchema,
+  z.number().transform((value) => toDecimalString(String(value))),
+]);
+export const PositiveDecimalNumberSchema = z
+  .union([z.number(), z.string().transform(Number)])
+  .pipe(z.number().positive());
 export const BaseUnitsSchema = z.string().transform(toBaseUnits);
-export const ApproxNumberSchema = z.number().transform(toApproxNumber);
 
 export type ISODateString = IsoDateTimeString;
 export type ISOCalendarDateString = IsoCalendarDateString;

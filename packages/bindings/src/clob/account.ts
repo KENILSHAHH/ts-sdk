@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import {
-  ApproxNumberSchema,
   BaseUnitsSchema,
+  ConditionIdSchema,
+  DecimalishSchema,
   DecimalStringSchema,
   EpochMillisecondsSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
@@ -224,10 +225,10 @@ export type OrdersScoringResponse = z.infer<typeof OrdersScoringResponseSchema>;
 export const UserEarningSchema = z
   .object({
     asset_address: z.string(),
-    asset_rate: ApproxNumberSchema,
+    asset_rate: DecimalishSchema,
     condition_id: z.string(),
     date: EpochMillisecondsToIsoDateTimeStringSchema,
-    earnings: ApproxNumberSchema,
+    earnings: DecimalishSchema,
     maker_address: z.string(),
   })
   .transform(
@@ -249,9 +250,9 @@ export type UserEarningsPage = z.infer<typeof UserEarningsPageSchema>;
 export const TotalUserEarningSchema = z
   .object({
     asset_address: z.string(),
-    asset_rate: ApproxNumberSchema,
+    asset_rate: DecimalishSchema,
     date: EpochMillisecondsToIsoDateTimeStringSchema,
-    earnings: ApproxNumberSchema,
+    earnings: DecimalishSchema,
     maker_address: z.string(),
   })
   .transform(({ asset_address, asset_rate, maker_address, ...rest }) => ({
@@ -269,17 +270,14 @@ export type TotalUserEarningsResponse = z.infer<
   typeof TotalUserEarningsResponseSchema
 >;
 
-export const RewardsPercentagesSchema = z.record(
-  z.string(),
-  ApproxNumberSchema,
-);
+export const RewardsPercentagesSchema = z.record(ConditionIdSchema, z.number());
 
 export type RewardsPercentages = z.infer<typeof RewardsPercentagesSchema>;
 
 export const TokenSchema = z
   .object({
     outcome: z.string(),
-    price: ApproxNumberSchema,
+    price: DecimalishSchema,
     token_id: TokenIdSchema,
   })
   .transform(({ token_id, ...rest }) => ({
@@ -291,9 +289,9 @@ export const RewardsConfigSchema = z
   .object({
     asset_address: z.string(),
     end_date: EpochMillisecondsToIsoDateTimeStringSchema,
-    rate_per_day: ApproxNumberSchema,
+    rate_per_day: DecimalishSchema,
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
-    total_rewards: ApproxNumberSchema,
+    total_rewards: DecimalishSchema,
   })
   .transform(
     ({ asset_address, end_date, rate_per_day, start_date, total_rewards }) => ({
@@ -308,8 +306,8 @@ export const RewardsConfigSchema = z
 export const EarningSchema = z
   .object({
     asset_address: z.string(),
-    asset_rate: ApproxNumberSchema,
-    earnings: ApproxNumberSchema,
+    asset_rate: DecimalishSchema,
+    earnings: DecimalishSchema,
   })
   .transform(({ asset_address, asset_rate, ...rest }) => ({
     ...rest,
@@ -320,17 +318,17 @@ export const EarningSchema = z
 export const UserRewardsEarningSchema = z
   .object({
     condition_id: z.string(),
-    earning_percentage: ApproxNumberSchema,
+    earning_percentage: z.number(),
     earnings: z.array(EarningSchema),
     event_slug: z.string(),
     image: z.string(),
     maker_address: z.string(),
-    market_competitiveness: ApproxNumberSchema,
+    market_competitiveness: z.number(),
     market_slug: z.string(),
     question: z.string(),
     rewards_config: z.array(RewardsConfigSchema),
-    rewards_max_spread: ApproxNumberSchema,
-    rewards_min_size: ApproxNumberSchema,
+    rewards_max_spread: z.number(),
+    rewards_min_size: DecimalishSchema,
     tokens: z.array(TokenSchema),
   })
   .transform(

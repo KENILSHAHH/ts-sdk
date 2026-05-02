@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import {
-  ApproxNumberSchema,
-  DecimalStringSchema,
-  OrderSideSchema,
-  TokenIdSchema,
-} from '../shared';
+import { DecimalStringSchema, OrderSideSchema, TokenIdSchema } from '../shared';
 
 export enum PriceHistoryInterval {
   MAX = 'max',
@@ -83,7 +78,8 @@ export type LastTradePrices = z.infer<typeof LastTradePricesSchema>;
 
 const PriceHistoryPointSchema = z.object({
   t: z.number().int(),
-  p: ApproxNumberSchema,
+  // CLOB price history is intentionally approximate and emitted as JSON numbers.
+  p: z.number(),
 });
 export type PriceHistoryPoint = z.infer<typeof PriceHistoryPointSchema>;
 

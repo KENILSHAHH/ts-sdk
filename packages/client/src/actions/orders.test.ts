@@ -86,7 +86,7 @@ describe('Orders', { timeout: 60_000 }, () => {
           })
           .firstPage();
         const position = positions.items.find(
-          (candidate) => candidate.tokenId && (candidate.size ?? 0) > 0,
+          (candidate) => candidate.tokenId && Number(candidate.size ?? 0) > 0,
         );
 
         if (position !== undefined) {
