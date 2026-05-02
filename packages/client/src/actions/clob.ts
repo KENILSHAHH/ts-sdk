@@ -9,12 +9,11 @@ import {
 } from '@polymarket/bindings';
 import {
   type BuilderFeeRates,
-  type ClobMarketInfo,
   type CurrentReward,
   END_CURSOR,
   FetchBuilderFeeRatesResponseSchema,
-  FetchClobMarketInfoResponseSchema,
   FetchMarketByTokenResponseSchema,
+  FetchMarketInfoResponseSchema,
   FetchNegRiskResponseSchema,
   FetchOrderBookResponseSchema,
   FetchTickSizeResponseSchema,
@@ -23,6 +22,7 @@ import {
   LastTradePriceSchema,
   LastTradePricesSchema,
   type MarketByToken,
+  type MarketInfo,
   type MarketReward,
   MidpointSchema,
   MidpointsSchema,
@@ -354,13 +354,13 @@ export const FetchClobMarketInfoError = makeErrorGuard(
 export async function fetchClobMarketInfo(
   client: BaseClient,
   request: FetchClobMarketInfoRequest,
-): Promise<ClobMarketInfo> {
+): Promise<MarketInfo> {
   const params = parseUserInput(request, FetchClobMarketInfoRequestSchema);
 
   return unwrap(
     client.clob
       .get(`/clob-markets/${params.conditionId}`)
-      .andThen(validateWith(FetchClobMarketInfoResponseSchema)),
+      .andThen(validateWith(FetchMarketInfoResponseSchema)),
   );
 }
 

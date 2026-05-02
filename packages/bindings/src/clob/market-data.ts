@@ -108,7 +108,7 @@ export type FetchMarketByTokenResponse = z.infer<
   typeof FetchMarketByTokenResponseSchema
 >;
 
-export const ClobMarketFeeInfoSchema = z
+export const MarketFeeInfoSchema = z
   .object({
     r: z.number().default(0),
     e: z.number().default(0),
@@ -118,7 +118,7 @@ export const ClobMarketFeeInfoSchema = z
     exponent: e,
   }));
 
-export const ClobMarketTokenSchema = z
+export const MarketTokenSchema = z
   .object({
     t: TokenIdSchema,
     o: z.string(),
@@ -128,21 +128,21 @@ export const ClobMarketTokenSchema = z
     outcome: o,
   }));
 
-export const ClobMarketInfoSchema = z
+export const MarketInfoSchema = z
   .object({
-    fd: ClobMarketFeeInfoSchema.nullish(),
-    t: z.array(ClobMarketTokenSchema),
+    fd: MarketFeeInfoSchema.nullish(),
+    t: z.array(MarketTokenSchema),
   })
   .transform(({ fd, t }) => ({
     feeInfo: fd ?? { rate: 0, exponent: 0 },
     tokens: t,
   }));
 
-export const FetchClobMarketInfoResponseSchema = ClobMarketInfoSchema;
+export const FetchMarketInfoResponseSchema = MarketInfoSchema;
 
-export type ClobMarketFeeInfo = z.infer<typeof ClobMarketFeeInfoSchema>;
-export type ClobMarketToken = z.infer<typeof ClobMarketTokenSchema>;
-export type ClobMarketInfo = z.infer<typeof ClobMarketInfoSchema>;
-export type FetchClobMarketInfoResponse = z.infer<
-  typeof FetchClobMarketInfoResponseSchema
+export type MarketFeeInfo = z.infer<typeof MarketFeeInfoSchema>;
+export type MarketToken = z.infer<typeof MarketTokenSchema>;
+export type MarketInfo = z.infer<typeof MarketInfoSchema>;
+export type FetchMarketInfoResponse = z.infer<
+  typeof FetchMarketInfoResponseSchema
 >;
