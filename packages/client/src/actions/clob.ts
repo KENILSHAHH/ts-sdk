@@ -1,5 +1,6 @@
 import {
   BuilderCodeSchema,
+  type ConditionId,
   ConditionIdSchema,
   OrderSideSchema,
   PaginationCursorSchema,
@@ -12,7 +13,6 @@ import {
   type CurrentReward,
   END_CURSOR,
   FetchBuilderFeeRatesResponseSchema,
-  FetchMarketByTokenResponseSchema,
   FetchMarketInfoResponseSchema,
   FetchNegRiskResponseSchema,
   FetchOrderBookResponseSchema,
@@ -21,7 +21,6 @@ import {
   type LastTradePriceForToken,
   LastTradePriceSchema,
   LastTradePricesSchema,
-  type MarketByToken,
   type MarketInfo,
   type MarketReward,
   MidpointSchema,
@@ -36,6 +35,7 @@ import {
   PriceSchema,
   type Prices,
   PricesSchema,
+  ResolveConditionByTokenResponseSchema,
   SpreadSchema,
   SpreadsSchema,
 } from '@polymarket/bindings/clob';
@@ -276,21 +276,21 @@ export async function fetchNegRisk(
   return response.negRisk;
 }
 
-const FetchMarketByTokenRequestSchema = z.object({
+const ResolveConditionByTokenRequestSchema = z.object({
   tokenId: TokenIdSchema,
 });
 
-export type FetchMarketByTokenRequest = z.input<
-  typeof FetchMarketByTokenRequestSchema
+export type ResolveConditionByTokenRequest = z.input<
+  typeof ResolveConditionByTokenRequestSchema
 >;
 
-export type FetchMarketByTokenError =
+export type ResolveConditionByTokenError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
-export const FetchMarketByTokenError = makeErrorGuard(
+export const ResolveConditionByTokenError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -299,42 +299,42 @@ export const FetchMarketByTokenError = makeErrorGuard(
 );
 
 /**
- * Fetches the market condition ID for a token.
+ * Resolves the condition ID for a token.
  *
  * @remarks
  * This is a low-level market action that most SDK consumers will not need.
  *
- * @throws {@link FetchMarketByTokenError}
+ * @throws {@link ResolveConditionByTokenError}
  * Thrown on failure.
  */
-export async function fetchMarketByToken(
+export async function resolveConditionByToken(
   client: BaseClient,
-  request: FetchMarketByTokenRequest,
-): Promise<MarketByToken> {
-  const params = parseUserInput(request, FetchMarketByTokenRequestSchema);
+  request: ResolveConditionByTokenRequest,
+): Promise<ConditionId> {
+  const params = parseUserInput(request, ResolveConditionByTokenRequestSchema);
 
   return unwrap(
     client.clob
       .get(`/markets-by-token/${params.tokenId}`)
-      .andThen(validateWith(FetchMarketByTokenResponseSchema)),
+      .andThen(validateWith(ResolveConditionByTokenResponseSchema)),
   );
 }
 
-const FetchClobMarketInfoRequestSchema = z.object({
+const FetchMarketInfoRequestSchema = z.object({
   conditionId: ConditionIdSchema,
 });
 
-export type FetchClobMarketInfoRequest = z.input<
-  typeof FetchClobMarketInfoRequestSchema
+export type FetchMarketInfoRequest = z.input<
+  typeof FetchMarketInfoRequestSchema
 >;
 
-export type FetchClobMarketInfoError =
+export type FetchMarketInfoError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
-export const FetchClobMarketInfoError = makeErrorGuard(
+export const FetchMarketInfoError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -343,19 +343,19 @@ export const FetchClobMarketInfoError = makeErrorGuard(
 );
 
 /**
- * Fetches market-level CLOB metadata for a condition.
+ * Fetches market-level metadata for a condition.
  *
  * @remarks
  * This is a low-level market action that most SDK consumers will not need.
  *
- * @throws {@link FetchClobMarketInfoError}
+ * @throws {@link FetchMarketInfoError}
  * Thrown on failure.
  */
-export async function fetchClobMarketInfo(
+export async function fetchMarketInfo(
   client: BaseClient,
-  request: FetchClobMarketInfoRequest,
+  request: FetchMarketInfoRequest,
 ): Promise<MarketInfo> {
-  const params = parseUserInput(request, FetchClobMarketInfoRequestSchema);
+  const params = parseUserInput(request, FetchMarketInfoRequestSchema);
 
   return unwrap(
     client.clob

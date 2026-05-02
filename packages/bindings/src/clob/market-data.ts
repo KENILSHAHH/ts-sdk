@@ -93,19 +93,17 @@ export const PriceHistorySchema = z.object({
 });
 export type PriceHistory = z.infer<typeof PriceHistorySchema>;
 
-export const MarketByTokenSchema = z
+export const ConditionByTokenSchema = z
   .object({
     condition_id: ConditionIdSchema,
   })
-  .transform(({ condition_id }) => ({
-    conditionId: condition_id,
-  }));
+  .transform(({ condition_id }) => condition_id);
 
-export const FetchMarketByTokenResponseSchema = MarketByTokenSchema;
+export const ResolveConditionByTokenResponseSchema = ConditionByTokenSchema;
 
-export type MarketByToken = z.infer<typeof MarketByTokenSchema>;
-export type FetchMarketByTokenResponse = z.infer<
-  typeof FetchMarketByTokenResponseSchema
+export type ConditionByToken = z.infer<typeof ConditionByTokenSchema>;
+export type ResolveConditionByTokenResponse = z.infer<
+  typeof ResolveConditionByTokenResponseSchema
 >;
 
 export const MarketFeeInfoSchema = z

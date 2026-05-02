@@ -12,10 +12,10 @@ import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
 import {
   fetchBuilderFeeRates,
-  fetchClobMarketInfo,
-  fetchMarketByToken,
+  fetchMarketInfo,
   fetchNegRisk,
   fetchTickSize,
+  resolveConditionByToken,
 } from '../clob';
 import { resolveExchangeAddress, resolveRoundingConfig } from './context';
 import { resolveEstimatedMarketPrice } from './estimate';
@@ -50,19 +50,9 @@ export async function prepareMarketOrderDraft(
   client: BaseSecureClient,
   params: PrepareMarketOrderDraftParams,
 ): Promise<OrderDraft> {
-  const requestedAmount =
-    params.side === OrderSide.BUY ? params.amount : params.shares;
   const context = await resolveMarketOrderContext(client, params);
-  const amount = await resolveMarketOrderAmount(client, {
-    amount: requestedAmount,
-    builderCode: params.builderCode,
-    maxSpend: params.side === OrderSide.BUY ? params.maxSpend : undefined,
-    price: context.price,
-    side: params.side,
-    tokenId: params.tokenId,
-  });
   const amounts = computeMarketOrderAmounts({
-    amount,
+    amount: context.resolvedAmount,
     price: context.price,
     side: params.side,
     tickSize: context.tickSize,
@@ -83,20 +73,6 @@ export async function prepareMarketOrderDraft(
   };
 }
 
-type ResolveMarketOrderContextParams =
-  | {
-      amount: number;
-      orderType: OrderType;
-      side: OrderSide.BUY;
-      tokenId: string;
-    }
-  | {
-      orderType: OrderType;
-      shares: number;
-      side: OrderSide.SELL;
-      tokenId: string;
-    };
-
 type ResolveMarketOrderAmountParams = {
   amount: number;
   builderCode?: BuilderCode;
@@ -111,13 +87,14 @@ type MarketOrderContext = {
   funderAddress: EvmAddress;
   negRisk: boolean;
   price: number;
+  resolvedAmount: number;
   signerAddress: EvmAddress;
   tickSize: TickSizeValue;
 };
 
 async function resolveMarketOrderContext(
   client: BaseSecureClient,
-  params: ResolveMarketOrderContextParams,
+  params: PrepareMarketOrderDraftParams,
 ): Promise<MarketOrderContext> {
   const account = client.account;
   const tickSize = await fetchTickSize(client, {
@@ -134,12 +111,21 @@ async function resolveMarketOrderContext(
   const negRisk = await fetchNegRisk(client, {
     tokenId: params.tokenId,
   });
+  const resolvedAmount = await resolveMarketOrderAmount(client, {
+    amount,
+    builderCode: params.builderCode,
+    maxSpend: params.side === OrderSide.BUY ? params.maxSpend : undefined,
+    price,
+    side: params.side,
+    tokenId: params.tokenId,
+  });
 
   return {
     exchangeAddress: resolveExchangeAddress(client, negRisk),
     funderAddress: account.wallet,
     negRisk,
     price,
+    resolvedAmount,
     signerAddress: account.signer,
     tickSize,
   };
@@ -207,8 +193,8 @@ async function resolveMarketOrderAmount(
   return adjustBuyAmountForFees({
     amount: params.amount,
     builderTakerFeeRate,
-    feeExponent: feeInfo.exponent,
-    feeRate: feeInfo.rate,
+    platformFeeExponent: feeInfo.exponent,
+    platformFeeRate: feeInfo.rate,
     maxSpend: params.maxSpend,
     price: params.price,
   });
@@ -223,9 +209,9 @@ async function fetchMarketFeeInfo(
   client: BaseSecureClient,
   tokenId: string,
 ): Promise<MarketFeeInfo> {
-  const marketByToken = await fetchMarketByToken(client, { tokenId });
-  const marketInfo = await fetchClobMarketInfo(client, {
-    conditionId: marketByToken.conditionId,
+  const conditionId = await resolveConditionByToken(client, { tokenId });
+  const marketInfo = await fetchMarketInfo(client, {
+    conditionId,
   });
 
   return marketInfo.feeInfo;
@@ -248,12 +234,13 @@ export function adjustBuyAmountForFees(params: {
   amount: number;
   price: number;
   maxSpend: number;
-  feeRate: number;
-  feeExponent: number;
+  platformFeeRate: number;
+  platformFeeExponent: number;
   builderTakerFeeRate: number;
 }): number {
   const platformFeeRate =
-    params.feeRate * (params.price * (1 - params.price)) ** params.feeExponent;
+    params.platformFeeRate *
+    (params.price * (1 - params.price)) ** params.platformFeeExponent;
   const platformFee = (params.amount / params.price) * platformFeeRate;
   const totalCost =
     params.amount + platformFee + params.amount * params.builderTakerFeeRate;

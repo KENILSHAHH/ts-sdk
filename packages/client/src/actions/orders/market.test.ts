@@ -7,8 +7,8 @@ describe('adjustBuyAmountForFees', () => {
       adjustBuyAmountForFees({
         amount: 10,
         builderTakerFeeRate: 0,
-        feeExponent: 1,
-        feeRate: 0.02,
+        platformFeeExponent: 1,
+        platformFeeRate: 0.02,
         maxSpend: 11,
         price: 0.5,
       }),
@@ -20,8 +20,8 @@ describe('adjustBuyAmountForFees', () => {
       adjustBuyAmountForFees({
         amount: 10,
         builderTakerFeeRate: 0,
-        feeExponent: 1,
-        feeRate: 0.02,
+        platformFeeExponent: 1,
+        platformFeeRate: 0.02,
         maxSpend: 10,
         price: 0.5,
       }),
@@ -33,8 +33,8 @@ describe('adjustBuyAmountForFees', () => {
       adjustBuyAmountForFees({
         amount: 10,
         builderTakerFeeRate: 0.01,
-        feeExponent: 1,
-        feeRate: 0.02,
+        platformFeeExponent: 1,
+        platformFeeRate: 0.02,
         maxSpend: 10,
         price: 0.5,
       }),
