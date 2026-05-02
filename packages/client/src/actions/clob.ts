@@ -1,14 +1,20 @@
 import {
+  BuilderCodeSchema,
   ConditionIdSchema,
   OrderSideSchema,
   PaginationCursorSchema,
   type TickSizeValue,
+  TokenIdSchema,
   toPaginationCursor,
 } from '@polymarket/bindings';
 import {
+  type BuilderFeeRates,
+  type ClobMarketInfo,
   type CurrentReward,
   END_CURSOR,
-  FetchFeeRateResponseSchema,
+  FetchBuilderFeeRatesResponseSchema,
+  FetchClobMarketInfoResponseSchema,
+  FetchMarketByTokenResponseSchema,
   FetchNegRiskResponseSchema,
   FetchOrderBookResponseSchema,
   FetchTickSizeResponseSchema,
@@ -16,6 +22,7 @@ import {
   type LastTradePriceForToken,
   LastTradePriceSchema,
   LastTradePricesSchema,
+  type MarketByToken,
   type MarketReward,
   MidpointSchema,
   MidpointsSchema,
@@ -269,19 +276,21 @@ export async function fetchNegRisk(
   return response.negRisk;
 }
 
-const FetchFeeRateRequestSchema = z.object({
-  tokenId: z.string(),
+const FetchMarketByTokenRequestSchema = z.object({
+  tokenId: TokenIdSchema,
 });
 
-export type FetchFeeRateRequest = z.input<typeof FetchFeeRateRequestSchema>;
+export type FetchMarketByTokenRequest = z.input<
+  typeof FetchMarketByTokenRequestSchema
+>;
 
-export type FetchFeeRateError =
+export type FetchMarketByTokenError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
-export const FetchFeeRateError = makeErrorGuard(
+export const FetchMarketByTokenError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -290,38 +299,113 @@ export const FetchFeeRateError = makeErrorGuard(
 );
 
 /**
- * Fetches the base fee rate, in basis points, for a token's order book.
+ * Fetches the market condition ID for a token.
  *
  * @remarks
  * This is a low-level market action that most SDK consumers will not need.
  *
- * @throws {@link FetchFeeRateError}
+ * @throws {@link FetchMarketByTokenError}
  * Thrown on failure.
- *
- * @example
- * ```ts
- * const feeRate = await fetchFeeRate(client, {
- *   tokenId:
- *     '8501497159083948713316135768103773293754490207922884688769443031624417212426',
- * });
- *
- * // feeRate === 0
- * ```
  */
-export async function fetchFeeRate(
+export async function fetchMarketByToken(
   client: BaseClient,
-  request: FetchFeeRateRequest,
-): Promise<number> {
-  const params = parseUserInput(request, FetchFeeRateRequestSchema);
-  const response = await unwrap(
-    client.clob
-      .get('/fee-rate', {
-        params: toSearchParams(params, snakeCase()),
-      })
-      .andThen(validateWith(FetchFeeRateResponseSchema)),
-  );
+  request: FetchMarketByTokenRequest,
+): Promise<MarketByToken> {
+  const params = parseUserInput(request, FetchMarketByTokenRequestSchema);
 
-  return response.baseFee;
+  return unwrap(
+    client.clob
+      .get(`/markets-by-token/${params.tokenId}`)
+      .andThen(validateWith(FetchMarketByTokenResponseSchema)),
+  );
+}
+
+const FetchClobMarketInfoRequestSchema = z.object({
+  conditionId: ConditionIdSchema,
+});
+
+export type FetchClobMarketInfoRequest = z.input<
+  typeof FetchClobMarketInfoRequestSchema
+>;
+
+export type FetchClobMarketInfoError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const FetchClobMarketInfoError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+/**
+ * Fetches market-level CLOB metadata for a condition.
+ *
+ * @remarks
+ * This is a low-level market action that most SDK consumers will not need.
+ *
+ * @throws {@link FetchClobMarketInfoError}
+ * Thrown on failure.
+ */
+export async function fetchClobMarketInfo(
+  client: BaseClient,
+  request: FetchClobMarketInfoRequest,
+): Promise<ClobMarketInfo> {
+  const params = parseUserInput(request, FetchClobMarketInfoRequestSchema);
+
+  return unwrap(
+    client.clob
+      .get(`/clob-markets/${params.conditionId}`)
+      .andThen(validateWith(FetchClobMarketInfoResponseSchema)),
+  );
+}
+
+const FetchBuilderFeeRatesRequestSchema = z.object({
+  builderCode: BuilderCodeSchema,
+});
+
+export type FetchBuilderFeeRatesRequest = z.input<
+  typeof FetchBuilderFeeRatesRequestSchema
+>;
+
+export type FetchBuilderFeeRatesError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const FetchBuilderFeeRatesError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+/**
+ * Fetches builder maker and taker fee rates.
+ *
+ * @remarks
+ * This is a low-level market action that most SDK consumers will not need.
+ *
+ * @throws {@link FetchBuilderFeeRatesError}
+ * Thrown on failure.
+ */
+export async function fetchBuilderFeeRates(
+  client: BaseClient,
+  request: FetchBuilderFeeRatesRequest,
+): Promise<BuilderFeeRates> {
+  const params = parseUserInput(request, FetchBuilderFeeRatesRequestSchema);
+
+  return unwrap(
+    client.clob
+      .get(`/fees/builder-fees/${params.builderCode}`)
+      .andThen(validateWith(FetchBuilderFeeRatesResponseSchema)),
+  );
 }
 
 const FetchPriceRequestSchema = z.object({

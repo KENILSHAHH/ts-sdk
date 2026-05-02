@@ -2,7 +2,6 @@ export * from './account';
 export * from './api-key';
 export * from './builder';
 export * from './cancel';
-export * from './fee-rate';
 export * from './market-data';
 export * from './neg-risk';
 export * from './order-book';

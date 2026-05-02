@@ -54,3 +54,22 @@ export const PaginatedBuilderTradesSchema = z
 export type PaginatedBuilderTrades = z.infer<
   typeof PaginatedBuilderTradesSchema
 >;
+
+const BUILDER_FEES_BPS = 10_000;
+
+export const BuilderFeeRatesSchema = z
+  .object({
+    builder_maker_fee_rate_bps: z.number(),
+    builder_taker_fee_rate_bps: z.number(),
+  })
+  .transform(({ builder_maker_fee_rate_bps, builder_taker_fee_rate_bps }) => ({
+    maker: builder_maker_fee_rate_bps / BUILDER_FEES_BPS,
+    taker: builder_taker_fee_rate_bps / BUILDER_FEES_BPS,
+  }));
+
+export const FetchBuilderFeeRatesResponseSchema = BuilderFeeRatesSchema;
+
+export type BuilderFeeRates = z.infer<typeof BuilderFeeRatesSchema>;
+export type FetchBuilderFeeRatesResponse = z.infer<
+  typeof FetchBuilderFeeRatesResponseSchema
+>;

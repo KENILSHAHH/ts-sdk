@@ -13,18 +13,9 @@ import type {
   Erc1155ApprovalForAllWorkflowRequest,
 } from '../approvals';
 
-export type PrepareMarketOrderRequest = {
+type BasePrepareMarketOrderRequest = {
   /** TokenID of the Conditional token asset being traded */
   tokenId: string;
-
-  /**
-   * BUY orders: dollar amount to spend
-   * SELL orders: number of shares to sell
-   */
-  amount: number | string;
-
-  /** Side of the order */
-  side: OrderSide;
 
   /** Optional builder attribution code. */
   builderCode?: HexString;
@@ -38,6 +29,48 @@ export type PrepareMarketOrderRequest = {
    */
   orderType?: OrderType.FAK | OrderType.FOK;
 };
+
+export type PrepareMarketBuyOrderRequest = BasePrepareMarketOrderRequest & {
+  /** Buy side of the order. */
+  side: OrderSide.BUY;
+
+  /**
+   * Desired USD notional to buy, before market and builder taker fees.
+   *
+   * By default, the SDK prepares the order for this full buy amount and applicable
+   * fees are paid on top. Set `maxSpend` when the total USD spent, including
+   * fees, must not exceed a cap.
+   */
+  amount: number | string;
+
+  /**
+   * Optional all-in USD spend cap for BUY market orders, including market and
+   * builder taker fees.
+   *
+   * When provided, the SDK keeps `amount` unchanged if `maxSpend` covers the
+   * requested buy amount plus fees. If fees would make total spend exceed this
+   * cap, the SDK reduces the signed buy amount so total spend fits within
+   * `maxSpend`.
+   *
+   * Set `maxSpend` equal to `amount` when the requested amount should include
+   * fees. Leave it unset to pay fees on top of `amount`.
+   */
+  maxSpend?: number | string;
+};
+
+export type PrepareMarketSellOrderRequest = BasePrepareMarketOrderRequest & {
+  /** Sell side of the order. */
+  side: OrderSide.SELL;
+
+  /**
+   * Number of conditional-token shares to sell.
+   */
+  shares: number | string;
+};
+
+export type PrepareMarketOrderRequest =
+  | PrepareMarketBuyOrderRequest
+  | PrepareMarketSellOrderRequest;
 
 export type PrepareLimitOrderRequest = {
   /** TokenID of the Conditional token asset being traded */

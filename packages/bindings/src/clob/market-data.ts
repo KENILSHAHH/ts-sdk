@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { DecimalStringSchema, OrderSideSchema, TokenIdSchema } from '../shared';
+import {
+  ConditionIdSchema,
+  DecimalStringSchema,
+  OrderSideSchema,
+  TokenIdSchema,
+} from '../shared';
 
 export enum PriceHistoryInterval {
   MAX = 'max',
@@ -87,3 +92,57 @@ export const PriceHistorySchema = z.object({
   history: z.array(PriceHistoryPointSchema),
 });
 export type PriceHistory = z.infer<typeof PriceHistorySchema>;
+
+export const MarketByTokenSchema = z
+  .object({
+    condition_id: ConditionIdSchema,
+  })
+  .transform(({ condition_id }) => ({
+    conditionId: condition_id,
+  }));
+
+export const FetchMarketByTokenResponseSchema = MarketByTokenSchema;
+
+export type MarketByToken = z.infer<typeof MarketByTokenSchema>;
+export type FetchMarketByTokenResponse = z.infer<
+  typeof FetchMarketByTokenResponseSchema
+>;
+
+export const ClobMarketFeeInfoSchema = z
+  .object({
+    r: z.number().default(0),
+    e: z.number().default(0),
+  })
+  .transform(({ r, e }) => ({
+    rate: r,
+    exponent: e,
+  }));
+
+export const ClobMarketTokenSchema = z
+  .object({
+    t: TokenIdSchema,
+    o: z.string(),
+  })
+  .transform(({ t, o }) => ({
+    tokenId: t,
+    outcome: o,
+  }));
+
+export const ClobMarketInfoSchema = z
+  .object({
+    fd: ClobMarketFeeInfoSchema.nullish(),
+    t: z.array(ClobMarketTokenSchema),
+  })
+  .transform(({ fd, t }) => ({
+    feeInfo: fd ?? { rate: 0, exponent: 0 },
+    tokens: t,
+  }));
+
+export const FetchClobMarketInfoResponseSchema = ClobMarketInfoSchema;
+
+export type ClobMarketFeeInfo = z.infer<typeof ClobMarketFeeInfoSchema>;
+export type ClobMarketToken = z.infer<typeof ClobMarketTokenSchema>;
+export type ClobMarketInfo = z.infer<typeof ClobMarketInfoSchema>;
+export type FetchClobMarketInfoResponse = z.infer<
+  typeof FetchClobMarketInfoResponseSchema
+>;
