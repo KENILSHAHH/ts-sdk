@@ -201,8 +201,9 @@ export const TradeSchema = z
     profileImageOptimized: z.string().nullish(),
     transactionHash: z.string().nullish(),
   })
-  .transform(({ asset, ...rest }) => ({
+  .transform(({ asset, proxyWallet, ...rest }) => ({
     ...rest,
+    wallet: proxyWallet,
     tokenId: asset,
   }));
 

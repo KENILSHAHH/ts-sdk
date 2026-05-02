@@ -18,7 +18,7 @@ describe('Portfolio', () => {
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
-          proxyWallet: TEST_USER,
+          wallet: TEST_USER,
         }),
       );
     });
@@ -38,7 +38,7 @@ describe('Portfolio', () => {
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
-          proxyWallet: TEST_USER,
+          wallet: TEST_USER,
         }),
       );
     });

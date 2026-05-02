@@ -15,8 +15,9 @@ export const HolderSchema = z
     profileImage: z.string().nullish(),
     profileImageOptimized: z.string().nullish(),
   })
-  .transform(({ asset, ...rest }) => ({
+  .transform(({ asset, proxyWallet, ...rest }) => ({
     ...rest,
+    wallet: proxyWallet,
     tokenId: asset,
   }));
 

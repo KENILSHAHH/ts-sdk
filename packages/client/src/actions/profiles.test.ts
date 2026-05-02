@@ -10,7 +10,7 @@ describe('Profiles', () => {
 
       expect(result).toEqual(
         expect.objectContaining({
-          proxyWallet: expect.any(String),
+          wallet: expect.any(String),
         }),
       );
     });
