@@ -26,16 +26,21 @@ export const BuilderVolumeEntrySchema = z
     bucketAt: dt,
   }));
 
-export const TraderLeaderboardEntrySchema = z.object({
-  rank: z.string().nullish(),
-  proxyWallet: AddressSchema.nullish(),
-  userName: z.string().nullish(),
-  vol: DecimalishSchema.nullish(),
-  pnl: DecimalishSchema.nullish(),
-  profileImage: z.string().nullish(),
-  xUsername: z.string().nullish(),
-  verifiedBadge: z.boolean().nullish(),
-});
+export const TraderLeaderboardEntrySchema = z
+  .object({
+    rank: z.string().nullish(),
+    proxyWallet: AddressSchema.nullish(),
+    userName: z.string().nullish(),
+    vol: DecimalishSchema.nullish(),
+    pnl: DecimalishSchema.nullish(),
+    profileImage: z.string().nullish(),
+    xUsername: z.string().nullish(),
+    verifiedBadge: z.boolean().nullish(),
+  })
+  .transform(({ proxyWallet, ...rest }) => ({
+    ...rest,
+    wallet: proxyWallet,
+  }));
 
 export const ListBuilderLeaderboardResponseSchema = z.array(
   LeaderboardEntrySchema,

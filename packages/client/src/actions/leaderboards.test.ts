@@ -14,8 +14,8 @@ describe('Leaderboards', () => {
       expect(result.items).toHaveLength(1);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
-          proxyWallet: expect.any(String),
           rank: expect.any(String),
+          wallet: expect.any(String),
         }),
       );
     });

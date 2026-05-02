@@ -15,19 +15,24 @@ export const CommentPositionSchema = z.object({
   positionSize: BaseUnitsSchema.nullish(),
 });
 
-export const CommentProfileSchema = z.object({
-  name: z.string().nullish(),
-  pseudonym: z.string().nullish(),
-  displayUsernamePublic: z.boolean().nullish(),
-  bio: z.string().nullish(),
-  isMod: z.boolean().nullish(),
-  isCreator: z.boolean().nullish(),
-  proxyWallet: z.string().nullish(),
-  baseAddress: z.string().nullish(),
-  profileImage: z.string().nullish(),
-  profileImageOptimized: ImageOptimizationSchema.nullish(),
-  positions: z.array(CommentPositionSchema).nullish(),
-});
+export const CommentProfileSchema = z
+  .object({
+    name: z.string().nullish(),
+    pseudonym: z.string().nullish(),
+    displayUsernamePublic: z.boolean().nullish(),
+    bio: z.string().nullish(),
+    isMod: z.boolean().nullish(),
+    isCreator: z.boolean().nullish(),
+    proxyWallet: z.string().nullish(),
+    baseAddress: z.string().nullish(),
+    profileImage: z.string().nullish(),
+    profileImageOptimized: ImageOptimizationSchema.nullish(),
+    positions: z.array(CommentPositionSchema).nullish(),
+  })
+  .transform(({ proxyWallet, ...rest }) => ({
+    ...rest,
+    wallet: proxyWallet,
+  }));
 
 export enum ReactionType {
   Heart = 'HEART',

@@ -38,8 +38,9 @@ export const PositionSchema = z
     endDate: IsoCalendarDateStringSchema.nullish(),
     negativeRisk: z.boolean().nullish(),
   })
-  .transform(({ asset, oppositeAsset, ...rest }) => ({
+  .transform(({ asset, oppositeAsset, proxyWallet, ...rest }) => ({
     ...rest,
+    wallet: proxyWallet,
     tokenId: asset,
     oppositeTokenId: oppositeAsset,
   }));
@@ -64,8 +65,9 @@ export const ClosedPositionSchema = z
     oppositeAsset: TokenIdSchema.nullish(),
     endDate: MixedDateTimeStringSchema.nullish(),
   })
-  .transform(({ asset, oppositeAsset, ...rest }) => ({
+  .transform(({ asset, oppositeAsset, proxyWallet, ...rest }) => ({
     ...rest,
+    wallet: proxyWallet,
     tokenId: asset,
     oppositeTokenId: oppositeAsset,
   }));
@@ -94,8 +96,9 @@ export const MarketPositionSchema = z
     outcome: z.string().nullish(),
     outcomeIndex: z.number().int().nullish(),
   })
-  .transform(({ asset, ...rest }) => ({
+  .transform(({ asset, proxyWallet, ...rest }) => ({
     ...rest,
+    wallet: proxyWallet,
     tokenId: asset,
   }));
 
