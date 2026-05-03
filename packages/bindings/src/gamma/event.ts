@@ -34,7 +34,7 @@ import {
   InternalUserSchema,
   TagReferenceSchema,
 } from './common';
-import { type Market, MarketSchema } from './market';
+import { GammaMarketSchema, type Market, normalizeMarket } from './market';
 
 const BestLineIdSchema = z.string().transform(toBestLineId);
 const ChatIdSchema = z.string().transform(toChatId);
@@ -221,6 +221,12 @@ export const ListSportsMetadataResponseSchema = z.array(SportsMetadataSchema);
 export const SportsMarketTypesResponseSchema = z.object({
   marketTypes: z.array(z.string()).nullish(),
 });
+const EventMarketSchema = GammaMarketSchema.transform((market) =>
+  market.outcomes.length === 2 ? normalizeMarket(market) : null,
+);
+const EventMarketsSchema = z
+  .array(EventMarketSchema)
+  .transform((markets) => markets.filter((market) => market !== null));
 
 export type EventState = {
   active?: boolean | null;
@@ -446,7 +452,7 @@ export const GammaEventSchema = z.object({
   iconOptimized: ImageOptimizationSchema.nullish(),
   featuredImageOptimized: ImageOptimizationSchema.nullish(),
   subEvents: z.array(z.string()).nullish(),
-  markets: z.array(MarketSchema).nullish(),
+  markets: EventMarketsSchema.nullish(),
   series: z.array(SeriesReferenceSchema).nullish(),
   categories: z.array(CategoryReferenceSchema).nullish(),
   collections: z.array(CollectionReferenceSchema).nullish(),

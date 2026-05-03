@@ -37,49 +37,30 @@ import {
   TagReferenceSchema,
 } from './common';
 
-const StringPairSchema = z.tuple([z.string(), z.string()]);
-const DecimalStringPairSchema = z.tuple([
-  DecimalStringSchema,
-  DecimalStringSchema,
-]);
-const TokenIdPairValueSchema = z.tuple([TokenIdSchema, TokenIdSchema]);
-const EmptyArraySchema = z.tuple([]).transform(() => null);
 const GammaMarketEventSchema = z.object({
   id: EventIdSchema,
   slug: z.string().nullish(),
   title: z.string().nullish(),
 });
 
-const OutcomePairSchema = z.preprocess(parseJsonString, StringPairSchema);
+const OutcomeArraySchema = z
+  .preprocess(parseJsonString, z.array(z.string()).nullish())
+  .transform((value) => value ?? []);
 
-const OutcomePricePairSchema = z
-  .preprocess(
-    parseJsonString,
-    z.union([
-      DecimalStringPairSchema,
-      EmptyArraySchema,
-      z.null(),
-      z.undefined(),
-    ]),
-  )
-  .transform((value) => value ?? null);
+const OutcomePriceArraySchema = z
+  .preprocess(parseJsonString, z.array(DecimalStringSchema).nullish())
+  .transform((value) => value ?? []);
 
-const TokenIdPairSchema = z
-  .preprocess(
-    parseJsonString,
-    z.union([
-      TokenIdPairValueSchema,
-      EmptyArraySchema,
-      z.null(),
-      z.undefined(),
-    ]),
-  )
-  .transform((value) => value ?? null);
+const TokenIdArraySchema = z
+  .preprocess(parseJsonString, z.array(TokenIdSchema).nullish())
+  .transform((value) => value ?? []);
 
 export enum UmaResolutionStatus {
-  Proposed = 'proposed',
   Disputed = 'disputed',
+  Proposed = 'proposed',
+  Requested = 'requested',
   Resolved = 'resolved',
+  Settled = 'settled',
 }
 
 const UmaResolutionStatusSchema = z.enum(UmaResolutionStatus);
@@ -222,8 +203,8 @@ export const GammaMarketSchema = z.object({
   lowerBound: DecimalStringSchema.nullish(),
   upperBound: DecimalStringSchema.nullish(),
   description: z.string().nullish(),
-  outcomes: OutcomePairSchema,
-  outcomePrices: OutcomePricePairSchema,
+  outcomes: OutcomeArraySchema,
+  outcomePrices: OutcomePriceArraySchema,
   volume: DecimalStringSchema.nullish(),
   active: z.boolean().nullish(),
   marketType: z.string().nullish(),
@@ -281,7 +262,7 @@ export const GammaMarketSchema = z.object({
   volume1yr: DecimalishSchema.nullish(),
   gameStartTime: IsoDateTimeStringSchema.nullish(),
   secondsDelay: z.number().int().nullish(),
-  clobTokenIds: TokenIdPairSchema,
+  clobTokenIds: TokenIdArraySchema,
   disqusThread: z.string().nullish(),
   shortOutcomes: z.string().nullish(),
   teamAID: z.string().nullish(),
@@ -399,7 +380,7 @@ export type FetchMarketTagsResponse = z.infer<
   typeof FetchMarketTagsResponseSchema
 >;
 
-function normalizeMarket(market: GammaMarket): Market {
+export function normalizeMarket(market: GammaMarket): Market {
   return {
     id: market.id,
     slug: market.slug,
@@ -498,16 +479,24 @@ function parseJsonString(value: unknown): unknown {
 }
 
 function normalizeOutcomes(market: GammaMarket) {
+  if (market.outcomes.length !== 2) {
+    throw new TypeError(
+      `Expected binary market outcomes, received ${market.outcomes.length}`,
+    );
+  }
+
+  const [yesLabel, noLabel] = market.outcomes as [string, string];
+
   return {
     yes: {
-      label: market.outcomes[0],
-      tokenId: market.clobTokenIds?.[0] ?? null,
-      price: market.outcomePrices?.[0] ?? null,
+      label: yesLabel,
+      tokenId: market.clobTokenIds[0] ?? null,
+      price: market.outcomePrices[0] ?? null,
     },
     no: {
-      label: market.outcomes[1],
-      tokenId: market.clobTokenIds?.[1] ?? null,
-      price: market.outcomePrices?.[1] ?? null,
+      label: noLabel,
+      tokenId: market.clobTokenIds[1] ?? null,
+      price: market.outcomePrices[1] ?? null,
     },
   };
 }
