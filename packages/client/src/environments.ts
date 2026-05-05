@@ -2,6 +2,8 @@ import { type EvmAddress, expectEvmAddress } from '@polymarket/types';
 import type { Hex } from 'ox';
 
 export type WalletDerivationConfig = {
+  depositWalletFactory: EvmAddress;
+  depositWalletImplementation: EvmAddress;
   proxyFactory: EvmAddress;
   proxyImplementation: EvmAddress;
   safeFactory: EvmAddress;
@@ -56,6 +58,12 @@ export const production: EnvironmentConfig = {
   name: 'production',
   chainId: 137,
   walletDerivation: {
+    depositWalletFactory: expectEvmAddress(
+      '0x00000000000Fb5C9ADea0298D729A0CB3823Cc07',
+    ),
+    depositWalletImplementation: expectEvmAddress(
+      '0x58CA52ebe0DadfdF531Cde7062e76746de4Db1eB',
+    ),
     proxyFactory: expectEvmAddress(
       '0xaB45c5A4B0c941a2F231C04C3f49182e1A254052',
     ),

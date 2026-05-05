@@ -19,7 +19,7 @@ const secureClient = await createSecureClientWithSafeWallet({
 });
 
 invariant(
-  secureClient.account.walletType === WalletType.POLY_GNOSIS_SAFE,
+  secureClient.account.walletType === WalletType.GNOSIS_SAFE,
   'Expected a Gnosis Safe wallet for testing',
 );
 

@@ -33,7 +33,10 @@ import {
 } from './market';
 import { createSignedOrder, createUnsignedOrder } from './orders';
 import { postOrder } from './post';
-import { createOrderTypedDataPayload } from './typed-data';
+import {
+  createOrderSignature,
+  createOrderTypedDataPayload,
+} from './typed-data';
 import {
   type OrderDraft,
   type OrderPostingWorkflow,
@@ -96,7 +99,10 @@ export async function prepareMarketOrder(
       yield signOrder(createOrderTypedDataPayload(unsignedOrder)),
     );
 
-    return createSignedOrder(unsignedOrder, signature);
+    return createSignedOrder(
+      unsignedOrder,
+      createOrderSignature(unsignedOrder, signature),
+    );
   }.call(null);
 }
 
@@ -153,7 +159,10 @@ export async function prepareLimitOrder(
       yield signOrder(createOrderTypedDataPayload(unsignedOrder)),
     );
 
-    const order = createSignedOrder(unsignedOrder, signature);
+    const order = createSignedOrder(
+      unsignedOrder,
+      createOrderSignature(unsignedOrder, signature),
+    );
 
     return params.postOnly === true ? { ...order, postOnly: true } : order;
   }.call(null);

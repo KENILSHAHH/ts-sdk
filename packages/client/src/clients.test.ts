@@ -7,6 +7,7 @@ import {
   builderAuthorization,
   createRandomWalletClient,
   createSecureClientWithSafeWallet,
+  deriveDepositWallet,
   deriveProxyAddress,
   relayerAuthorization,
   runMeteredTests,
@@ -140,22 +141,25 @@ describe('clients', () => {
   });
 
   describe('SecureClient.setupGaslessWallet', () => {
-    it('returns a secure client for an already deployed Safe wallet', async () => {
+    it('returns a secure client for an already-bound Deposit Wallet', async () => {
+      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const depositWallet = deriveDepositWallet(signerAddress);
       const secureClient = await createSecureClient({
         apiKey: relayerAuthorization,
         signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        wallet: depositWallet,
       });
-      await expect(secureClient.isGaslessReady()).resolves.toBe(true);
 
-      const gaslessClient = await secureClient.setupGaslessWallet();
+      const depositWalletClient = await secureClient.setupGaslessWallet();
 
-      expect(gaslessClient.account.walletType).toBe(
-        WalletType.POLY_GNOSIS_SAFE,
+      expect(depositWalletClient.account.signer).toBe(signerAddress);
+      expect(depositWalletClient.account.wallet).toBe(depositWallet);
+      expect(depositWalletClient.account.walletType).toBe(
+        WalletType.DEPOSIT_WALLET,
       );
     });
 
-    it('returns a secure client bound to the same Proxy wallet', async () => {
+    it('returns a secure client for an already-bound Proxy wallet', async () => {
       const signerAddress = expectEvmAddress(walletClient.account.address);
       const proxyWallet = deriveProxyAddress(signerAddress);
       const secureClient = await createSecureClient({
@@ -172,7 +176,7 @@ describe('clients', () => {
     });
 
     it.runIf(runMeteredTests)(
-      'deploys the signer Safe and returns a secure client bound to it',
+      'deploys the Deposit Wallet and returns a secure client bound to it',
       async () => {
         const walletClient = createRandomWalletClient();
 
@@ -183,9 +187,12 @@ describe('clients', () => {
 
         await expect(secureClient.isGaslessReady()).resolves.toBe(false);
 
-        const gaslessClient = await secureClient.setupGaslessWallet();
+        const depositWalletClient = await secureClient.setupGaslessWallet();
 
-        await expect(gaslessClient.isGaslessReady()).resolves.toBe(true);
+        expect(depositWalletClient.account.walletType).toBe(
+          WalletType.DEPOSIT_WALLET,
+        );
+        await expect(depositWalletClient.isGaslessReady()).resolves.toBe(true);
       },
       20_000,
     );

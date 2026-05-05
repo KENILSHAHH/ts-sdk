@@ -12,7 +12,7 @@ describe('Transfers', () => {
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       const handle = await secureClient.transferErc20({
         amount: 1n,

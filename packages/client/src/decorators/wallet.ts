@@ -1,4 +1,3 @@
-import { deriveSafeWalletAddress } from '../account';
 import {
   approveErc20,
   approveErc1155ForAll,
@@ -20,7 +19,7 @@ import type { TransactionHandle } from '../types';
 
 export type WalletActions = {
   /**
-   * Checks whether the authenticated signer's Safe wallet is ready for gasless transactions.
+   * Checks whether the authenticated account wallet is ready for gasless transactions.
    *
    * @throws {@link IsGaslessReadyError}
    * Thrown on failure.
@@ -187,10 +186,8 @@ export function walletActions(client: BaseSecureClient): WalletActions {
   return {
     isGaslessReady: () =>
       isGaslessReady(client, {
-        wallet: deriveSafeWalletAddress(
-          client.account.signer,
-          client.environment.walletDerivation,
-        ),
+        wallet: client.account.wallet,
+        type: client.account.walletType,
       }),
     setupTradingApprovals: setupTradingApprovals.bind(null, client),
     approveErc20: approveErc20.bind(null, client),

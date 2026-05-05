@@ -6,6 +6,7 @@ import { createSecureClient } from '../clients';
 import {
   createRandomWalletClient,
   createSecureClientWithSafeWallet,
+  deriveDepositWallet,
   deriveProxyAddress,
   publicClientWithRelayerKey,
   relayerAuthorization,
@@ -22,7 +23,7 @@ describe('Gasless', () => {
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       await expect(secureClient.isGaslessReady()).resolves.toBe(true);
     });
@@ -31,6 +32,7 @@ describe('Gasless', () => {
       await expect(
         isGaslessReady(publicClientWithRelayerKey, {
           wallet: safeWalletAddress,
+          type: WalletType.GNOSIS_SAFE,
         }),
       ).resolves.toBe(true);
     });
@@ -52,18 +54,88 @@ describe('Gasless', () => {
       await expect(
         isGaslessReady(publicClientWithRelayerKey, {
           wallet: walletClient.account.address,
+          type: WalletType.EOA,
         }),
       ).resolves.toBe(false);
     });
   });
 
   describe('prepareGaslessTransaction', () => {
+    it('prepares a Deposit Wallet workflow yielding a batch typed-data signing request', async () => {
+      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const depositWallet = deriveDepositWallet(signerAddress);
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthorization,
+        signer: signerFrom(walletClient),
+        wallet: depositWallet,
+      });
+
+      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
+
+      const call = erc20ApprovalCall(
+        secureClient.environment.collateralToken,
+        secureClient.environment.standardExchange,
+        1n,
+      );
+      const workflow = await prepareGaslessTransaction(secureClient, {
+        calls: [call],
+        metadata: 'Deposit Wallet gasless transaction',
+      });
+
+      const addressRequest = await workflow.next();
+
+      expect(addressRequest).toEqual({
+        done: false,
+        value: { kind: 'requestAddress' },
+      });
+
+      const signRequest = await workflow.next(secureClient.account.signer);
+
+      expect(signRequest.done).toBe(false);
+
+      if (signRequest.done) {
+        return;
+      }
+
+      expect(signRequest.value).toMatchObject({
+        kind: 'signGaslessTypedData',
+        payload: {
+          domain: {
+            chainId: secureClient.environment.chainId,
+            name: 'DepositWallet',
+            verifyingContract: depositWallet,
+            version: '1',
+          },
+          message: {
+            calls: [
+              {
+                data: call.data,
+                target: call.to,
+                value: 0n,
+              },
+            ],
+            wallet: depositWallet,
+          },
+          primaryType: 'Batch',
+          types: {
+            Batch: expect.any(Array),
+            Call: expect.any(Array),
+          },
+        },
+      });
+      if (signRequest.value.kind !== 'signGaslessTypedData') {
+        return;
+      }
+      expect(typeof signRequest.value.payload.message.nonce).toBe('bigint');
+      expect(typeof signRequest.value.payload.message.deadline).toBe('bigint');
+    });
+
     it('prepares a single-call workflow without multisend aggregation', async () => {
       const secureClient = await createSecureClientWithSafeWallet({
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       const call = erc20ApprovalCall(
         secureClient.environment.collateralToken,
@@ -103,7 +175,7 @@ describe('Gasless', () => {
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       const calls = [
         erc20ApprovalCall(

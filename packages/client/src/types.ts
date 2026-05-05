@@ -113,13 +113,6 @@ export interface TransactionHandle {
   wait(): Promise<TransactionOutcome>;
 }
 
-export interface DeployTransactionHandle extends TransactionHandle {
-  /**
-   * The deterministic address of the Safe wallet being deployed by this transaction.
-   */
-  readonly wallet: EvmAddress;
-}
-
 export type Signer = {
   getAddress(): Promise<EvmAddress>;
   signTypedData(payload: TypedDataPayload): Promise<EvmSignature>;

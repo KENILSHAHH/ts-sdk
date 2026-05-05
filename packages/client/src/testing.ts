@@ -12,7 +12,10 @@ import {
 import { createWalletClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
-import { deriveProxyWalletAddress } from './account';
+import {
+  deriveDepositWalletAddress,
+  deriveProxyWalletAddress,
+} from './account';
 import { relayerApiKey } from './authorization';
 import {
   createPublicClient,
@@ -96,6 +99,13 @@ export const testBuilderCode = loadTestBuilderCode();
 
 export function deriveProxyAddress(signerAddress: EvmAddress): EvmAddress {
   return deriveProxyWalletAddress(
+    signerAddress,
+    publicClient.environment.walletDerivation,
+  );
+}
+
+export function deriveDepositWallet(signerAddress: EvmAddress): EvmAddress {
+  return deriveDepositWalletAddress(
     signerAddress,
     publicClient.environment.walletDerivation,
   );

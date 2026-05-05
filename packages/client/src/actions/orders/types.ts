@@ -5,7 +5,12 @@ import type {
   TokenId,
 } from '@polymarket/bindings';
 import type { OrderResponse, SignatureType } from '@polymarket/bindings/clob';
-import type { EvmAddress, EvmSignature, HexString } from '@polymarket/types';
+import type {
+  Erc1271Signature,
+  EvmAddress,
+  EvmSignature,
+  HexString,
+} from '@polymarket/types';
 import type { TransactionHandle, TypedDataPayload } from '../../types';
 import type { SignOrderRequest } from '../../workflow';
 import type {
@@ -155,7 +160,7 @@ export type SignedOrder = {
   takerAmount: string;
   timestamp: string;
   tokenId: TokenId;
-  signature: EvmSignature;
+  signature: EvmSignature | Erc1271Signature;
   postOnly?: boolean;
 };
 

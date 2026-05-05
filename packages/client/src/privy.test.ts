@@ -3,15 +3,17 @@ import {
   type AcceptedOrderResponse,
   AssetType,
 } from '@polymarket/bindings/clob';
+import { WalletType } from '@polymarket/bindings/gamma';
 import { expectEvmAddress, expectPresent } from '@polymarket/types';
 import { PrivyClient } from '@privy-io/node';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { deriveSafeWalletAddress } from './account';
+import { deriveDepositWalletAddress } from './account';
 import {
   cancelOrder,
   fetchApiKeys,
   fetchBalanceAllowance,
   fetchMarket,
+  isGaslessReady,
 } from './actions';
 import { createSecureClient } from './clients';
 import { type PrivyWalletConfig, signerFrom } from './privy';
@@ -48,21 +50,24 @@ describe.runIf(hasPrivyTestConfig)('privy', () => {
       privy,
       walletId,
     };
-    walletAddress = deriveSafeWalletAddress(
+    walletAddress = deriveDepositWalletAddress(
       signerAddress,
       publicClientWithBuilderKey.environment.walletDerivation,
     );
 
-    const secureClient = await createSecureClient({
-      apiKey: builderAuthorization,
-      signer: signerFrom(wallet),
-      wallet: walletAddress,
-    });
+    if (
+      !(await isGaslessReady(publicClientWithBuilderKey, {
+        wallet: walletAddress,
+        type: WalletType.DEPOSIT_WALLET,
+      }))
+    ) {
+      const secureClient = await createSecureClient({
+        apiKey: builderAuthorization,
+        signer: signerFrom(wallet),
+      });
+      const depositWalletClient = await secureClient.setupGaslessWallet();
 
-    if (!(await secureClient.isGaslessReady())) {
-      const gaslessClient = await secureClient.setupGaslessWallet();
-
-      expect(gaslessClient.account.wallet).toBe(walletAddress);
+      expect(depositWalletClient.account.wallet).toBe(walletAddress);
     }
 
     if (runMeteredTests) {

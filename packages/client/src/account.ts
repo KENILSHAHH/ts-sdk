@@ -8,7 +8,7 @@ import {
   isSameEvmAddress,
   never,
 } from '@polymarket/types';
-import { AbiParameters, ContractAddress, Hash } from 'ox';
+import { AbiParameters, Bytes, ContractAddress, Hash } from 'ox';
 import type { EnvironmentConfig, WalletDerivationConfig } from './environments';
 
 export type AccountIdentity = {
@@ -40,8 +40,10 @@ export function toSignatureType(walletType: WalletType): SignatureType {
       return SignatureType.EOA;
     case WalletType.POLY_PROXY:
       return SignatureType.POLY_PROXY;
-    case WalletType.POLY_GNOSIS_SAFE:
+    case WalletType.GNOSIS_SAFE:
       return SignatureType.POLY_GNOSIS_SAFE;
+    case WalletType.DEPOSIT_WALLET:
+      return SignatureType.POLY_1271;
   }
 }
 
@@ -87,6 +89,57 @@ export function deriveSafeWalletAddress(
   );
 }
 
+const ERC1967_CONST1 =
+  '0xcc3735a920a3ca505d382bbc545af43d6000803e6038573d6000fd5b3d6000f3';
+const ERC1967_CONST2 =
+  '0x5155f3363d3d373d3d363d7f360894a13ba1a3210667c828492db98dca3e2076';
+const ERC1967_PREFIX = 0x61003d3d8160233d3973n;
+
+/** @internal */
+export function deriveDepositWalletAddress(
+  signer: EvmAddress,
+  config: WalletDerivationConfig,
+): EvmAddress {
+  const walletId = expectHexString(`0x${signer.slice(2).padStart(64, '0')}`);
+  const args = AbiParameters.encode(
+    [{ type: 'address' }, { type: 'bytes32' }],
+    [config.depositWalletFactory, walletId],
+  );
+
+  return expectEvmAddress(
+    ContractAddress.fromCreate2({
+      bytecodeHash: depositWalletInitCodeHash(
+        config.depositWalletImplementation,
+        args,
+      ),
+      from: config.depositWalletFactory,
+      salt: Hash.keccak256(args),
+    }),
+  );
+}
+
+function depositWalletInitCodeHash(
+  implementation: EvmAddress,
+  args: HexString,
+): HexString {
+  const argsByteLength = BigInt((args.length - 2) / 2);
+  const prefix = ERC1967_PREFIX + (argsByteLength << 56n);
+
+  return expectHexString(
+    Hash.keccak256(
+      Bytes.concat(
+        Bytes.fromNumber(prefix, { size: 10 }),
+        Bytes.fromHex(implementation),
+        Bytes.fromHex('0x6009'),
+        Bytes.fromHex(ERC1967_CONST2),
+        Bytes.fromHex(ERC1967_CONST1),
+        Bytes.fromHex(args),
+      ),
+      { as: 'Hex' },
+    ),
+  );
+}
+
 function classifyWalletType(
   environment: EnvironmentConfig,
   signer: EvmAddress,
@@ -98,12 +151,16 @@ function classifyWalletType(
 
   const config = environment.walletDerivation;
 
+  if (isSameEvmAddress(wallet, deriveDepositWalletAddress(signer, config))) {
+    return WalletType.DEPOSIT_WALLET;
+  }
+
   if (isSameEvmAddress(wallet, deriveProxyWalletAddress(signer, config))) {
     return WalletType.POLY_PROXY;
   }
 
   if (isSameEvmAddress(wallet, deriveSafeWalletAddress(signer, config))) {
-    return WalletType.POLY_GNOSIS_SAFE;
+    return WalletType.GNOSIS_SAFE;
   }
 
   never(

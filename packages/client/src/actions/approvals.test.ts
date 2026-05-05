@@ -17,7 +17,7 @@ describe('Approvals', () => {
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       const handle = await secureClient.approveErc20({
         spenderAddress: secureClient.environment.standardExchange,
@@ -54,7 +54,7 @@ describe('Approvals', () => {
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       const handle = await secureClient.approveErc1155ForAll({
         operatorAddress: secureClient.environment.standardExchange,
@@ -71,7 +71,7 @@ describe('Approvals', () => {
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       const handle = await secureClient.setupTradingApprovals();
 
