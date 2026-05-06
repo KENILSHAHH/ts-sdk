@@ -1,11 +1,21 @@
+import { createPublicClient, UserInputError } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
-import { describe, expect, it } from 'vitest';
-import { UserInputError } from '../errors';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage } from './helpers';
+
+const {
+  items: [event],
+} = await createPublicClient()
+  .listEvents({
+    closed: false,
+    pageSize: 1,
+  })
+  .firstPage()
+  .then(expectNonEmptyPage);
 
 describe('Events', () => {
   describe('listEvents', () => {
-    it('fetches events from Gamma', async () => {
+    it('fetches events', async ({ publicClient }) => {
       const paginator = publicClient.listEvents({
         closed: false,
         pageSize: 1,
@@ -28,17 +38,7 @@ describe('Events', () => {
   });
 
   describe('fetchEvent', () => {
-    it('fetches an event by id and slug', async () => {
-      const {
-        items: [event],
-      } = await publicClient
-        .listEvents({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it('fetches an event by id and slug', async ({ publicClient }) => {
       const eventById = await publicClient.fetchEvent({
         id: event.id,
       });
@@ -51,17 +51,7 @@ describe('Events', () => {
       expect(eventBySlug.id).toBe(event.id);
     });
 
-    it('fetches an event by URL', async () => {
-      const {
-        items: [event],
-      } = await publicClient
-        .listEvents({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it('fetches an event by URL', async ({ publicClient }) => {
       const eventByUrl = await publicClient.fetchEvent({
         url: `https://polymarket.com/event/${expectPresent(event.slug)}`,
       });
@@ -69,7 +59,7 @@ describe('Events', () => {
       expect(eventByUrl.id).toBe(event.id);
     });
 
-    it('rejects invalid and non-event URLs', async () => {
+    it('rejects invalid and non-event URLs', async ({ publicClient }) => {
       await expect(
         publicClient.fetchEvent({
           url: 'not-a-url',
@@ -91,17 +81,7 @@ describe('Events', () => {
   });
 
   describe('fetchEventTags', () => {
-    it("fetches an event's tags by id", async () => {
-      const {
-        items: [event],
-      } = await publicClient
-        .listEvents({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it("fetches an event's tags by id", async ({ publicClient }) => {
       const result = await publicClient.fetchEventTags({
         id: event.id,
       });
@@ -119,17 +99,7 @@ describe('Events', () => {
   });
 
   describe('fetchEventLiveVolume', () => {
-    it('fetches live volume for an event', async () => {
-      const {
-        items: [event],
-      } = await publicClient
-        .listEvents({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it('fetches live volume for an event', async ({ publicClient }) => {
       const result = await publicClient.fetchEventLiveVolume({
         id: event.id,
       });
