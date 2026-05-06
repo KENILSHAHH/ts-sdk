@@ -762,13 +762,13 @@ type SecureClientConfig = PublicClientConfig & {
 };
 
 export type PublicClient<
-  TPublicActions extends ClientActions = ClientActions,
-  TSecureActions extends ClientActions = TPublicActions,
+  TPublicActions extends ClientActions = PublicActions,
+  TSecureActions extends ClientActions = SecureActions,
 > = BasePublicClient<TPublicActions, TSecureActions> & TPublicActions;
 
 export type SecureClient<
-  TPublicActions extends ClientActions = ClientActions,
-  TSecureActions extends ClientActions = TPublicActions,
+  TPublicActions extends ClientActions = PublicActions,
+  TSecureActions extends ClientActions = SecureActions,
 > = BaseSecureClient<TPublicActions, TSecureActions> & TSecureActions;
 
 export { BasePublicClient, BaseSecureClient };
