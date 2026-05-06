@@ -1,15 +1,14 @@
-name: Backend Compatibility
+name: Integration Tests
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  run:
-    name: Run
+  integration-tests:
+    name: Integration Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -19,13 +18,21 @@ jobs:
       - name: Set Up Repository
         uses: ./.github/actions/setup
 
-      - name: Test Backend Compatibility
-        run: pnpm test:backend-compat
+      - name: Run
+        run: pnpm test:client:integration
         env:
+          POLYMARKET_RUN_METERED_TESTS: '1'
+          PRIVY_TEST_APP_ID: ${{ vars.PRIVY_TEST_APP_ID }}
+          PRIVY_TEST_APP_SECRET: ${{ secrets.PRIVY_TEST_APP_SECRET }}
+          PRIVY_TEST_WALLET_ID: ${{ vars.PRIVY_TEST_WALLET_ID }}
           POLYMARKET_BUILDER_CODE: ${{ vars.POLYMARKET_BUILDER_CODE }}
           POLYMARKET_BUILDER_API_KEY: ${{ vars.POLYMARKET_BUILDER_API_KEY }}
           POLYMARKET_BUILDER_PASSPHRASE: ${{ secrets.POLYMARKET_BUILDER_PASSPHRASE }}
           POLYMARKET_BUILDER_SECRET: ${{ secrets.POLYMARKET_BUILDER_SECRET }}
+          POLYMARKET_PRIVATE_KEY: ${{ secrets.POLYMARKET_PRIVATE_KEY }}
+          POLYMARKET_DEPOSIT_WALLET: ${{ vars.POLYMARKET_DEPOSIT_WALLET }}
+          POLYMARKET_PROXY_PRIVATE_KEY: ${{ secrets.POLYMARKET_PROXY_PRIVATE_KEY }}
+          POLYMARKET_PROXY_WALLET: ${{ vars.POLYMARKET_PROXY_WALLET }}
           POLYMARKET_SAFE_PRIVATE_KEY: ${{ secrets.POLYMARKET_SAFE_PRIVATE_KEY }}
           POLYMARKET_SAFE_WALLET: ${{ vars.POLYMARKET_SAFE_WALLET }}
           POLYMARKET_RELAYER_API_KEY: ${{ vars.POLYMARKET_RELAYER_API_KEY }}

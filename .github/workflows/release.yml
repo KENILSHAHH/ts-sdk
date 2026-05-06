@@ -22,12 +22,11 @@ jobs:
     name: Tests
     needs: verify
     uses: ./.github/workflows/tests.yml
-    secrets: inherit
 
-  backend-compat:
-    name: Backend Compatibility
+  integration-tests:
+    name: Integration Tests
     needs: verify
-    uses: ./.github/workflows/backend-compat.yml
+    uses: ./.github/workflows/integration-tests.yml
     secrets: inherit
 
   release:
@@ -35,11 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - verify
-      # Temporarily do not block publishing on tests while checks are blocked by backend issues.
-      # Tests still run as a separate job after verify.
-      # - test
-      # Temporarily do not block publishing on backend compatibility while checks are blocked by a BE bug.
-      # - backend-compat
+      - test
+      # Temporarily do not block publishing on integration tests while checks are blocked by a BE bug.
+      # - integration-tests
 
     steps:
       - name: Checkout Repository
