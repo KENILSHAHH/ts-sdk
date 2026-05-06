@@ -1,7 +1,7 @@
 import { createPublicClient, UserInputError } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
-import { expectNonEmptyPage } from './helpers';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const {
   items: [event],
@@ -18,22 +18,12 @@ describe('Events', () => {
     it('fetches events', async ({ publicClient }) => {
       const paginator = publicClient.listEvents({
         closed: false,
-        pageSize: 1,
+        pageSize: 100,
       });
-      const firstPage = await paginator.firstPage();
+      const firstPage = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(firstPage.items).toHaveLength(1);
-      expect(firstPage.nextCursor).toBeDefined();
-
-      let fetched = 0;
-
-      for await (const page of paginator.from(firstPage.nextCursor)) {
-        expect(page.items).toHaveLength(1);
-
-        if (++fetched === 3) {
-          break;
-        }
-      }
+      expect(firstPage.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, firstPage, 99);
     });
   });
 

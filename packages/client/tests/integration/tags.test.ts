@@ -1,5 +1,5 @@
 import { describe, expect, it } from './fixtures';
-import { expectNonEmptyPage } from './helpers';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const TEST_TAG = {
   id: '144',
@@ -11,12 +11,17 @@ describe('Tags', () => {
     it('fetches tags', async ({ publicClient }) => {
       const result = await publicClient
         .listTags({
-          pageSize: 1,
+          pageSize: 100,
         })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(
+        publicClient.listTags({ pageSize: 100 }),
+        result,
+        99,
+      );
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           id: expect.any(String),

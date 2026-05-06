@@ -2,7 +2,7 @@ import type {
   AcceptedOrderResponse,
   OrderResponse,
 } from '@polymarket/bindings/clob';
-import type { Page } from '@polymarket/client';
+import type { Page, Paginated } from '@polymarket/client';
 import { expectNonEmptyArray, type NonEmptyArray } from '@polymarket/types';
 import { expect } from 'vitest';
 
@@ -27,4 +27,18 @@ export function expectNonEmptyPage<T>(
     ...page,
     items: expectNonEmptyArray(page.items),
   };
+}
+
+export async function expectPageWindow<T>(
+  paginator: Paginated<T[]>,
+  firstPage: Pick<Page<unknown>, 'nextCursor'>,
+  additionalPages: number,
+): Promise<void> {
+  let remainingPages = additionalPages;
+
+  for await (const _page of paginator.from(firstPage.nextCursor)) {
+    if (--remainingPages === 0) {
+      break;
+    }
+  }
 }

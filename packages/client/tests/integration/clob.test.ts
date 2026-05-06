@@ -3,6 +3,7 @@ import { PriceHistoryInterval } from '@polymarket/bindings/clob';
 import type { PublicClient } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
+import { expectPageWindow } from './helpers';
 
 let liquidClobTokenIdPromise: Promise<string> | undefined;
 
@@ -180,9 +181,10 @@ describe('CLOB', () => {
 
   describe('listCurrentRewards', () => {
     it('lists current active market rewards', async ({ publicClient }) => {
-      await expect(
-        publicClient.listCurrentRewards().firstPage(),
-      ).resolves.toBeDefined();
+      const paginator = publicClient.listCurrentRewards();
+      const firstPage = await paginator.firstPage();
+
+      await expectPageWindow(paginator, firstPage, 99);
     });
   });
 
@@ -213,6 +215,14 @@ describe('CLOB', () => {
           question: expect.any(String),
           tokens: expect.any(Array),
         }),
+      );
+
+      await expectPageWindow(
+        publicClient.listMarketRewards({
+          conditionId: currentReward.conditionId,
+        }),
+        result,
+        99,
       );
     });
   });

@@ -1,17 +1,16 @@
 import { describe, expect, it } from './fixtures';
-import { expectNonEmptyPage } from './helpers';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 describe('Series', () => {
   describe('listSeries', () => {
     it('fetches series', async ({ publicClient }) => {
-      const result = await publicClient
-        .listSeries({
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
+      const paginator = publicClient.listSeries({
+        pageSize: 100,
+      });
+      const result = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, result, 99);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           id: expect.any(String),

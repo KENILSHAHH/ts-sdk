@@ -2,7 +2,7 @@ import { CommentParentEntityType } from '@polymarket/bindings';
 import { createPublicClient } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
-import { expectNonEmptyPage } from './helpers';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const {
   items: [event],
@@ -19,14 +19,15 @@ const commentEvent = event;
 describe('Comments', () => {
   describe('listComments', () => {
     it('fetches comments for an event', async ({ publicClient }) => {
-      const { items } = await publicClient
-        .listComments({
-          parentEntityId: commentEvent.id,
-          parentEntityType: CommentParentEntityType.Event,
-        })
-        .firstPage();
+      const paginator = publicClient.listComments({
+        parentEntityId: commentEvent.id,
+        parentEntityType: CommentParentEntityType.Event,
+        pageSize: 100,
+      });
+      const firstPage = await paginator.firstPage();
 
-      expect(items).toEqual(expect.any(Array));
+      expect(firstPage.items).toEqual(expect.any(Array));
+      await expectPageWindow(paginator, firstPage, 99);
     });
   });
 

@@ -6,6 +6,8 @@ describe('Search', () => {
       const paginator = publicClient.search({
         q: 'trump',
         pageSize: 1,
+        searchProfiles: true,
+        searchTags: true,
       });
       const firstPage = await paginator.firstPage();
 

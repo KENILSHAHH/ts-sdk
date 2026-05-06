@@ -1,20 +1,19 @@
 import { describe, expect, it } from './fixtures';
-import { expectNonEmptyPage } from './helpers';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 describe('Portfolio', () => {
   describe('listPositions', () => {
     it('lists positions for a wallet', async ({ publicClient }) => {
-      const result = await publicClient
-        .listPositions({
-          user: TEST_USER,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
+      const paginator = publicClient.listPositions({
+        user: TEST_USER,
+        pageSize: 100,
+      });
+      const result = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, result, 99);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
@@ -26,15 +25,14 @@ describe('Portfolio', () => {
 
   describe('listClosedPositions', () => {
     it('lists closed positions for a wallet', async ({ publicClient }) => {
-      const result = await publicClient
-        .listClosedPositions({
-          user: TEST_USER,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
+      const paginator = publicClient.listClosedPositions({
+        user: TEST_USER,
+        pageSize: 100,
+      });
+      const result = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, result, 99);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),

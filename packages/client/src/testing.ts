@@ -36,8 +36,6 @@ if (process.env.CI !== 'true') {
 }
 
 export const runMeteredTests = process.env.POLYMARKET_RUN_METERED_TESTS === '1';
-export const runBackendCompatTests =
-  process.env.POLYMARKET_RUN_BACKEND_COMPAT_TESTS === '1';
 
 export const publicClient = createPublicClient();
 
