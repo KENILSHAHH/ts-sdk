@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage } from './helpers';
 
 describe('Teams', () => {
   describe('listTeams', () => {
-    it('fetches teams', async () => {
+    it('fetches teams', async ({ publicClient }) => {
       const result = await publicClient
         .listTeams({
           pageSize: 1,
