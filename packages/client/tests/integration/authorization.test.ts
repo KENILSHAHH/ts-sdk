@@ -1,15 +1,17 @@
 // biome-ignore-all lint/style/noRestrictedImports: msw's Node test server lives at this entrypoint.
 
 import { RelayerTransactionType } from '@polymarket/bindings/relayer';
+import {
+  buildHmacSignature,
+  createPublicClient,
+  remoteBuilderSigning,
+  SigningError,
+} from '@polymarket/client';
+import { fetchExecuteParams } from '@polymarket/client/actions';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { fetchExecuteParams } from './actions/gasless';
-import { remoteBuilderSigning } from './authorization';
-import { createPublicClient } from './clients';
-import { SigningError } from './errors';
-import { buildHmacSignature } from './hmac';
-import { builderCredentials, depositWallet } from './testing';
+import { afterAll, afterEach, beforeAll } from 'vitest';
+import { describe, expect, it } from './fixtures';
 
 const signerUrl = 'http://localhost:4010/api/builder/sign';
 
@@ -29,7 +31,10 @@ describe('authorization', () => {
   });
 
   describe('remoteBuilderSigning', () => {
-    it('authorizes live builder-authenticated requests with remotely signed headers', async () => {
+    it('authorizes live builder-authenticated requests with remotely signed headers', async ({
+      builderCredentials,
+      depositWalletAddress,
+    }) => {
       server.use(
         http.post(signerUrl, async ({ request }) => {
           expect(request.headers.get('content-type')).toBe('application/json');
@@ -74,7 +79,7 @@ describe('authorization', () => {
 
       await expect(
         fetchExecuteParams(client, {
-          address: depositWallet,
+          address: depositWalletAddress,
           type: RelayerTransactionType.SAFE,
         }),
       ).resolves.toBeDefined();

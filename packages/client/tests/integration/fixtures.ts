@@ -8,6 +8,7 @@ import {
   type SecureClient,
   type Signer,
 } from '@polymarket/client';
+import type { BuilderApiKeyCreds } from '@polymarket/client/node';
 import { builderApiKey } from '@polymarket/client/node';
 import { signerFrom } from '@polymarket/client/viem';
 import type { EvmAddress, PrivateKey } from '@polymarket/types';
@@ -30,6 +31,7 @@ if (process.env.CI !== 'true') {
 type IntegrationFixtures = {
   builderAuthentication: ApiKeyAuthorization;
   builderCode: BuilderCode;
+  builderCredentials: BuilderApiKeyCreds;
   depositWalletAddress: EvmAddress;
   depositWalletPrivateKey: PrivateKey;
   depositWalletSigner: Signer;
@@ -112,6 +114,14 @@ export const it: TestAPI<IntegrationFixtures> =
       });
 
       await use(authentication);
+    },
+
+    builderCredentials: async ({ skip }, use) => {
+      await use({
+        key: loadRequiredEnv('POLYMARKET_BUILDER_API_KEY', skip),
+        secret: loadRequiredEnv('POLYMARKET_BUILDER_SECRET', skip),
+        passphrase: loadRequiredEnv('POLYMARKET_BUILDER_PASSPHRASE', skip),
+      });
     },
 
     builderCode: async ({ skip }, use) => {
