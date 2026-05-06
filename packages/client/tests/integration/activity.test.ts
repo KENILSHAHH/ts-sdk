@@ -1,21 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { expectPresent } from '@polymarket/types';
+import { describe, expect, it } from './fixtures';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 describe('Activity', () => {
   describe('listTrades', () => {
-    it('lists trades for a wallet', async () => {
+    it('lists trades for a wallet', async ({ publicClient }) => {
       const result = await publicClient
         .listTrades({
           user: TEST_USER,
           pageSize: 1,
         })
-        .firstPage()
-        .then(expectNonEmptyPage);
+        .firstPage();
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0]).toEqual(
+      expect(expectPresent(result.items[0])).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
           wallet: TEST_USER,
@@ -25,17 +24,16 @@ describe('Activity', () => {
   });
 
   describe('listActivity', () => {
-    it('lists wallet activity', async () => {
+    it('lists wallet activity', async ({ publicClient }) => {
       const result = await publicClient
         .listActivity({
           user: TEST_USER,
           pageSize: 1,
         })
-        .firstPage()
-        .then(expectNonEmptyPage);
+        .firstPage();
 
       expect(result.items).toHaveLength(1);
-      expect(result.items[0]).toEqual(
+      expect(expectPresent(result.items[0])).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
           type: expect.any(String),
