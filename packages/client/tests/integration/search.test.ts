@@ -1,9 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
 
 describe('Search', () => {
   describe('search', () => {
-    it('fetches public search results', async () => {
+    it('fetches public search results', async ({ publicClient }) => {
       const paginator = publicClient.search({
         q: 'trump',
         pageSize: 1,
