@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage } from './helpers';
 
 const TEST_TAG = {
   id: '144',
@@ -8,7 +8,7 @@ const TEST_TAG = {
 
 describe('Tags', () => {
   describe('listTags', () => {
-    it('fetches tags', async () => {
+    it('fetches tags', async ({ publicClient }) => {
       const result = await publicClient
         .listTags({
           pageSize: 1,
@@ -26,7 +26,7 @@ describe('Tags', () => {
   });
 
   describe('fetchTag', () => {
-    it('fetches a tag by id and slug', async () => {
+    it('fetches a tag by id and slug', async ({ publicClient }) => {
       const tagById = await publicClient.fetchTag({ id: TEST_TAG.id });
       const tagBySlug = await publicClient.fetchTag({
         slug: TEST_TAG.slug,
@@ -38,7 +38,9 @@ describe('Tags', () => {
   });
 
   describe('fetchRelatedTags', () => {
-    it('fetches related tag relationships by id and slug', async () => {
+    it('fetches related tag relationships by id and slug', async ({
+      publicClient,
+    }) => {
       const relatedById = await publicClient.fetchRelatedTags({
         id: TEST_TAG.id,
       });
@@ -52,7 +54,7 @@ describe('Tags', () => {
   });
 
   describe('fetchRelatedTagResources', () => {
-    it('fetches related tags by id and slug', async () => {
+    it('fetches related tags by id and slug', async ({ publicClient }) => {
       const relatedTagsById = await publicClient.fetchRelatedTagResources({
         id: TEST_TAG.id,
       });
