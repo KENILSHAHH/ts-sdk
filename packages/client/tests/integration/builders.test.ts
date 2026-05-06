@@ -1,5 +1,9 @@
-import { type BuilderCode, OrderSide } from '@polymarket/bindings';
-import { createSecureClient, type PublicClient } from '@polymarket/client';
+import {
+  type BuilderCode,
+  createSecureClient,
+  OrderSide,
+  type PublicClient,
+} from '@polymarket/client';
 import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it, runMeteredTests } from './fixtures';
 import { findHighVolumeLowPriceMarket } from './markets';

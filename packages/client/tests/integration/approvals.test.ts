@@ -1,5 +1,8 @@
-import { WalletType } from '@polymarket/bindings/gamma';
-import { createSecureClient, SigningError } from '@polymarket/client';
+import {
+  createSecureClient,
+  SigningError,
+  WalletType,
+} from '@polymarket/client';
 import { ZERO_ADDRESS } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
 
