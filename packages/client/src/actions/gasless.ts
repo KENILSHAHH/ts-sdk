@@ -80,7 +80,7 @@ const SAFE_TRANSACTION: readonly TypedDataField[] = [
 
 const DEPOSIT_WALLET_DOMAIN_NAME = 'DepositWallet';
 const DEPOSIT_WALLET_DOMAIN_VERSION = '1';
-const DEPOSIT_WALLET_DEFAULT_DEADLINE_SECONDS = 240;
+const DEPOSIT_WALLET_DEFAULT_DEADLINE_SECONDS = 600;
 
 const DEPOSIT_WALLET_CALL: readonly TypedDataField[] = [
   { name: 'target', type: 'address' },
