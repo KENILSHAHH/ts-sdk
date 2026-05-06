@@ -34,7 +34,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'client',
-          include: ['packages/client/**/*.test.ts'],
+          include: ['packages/client/src/**/*.test.ts'],
           exclude: [
             ...configDefaults.exclude,
             'packages/client/src/backend-compat.test.ts',
@@ -46,6 +46,16 @@ export default defineConfig({
             include: ['packages/client/**/*.test-d.ts'],
             tsconfig: 'packages/client/tsconfig.json',
           },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'client-integration',
+          include: ['packages/client/tests/integration/**/*.test.ts'],
+          exclude: [...configDefaults.exclude],
+          environment: 'node',
+          testTimeout: 60_000,
         },
       },
       {

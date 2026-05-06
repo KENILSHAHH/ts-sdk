@@ -22,6 +22,7 @@
     "test:bindings": "vitest --project bindings --passWithNoTests",
     "test:backend-compat": "POLYMARKET_RUN_BACKEND_COMPAT_TESTS=1 vitest --project backend-compat",
     "test:client": "vitest --project client",
+    "test:client:integration": "vitest --project client-integration",
     "test:types": "vitest --project types --passWithNoTests",
     "test": "pnpm test:types && pnpm test:bindings && pnpm test:client",
     "typecheck": "pnpm -r --sort --if-present run typecheck",

@@ -1,45 +1,55 @@
 import { AssetType } from '@polymarket/bindings/clob';
-import { describe, expect, it } from 'vitest';
-import type { AccountActions } from '../decorators';
-import { createSecureClientWithDepositWallet } from '../testing';
-import { fetchBalanceAllowance } from './account';
-
-const secureClient = await createSecureClientWithDepositWallet();
+import type { SecureClient } from '@polymarket/client';
+import { fetchBalanceAllowance } from '@polymarket/client/actions';
+import { describe, expect, it } from '../fixtures';
 
 describe('Account', () => {
   describe('fetchClosedOnlyMode', () => {
-    it('fetches closed-only mode', async () => {
-      const closedOnly = await secureClient.fetchClosedOnlyMode();
+    it('fetches closed-only mode', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const closedOnly =
+        await secureClientWithDepositWallet.fetchClosedOnlyMode();
       expect(typeof closedOnly).toBe('boolean');
     });
   });
 
   describe('listOpenOrders', () => {
-    it('lists open orders', async () => {
-      const openOrders = await secureClient.listOpenOrders().firstPage();
+    it('lists open orders', async ({ secureClientWithDepositWallet }) => {
+      const openOrders = await secureClientWithDepositWallet
+        .listOpenOrders()
+        .firstPage();
       expect(Array.isArray(openOrders.items)).toBe(true);
     });
   });
 
   describe('listAccountTrades', () => {
-    it('lists account trades', async () => {
-      const trades = await secureClient.listAccountTrades().firstPage();
+    it('lists account trades', async ({ secureClientWithDepositWallet }) => {
+      const trades = await secureClientWithDepositWallet
+        .listAccountTrades()
+        .firstPage();
       expect(Array.isArray(trades.items)).toBe(true);
     });
   });
 
   describe('fetchNotifications', () => {
-    it('fetches notifications', async () => {
-      const notifications = await secureClient.fetchNotifications();
+    it('fetches notifications', async ({ secureClientWithDepositWallet }) => {
+      const notifications =
+        await secureClientWithDepositWallet.fetchNotifications();
       expect(Array.isArray(notifications)).toBe(true);
     });
   });
 
   describe('fetchBalanceAllowance', () => {
-    it('fetches balance allowance', async () => {
-      const balanceAllowance = await fetchBalanceAllowance(secureClient, {
-        assetType: AssetType.COLLATERAL,
-      });
+    it('fetches balance allowance', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const balanceAllowance = await fetchBalanceAllowance(
+        secureClientWithDepositWallet,
+        {
+          assetType: AssetType.COLLATERAL,
+        },
+      );
 
       expect(balanceAllowance).toEqual(
         expect.objectContaining({
@@ -51,8 +61,11 @@ describe('Account', () => {
   });
 
   describe('dropNotifications', () => {
-    it('marks notifications as read by id', async () => {
-      const notifications = await secureClient.fetchNotifications();
+    it('marks notifications as read by id', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const notifications =
+        await secureClientWithDepositWallet.fetchNotifications();
 
       if (notifications.length === 0) {
         return;
@@ -61,13 +74,13 @@ describe('Account', () => {
       const ids = notifications.slice(0, 1).map(({ id }) => `${id}`);
 
       await expect(
-        secureClient.dropNotifications({
+        secureClientWithDepositWallet.dropNotifications({
           ids,
         }),
       ).resolves.toBeUndefined();
 
       const remainingNotifications = await waitForNotificationsToClear(
-        secureClient,
+        secureClientWithDepositWallet,
         ids,
       );
 
@@ -79,7 +92,7 @@ describe('Account', () => {
 });
 
 async function waitForNotificationsToClear(
-  secureClient: Pick<AccountActions, 'fetchNotifications'>,
+  secureClient: SecureClient,
   ids: string[],
 ) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
