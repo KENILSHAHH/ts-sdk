@@ -1,20 +1,20 @@
 import { WalletType } from '@polymarket/bindings/gamma';
+import { createSecureClient, SigningError } from '@polymarket/client';
+import { signerFrom } from '@polymarket/client/viem';
 import { ZERO_ADDRESS } from '@polymarket/types';
-import { describe, expect, it } from 'vitest';
-import { createSecureClient } from '../clients';
-import { SigningError } from '../errors';
-import {
-  createRandomWalletClient,
-  createSecureClientWithDepositWallet,
-  relayerAuthorization,
-} from '../testing';
-import { signerFrom } from '../viem';
+import { describe, expect, it } from '../fixtures';
 
 describe('Approvals', () => {
   describe('SecureClient.approveErc20', () => {
-    it('submits a collateral approval for the standard exchange', async () => {
-      const secureClient = await createSecureClientWithDepositWallet({
-        apiKey: relayerAuthorization,
+    it('submits a collateral approval for the standard exchange', async ({
+      depositWallet,
+      relayerAuthentication,
+      walletClient,
+    }) => {
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthentication,
+        signer: signerFrom(walletClient),
+        wallet: depositWallet,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
@@ -28,10 +28,11 @@ describe('Approvals', () => {
       await expect(handle.wait()).resolves.toBeTruthy();
     });
 
-    it('supports EOA approvals as traditional transactions', async () => {
-      const walletClient = createRandomWalletClient();
+    it('supports EOA approvals as traditional transactions', async ({
+      randomWalletClient,
+    }) => {
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
+        signer: signerFrom(randomWalletClient),
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
@@ -49,9 +50,15 @@ describe('Approvals', () => {
   });
 
   describe('SecureClient.approveErc1155ForAll', () => {
-    it('submits a Conditional Tokens approval for the standard exchange', async () => {
-      const secureClient = await createSecureClientWithDepositWallet({
-        apiKey: relayerAuthorization,
+    it('submits a Conditional Tokens approval for the standard exchange', async ({
+      depositWallet,
+      relayerAuthentication,
+      walletClient,
+    }) => {
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthentication,
+        signer: signerFrom(walletClient),
+        wallet: depositWallet,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
@@ -66,9 +73,15 @@ describe('Approvals', () => {
   });
 
   describe('SecureClient.setupTradingApprovals', () => {
-    it('submits a combined trading-setup approval workflow', async () => {
-      const secureClient = await createSecureClientWithDepositWallet({
-        apiKey: relayerAuthorization,
+    it('submits a combined trading-setup approval workflow', async ({
+      depositWallet,
+      relayerAuthentication,
+      walletClient,
+    }) => {
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthentication,
+        signer: signerFrom(walletClient),
+        wallet: depositWallet,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);

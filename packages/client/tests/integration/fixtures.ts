@@ -1,9 +1,14 @@
-import { createSecureClient, type SecureClient } from '@polymarket/client';
+import {
+  type ApiKeyAuthorization,
+  createSecureClient,
+  relayerApiKey,
+  type SecureClient,
+} from '@polymarket/client';
 import { signerFrom } from '@polymarket/client/viem';
 import type { EvmAddress, PrivateKey } from '@polymarket/types';
 import { expectEvmAddress, isPrivateKey } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 import { it as base, type TestContext } from 'vitest';
 
@@ -19,8 +24,13 @@ if (process.env.CI !== 'true') {
 
 type IntegrationFixtures = {
   depositWallet: EvmAddress;
+  randomWalletClient: TestWalletClient;
+  relayerAuthentication: ApiKeyAuthorization;
   secureClientWithDepositWallet: SecureClient;
+  walletClient: TestWalletClient;
 };
+
+type TestWalletClient = ReturnType<typeof createTestWalletClient>;
 
 export const it = base.extend<IntegrationFixtures>({
   depositWallet: async ({ skip }, use) => {
@@ -28,18 +38,34 @@ export const it = base.extend<IntegrationFixtures>({
   },
 
   secureClientWithDepositWallet: async ({ depositWallet, skip }, use) => {
-    const privateKey = loadPrivateKey('POLYMARKET_PRIVATE_KEY', skip);
-    const walletClient = createWalletClient({
-      account: privateKeyToAccount(privateKey),
-      chain: polygon,
-      transport: http(),
-    });
+    const walletClient = createTestWalletClient(
+      loadPrivateKey('POLYMARKET_PRIVATE_KEY', skip),
+    );
     const secureClient = await createSecureClient({
       signer: signerFrom(walletClient),
       wallet: depositWallet,
     });
 
     await use(secureClient);
+  },
+
+  walletClient: async ({ skip }, use) => {
+    await use(
+      createTestWalletClient(loadPrivateKey('POLYMARKET_PRIVATE_KEY', skip)),
+    );
+  },
+
+  relayerAuthentication: async ({ skip }, use) => {
+    const authorization = relayerApiKey({
+      key: loadRequiredEnv('POLYMARKET_RELAYER_API_KEY', skip),
+      address: loadRequiredEnv('POLYMARKET_RELAYER_API_KEY_ADDRESS', skip),
+    });
+
+    await use(authorization);
+  },
+
+  randomWalletClient: async ({ skip: _skip }, use) => {
+    await use(createTestWalletClient(generatePrivateKey()));
   },
 });
 
@@ -56,14 +82,28 @@ function loadWalletAddress(name: string, skip: Skip): EvmAddress {
 }
 
 function loadPrivateKey(name: string, skip: Skip): PrivateKey {
+  const value = loadRequiredEnv(name, skip);
+
+  if (!isPrivateKey(value)) {
+    skip(`${name} must be a valid private key`);
+  }
+
+  return value;
+}
+
+function createTestWalletClient(privateKey: PrivateKey | `0x${string}`) {
+  return createWalletClient({
+    account: privateKeyToAccount(privateKey),
+    chain: polygon,
+    transport: http(),
+  });
+}
+
+function loadRequiredEnv(name: string, skip: Skip): string {
   const value = process.env[name];
 
   if (value === undefined) {
     skip(`${name} is not set`);
-  }
-
-  if (!isPrivateKey(value)) {
-    skip(`${name} must be a valid private key`);
   }
 
   return value;
