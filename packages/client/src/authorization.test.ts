@@ -9,7 +9,7 @@ import { remoteBuilderSigning } from './authorization';
 import { createPublicClient } from './clients';
 import { SigningError } from './errors';
 import { buildHmacSignature } from './hmac';
-import { builderCredentials, safeWalletAddress } from './testing';
+import { builderCredentials, depositWallet } from './testing';
 
 const signerUrl = 'http://localhost:4010/api/builder/sign';
 
@@ -74,7 +74,7 @@ describe('authorization', () => {
 
       await expect(
         fetchExecuteParams(client, {
-          address: safeWalletAddress,
+          address: depositWallet,
           type: RelayerTransactionType.SAFE,
         }),
       ).resolves.toBeDefined();

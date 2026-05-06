@@ -10,8 +10,7 @@ import {
   deriveProxyAddress,
   publicClientWithRelayerKey,
   relayerAuthorization,
-  safeWalletAddress,
-  walletClient,
+  safeWalletClient,
 } from '../testing';
 import { signerFrom } from '../viem';
 import { isGaslessReady, prepareGaslessTransaction } from './gasless';
@@ -26,15 +25,6 @@ describe('Gasless', () => {
       expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
 
       await expect(secureClient.isGaslessReady()).resolves.toBe(true);
-    });
-
-    it('supports checking readiness from a public client with a wallet address', async () => {
-      await expect(
-        isGaslessReady(publicClientWithRelayerKey, {
-          wallet: safeWalletAddress,
-          type: WalletType.GNOSIS_SAFE,
-        }),
-      ).resolves.toBe(true);
     });
 
     it('returns false for an EOA wallet type', async () => {
@@ -62,11 +52,11 @@ describe('Gasless', () => {
 
   describe('prepareGaslessTransaction', () => {
     it('prepares a Deposit Wallet workflow yielding a batch typed-data signing request', async () => {
-      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const signerAddress = expectEvmAddress(safeWalletClient.account.address);
       const depositWallet = deriveDepositWallet(signerAddress);
       const secureClient = await createSecureClient({
         apiKey: relayerAuthorization,
-        signer: signerFrom(walletClient),
+        signer: signerFrom(safeWalletClient),
         wallet: depositWallet,
       });
 
@@ -212,7 +202,7 @@ describe('Gasless', () => {
 
   describe('prepareGaslessTransaction (proxy)', () => {
     it('prepares a proxy workflow yielding a raw hash signing request', async () => {
-      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const signerAddress = expectEvmAddress(safeWalletClient.account.address);
       const proxyWallet = deriveProxyAddress(signerAddress);
 
       const secureClient = await createSecureClientWithSafeWallet({

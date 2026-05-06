@@ -2,7 +2,7 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import { expectPresent, invariant } from '@polymarket/types';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createSecureClientWithSafeWallet,
+  createSecureClientWithDepositWallet,
   publicClient,
   relayerAuthorization,
 } from '../testing';
@@ -14,13 +14,13 @@ const market = await publicClient.fetchMarket({
 });
 const conditionId = expectPresent(market.conditionId);
 
-const secureClient = await createSecureClientWithSafeWallet({
+const secureClient = await createSecureClientWithDepositWallet({
   apiKey: relayerAuthorization,
 });
 
 invariant(
-  secureClient.account.walletType === WalletType.GNOSIS_SAFE,
-  'Expected a Gnosis Safe wallet for testing',
+  secureClient.account.walletType === WalletType.DEPOSIT_WALLET,
+  'Expected a Deposit Wallet for testing',
 );
 
 describe('Positions', () => {

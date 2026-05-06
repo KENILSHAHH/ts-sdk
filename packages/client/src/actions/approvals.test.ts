@@ -5,19 +5,19 @@ import { createSecureClient } from '../clients';
 import { SigningError } from '../errors';
 import {
   createRandomWalletClient,
-  createSecureClientWithSafeWallet,
+  createSecureClientWithDepositWallet,
   relayerAuthorization,
 } from '../testing';
 import { signerFrom } from '../viem';
 
 describe('Approvals', () => {
-  describe('prepareErc20Approval', () => {
+  describe('SecureClient.approveErc20', () => {
     it('submits a collateral approval for the standard exchange', async () => {
-      const secureClient = await createSecureClientWithSafeWallet({
+      const secureClient = await createSecureClientWithDepositWallet({
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const handle = await secureClient.approveErc20({
         spenderAddress: secureClient.environment.standardExchange,
@@ -48,13 +48,13 @@ describe('Approvals', () => {
     });
   });
 
-  describe('prepareErc1155ApprovalForAll', () => {
+  describe('SecureClient.approveErc1155ForAll', () => {
     it('submits a Conditional Tokens approval for the standard exchange', async () => {
-      const secureClient = await createSecureClientWithSafeWallet({
+      const secureClient = await createSecureClientWithDepositWallet({
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const handle = await secureClient.approveErc1155ForAll({
         operatorAddress: secureClient.environment.standardExchange,
@@ -65,13 +65,13 @@ describe('Approvals', () => {
     });
   });
 
-  describe('prepareTradingApprovals', () => {
+  describe('SecureClient.setupTradingApprovals', () => {
     it('submits a combined trading-setup approval workflow', async () => {
-      const secureClient = await createSecureClientWithSafeWallet({
+      const secureClient = await createSecureClientWithDepositWallet({
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const handle = await secureClient.setupTradingApprovals();
 

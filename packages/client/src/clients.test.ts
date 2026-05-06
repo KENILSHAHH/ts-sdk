@@ -7,12 +7,12 @@ import {
   builderAuthorization,
   createRandomWalletClient,
   createSecureClientWithSafeWallet,
+  depositWallet,
   deriveDepositWallet,
   deriveProxyAddress,
   relayerAuthorization,
   runMeteredTests,
-  safeWalletAddress,
-  walletClient,
+  safeWalletClient,
 } from './testing';
 import { signerFrom } from './viem';
 
@@ -20,8 +20,8 @@ describe('clients', () => {
   describe('createSecureClient', () => {
     it('authenticates a secure client from an authentication workflow', async () => {
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
       });
 
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
@@ -29,8 +29,8 @@ describe('clients', () => {
 
     it('authenticates with a non-zero nonce', async () => {
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         nonce: 1,
       });
 
@@ -39,16 +39,16 @@ describe('clients', () => {
 
     it('authenticates twice with the same nonce', async () => {
       const firstClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         nonce: 2,
       });
 
       await expect(fetchApiKeys(firstClient)).resolves.toBeDefined();
 
       const secondClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         nonce: 2,
       });
 
@@ -56,11 +56,11 @@ describe('clients', () => {
     });
 
     it('classifies a deterministic proxy wallet as POLY_PROXY', async () => {
-      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const signerAddress = expectEvmAddress(safeWalletClient.account.address);
       const proxyWallet = deriveProxyAddress(signerAddress);
 
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
+        signer: signerFrom(safeWalletClient),
         wallet: proxyWallet,
       });
 
@@ -73,11 +73,15 @@ describe('clients', () => {
 
     it('authenticates as EOA when wallet is omitted', async () => {
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
+        signer: signerFrom(safeWalletClient),
       });
 
-      expect(secureClient.account.signer).toBe(walletClient.account.address);
-      expect(secureClient.account.wallet).toBe(walletClient.account.address);
+      expect(secureClient.account.signer).toBe(
+        safeWalletClient.account.address,
+      );
+      expect(secureClient.account.wallet).toBe(
+        safeWalletClient.account.address,
+      );
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
@@ -88,20 +92,20 @@ describe('clients', () => {
       await expect(
         createSecureClient({
           wallet: unrelatedWallet.account.address,
-          signer: signerFrom(walletClient),
+          signer: signerFrom(safeWalletClient),
         }),
       ).rejects.toBeInstanceOf(InvariantError);
     });
 
     it('reuses stored credentials during authentication when they remain valid', async () => {
       const initialClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
       });
 
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         credentials: initialClient.credentials,
       });
 
@@ -110,13 +114,13 @@ describe('clients', () => {
 
     it('falls back to fresh authentication when stored credentials have been revoked', async () => {
       const controlClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         nonce: 1997,
       });
       const secureClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         nonce: 1998,
       });
       const { credentials } = secureClient;
@@ -127,8 +131,8 @@ describe('clients', () => {
       await secureClient.endAuthentication();
 
       const resumedClient = await createSecureClient({
-        signer: signerFrom(walletClient),
-        wallet: safeWalletAddress,
+        signer: signerFrom(safeWalletClient),
+        wallet: depositWallet,
         credentials,
       });
       const remainingApiKeys = await fetchApiKeys(controlClient);
@@ -142,11 +146,11 @@ describe('clients', () => {
 
   describe('SecureClient.setupGaslessWallet', () => {
     it('returns a secure client for an already-bound Deposit Wallet', async () => {
-      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const signerAddress = expectEvmAddress(safeWalletClient.account.address);
       const depositWallet = deriveDepositWallet(signerAddress);
       const secureClient = await createSecureClient({
         apiKey: relayerAuthorization,
-        signer: signerFrom(walletClient),
+        signer: signerFrom(safeWalletClient),
         wallet: depositWallet,
       });
 
@@ -160,11 +164,11 @@ describe('clients', () => {
     });
 
     it('returns a secure client for an already-bound Proxy wallet', async () => {
-      const signerAddress = expectEvmAddress(walletClient.account.address);
+      const signerAddress = expectEvmAddress(safeWalletClient.account.address);
       const proxyWallet = deriveProxyAddress(signerAddress);
       const secureClient = await createSecureClient({
         apiKey: relayerAuthorization,
-        signer: signerFrom(walletClient),
+        signer: signerFrom(safeWalletClient),
         wallet: proxyWallet,
       });
 

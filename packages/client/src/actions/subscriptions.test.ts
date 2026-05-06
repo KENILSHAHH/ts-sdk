@@ -1,7 +1,7 @@
 import { expectPresent } from '@polymarket/types';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  createSecureClientWithSafeWallet,
+  createSecureClientWithDepositWallet,
   findHighVolumeLowPriceMarket,
   publicClient,
 } from '../testing';
@@ -66,7 +66,7 @@ describe('subscribe', () => {
   it('routes secure-only subscriptions when the client supports them', {
     timeout: 20_000,
   }, async () => {
-    const secureClient = await createSecureClientWithSafeWallet();
+    const secureClient = await createSecureClientWithDepositWallet();
 
     try {
       const handle = await secureClient.subscribe([{ topic: 'user' }]);

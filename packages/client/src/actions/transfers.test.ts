@@ -1,18 +1,18 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { describe, expect, it } from 'vitest';
 import {
-  createSecureClientWithSafeWallet,
+  createSecureClientWithDepositWallet,
   relayerAuthorization,
 } from '../testing';
 
 describe('Transfers', () => {
   describe('prepareErc20Transfer', () => {
     it('submits a self-transfer for the collateral token', async () => {
-      const secureClient = await createSecureClientWithSafeWallet({
+      const secureClient = await createSecureClientWithDepositWallet({
         apiKey: relayerAuthorization,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
+      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const handle = await secureClient.transferErc20({
         amount: 1n,

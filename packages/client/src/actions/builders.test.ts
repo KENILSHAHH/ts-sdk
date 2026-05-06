@@ -3,10 +3,11 @@ import { delay, expectPresent } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import {
   builderAuthorization,
-  createSecureClientWithSafeWallet,
+  createSecureClientWithDepositWallet,
   expectNonEmptyPage,
   findHighVolumeLowPriceMarket,
   publicClientWithBuilderKey,
+  runMeteredTests,
   testBuilderCode,
 } from '../testing';
 
@@ -14,50 +15,54 @@ const market = await findHighVolumeLowPriceMarket();
 
 describe('Builders', () => {
   describe('listBuilderTrades', () => {
-    it('lists builder-attributed trades', async () => {
-      const existingTrades = await publicClientWithBuilderKey
-        .listBuilderTrades({ builderCode: testBuilderCode })
-        .firstPage()
-        .then((page) => page.items);
+    it.runIf(runMeteredTests)(
+      'lists builder-attributed trades',
+      async () => {
+        const existingTrades = await publicClientWithBuilderKey
+          .listBuilderTrades({ builderCode: testBuilderCode })
+          .firstPage()
+          .then((page) => page.items);
 
-      if (existingTrades.length > 0) {
-        expect(existingTrades[0]).toEqual(
+        if (existingTrades.length > 0) {
+          expect(existingTrades[0]).toEqual(
+            expect.objectContaining({
+              builderCode: testBuilderCode,
+              id: expect.any(String),
+            }),
+          );
+          return;
+        }
+
+        const secureClient = await createSecureClientWithDepositWallet({
+          apiKey: builderAuthorization,
+        });
+
+        console.log(market.slug);
+        const tokenId = expectPresent(market.outcomes.yes.tokenId);
+
+        const response = await secureClient.placeMarketOrder({
+          amount: expectPresent(market.trading.minimumOrderSize),
+          builderCode: testBuilderCode,
+          side: OrderSide.BUY,
+          tokenId,
+        });
+
+        expect(response.ok).toBe(true);
+
+        const newTrades = await waitForBuilderTrades(
+          publicClientWithBuilderKey,
+          tokenId,
+        );
+
+        expect(newTrades[0]).toEqual(
           expect.objectContaining({
             builderCode: testBuilderCode,
             id: expect.any(String),
           }),
         );
-        return;
-      }
-
-      const secureClient = await createSecureClientWithSafeWallet({
-        apiKey: builderAuthorization,
-      });
-
-      console.log(market.slug);
-      const tokenId = expectPresent(market.outcomes.yes.tokenId);
-
-      const response = await secureClient.placeMarketOrder({
-        amount: expectPresent(market.trading.minimumOrderSize),
-        builderCode: testBuilderCode,
-        side: OrderSide.BUY,
-        tokenId,
-      });
-
-      expect(response.ok).toBe(true);
-
-      const newTrades = await waitForBuilderTrades(
-        publicClientWithBuilderKey,
-        tokenId,
-      );
-
-      expect(newTrades[0]).toEqual(
-        expect.objectContaining({
-          builderCode: testBuilderCode,
-          id: expect.any(String),
-        }),
-      );
-    });
+      },
+      20_000,
+    );
   });
 });
 

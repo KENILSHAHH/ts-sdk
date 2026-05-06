@@ -8,10 +8,10 @@ import { cancelOrder, fetchApiKeys, fetchMarket } from './actions';
 import { createSecureClient } from './clients';
 import { signerFrom } from './ethers-v5';
 import {
+  depositWallet,
+  privateKey,
   publicClient,
   runMeteredTests,
-  safeWalletAddress,
-  testPrivateKey,
 } from './testing';
 
 const TEST_MARKET_SLUG = 'eth-flipped-in-2026';
@@ -25,13 +25,13 @@ const provider = new ethers.providers.JsonRpcProvider(
 );
 
 function createSigner() {
-  return new ethers.Wallet(testPrivateKey, provider);
+  return new ethers.Wallet(privateKey, provider);
 }
 
 describe('ethers-v5', () => {
   it('authenticates a secure client', async () => {
     const secureClient = await createSecureClient({
-      wallet: safeWalletAddress,
+      wallet: depositWallet,
       signer: signerFrom(createSigner()),
     });
 
@@ -47,7 +47,7 @@ describe('ethers-v5', () => {
     const price = expectPresent(market.trading.minimumTickSize);
     const size = expectPresent(market.trading.minimumOrderSize);
     const secureClient = await createSecureClient({
-      wallet: safeWalletAddress,
+      wallet: depositWallet,
       signer,
     });
 

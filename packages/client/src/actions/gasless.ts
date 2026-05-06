@@ -4,7 +4,6 @@ import {
   type GaslessTransaction,
   GaslessTransactionSchema,
   RelayerDeployedResponseSchema,
-  type RelayerDepositWalletCreateRequest,
   type RelayerDepositWalletExecuteRequest,
   type RelayerExecuteParams,
   RelayerExecuteParamsSchema,

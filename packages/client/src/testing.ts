@@ -62,32 +62,37 @@ export const publicClientWithRelayerKey = createPublicClient({
   apiKey: relayerAuthorization,
 });
 
-function loadTestPrivateKey(): PrivateKey {
-  const value = process.env.POLYMARKET_TEST_PRIVATE_KEY;
+function loadPrivateKey(name: string): PrivateKey {
+  const value = process.env[name];
 
-  invariant(value, 'POLYMARKET_TEST_PRIVATE_KEY is not set');
+  invariant(value, `${name} is not set`);
 
-  invariant(
-    isPrivateKey(value),
-    'POLYMARKET_TEST_PRIVATE_KEY must be a valid private key',
-  );
+  invariant(isPrivateKey(value), `${name} must be a valid private key`);
 
   return value;
 }
 
-export const testPrivateKey = loadTestPrivateKey();
+function loadWalletAddress(name: string): EvmAddress {
+  const value = process.env[name];
 
-function loadTestSafeWallet(): EvmAddress {
-  const value = process.env.POLYMARKET_TEST_SAFE_WALLET;
-
-  invariant(value, 'POLYMARKET_TEST_SAFE_WALLET is not set');
+  invariant(value, `${name} is not set`);
 
   return expectEvmAddress(value);
 }
 
-export const safeWalletAddress = loadTestSafeWallet();
+function createTestWalletClient(privateKey: PrivateKey) {
+  return createWalletClient({
+    account: privateKeyToAccount(privateKey),
+    chain: polygon,
+    transport: http(),
+  });
+}
 
-function loadTestBuilderCode(): BuilderCode {
+export const privateKey = loadPrivateKey('POLYMARKET_PRIVATE_KEY');
+export const depositWallet = loadWalletAddress('POLYMARKET_DEPOSIT_WALLET');
+export const safeWalletAddress = loadWalletAddress('POLYMARKET_SAFE_WALLET');
+
+function loadBuilderCode(): BuilderCode {
   const value = process.env.POLYMARKET_BUILDER_CODE;
 
   invariant(value, 'POLYMARKET_BUILDER_CODE is not set');
@@ -95,7 +100,7 @@ function loadTestBuilderCode(): BuilderCode {
   return BuilderCodeSchema.parse(value);
 }
 
-export const testBuilderCode = loadTestBuilderCode();
+export const testBuilderCode = loadBuilderCode();
 
 export function deriveProxyAddress(signerAddress: EvmAddress): EvmAddress {
   return deriveProxyWalletAddress(
@@ -111,18 +116,42 @@ export function deriveDepositWallet(signerAddress: EvmAddress): EvmAddress {
   );
 }
 
-export const walletClient = createWalletClient({
-  account: privateKeyToAccount(testPrivateKey),
-  chain: polygon,
-  transport: http(),
-});
+export const safeWalletClient = createTestWalletClient(
+  loadPrivateKey('POLYMARKET_SAFE_PRIVATE_KEY'),
+);
 
 export function createSecureClientWithSafeWallet(
   options: Partial<SecureClientOptions> = {},
 ) {
   return createSecureClient({
-    signer: signerFrom(walletClient),
+    signer: signerFrom(safeWalletClient),
     wallet: safeWalletAddress,
+    ...options,
+  });
+}
+
+export function createSecureClientWithDepositWallet(
+  options: Partial<SecureClientOptions> = {},
+) {
+  const walletClient = createTestWalletClient(privateKey);
+
+  return createSecureClient({
+    signer: signerFrom(walletClient),
+    wallet: loadWalletAddress('POLYMARKET_DEPOSIT_WALLET'),
+    ...options,
+  });
+}
+
+export function createSecureClientWithProxyWallet(
+  options: Partial<SecureClientOptions> = {},
+) {
+  const walletClient = createTestWalletClient(
+    loadPrivateKey('POLYMARKET_PROXY_PRIVATE_KEY'),
+  );
+
+  return createSecureClient({
+    signer: signerFrom(walletClient),
+    wallet: loadWalletAddress('POLYMARKET_PROXY_WALLET'),
     ...options,
   });
 }
