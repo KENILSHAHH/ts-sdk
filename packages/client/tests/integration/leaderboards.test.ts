@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage } from './helpers';
 
 describe('Leaderboards', () => {
   describe('listTraderLeaderboard', () => {
-    it('lists trader rankings', async () => {
+    it('lists trader rankings', async ({ publicClient }) => {
       const result = await publicClient
         .listTraderLeaderboard({
           pageSize: 1,
@@ -22,7 +22,7 @@ describe('Leaderboards', () => {
   });
 
   describe('listBuilderLeaderboard', () => {
-    it('lists builder rankings', async () => {
+    it('lists builder rankings', async ({ publicClient }) => {
       const result = await publicClient
         .listBuilderLeaderboard({
           pageSize: 1,
@@ -41,7 +41,7 @@ describe('Leaderboards', () => {
   });
 
   describe('fetchBuilderVolume', () => {
-    it('lists builder volume entries', async () => {
+    it('lists builder volume entries', async ({ publicClient }) => {
       const result = await publicClient.fetchBuilderVolume({
         timePeriod: 'DAY',
       });
