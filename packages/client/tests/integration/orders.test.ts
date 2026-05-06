@@ -1,9 +1,5 @@
 import { OrderSide, OrderType } from '@polymarket/bindings';
-import {
-  type AcceptedOrderResponse,
-  OrderPostStatus,
-  type OrderResponse,
-} from '@polymarket/bindings/clob';
+import { OrderPostStatus } from '@polymarket/bindings/clob';
 import {
   createSecureClient,
   InsufficientLiquidityError,
@@ -15,6 +11,7 @@ import { fetchNegRisk } from '@polymarket/client/actions';
 import { expectPresent } from '@polymarket/types';
 import { afterAll } from 'vitest';
 import { describe, expect, it, runMeteredTests } from './fixtures';
+import { expectAcceptedOrderResponse } from './helpers';
 import { findHighVolumeLowPriceMarket } from './markets';
 
 let marketPromise: Promise<Market> | undefined;
@@ -481,18 +478,4 @@ async function cancelMarketOrderWithRetry(
     tokenId: order.tokenId,
     market: conditionId,
   });
-}
-
-function expectAcceptedOrderResponse(
-  response: OrderResponse,
-): AcceptedOrderResponse {
-  expect(response.ok).toBe(true);
-
-  if (!response.ok) {
-    throw new Error(
-      `Expected accepted order response, received: ${response.code}`,
-    );
-  }
-
-  return response;
 }

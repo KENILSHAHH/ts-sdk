@@ -31,6 +31,7 @@ type IntegrationFixtures = {
   builderAuthentication: ApiKeyAuthorization;
   builderCode: BuilderCode;
   depositWalletAddress: EvmAddress;
+  depositWalletPrivateKey: PrivateKey;
   depositWalletSigner: Signer;
   publicClient: PublicClient;
   proxyWalletAddress: EvmAddress;
@@ -76,6 +77,10 @@ export const it: TestAPI<IntegrationFixtures> =
       await use(
         createTestSigner(loadPrivateKey('POLYMARKET_PRIVATE_KEY', skip)),
       );
+    },
+
+    depositWalletPrivateKey: async ({ skip }, use) => {
+      await use(loadPrivateKey('POLYMARKET_PRIVATE_KEY', skip));
     },
 
     safeWalletSigner: async ({ skip }, use) => {
