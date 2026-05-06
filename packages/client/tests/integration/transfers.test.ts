@@ -1,19 +1,18 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { createSecureClient } from '@polymarket/client';
-import { signerFrom } from '@polymarket/client/viem';
-import { describe, expect, it } from '../fixtures';
+import { describe, expect, it } from './fixtures';
 
 describe('Transfers', () => {
   describe('SecureClient.transferErc20', () => {
     it('submits a self-transfer for the collateral token', async ({
-      depositWallet,
+      depositWalletAddress,
+      depositWalletSigner,
       relayerAuthentication,
-      walletClient,
     }) => {
       const secureClient = await createSecureClient({
         apiKey: relayerAuthentication,
-        signer: signerFrom(walletClient),
-        wallet: depositWallet,
+        signer: depositWalletSigner,
+        wallet: depositWalletAddress,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);

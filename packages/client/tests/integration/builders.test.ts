@@ -1,9 +1,8 @@
 import { type BuilderCode, OrderSide } from '@polymarket/bindings';
 import { createSecureClient, type PublicClient } from '@polymarket/client';
-import { signerFrom } from '@polymarket/client/viem';
 import { delay, expectPresent } from '@polymarket/types';
-import { describe, expect, it, runMeteredTests } from '../fixtures';
-import { findHighVolumeLowPriceMarket } from '../markets';
+import { describe, expect, it, runMeteredTests } from './fixtures';
+import { findHighVolumeLowPriceMarket } from './markets';
 
 describe('Builders', () => {
   describe('listBuilderTrades', () => {
@@ -12,9 +11,9 @@ describe('Builders', () => {
       async ({
         builderAuthentication,
         builderCode,
-        depositWallet,
+        depositWalletAddress,
+        depositWalletSigner,
         publicClient,
-        walletClient,
       }) => {
         const existingTrades = await publicClient
           .listBuilderTrades({ builderCode })
@@ -33,8 +32,8 @@ describe('Builders', () => {
 
         const secureClient = await createSecureClient({
           apiKey: builderAuthentication,
-          signer: signerFrom(walletClient),
-          wallet: depositWallet,
+          signer: depositWalletSigner,
+          wallet: depositWalletAddress,
         });
         const market = await findHighVolumeLowPriceMarket(publicClient);
         const tokenId = expectPresent(market.outcomes.yes.tokenId);

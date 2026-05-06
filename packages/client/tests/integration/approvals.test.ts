@@ -1,20 +1,19 @@
 import { WalletType } from '@polymarket/bindings/gamma';
 import { createSecureClient, SigningError } from '@polymarket/client';
-import { signerFrom } from '@polymarket/client/viem';
 import { ZERO_ADDRESS } from '@polymarket/types';
-import { describe, expect, it } from '../fixtures';
+import { describe, expect, it } from './fixtures';
 
 describe('Approvals', () => {
   describe('SecureClient.approveErc20', () => {
     it('submits a collateral approval for the standard exchange', async ({
-      depositWallet,
+      depositWalletAddress,
+      depositWalletSigner,
       relayerAuthentication,
-      walletClient,
     }) => {
       const secureClient = await createSecureClient({
         apiKey: relayerAuthentication,
-        signer: signerFrom(walletClient),
-        wallet: depositWallet,
+        signer: depositWalletSigner,
+        wallet: depositWalletAddress,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
@@ -29,10 +28,10 @@ describe('Approvals', () => {
     });
 
     it('supports EOA approvals as traditional transactions', async ({
-      randomWalletClient,
+      randomEoaSigner,
     }) => {
       const secureClient = await createSecureClient({
-        signer: signerFrom(randomWalletClient),
+        signer: randomEoaSigner,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
@@ -51,14 +50,14 @@ describe('Approvals', () => {
 
   describe('SecureClient.approveErc1155ForAll', () => {
     it('submits a Conditional Tokens approval for the standard exchange', async ({
-      depositWallet,
+      depositWalletAddress,
+      depositWalletSigner,
       relayerAuthentication,
-      walletClient,
     }) => {
       const secureClient = await createSecureClient({
         apiKey: relayerAuthentication,
-        signer: signerFrom(walletClient),
-        wallet: depositWallet,
+        signer: depositWalletSigner,
+        wallet: depositWalletAddress,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
@@ -74,14 +73,14 @@ describe('Approvals', () => {
 
   describe('SecureClient.setupTradingApprovals', () => {
     it('submits a combined trading-setup approval workflow', async ({
-      depositWallet,
+      depositWalletAddress,
+      depositWalletSigner,
       relayerAuthentication,
-      walletClient,
     }) => {
       const secureClient = await createSecureClient({
         apiKey: relayerAuthentication,
-        signer: signerFrom(walletClient),
-        wallet: depositWallet,
+        signer: depositWalletSigner,
+        wallet: depositWalletAddress,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);

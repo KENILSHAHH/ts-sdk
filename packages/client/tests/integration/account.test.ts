@@ -1,7 +1,7 @@
 import { AssetType } from '@polymarket/bindings/clob';
 import type { SecureClient } from '@polymarket/client';
 import { fetchBalanceAllowance } from '@polymarket/client/actions';
-import { describe, expect, it } from '../fixtures';
+import { describe, expect, it } from './fixtures';
 
 describe('Account', () => {
   describe('fetchClosedOnlyMode', () => {
