@@ -569,6 +569,10 @@ async function executeGasless(
 }
 
 function isRetryableGaslessSubmitError(error: unknown): boolean {
+  if (error instanceof RateLimitError) {
+    return true;
+  }
+
   if (!(error instanceof RequestRejectedError) || error.status !== 400) {
     return false;
   }
