@@ -110,14 +110,19 @@ export function createOrderTypedDataPayload(
   }
 
   return {
-    domain: orderPayload.domain,
+    domain: {
+      chainId: order.chainId,
+      name: DEPOSIT_WALLET_DOMAIN_NAME,
+      verifyingContract: order.signer,
+      version: DEPOSIT_WALLET_DOMAIN_VERSION,
+    },
     message: {
       chainId: order.chainId,
       contents: orderPayload.message,
-      name: DEPOSIT_WALLET_DOMAIN_NAME,
+      name: PROTOCOL_NAME,
       salt: BYTES32_ZERO,
-      verifyingContract: order.signer,
-      version: DEPOSIT_WALLET_DOMAIN_VERSION,
+      verifyingContract: order.exchangeAddress,
+      version: PROTOCOL_VERSION,
     },
     primaryType: 'TypedDataSign',
     types: {
