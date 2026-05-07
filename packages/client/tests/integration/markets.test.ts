@@ -1,60 +1,49 @@
+import { createPublicClient, UserInputError } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
-import { describe, expect, it } from 'vitest';
-import { UserInputError } from '../errors';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
+const publicClient = createPublicClient();
 
-async function findPositionConditionId(): Promise<string> {
-  const {
-    items: [position],
-  } = await publicClient
-    .listPositions({
-      user: TEST_USER,
-      pageSize: 1,
-    })
-    .firstPage()
-    .then(expectNonEmptyPage);
+const {
+  items: [market],
+} = await publicClient
+  .listMarkets({
+    closed: false,
+    pageSize: 1,
+  })
+  .firstPage()
+  .then(expectNonEmptyPage);
 
-  return expectPresent(position.conditionId);
-}
+const {
+  items: [position],
+} = await publicClient
+  .listPositions({
+    user: TEST_USER,
+    pageSize: 1,
+  })
+  .firstPage()
+  .then(expectNonEmptyPage);
+
+const positionConditionId = expectPresent(position.conditionId);
 
 describe('Markets', () => {
   describe('listMarkets', () => {
-    it('fetches markets from Gamma', async () => {
+    it('fetches markets', async ({ publicClient }) => {
       const paginator = publicClient.listMarkets({
         closed: false,
-        pageSize: 1,
+        pageSize: 100,
       });
-      const firstPage = await paginator.firstPage();
+      const firstPage = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(firstPage.items).toHaveLength(1);
-      expect(firstPage.nextCursor).toBeDefined();
-
-      let fetched = 0;
-
-      for await (const page of paginator.from(firstPage.nextCursor)) {
-        expect(page.items).toHaveLength(1);
-
-        if (++fetched === 3) {
-          break;
-        }
-      }
+      expect(firstPage.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, firstPage, 99);
     });
   });
 
   describe('fetchMarket', () => {
-    it('fetches a market by id and slug', async () => {
-      const {
-        items: [market],
-      } = await publicClient
-        .listMarkets({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it('fetches a market by id and slug', async ({ publicClient }) => {
       const marketById = await publicClient.fetchMarket({
         id: market.id,
       });
@@ -67,17 +56,7 @@ describe('Markets', () => {
       expect(marketBySlug.id).toBe(market.id);
     });
 
-    it('fetches a market by URL', async () => {
-      const {
-        items: [market],
-      } = await publicClient
-        .listMarkets({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it('fetches a market by URL', async ({ publicClient }) => {
       const marketByUrl = await publicClient.fetchMarket({
         url: `https://polymarket.com/market/${expectPresent(market.slug)}`,
       });
@@ -85,7 +64,7 @@ describe('Markets', () => {
       expect(marketByUrl.id).toBe(market.id);
     });
 
-    it('rejects invalid and non-market URLs', async () => {
+    it('rejects invalid and non-market URLs', async ({ publicClient }) => {
       await expect(
         publicClient.fetchMarket({
           url: 'not-a-url',
@@ -107,17 +86,7 @@ describe('Markets', () => {
   });
 
   describe('fetchMarketTags', () => {
-    it("fetches a market's tags by id", async () => {
-      const {
-        items: [market],
-      } = await publicClient
-        .listMarkets({
-          closed: false,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
-
+    it("fetches a market's tags by id", async ({ publicClient }) => {
       const result = await publicClient.fetchMarketTags({
         id: market.id,
       });
@@ -135,11 +104,9 @@ describe('Markets', () => {
   });
 
   describe('listMarketHolders', () => {
-    it('lists top holders for a market', async () => {
-      const market = await findPositionConditionId();
-
+    it('lists top holders for a market', async ({ publicClient }) => {
       const result = await publicClient.listMarketHolders({
-        market: [market],
+        market: [positionConditionId],
         limit: 1,
       });
 
@@ -154,16 +121,14 @@ describe('Markets', () => {
   });
 
   describe('listOpenInterest', () => {
-    it('lists open interest for a market', async () => {
-      const market = await findPositionConditionId();
-
+    it('lists open interest for a market', async ({ publicClient }) => {
       const result = await publicClient.listOpenInterest({
-        market: [market],
+        market: [positionConditionId],
       });
 
       expect(result).toEqual([
         expect.objectContaining({
-          market,
+          market: positionConditionId,
           value: expect.any(String),
         }),
       ]);
@@ -171,12 +136,10 @@ describe('Markets', () => {
   });
 
   describe('listMarketPositions', () => {
-    it('lists positions for a market', async () => {
-      const market = await findPositionConditionId();
-
+    it('lists positions for a market', async ({ publicClient }) => {
       const result = await publicClient
         .listMarketPositions({
-          market,
+          market: positionConditionId,
           pageSize: 1,
         })
         .firstPage()

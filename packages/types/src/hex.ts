@@ -21,6 +21,11 @@ export type EvmAddress = Tagged<HexString, 'EvmAddress'>;
 export type EvmSignature = Tagged<HexString, 'EvmSignature'>;
 
 /**
+ * A hex-encoded ERC-1271 contract signature payload.
+ */
+export type Erc1271Signature = Tagged<HexString, 'Erc1271Signature'>;
+
+/**
  * A transaction hash returned by an EVM-compatible network.
  */
 export type TxHash = Tagged<HexString, 'TxHash'>;

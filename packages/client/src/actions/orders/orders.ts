@@ -1,3 +1,4 @@
+import { SignatureType } from '@polymarket/bindings/clob';
 import type { HexString } from '@polymarket/types';
 import type { AccountIdentity } from '../../account';
 import { toSignatureType } from '../../account';
@@ -10,6 +11,8 @@ export function createUnsignedOrder(
   order: OrderDraft,
   account: AccountIdentity,
 ): UnsignedOrder {
+  const signatureType = toSignatureType(account.walletType);
+
   return {
     builder: order.builderCode ?? BYTES32_ZERO,
     chainId: order.chainId,
@@ -21,8 +24,9 @@ export function createUnsignedOrder(
     orderType: order.orderType,
     salt: generateOrderSalt().toString(),
     side: order.side,
-    signatureType: toSignatureType(account.walletType),
-    signer: order.signer,
+    signatureType,
+    signer:
+      signatureType === SignatureType.POLY_1271 ? account.wallet : order.signer,
     takerAmount: order.requestedAmount.toString(),
     timestamp: Date.now().toString(),
     tokenId: order.tokenId,

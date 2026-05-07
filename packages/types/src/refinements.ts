@@ -1,6 +1,7 @@
 import type { NonEmptyArray } from './array';
 import { invariant } from './helpers';
 import {
+  type Erc1271Signature,
   type EvmAddress,
   type EvmSignature,
   type HexString,
@@ -62,6 +63,17 @@ export function expectEvmSignature(
 ): EvmSignature {
   invariant(isHexString(value) && value.length === 132, message);
   return value as EvmSignature;
+}
+
+/**
+ * Refines a string to an ERC-1271 signature payload or throws when the value is invalid.
+ */
+export function expectErc1271Signature(
+  value: unknown,
+  message = 'Expected an ERC-1271 signature payload',
+): Erc1271Signature {
+  invariant(isHexString(value), message);
+  return value as Erc1271Signature;
 }
 
 /**

@@ -1,20 +1,19 @@
-import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const TEST_USER = '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b';
 
 describe('Portfolio', () => {
   describe('listPositions', () => {
-    it('lists positions for a wallet', async () => {
-      const result = await publicClient
-        .listPositions({
-          user: TEST_USER,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
+    it('lists positions for a wallet', async ({ publicClient }) => {
+      const paginator = publicClient.listPositions({
+        user: TEST_USER,
+        pageSize: 100,
+      });
+      const result = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, result, 99);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
@@ -25,16 +24,15 @@ describe('Portfolio', () => {
   });
 
   describe('listClosedPositions', () => {
-    it('lists closed positions for a wallet', async () => {
-      const result = await publicClient
-        .listClosedPositions({
-          user: TEST_USER,
-          pageSize: 1,
-        })
-        .firstPage()
-        .then(expectNonEmptyPage);
+    it('lists closed positions for a wallet', async ({ publicClient }) => {
+      const paginator = publicClient.listClosedPositions({
+        user: TEST_USER,
+        pageSize: 100,
+      });
+      const result = await paginator.firstPage().then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(paginator, result, 99);
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
@@ -45,7 +43,7 @@ describe('Portfolio', () => {
   });
 
   describe('fetchPortfolioValue', () => {
-    it('fetches wallet value', async () => {
+    it('fetches wallet value', async ({ publicClient }) => {
       const result = await publicClient.fetchPortfolioValue({
         user: TEST_USER,
       });
@@ -60,7 +58,9 @@ describe('Portfolio', () => {
   });
 
   describe('fetchTradedMarketCount', () => {
-    it('fetches total traded market count for a wallet', async () => {
+    it('fetches total traded market count for a wallet', async ({
+      publicClient,
+    }) => {
       const result = await publicClient.fetchTradedMarketCount({
         user: TEST_USER,
       });
@@ -75,7 +75,9 @@ describe('Portfolio', () => {
   });
 
   describe('downloadAccountingSnapshot', () => {
-    it('downloads the accounting snapshot archive', async () => {
+    it('downloads the accounting snapshot archive', async ({
+      publicClient,
+    }) => {
       const result = await publicClient.downloadAccountingSnapshot({
         user: TEST_USER,
       });

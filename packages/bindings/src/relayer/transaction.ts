@@ -5,9 +5,17 @@ export enum RelayerTransactionType {
   SAFE = 'SAFE',
   PROXY = 'PROXY',
   SAFE_CREATE = 'SAFE-CREATE',
+  WALLET = 'WALLET',
+  WALLET_CREATE = 'WALLET-CREATE',
 }
 
-const RelayerTransactionTypeSchema = z.enum(RelayerTransactionType);
+export const RelayerTransactionTypeSchema = z.enum(RelayerTransactionType);
+
+const RelayerLegacyTransactionTypeSchema = z.enum([
+  RelayerTransactionType.PROXY,
+  RelayerTransactionType.SAFE,
+  RelayerTransactionType.SAFE_CREATE,
+]);
 
 export enum RelayerTransactionState {
   STATE_NEW = 'STATE_NEW',
@@ -43,7 +51,7 @@ export const RelayerExecuteParamsSchema = z.object({
 
 export type RelayerExecuteParams = z.output<typeof RelayerExecuteParamsSchema>;
 
-export const RelayerExecuteRequestSchema = z.object({
+export const RelayerLegacyExecuteRequestSchema = z.object({
   data: z.string().min(1),
   from: EvmAddressSchema,
   metadata: z.string().optional(),
@@ -52,9 +60,60 @@ export const RelayerExecuteRequestSchema = z.object({
   signature: z.string().min(1),
   signatureParams: RelayerSignatureParamsSchema,
   to: EvmAddressSchema,
-  type: RelayerTransactionTypeSchema,
+  type: RelayerLegacyTransactionTypeSchema,
   value: z.string().optional(),
 });
+
+export type RelayerLegacyExecuteRequest = z.input<
+  typeof RelayerLegacyExecuteRequestSchema
+>;
+
+export const DepositWalletCallSchema = z.object({
+  data: z.string().min(1),
+  target: EvmAddressSchema,
+  value: z.string().min(1),
+});
+
+export type DepositWalletCall = z.input<typeof DepositWalletCallSchema>;
+
+export const DepositWalletParamsSchema = z.object({
+  calls: z.array(DepositWalletCallSchema).min(1),
+  deadline: z.string().min(1),
+  depositWallet: EvmAddressSchema,
+});
+
+export type DepositWalletParams = z.input<typeof DepositWalletParamsSchema>;
+
+export const RelayerDepositWalletExecuteRequestSchema = z.object({
+  depositWalletParams: DepositWalletParamsSchema,
+  from: EvmAddressSchema,
+  metadata: z.string().optional(),
+  nonce: z.string().min(1),
+  signature: z.string().min(1),
+  to: EvmAddressSchema,
+  type: z.literal(RelayerTransactionType.WALLET),
+});
+
+export type RelayerDepositWalletExecuteRequest = z.input<
+  typeof RelayerDepositWalletExecuteRequestSchema
+>;
+
+export const RelayerDepositWalletCreateRequestSchema = z.object({
+  from: EvmAddressSchema,
+  metadata: z.string().optional(),
+  to: EvmAddressSchema,
+  type: z.literal(RelayerTransactionType.WALLET_CREATE),
+});
+
+export type RelayerDepositWalletCreateRequest = z.input<
+  typeof RelayerDepositWalletCreateRequestSchema
+>;
+
+export const RelayerExecuteRequestSchema = z.union([
+  RelayerLegacyExecuteRequestSchema,
+  RelayerDepositWalletExecuteRequestSchema,
+  RelayerDepositWalletCreateRequestSchema,
+]);
 
 export type RelayerExecuteRequest = z.input<typeof RelayerExecuteRequestSchema>;
 

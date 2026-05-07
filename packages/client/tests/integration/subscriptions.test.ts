@@ -1,11 +1,6 @@
 import { expectPresent } from '@polymarket/types';
-import { afterEach, describe, expect, it } from 'vitest';
-import {
-  createSecureClientWithSafeWallet,
-  findHighVolumeLowPriceMarket,
-  publicClient,
-} from '../testing';
-import { waitForNextEvent } from '../websockets/testing';
+import { describe, expect, it } from './fixtures';
+import { findHighVolumeLowPriceMarket } from './markets';
 
 type EventWithOptionalSymbol = {
   topic: string;
@@ -33,15 +28,11 @@ async function collectCryptoSymbols(
   return seen;
 }
 
-describe('subscribe', () => {
-  afterEach(async () => {
-    await publicClient.closeSubscriptions();
-  });
-
+describe('Subscriptions', () => {
   it('routes public subscriptions and merges their events', {
     timeout: 20_000,
-  }, async () => {
-    const market = await findHighVolumeLowPriceMarket();
+  }, async ({ publicClient }) => {
+    const market = await findHighVolumeLowPriceMarket(publicClient);
     const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
     const handle = await publicClient.subscribe([
@@ -60,26 +51,27 @@ describe('subscribe', () => {
       expect(symbols).toEqual(new Set(['btcusdt', 'ethusdt']));
     } finally {
       await handle.close();
+      await publicClient.closeSubscriptions();
     }
   });
 
   it('routes secure-only subscriptions when the client supports them', {
     timeout: 20_000,
-  }, async () => {
-    const secureClient = await createSecureClientWithSafeWallet();
-
+  }, async ({ secureClientWithDepositWallet }) => {
     try {
-      const handle = await secureClient.subscribe([{ topic: 'user' }]);
+      const handle = await secureClientWithDepositWallet.subscribe([
+        { topic: 'user' },
+      ]);
       await handle.close();
     } finally {
-      await secureClient.closeSubscriptions();
+      await secureClientWithDepositWallet.closeSubscriptions();
     }
   });
 
   it('closes routed subscription handles', {
     timeout: 20_000,
-  }, async () => {
-    const market = await findHighVolumeLowPriceMarket();
+  }, async ({ publicClient }) => {
+    const market = await findHighVolumeLowPriceMarket(publicClient);
     const tokenId = expectPresent(market.outcomes.yes.tokenId);
 
     const handle = await publicClient.subscribe([
@@ -89,7 +81,14 @@ describe('subscribe', () => {
     const next = waitForNextEvent(handle);
 
     await handle.close();
+    await publicClient.closeSubscriptions();
 
     await expect(next).resolves.toMatchObject({ done: true });
   });
 });
+
+function waitForNextEvent<TEvent>(
+  handle: AsyncIterable<TEvent>,
+): Promise<IteratorResult<TEvent>> {
+  return handle[Symbol.asyncIterator]().next();
+}

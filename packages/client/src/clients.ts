@@ -10,15 +10,15 @@ import {
 } from '@polymarket/types';
 import { z } from 'zod';
 import type { AccountIdentity } from './account';
-import { deriveSafeWalletAddress, resolveAccountIdentity } from './account';
+import { deriveDepositWalletAddress, resolveAccountIdentity } from './account';
 import {
   createOrDeriveApiKey,
   deleteApiKey,
   fetchApiKeys,
 } from './actions/auth';
 import {
-  type DeployGaslessWalletError,
-  deployGaslessWallet,
+  type DeployDepositWalletError,
+  deployDepositWallet,
   type IsGaslessReadyError,
   isGaslessReady,
   type WaitForGaslessTransactionError,
@@ -538,13 +538,12 @@ class BaseSecureClient<
   }
 
   /**
-   * Sets up the authenticated signer's gasless wallet and returns a secure client bound to it.
+   * Sets up a gasless wallet and returns a secure client bound to it.
    *
    * @remarks
-   * If the deterministic Safe wallet is already deployed, this reuses the
-   * current credentials and returns a new `SecureClient` for that wallet. If it
-   * is not deployed, this deploys the wallet, waits for settlement, and returns
-   * the new `SecureClient` after deployment.
+   * If this client is already bound to a gasless wallet, this returns a secure
+   * client for the current wallet. For EOA clients, this deploys or reuses the
+   * authenticated signer's deterministic Deposit Wallet.
    *
    * @throws {@link SetupGaslessWalletError}
    * Thrown on failure.
@@ -559,26 +558,31 @@ class BaseSecureClient<
       'The current signer address does not match the authenticated signer for this client.',
     );
 
-    if (this.account.walletType === WalletType.POLY_PROXY) {
+    if (this.account.walletType !== WalletType.EOA) {
       return this.#createSecureClientForWallet(
         this.account.wallet,
         signerAddress,
       );
     }
 
-    const safeWallet = deriveSafeWalletAddress(
+    const depositWallet = deriveDepositWalletAddress(
       signerAddress,
       this.environment.walletDerivation,
     );
 
-    if (await isGaslessReady(this, { wallet: safeWallet })) {
-      return this.#createSecureClientForWallet(safeWallet, signerAddress);
+    if (
+      await isGaslessReady(this, {
+        wallet: depositWallet,
+        type: WalletType.DEPOSIT_WALLET,
+      })
+    ) {
+      return this.#createSecureClientForWallet(depositWallet, signerAddress);
     }
 
-    const handle = await deployGaslessWallet(this);
+    const handle = await deployDepositWallet(this);
     await handle.wait();
 
-    return this.#createSecureClientForWallet(handle.wallet, signerAddress);
+    return this.#createSecureClientForWallet(depositWallet, signerAddress);
   }
 
   #createSecureClientForWallet(
@@ -758,13 +762,13 @@ type SecureClientConfig = PublicClientConfig & {
 };
 
 export type PublicClient<
-  TPublicActions extends ClientActions = ClientActions,
-  TSecureActions extends ClientActions = TPublicActions,
+  TPublicActions extends ClientActions = PublicActions,
+  TSecureActions extends ClientActions = SecureActions,
 > = BasePublicClient<TPublicActions, TSecureActions> & TPublicActions;
 
 export type SecureClient<
-  TPublicActions extends ClientActions = ClientActions,
-  TSecureActions extends ClientActions = TPublicActions,
+  TPublicActions extends ClientActions = PublicActions,
+  TSecureActions extends ClientActions = SecureActions,
 > = BaseSecureClient<TPublicActions, TSecureActions> & TSecureActions;
 
 export { BasePublicClient, BaseSecureClient };
@@ -804,9 +808,10 @@ export type SecureClientOptions = PublicClientOptions & {
    * If omitted, the client uses the signer address as the account wallet and
    * operates as an EOA account. EOA clients do not use gasless relayer flows:
    * approvals, transfers, and other wallet operations are submitted directly by
-   * the signer and require the signer wallet to hold gas. Pass a supported Poly Safe
-   * or Poly Proxy wallet address to use that wallet as the account/funder and enable
-   * gasless wallet operations when an API key strategy supports them.
+   * the signer and require the signer wallet to hold gas. Pass a supported Poly
+   * Deposit Wallet, Poly Safe, or Poly Proxy wallet address to use that wallet
+   * as the account/funder and enable gasless wallet operations when an API key
+   * strategy supports them.
    */
   wallet?: string;
 
@@ -869,11 +874,12 @@ export const CreateSecureClientError = makeErrorGuard(
 );
 
 export type SetupGaslessWalletError =
-  | DeployGaslessWalletError
+  | DeployDepositWalletError
   | IsGaslessReadyError
-  | WaitForGaslessTransactionError;
+  | SigningError
+  | WaitForGaslessTransactionError
+  | UserInputError;
 export const SetupGaslessWalletError = makeErrorGuard(
-  CancelledSigningError,
   RateLimitError,
   RequestRejectedError,
   SigningError,

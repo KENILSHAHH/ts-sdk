@@ -1,10 +1,13 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     CI: string | undefined;
-    POLYMARKET_RUN_BACKEND_COMPAT_TESTS: string | undefined;
     POLYMARKET_RUN_METERED_TESTS: string | undefined;
-    POLYMARKET_TEST_PRIVATE_KEY: string | undefined;
-    POLYMARKET_TEST_SAFE_WALLET: string | undefined;
+    POLYMARKET_DEPOSIT_WALLET: string | undefined;
+    POLYMARKET_PRIVATE_KEY: string | undefined;
+    POLYMARKET_PROXY_PRIVATE_KEY: string | undefined;
+    POLYMARKET_PROXY_WALLET: string | undefined;
+    POLYMARKET_SAFE_PRIVATE_KEY: string | undefined;
+    POLYMARKET_SAFE_WALLET: string | undefined;
     PRIVY_TEST_APP_ID: string | undefined;
     PRIVY_TEST_APP_SECRET: string | undefined;
     PRIVY_TEST_WALLET_ID: string | undefined;

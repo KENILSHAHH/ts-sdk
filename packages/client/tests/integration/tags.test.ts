@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { expectNonEmptyPage, publicClient } from '../testing';
+import { describe, expect, it } from './fixtures';
+import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
 const TEST_TAG = {
   id: '144',
@@ -8,15 +8,20 @@ const TEST_TAG = {
 
 describe('Tags', () => {
   describe('listTags', () => {
-    it('fetches tags', async () => {
+    it('fetches tags', async ({ publicClient }) => {
       const result = await publicClient
         .listTags({
-          pageSize: 1,
+          pageSize: 100,
         })
         .firstPage()
         .then(expectNonEmptyPage);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items.length).toBeGreaterThan(0);
+      await expectPageWindow(
+        publicClient.listTags({ pageSize: 100 }),
+        result,
+        99,
+      );
       expect(result.items[0]).toEqual(
         expect.objectContaining({
           id: expect.any(String),
@@ -26,7 +31,7 @@ describe('Tags', () => {
   });
 
   describe('fetchTag', () => {
-    it('fetches a tag by id and slug', async () => {
+    it('fetches a tag by id and slug', async ({ publicClient }) => {
       const tagById = await publicClient.fetchTag({ id: TEST_TAG.id });
       const tagBySlug = await publicClient.fetchTag({
         slug: TEST_TAG.slug,
@@ -38,7 +43,9 @@ describe('Tags', () => {
   });
 
   describe('fetchRelatedTags', () => {
-    it('fetches related tag relationships by id and slug', async () => {
+    it('fetches related tag relationships by id and slug', async ({
+      publicClient,
+    }) => {
       const relatedById = await publicClient.fetchRelatedTags({
         id: TEST_TAG.id,
       });
@@ -52,7 +59,7 @@ describe('Tags', () => {
   });
 
   describe('fetchRelatedTagResources', () => {
-    it('fetches related tags by id and slug', async () => {
+    it('fetches related tags by id and slug', async ({ publicClient }) => {
       const relatedTagsById = await publicClient.fetchRelatedTagResources({
         id: TEST_TAG.id,
       });
