@@ -24,7 +24,7 @@ export type AccountIdentity = {
 export function resolveAccountIdentity(
   environment: EnvironmentConfig,
   signer: EvmAddress,
-  wallet: EvmAddress = signer,
+  wallet: EvmAddress,
 ): AccountIdentity {
   return {
     signer,

@@ -14,63 +14,78 @@ import { production } from './environments';
 describe('Account identity', () => {
   const signer = expectEvmAddress('0x0000000000000000000000000000000000000001');
 
-  it('classifies EOA accounts', () => {
-    expect(resolveAccountIdentity(production, signer)).toEqual({
-      signer,
-      wallet: signer,
-      walletType: WalletType.EOA,
-    });
+  it('maps wallet types to order signature types', () => {
     expect(toSignatureType(WalletType.EOA)).toBe(SignatureType.EOA);
-  });
-
-  it('derives and classifies Proxy accounts', () => {
-    const proxyWallet = deriveProxyWalletAddress(
-      signer,
-      production.walletDerivation,
+    expect(toSignatureType(WalletType.DEPOSIT_WALLET)).toBe(
+      SignatureType.POLY_1271,
     );
-
-    expect(proxyWallet).toBe('0x7754536ecd85c00b2e0cf9c1aa679340d8550756');
-    expect(resolveAccountIdentity(production, signer, proxyWallet)).toEqual({
-      signer,
-      wallet: proxyWallet,
-      walletType: WalletType.POLY_PROXY,
-    });
     expect(toSignatureType(WalletType.POLY_PROXY)).toBe(
       SignatureType.POLY_PROXY,
     );
-  });
-
-  it('derives and classifies Gnosis Safe accounts', () => {
-    const safeWallet = deriveSafeWalletAddress(
-      signer,
-      production.walletDerivation,
-    );
-
-    expect(safeWallet).toBe('0x766b6851a199bf91ae3fa13b1cfac5187355118f');
-    expect(resolveAccountIdentity(production, signer, safeWallet)).toEqual({
-      signer,
-      wallet: safeWallet,
-      walletType: WalletType.GNOSIS_SAFE,
-    });
     expect(toSignatureType(WalletType.GNOSIS_SAFE)).toBe(
       SignatureType.POLY_GNOSIS_SAFE,
     );
   });
 
-  it('derives and classifies Deposit Wallet accounts', () => {
-    const depositWallet = deriveDepositWalletAddress(
+  it.each([
+    {
+      derive: () => signer,
+      expectedWallet: signer,
+      walletType: WalletType.EOA,
+    },
+    {
+      derive: deriveDepositWalletAddress,
+      expectedWallet: '0x57ffbc34de23124faeb8387fcd689d314e57accd',
+      walletType: WalletType.DEPOSIT_WALLET,
+    },
+    {
+      derive: deriveProxyWalletAddress,
+      expectedWallet: '0x7754536ecd85c00b2e0cf9c1aa679340d8550756',
+      walletType: WalletType.POLY_PROXY,
+    },
+    {
+      derive: deriveSafeWalletAddress,
+      expectedWallet: '0x766b6851a199bf91ae3fa13b1cfac5187355118f',
+      walletType: WalletType.GNOSIS_SAFE,
+    },
+  ] as const)('derives and classifies wallet type $walletType', ({
+    derive,
+    expectedWallet,
+    walletType,
+  }) => {
+    const wallet = derive(signer, production.walletDerivation);
+
+    expect(wallet).toBe(expectedWallet);
+    expect(resolveAccountIdentity(production, signer, wallet)).toEqual({
+      signer,
+      wallet,
+      walletType,
+    });
+  });
+
+  it('matches deterministic wallets case-insensitively', () => {
+    const derivedWallet = deriveDepositWalletAddress(
       signer,
       production.walletDerivation,
     );
+    const depositWallet = expectEvmAddress(
+      `0x${derivedWallet.slice(2).toUpperCase()}`,
+    );
 
-    expect(depositWallet).toBe('0x57ffbc34de23124faeb8387fcd689d314e57accd');
     expect(resolveAccountIdentity(production, signer, depositWallet)).toEqual({
       signer,
       wallet: depositWallet,
       walletType: WalletType.DEPOSIT_WALLET,
     });
-    expect(toSignatureType(WalletType.DEPOSIT_WALLET)).toBe(
-      SignatureType.POLY_1271,
+  });
+
+  it('rejects unsupported wallet addresses', () => {
+    const unknownWallet = expectEvmAddress(
+      '0x0000000000000000000000000000000000000002',
     );
+
+    expect(() =>
+      resolveAccountIdentity(production, signer, unknownWallet),
+    ).toThrow(/does not match the signer/);
   });
 });
