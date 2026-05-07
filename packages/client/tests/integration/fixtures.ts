@@ -170,6 +170,10 @@ function loadRequiredEnv(name: string, skip: Skip): string {
   const value = process.env[name];
 
   if (value === undefined || value.trim() === '') {
+    if (process.env.CI === 'true') {
+      throw new Error(`${name} is not set`);
+    }
+
     skip(`${name} is not set`);
   }
 
