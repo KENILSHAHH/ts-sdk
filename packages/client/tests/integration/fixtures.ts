@@ -64,10 +64,11 @@ export const it: TestAPI<IntegrationFixtures> =
     },
 
     secureClientWithDepositWallet: async (
-      { depositWalletAddress, depositWalletSigner },
+      { depositWalletAddress, depositWalletSigner, relayerAuthentication },
       use,
     ) => {
       const secureClient = await createSecureClient({
+        apiKey: relayerAuthentication,
         signer: depositWalletSigner,
         wallet: depositWalletAddress,
       });
