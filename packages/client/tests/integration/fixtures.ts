@@ -169,7 +169,7 @@ function createTestSigner(privateKey: PrivateKey | `0x${string}`): Signer {
 function loadRequiredEnv(name: string, skip: Skip): string {
   const value = process.env[name];
 
-  if (value === undefined) {
+  if (value === undefined || value.trim() === '') {
     skip(`${name} is not set`);
   }
 
