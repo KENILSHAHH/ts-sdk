@@ -142,13 +142,7 @@ export const runMeteredTests = process.env.POLYMARKET_RUN_METERED_TESTS === '1';
 export { describe, expect } from 'vitest';
 
 function loadWalletAddress(name: string, skip: Skip): EvmAddress {
-  const value = process.env[name];
-
-  if (value === undefined) {
-    skip(`${name} is not set`);
-  }
-
-  return expectEvmAddress(value);
+  return expectEvmAddress(loadRequiredEnv(name, skip));
 }
 
 function loadPrivateKey(name: string, skip: Skip): PrivateKey {
@@ -161,16 +155,14 @@ function loadPrivateKey(name: string, skip: Skip): PrivateKey {
   return value;
 }
 
-function createTestWalletClient(privateKey: PrivateKey | `0x${string}`) {
-  return createWalletClient({
-    account: privateKeyToAccount(privateKey),
-    chain: polygon,
-    transport: http(),
-  });
-}
-
 function createTestSigner(privateKey: PrivateKey | `0x${string}`): Signer {
-  return signerFrom(createTestWalletClient(privateKey));
+  return signerFrom(
+    createWalletClient({
+      account: privateKeyToAccount(privateKey),
+      chain: polygon,
+      transport: http(),
+    }),
+  );
 }
 
 function loadRequiredEnv(name: string, skip: Skip): string {
