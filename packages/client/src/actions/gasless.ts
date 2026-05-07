@@ -218,6 +218,8 @@ export async function isGaslessReady(
 
 export const GaslessTransactionMetadataSchema = z.string().max(500);
 
+const GASLESS_SUBMIT_RETRY_ATTEMPTS = 10;
+
 export type DeployDepositWalletError =
   | RateLimitError
   | RequestRejectedError
@@ -297,6 +299,10 @@ export type PrepareGaslessTransactionRequest = z.input<
   typeof PrepareGaslessTransactionRequestSchema
 >;
 
+type PrepareGaslessTransactionParams = z.output<
+  typeof PrepareGaslessTransactionRequestSchema
+>;
+
 export type GaslessWorkflowRequest =
   | RequestAddressRequest
   | SignGaslessMessageRequest
@@ -357,139 +363,183 @@ export async function prepareGaslessTransaction(
       'Wallet client address does not match the authenticated signer',
     );
 
-    if (client.account.walletType === WalletType.POLY_PROXY) {
-      const executeParams = await fetchExecuteParams(client, {
-        address: client.account.signer,
-        type: RelayerTransactionType.PROXY,
-      });
+    for (
+      let attempt = 0;
+      attempt <= GASLESS_SUBMIT_RETRY_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        switch (client.account.walletType) {
+          case WalletType.POLY_PROXY:
+            return yield* prepareProxyWalletGaslessTransaction(client, params);
+          case WalletType.DEPOSIT_WALLET:
+            return yield* prepareDepositWalletGaslessTransaction(
+              client,
+              params,
+            );
+          case WalletType.GNOSIS_SAFE:
+            return yield* prepareSafeWalletGaslessTransaction(client, params);
+        }
 
-      const to = client.environment.walletDerivation.proxyFactory;
-      const data = encodeProxyCall(params.calls);
-      const relayerFee = '0';
-      // gasPrice is included in the signed hash but the relayer only validates
-      // that it is non-empty — it does not use this value when submitting the
-      // transaction on-chain (it applies its own gas pricing). Any non-empty
-      // string satisfies the protocol.
-      const gasPrice = '0';
-      // gasLimit is likewise part of the signed hash but is not used by the
-      // relayer when executing the transaction — the relayer applies its own
-      // gas estimation at submission time. The validator only checks non-empty.
-      const gasLimit = '10000000';
-      const relayHub = client.environment.relayHub;
-      const relay = ZERO_ADDRESS;
+        invariant(false, 'Unsupported wallet type for gasless transaction');
+      } catch (error) {
+        if (
+          !isRetryableGaslessSubmitError(error) ||
+          attempt === GASLESS_SUBMIT_RETRY_ATTEMPTS
+        ) {
+          throw error;
+        }
 
-      const hash = buildProxyTransactionHash(
-        client.account.signer,
-        to,
-        data,
-        relayerFee,
-        gasPrice,
-        gasLimit,
-        executeParams.nonce,
-        relayHub,
-        relay,
-      );
-
-      const signature = expectEvmSignature(yield signGaslessMessage(hash));
-
-      return executeGasless(client, {
-        data,
-        from: client.account.signer,
-        metadata: params.metadata,
-        nonce: executeParams.nonce,
-        proxyWallet: client.account.wallet,
-        signature,
-        signatureParams: {
-          gasLimit,
-          gasPrice,
-          relay,
-          relayHub,
-          relayerFee,
-        },
-        to,
-        type: RelayerTransactionType.PROXY,
-      });
+        await delay(client.environment.relayerPollFrequencyMs);
+      }
     }
 
-    if (client.account.walletType === WalletType.DEPOSIT_WALLET) {
-      const executeParams = await fetchExecuteParams(client, {
-        address: client.account.signer,
-        type: RelayerTransactionType.WALLET,
-      });
-      const calls = params.calls.map(toDepositWalletCall);
-      const deadline = `${Math.floor(Date.now() / 1000) + DEPOSIT_WALLET_DEFAULT_DEADLINE_SECONDS}`;
+    invariant(false, 'Expected gasless transaction retry loop to return');
+  }.call(null);
+}
 
-      const signature = expectEvmSignature(
-        yield signGaslessTypedData(
-          createDepositWalletBatchTypedDataPayload({
-            calls,
-            chainId: client.environment.chainId,
-            deadline,
-            nonce: executeParams.nonce,
-            wallet: client.account.wallet,
-          }),
-        ),
-      );
+async function* prepareProxyWalletGaslessTransaction(
+  client: BaseSecureClient,
+  params: PrepareGaslessTransactionParams,
+): GaslessWorkflow {
+  const executeParams = await fetchExecuteParams(client, {
+    address: client.account.signer,
+    type: RelayerTransactionType.PROXY,
+  });
 
-      const payload: RelayerDepositWalletExecuteRequest = {
-        depositWalletParams: {
-          calls,
-          deadline,
-          depositWallet: client.account.wallet,
-        },
-        from: client.account.signer,
-        metadata: params.metadata,
+  const to = client.environment.walletDerivation.proxyFactory;
+  const data = encodeProxyCall(params.calls);
+  const relayerFee = '0';
+  // gasPrice is included in the signed hash but the relayer only validates
+  // that it is non-empty — it does not use this value when submitting the
+  // transaction on-chain (it applies its own gas pricing). Any non-empty
+  // string satisfies the protocol.
+  const gasPrice = '0';
+  // gasLimit is likewise part of the signed hash but is not used by the
+  // relayer when executing the transaction — the relayer applies its own
+  // gas estimation at submission time. The validator only checks non-empty.
+  const gasLimit = '10000000';
+  const relayHub = client.environment.relayHub;
+  const relay = ZERO_ADDRESS;
+
+  const hash = buildProxyTransactionHash(
+    client.account.signer,
+    to,
+    data,
+    relayerFee,
+    gasPrice,
+    gasLimit,
+    executeParams.nonce,
+    relayHub,
+    relay,
+  );
+
+  const signature = expectEvmSignature(yield signGaslessMessage(hash));
+
+  return executeGasless(client, {
+    data,
+    from: client.account.signer,
+    metadata: params.metadata,
+    nonce: executeParams.nonce,
+    proxyWallet: client.account.wallet,
+    signature,
+    signatureParams: {
+      gasLimit,
+      gasPrice,
+      relay,
+      relayHub,
+      relayerFee,
+    },
+    to,
+    type: RelayerTransactionType.PROXY,
+  });
+}
+
+async function* prepareDepositWalletGaslessTransaction(
+  client: BaseSecureClient,
+  params: PrepareGaslessTransactionParams,
+): GaslessWorkflow {
+  const executeParams = await fetchExecuteParams(client, {
+    address: client.account.signer,
+    type: RelayerTransactionType.WALLET,
+  });
+  const calls = params.calls.map(toDepositWalletCall);
+  const deadline = `${Math.floor(Date.now() / 1000) + DEPOSIT_WALLET_DEFAULT_DEADLINE_SECONDS}`;
+
+  const signature = expectEvmSignature(
+    yield signGaslessTypedData(
+      createDepositWalletBatchTypedDataPayload({
+        calls,
+        chainId: client.environment.chainId,
+        deadline,
         nonce: executeParams.nonce,
-        signature,
-        to: client.environment.walletDerivation.depositWalletFactory,
-        type: RelayerTransactionType.WALLET,
-      };
+        wallet: client.account.wallet,
+      }),
+    ),
+  );
 
-      return executeGasless(client, payload);
-    }
+  const payload: RelayerDepositWalletExecuteRequest = {
+    depositWalletParams: {
+      calls,
+      deadline,
+      depositWallet: client.account.wallet,
+    },
+    from: client.account.signer,
+    metadata: params.metadata,
+    nonce: executeParams.nonce,
+    signature,
+    to: client.environment.walletDerivation.depositWalletFactory,
+    type: RelayerTransactionType.WALLET,
+  };
 
-    const executeParams = await fetchExecuteParams(client, {
-      address: client.account.signer,
-      type: RelayerTransactionType.SAFE,
-    });
-    const transaction = aggregateSafeTransactionCalls(
-      params.calls,
-      client.environment.safeMultisend,
-    );
+  return executeGasless(client, payload);
+}
 
-    const safePayload = createSafeTypedDataPayload({
-      chainId: client.environment.chainId,
-      data: transaction.data,
-      nonce: executeParams.nonce,
-      operation: transaction.operation,
-      safeAddress: client.account.wallet,
-      to: transaction.to,
-      value: transaction.value,
-    });
+async function* prepareSafeWalletGaslessTransaction(
+  client: BaseSecureClient,
+  params: PrepareGaslessTransactionParams,
+): GaslessWorkflow {
+  const executeParams = await fetchExecuteParams(client, {
+    address: client.account.signer,
+    type: RelayerTransactionType.SAFE,
+  });
+  const transaction = aggregateSafeTransactionCalls(
+    params.calls,
+    client.environment.safeMultisend,
+  );
 
-    const signature = expectEvmSignature(
-      yield signGaslessMessage(
-        expectHexString(
-          OxTypedData.getSignPayload(
-            safePayload as Parameters<typeof OxTypedData.getSignPayload>[0],
-          ),
+  const safePayload = createSafeTypedDataPayload({
+    chainId: client.environment.chainId,
+    data: transaction.data,
+    nonce: executeParams.nonce,
+    operation: transaction.operation,
+    safeAddress: client.account.wallet,
+    to: transaction.to,
+    value: transaction.value,
+  });
+
+  const signature = expectEvmSignature(
+    yield signGaslessMessage(
+      expectHexString(
+        OxTypedData.getSignPayload(
+          safePayload as Parameters<typeof OxTypedData.getSignPayload>[0],
         ),
       ),
-    );
+    ),
+  );
 
-    return executeGasless(client, {
-      data: transaction.data,
-      from: client.account.signer,
-      metadata: params.metadata,
-      nonce: executeParams.nonce,
-      proxyWallet: client.account.wallet,
-      signature: packSafeSignature(signature),
-      signatureParams: createSafeSignatureParams(transaction.operation),
-      to: transaction.to,
-      type: RelayerTransactionType.SAFE,
-      value: transaction.value > 0n ? `${transaction.value}` : undefined,
-    });
-  }.call(null);
+  return executeGasless(client, {
+    data: transaction.data,
+    from: client.account.signer,
+    metadata: params.metadata,
+    nonce: executeParams.nonce,
+    proxyWallet: client.account.wallet,
+    signature: packSafeSignature(signature),
+    signatureParams: createSafeSignatureParams(transaction.operation),
+    to: transaction.to,
+    type: RelayerTransactionType.SAFE,
+    value: transaction.value > 0n ? `${transaction.value}` : undefined,
+  });
 }
 
 type ExecuteGaslessRequest = RelayerExecuteRequest;
@@ -516,6 +566,36 @@ async function executeGasless(
   );
 
   return new GaslessTransactionHandle(client, response);
+}
+
+function isRetryableGaslessSubmitError(error: unknown): boolean {
+  if (!(error instanceof RequestRejectedError) || error.status !== 400) {
+    return false;
+  }
+
+  if (
+    (/wallet busy/i.test(error.message) &&
+      /active action/i.test(error.message)) ||
+    /wallet has in-flight action/i.test(error.message)
+  ) {
+    return true;
+  }
+
+  const match =
+    /batch nonce\s+(\d+)\s+does not match on-chain nonce\s+(\d+)/i.exec(
+      error.message,
+    );
+  if (match === null) {
+    return false;
+  }
+
+  const submittedNonce = match[1];
+  const onChainNonce = match[2];
+  if (submittedNonce === undefined || onChainNonce === undefined) {
+    return false;
+  }
+
+  return BigInt(submittedNonce) < BigInt(onChainNonce);
 }
 
 type DepositWalletCall = {
