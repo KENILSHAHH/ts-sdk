@@ -31,7 +31,7 @@ export type WalletActions = {
    */
   isGaslessReady(): Promise<boolean>;
   /**
-   * Sets up the approvals required for trading.
+   * Sets up the approvals required for trading and supported position lifecycle workflows.
    *
    * @throws {@link SetupTradingApprovalsError}
    * Thrown on failure.

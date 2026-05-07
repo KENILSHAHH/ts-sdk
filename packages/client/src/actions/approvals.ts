@@ -262,7 +262,8 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
  * Prepares all approvals required for trading, including collateral and
  * position token approvals for both standard and neg-risk market flows.
  * The neg-risk adapter approvals cover split, merge, and redemption workflows
- * on neg-risk markets.
+ * on neg-risk markets. Auto-redeem approval is included so accounts are ready
+ * for supported position lifecycle workflows.
  *
  * @example
  * ```ts
@@ -306,6 +307,11 @@ export async function prepareTradingApprovals(
       client.environment.negRiskAdapter,
       true,
     ),
+    erc1155ApprovalForAllCall(
+      client.environment.conditionalTokens,
+      client.environment.autoRedeemOperator,
+      true,
+    ),
   ] as const;
 
   return async function* (): TradingApprovalsWorkflow {
@@ -345,9 +351,16 @@ export async function prepareTradingApprovals(
       );
       await conditionalNegRiskApproval.wait();
 
-      return expectTransactionHandle(
+      const conditionalNegRiskAdapterApproval = expectTransactionHandle(
         yield sendErc1155ApprovalForAllTransaction(
           signerTransactionRequest(client.environment.chainId, calls[5]),
+        ),
+      );
+      await conditionalNegRiskAdapterApproval.wait();
+
+      return expectTransactionHandle(
+        yield sendErc1155ApprovalForAllTransaction(
+          signerTransactionRequest(client.environment.chainId, calls[6]),
         ),
       );
     }
