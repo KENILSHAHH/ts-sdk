@@ -18,23 +18,23 @@ const ORDER_TYPE_STRING =
   'Order(uint256 salt,address maker,address signer,uint256 tokenId,uint256 makerAmount,uint256 takerAmount,uint8 side,uint8 signatureType,uint256 timestamp,bytes32 metadata,bytes32 builder)';
 
 describe('createOrderTypedDataPayload', () => {
-  it('wraps POLY_1271 orders with the wallet domain and app message domain', () => {
+  it('wraps POLY_1271 orders with the app domain and wallet message domain', () => {
     const payload = createOrderTypedDataPayload(
       createUnsignedOrderFixture(SignatureType.POLY_1271),
     );
 
     expect(payload.domain).toEqual({
       chainId: 137,
-      name: 'DepositWallet',
-      verifyingContract: DEPOSIT_WALLET_ADDRESS,
-      version: '1',
+      name: 'Polymarket CTF Exchange',
+      verifyingContract: EXCHANGE_ADDRESS,
+      version: '2',
     });
     expect(payload.message).toMatchObject({
       chainId: 137,
-      name: 'Polymarket CTF Exchange',
+      name: 'DepositWallet',
       salt: '0x0000000000000000000000000000000000000000000000000000000000000000',
-      verifyingContract: EXCHANGE_ADDRESS,
-      version: '2',
+      verifyingContract: DEPOSIT_WALLET_ADDRESS,
+      version: '1',
     });
     expect(payload.primaryType).toBe('TypedDataSign');
   });
