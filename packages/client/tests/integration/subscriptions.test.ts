@@ -82,7 +82,9 @@ describe('Subscriptions', () => {
     await handle.close();
     await publicClient.closeSubscriptions();
 
-    await expect(waitForNextEvent(handle)).resolves.toMatchObject({ done: true });
+    await expect(waitForNextEvent(handle)).resolves.toMatchObject({
+      done: true,
+    });
   });
 });
 

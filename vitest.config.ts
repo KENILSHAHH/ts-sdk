@@ -52,6 +52,7 @@ export default defineConfig({
           include: ['packages/client/tests/integration/**/*.test.ts'],
           exclude: [...configDefaults.exclude],
           environment: 'node',
+          fileParallelism: false,
           testTimeout: 60_000,
         },
       },
