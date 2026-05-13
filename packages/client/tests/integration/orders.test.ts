@@ -4,17 +4,22 @@ import {
   createSecureClient,
   InsufficientLiquidityError,
   type Market,
-  type PublicClient,
   type SecureClient,
 } from '@polymarket/client';
 import { fetchNegRisk } from '@polymarket/client/actions';
 import { expectPresent } from '@polymarket/types';
 import { afterAll } from 'vitest';
-import { describe, expect, it, runMeteredTests } from './fixtures';
+import {
+  describe,
+  expect,
+  it,
+  publicClient,
+  runMeteredTests,
+} from './fixtures';
 import { expectAcceptedOrderResponse } from './helpers';
 import { findHighVolumeLowPriceMarket } from './markets';
 
-let marketPromise: Promise<Market> | undefined;
+const market = await findHighVolumeLowPriceMarket(publicClient);
 let marketOrderCleanup:
   | {
       market: Market;
@@ -27,7 +32,6 @@ describe('Orders', { timeout: 60_000 }, () => {
     it('calculates the price for a market buy at the minimum size', async ({
       publicClient,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
       const result = await publicClient.estimateMarketPrice({
@@ -45,7 +49,6 @@ describe('Orders', { timeout: 60_000 }, () => {
     it('throws an explicit liquidity error when an FOK amount cannot fully fill', async ({
       publicClient,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
       await expect(
@@ -59,7 +62,7 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
   });
 
-  describe('prepareMarketOrder', () => {
+  describe('placeMarketOrder', () => {
     afterAll(async () => {
       if (marketOrderCleanup === undefined) {
         return;
@@ -91,39 +94,33 @@ describe('Orders', { timeout: 60_000 }, () => {
 
     it.runIf(runMeteredTests)(
       'closes leftover inventory or round-trips a minimum-size market order',
-      async ({ annotate, publicClient, secureClientWithDepositWallet }) => {
-        const market = await findOrderMarket(publicClient);
-        marketOrderCleanup = {
-          market,
-          secureClient: secureClientWithDepositWallet,
-        };
+      async ({ annotate, secureClientWithDepositWallet, skip }) => {
+        const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
         const positions = await secureClientWithDepositWallet
           .listPositions({
             user: secureClientWithDepositWallet.account.wallet,
           })
           .firstPage();
-        const position = positions.items.find(
-          (candidate) => candidate.tokenId && Number(candidate.size ?? 0) > 0,
+        const existingPosition = positions.items.find(
+          (candidate) =>
+            candidate.tokenId === yesTokenId && Number(candidate.size ?? 0) > 0,
         );
 
-        if (position !== undefined) {
+        if (existingPosition !== undefined) {
           annotate(
-            `Found existing position in condition ${position.conditionId} with size ${position.size} and asset ${position.tokenId}, closing with market order...`,
+            `Found existing position for token ${yesTokenId} with size ${existingPosition.size}, closing it with a market sell order...`,
           );
 
-          // Recover from a previous partially executed test run by selling any
-          // leftover inventory, and use that cleanup path to exercise market
-          // order posting.
-          const result = await secureClientWithDepositWallet
+          const sellResult = await secureClientWithDepositWallet
             .placeMarketOrder({
               side: OrderSide.SELL,
-              shares: expectPresent(position.size),
-              tokenId: expectPresent(position.tokenId),
+              shares: expectPresent(existingPosition.size),
+              tokenId: yesTokenId,
             })
             .then(expectAcceptedOrderResponse);
 
-          expect(result.orderId).not.toBe('');
+          expect(sellResult.orderId).not.toBe('');
           return;
         }
 
@@ -131,10 +128,9 @@ describe('Orders', { timeout: 60_000 }, () => {
           'No existing positions found, placing a minimum-size buy market order...',
         );
 
-        const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
         const buyResult = await secureClientWithDepositWallet
           .placeMarketOrder({
-            amount: expectPresent(1),
+            amount: 1,
             side: OrderSide.BUY,
             tokenId: yesTokenId,
           })
@@ -143,13 +139,13 @@ describe('Orders', { timeout: 60_000 }, () => {
         expect(buyResult.orderId).not.toBe('');
       },
     );
+  });
 
+  describe('createMarketOrder', () => {
     it('carries builder attribution onto the prepared market order', async ({
       builderCode,
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
       const order = await secureClientWithDepositWallet.createMarketOrder({
@@ -163,12 +159,10 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
   });
 
-  describe('prepareLimitOrder', () => {
+  describe('placeLimitOrder', () => {
     it('allows to place a limit order for the desired size and price', async ({
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
@@ -185,10 +179,9 @@ describe('Orders', { timeout: 60_000 }, () => {
 
     it('carries post-only submission options onto the prepared order', async ({
       builderCode,
-      publicClient,
+
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
@@ -209,10 +202,9 @@ describe('Orders', { timeout: 60_000 }, () => {
     it('requests a collateral approval if necessary', async ({
       depositWalletAddress,
       depositWalletSigner,
-      publicClient,
+
       relayerAuthentication,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
@@ -251,12 +243,10 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
   });
 
-  describe('prepareLimitOrderPosting', () => {
+  describe('placeLimitOrder', () => {
     it('creates, signs, and posts a limit order in one workflow', async ({
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
@@ -278,10 +268,8 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('cancelOrder', () => {
     it('cancels a single open order', async ({
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const { orderId } = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -304,10 +292,8 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('postOrders', () => {
     it('posts multiple resting limit orders', async ({
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const responses = await Promise.all([
         createSignedRestingLimitOrder(secureClientWithDepositWallet, market),
         createSignedRestingLimitOrder(secureClientWithDepositWallet, market),
@@ -329,10 +315,8 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('cancelOrders', () => {
     it('cancels multiple open orders', async ({
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const firstOrder = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -352,11 +336,7 @@ describe('Orders', { timeout: 60_000 }, () => {
   });
 
   describe('cancelAll', () => {
-    it('cancels all open orders', async ({
-      publicClient,
-      secureClientWithDepositWallet,
-    }) => {
-      const market = await findOrderMarket(publicClient);
+    it('cancels all open orders', async ({ secureClientWithDepositWallet }) => {
       const order = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -369,10 +349,8 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('cancelMarketOrders', () => {
     it('cancels open orders for a market and asset', async ({
-      publicClient,
       secureClientWithDepositWallet,
     }) => {
-      const market = await findOrderMarket(publicClient);
       const order = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -387,12 +365,6 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
   });
 });
-
-async function findOrderMarket(publicClient: PublicClient) {
-  marketPromise ??= findHighVolumeLowPriceMarket(publicClient);
-
-  return marketPromise;
-}
 
 async function createRestingLimitOrder(
   secureClient: SecureClient,
