@@ -19,12 +19,9 @@ describe('decimalPlaces', () => {
     [1.23e-7, 9],
     ['1.23E-7', 9],
     [1.234e-7, 10],
-  ])(
-    'counts negative scientific notation decimal places for %s',
-    (value, expected) => {
-      expect(decimalPlaces(value)).toBe(expected);
-    },
-  );
+  ])('counts negative scientific notation decimal places for %s', (value, expected) => {
+    expect(decimalPlaces(value)).toBe(expected);
+  });
 
   it.each([
     [1e3, 0],
@@ -33,10 +30,7 @@ describe('decimalPlaces', () => {
     [1.23e1, 1],
     ['1.23e+1', 1],
     [1.234e2, 1],
-  ])(
-    'counts positive scientific notation decimal places for %s',
-    (value, expected) => {
-      expect(decimalPlaces(value)).toBe(expected);
-    },
-  );
+  ])('counts positive scientific notation decimal places for %s', (value, expected) => {
+    expect(decimalPlaces(value)).toBe(expected);
+  });
 });
