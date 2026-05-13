@@ -27,8 +27,8 @@ describe('Builders', () => {
         if (existingTrades.length > 0) {
           expect(existingTrades[0]).toEqual(
             expect.objectContaining({
-              builderCode,
               id: expect.any(String),
+              tokenId: expect.any(String),
             }),
           );
           return;
@@ -59,8 +59,8 @@ describe('Builders', () => {
 
         expect(newTrades[0]).toEqual(
           expect.objectContaining({
-            builderCode,
             id: expect.any(String),
+            tokenId,
           }),
         );
       },
