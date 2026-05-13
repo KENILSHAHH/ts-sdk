@@ -45,10 +45,12 @@ type IntegrationFixtures = {
   secureClientWithDepositWallet: SecureClient;
 };
 
+export const publicClient = createPublicClient();
+
 export const it: TestAPI<IntegrationFixtures> =
   base.extend<IntegrationFixtures>({
     publicClient: async ({ skip: _skip }, use) => {
-      await use(createPublicClient());
+      await use(publicClient);
     },
 
     depositWalletAddress: async ({ skip }, use) => {
