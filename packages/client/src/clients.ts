@@ -697,6 +697,7 @@ class BaseSecureClient<
   async endAuthentication(): Promise<
     PublicClient<TPublicActions, TSecureActions>
   > {
+    // Server-side revocation must not depend on local WebSocket cleanup.
     const closingSubscriptions = this.closeSubscriptions();
     const { apiKey, environment } = this.context;
 
