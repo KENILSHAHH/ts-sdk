@@ -628,7 +628,7 @@ class BaseSecureClient<
    * ```
    */
   async closeSubscriptions(): Promise<void> {
-    await Promise.all([
+    await Promise.allSettled([
       this.webSockets.clobMarket.close(),
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
@@ -697,12 +697,15 @@ class BaseSecureClient<
   async endAuthentication(): Promise<
     PublicClient<TPublicActions, TSecureActions>
   > {
-    await this.closeSubscriptions();
-
+    const closingSubscriptions = this.closeSubscriptions();
     const { apiKey, environment } = this.context;
 
-    await deleteApiKey(this);
-    this.endAuthenticationLifecycle();
+    try {
+      await deleteApiKey(this);
+    } finally {
+      this.endAuthenticationLifecycle();
+      await closingSubscriptions;
+    }
 
     const client = new BasePublicClient({
       apiKey,
