@@ -28,12 +28,20 @@ export function roundNormal(value: number, decimals: number): number {
   return Math.round(value * 10 ** decimals) / 10 ** decimals;
 }
 
-export function decimalPlaces(value: number): number {
-  if (Number.isInteger(value)) {
+export function decimalPlaces(value: number | string): number {
+  if (typeof value === 'number' && Number.isInteger(value)) {
     return 0;
   }
 
-  const parts = value.toString().split('.');
+  const [mantissa = '', exponent] = value.toString().toLowerCase().split('e');
+  const [, fractionalPart = ''] = mantissa.split('.');
+  const fractionalPlaces = fractionalPart.length;
 
-  return parts.length <= 1 ? 0 : (parts[1]?.length ?? 0);
+  if (exponent === undefined) {
+    return fractionalPlaces;
+  }
+
+  const exponentValue = Number.parseInt(exponent, 10);
+
+  return Math.max(0, fractionalPlaces - exponentValue);
 }
