@@ -61,7 +61,7 @@ const ExpirationToIsoDateTimeStringSchema = z
 export type OrderBookLevel = z.infer<typeof OrderBookLevelSchema>;
 
 export const MarketBookEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('book'),
     market: z.string(),
     asset_id: TokenIdSchema,
@@ -103,7 +103,7 @@ export const MarketBookEventSchema = z
 export type MarketBookEvent = z.infer<typeof MarketBookEventSchema>;
 
 const PriceChangeSchema = z
-  .looseObject({
+  .object({
     asset_id: TokenIdSchema,
     price: DecimalStringSchema,
     size: DecimalStringSchema,
@@ -122,7 +122,7 @@ const PriceChangeSchema = z
 export type PriceChange = z.infer<typeof PriceChangeSchema>;
 
 export const MarketPriceChangeEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('price_change'),
     market: z.string(),
     price_changes: z.array(PriceChangeSchema),
@@ -145,7 +145,7 @@ export type MarketPriceChangeEvent = z.infer<
 >;
 
 export const MarketLastTradePriceEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('last_trade_price'),
     market: z.string(),
     asset_id: TokenIdSchema,
@@ -177,7 +177,7 @@ export type MarketLastTradePriceEvent = z.infer<
 >;
 
 export const MarketTickSizeChangeEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('tick_size_change'),
     market: z.string(),
     asset_id: TokenIdSchema,
@@ -206,7 +206,7 @@ export type MarketTickSizeChangeEvent = z.infer<
 >;
 
 export const MarketBestBidAskEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('best_bid_ask'),
     market: z.string(),
     asset_id: TokenIdSchema,
@@ -242,7 +242,7 @@ const MarketEventMessageSchema = z.object({
 export type MarketEventMessage = z.infer<typeof MarketEventMessageSchema>;
 
 export const NewMarketEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('new_market'),
     id: z.string(),
     question: z.string().nullish(),
@@ -307,7 +307,7 @@ export const NewMarketEventSchema = z
 export type NewMarketEvent = z.infer<typeof NewMarketEventSchema>;
 
 export const MarketResolvedEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('market_resolved'),
     id: z.string(),
     market: z.string(),
@@ -353,7 +353,7 @@ export enum UserOrderEventType {
 const UserOrderEventTypeSchema = z.enum(UserOrderEventType);
 
 export const UserOrderEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('order'),
     id: z.string(),
     owner: z.string(),
@@ -413,7 +413,7 @@ export const UserOrderEventSchema = z
 export type UserOrderEvent = z.infer<typeof UserOrderEventSchema>;
 
 const TradeMakerOrderSchema = z
-  .looseObject({
+  .object({
     order_id: z.string(),
     owner: z.string(),
     maker_address: z.string().nullish(),
@@ -448,7 +448,7 @@ const TradeMakerOrderSchema = z
 export type TradeMakerOrder = z.infer<typeof TradeMakerOrderSchema>;
 
 export const UserTradeEventSchema = z
-  .looseObject({
+  .object({
     event_type: z.literal('trade'),
     type: z.literal('TRADE'),
     id: z.string(),

@@ -130,7 +130,7 @@ export const CryptoPricesEventSchema = z.discriminatedUnion('topic', [
 export type CryptoPricesEvent = z.infer<typeof CryptoPricesEventSchema>;
 
 const EquityPriceUpdatePayloadSchema = z
-  .looseObject({
+  .object({
     symbol: z.string(),
     value: DecimalishSchema,
     full_accuracy_value: DecimalStringSchema.nullish(),

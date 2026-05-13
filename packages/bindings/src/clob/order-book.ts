@@ -11,7 +11,7 @@ export const OrderBookLevelSchema = z.object({
 });
 
 export const OrderBookSchema = z
-  .looseObject({
+  .object({
     market: z.string(),
     asset_id: TokenIdSchema,
     timestamp: EpochMillisecondsStringSchema.nullish(),

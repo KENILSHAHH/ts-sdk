@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { EpochMillisecondsToIsoDateTimeStringSchema } from '../shared';
 
 const SportsResultPayloadSchema = z
-  .looseObject({
+  .object({
     gameId: z.number().int(),
     sportradarGameId: z.string().nullish(),
     slug: z.string().nullish(),

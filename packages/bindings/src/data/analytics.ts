@@ -3,7 +3,7 @@ import { DecimalishSchema, TokenIdSchema } from '../shared';
 import { AddressSchema, Hash64Schema } from './common';
 
 export const HolderSchema = z
-  .looseObject({
+  .object({
     proxyWallet: AddressSchema.nullish(),
     bio: z.string().nullish(),
     asset: TokenIdSchema.nullish(),

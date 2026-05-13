@@ -4,7 +4,7 @@ import { EventSchema } from './event';
 import { ProfileSchema } from './profile';
 
 export const SearchTagSchema = z
-  .looseObject({
+  .object({
     id: TagIdSchema,
     event_count: z.number().int().nullish(),
     label: z.string().nullish(),
