@@ -33,7 +33,12 @@ describe('ethers-v5', () => {
 
   it.runIf(runMeteredTests)(
     'places and cancels a limit order',
-    async ({ depositWalletAddress, depositWalletPrivateKey, publicClient }) => {
+    async ({
+      depositWalletAddress,
+      depositWalletPrivateKey,
+      publicClient,
+      relayerAuthentication,
+    }) => {
       const market = await publicClient.fetchMarket({
         slug: TEST_MARKET_SLUG,
       });
@@ -41,6 +46,7 @@ describe('ethers-v5', () => {
       const price = expectPresent(market.trading.minimumTickSize);
       const size = expectPresent(market.trading.minimumOrderSize);
       const secureClient = await createSecureClient({
+        apiKey: relayerAuthentication,
         wallet: depositWalletAddress,
         signer: signerFrom(
           new ethers.Wallet(depositWalletPrivateKey, provider),
