@@ -7,7 +7,7 @@ import {
 } from '../shared';
 
 const CurrentRewardConfigSchema = z
-  .looseObject({
+  .object({
     id: z.number().int().optional(),
     asset_address: z.string(),
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
@@ -35,7 +35,7 @@ const CurrentRewardConfigSchema = z
 export type CurrentRewardConfig = z.infer<typeof CurrentRewardConfigSchema>;
 
 export const CurrentRewardSchema = z
-  .looseObject({
+  .object({
     condition_id: ConditionIdSchema,
     rewards_max_spread: z.number().optional(),
     rewards_min_size: DecimalishSchema.optional(),
@@ -98,7 +98,7 @@ const RewardTokenSchema = z
 export type RewardToken = z.infer<typeof RewardTokenSchema>;
 
 const RewardConfigSchema = z
-  .looseObject({
+  .object({
     asset_address: z.string(),
     start_date: EpochMillisecondsToIsoDateTimeStringSchema,
     end_date: EpochMillisecondsToIsoDateTimeStringSchema.optional(),
@@ -125,7 +125,7 @@ const RewardConfigSchema = z
 export type RewardConfig = z.infer<typeof RewardConfigSchema>;
 
 export const MarketRewardSchema = z
-  .looseObject({
+  .object({
     condition_id: ConditionIdSchema,
     question: z.string(),
     market_slug: z.string().optional(),

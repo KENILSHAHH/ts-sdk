@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const NegRiskSchema = z
-  .looseObject({
+  .object({
     neg_risk: z.boolean(),
   })
   .transform(({ neg_risk, ...rest }) => ({

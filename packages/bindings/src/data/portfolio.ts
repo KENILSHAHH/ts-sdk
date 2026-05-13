@@ -10,7 +10,7 @@ import {
 import { AddressSchema } from './common';
 
 export const PositionSchema = z
-  .looseObject({
+  .object({
     proxyWallet: AddressSchema.nullish(),
     asset: TokenIdSchema.nullish(),
     conditionId: ConditionIdSchema,
@@ -46,7 +46,7 @@ export const PositionSchema = z
   }));
 
 export const ClosedPositionSchema = z
-  .looseObject({
+  .object({
     proxyWallet: AddressSchema.nullish(),
     asset: TokenIdSchema.nullish(),
     conditionId: ConditionIdSchema.nullish(),
@@ -78,7 +78,7 @@ export const ValueSchema = z.object({
 });
 
 export const MarketPositionSchema = z
-  .looseObject({
+  .object({
     proxyWallet: AddressSchema.nullish(),
     name: z.string().nullish(),
     profileImage: z.string().nullish(),

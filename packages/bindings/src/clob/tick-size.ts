@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { TickSizeValueSchema } from '../shared';
 
 export const TickSizeSchema = z
-  .looseObject({
+  .object({
     minimum_tick_size: TickSizeValueSchema,
   })
   .transform(({ minimum_tick_size, ...rest }) => ({

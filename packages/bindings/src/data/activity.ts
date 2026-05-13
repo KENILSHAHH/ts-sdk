@@ -180,7 +180,7 @@ const OptionalTextSchema = z.preprocess(
 );
 
 export const TradeSchema = z
-  .looseObject({
+  .object({
     proxyWallet: AddressSchema.nullish(),
     side: SideSchema.nullish(),
     asset: TokenIdSchema.nullish(),
@@ -207,7 +207,7 @@ export const TradeSchema = z
     tokenId: asset,
   }));
 
-const RawActivitySchema = z.looseObject({
+const RawActivitySchema = z.object({
   proxyWallet: AddressSchema.nullish(),
   timestamp: EpochSecondsToMillisecondsSchema.nullish(),
   conditionId: z.preprocess(

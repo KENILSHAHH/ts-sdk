@@ -7,7 +7,7 @@ import {
 } from '../shared';
 
 export const BuilderTradeSchema = z
-  .looseObject({
+  .object({
     id: z.string(),
     tradeType: z.string(),
     takerOrderHash: z.string(),

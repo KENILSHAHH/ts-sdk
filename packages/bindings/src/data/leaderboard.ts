@@ -12,7 +12,7 @@ export const LeaderboardEntrySchema = z.object({
 });
 
 export const BuilderVolumeEntrySchema = z
-  .looseObject({
+  .object({
     dt: IsoDateTimeStringSchema.nullish(),
     builder: z.string().nullish(),
     builderLogo: z.string().nullish(),
