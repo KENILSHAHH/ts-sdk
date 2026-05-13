@@ -92,7 +92,7 @@ export const production: EnvironmentConfig = {
     '0xe2222d279d744050d28e00520010520000310F59',
   ),
   autoRedeemOperator: expectEvmAddress(
-    '0x05cD9922A5d37faE921Fc5Dee280A9dBc4C3b393',
+    '0xF3cFb6a6eBFeB51876289Eb235719EB1C65252B0',
   ),
   safeMultisend: expectEvmAddress('0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761'),
   relayHub: expectEvmAddress('0xD216153c06E857cD7f72665E0aF1d7D82172F494'),
