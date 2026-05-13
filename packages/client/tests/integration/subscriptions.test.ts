@@ -78,12 +78,11 @@ describe('Subscriptions', () => {
       { tokenIds: [tokenId], topic: 'market' },
       { topic: 'sports' },
     ]);
-    const next = waitForNextEvent(handle);
 
     await handle.close();
     await publicClient.closeSubscriptions();
 
-    await expect(next).resolves.toMatchObject({ done: true });
+    await expect(waitForNextEvent(handle)).resolves.toMatchObject({ done: true });
   });
 });
 
