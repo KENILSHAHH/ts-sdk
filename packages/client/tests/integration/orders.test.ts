@@ -94,7 +94,7 @@ describe('Orders', { timeout: 60_000 }, () => {
 
     it.runIf(runMeteredTests)(
       'closes leftover inventory or round-trips a minimum-size market order',
-      async ({ annotate, secureClientWithDepositWallet, skip }) => {
+      async ({ annotate, secureClientWithDepositWallet }) => {
         const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
 
         const positions = await secureClientWithDepositWallet
@@ -294,10 +294,18 @@ describe('Orders', { timeout: 60_000 }, () => {
     it('posts multiple resting limit orders', async ({
       secureClientWithDepositWallet,
     }) => {
-      const responses = await Promise.all([
-        createSignedRestingLimitOrder(secureClientWithDepositWallet, market),
-        createSignedRestingLimitOrder(secureClientWithDepositWallet, market),
-      ]).then((orders) => secureClientWithDepositWallet.postOrders(orders));
+      const firstOrder = await createSignedRestingLimitOrder(
+        secureClientWithDepositWallet,
+        market,
+      );
+      const secondOrder = await createSignedRestingLimitOrder(
+        secureClientWithDepositWallet,
+        market,
+      );
+      const responses = await secureClientWithDepositWallet.postOrders([
+        firstOrder,
+        secondOrder,
+      ]);
 
       expect(responses).toHaveLength(2);
       expect(responses.every((response) => response.ok)).toBe(true);
