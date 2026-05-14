@@ -184,7 +184,7 @@ export class ServiceClient {
         }
 
         const message = await this.#extractResponseErrorMessage(response);
-        throw new RequestRejectedError(message, {
+        throw new RequestRejectedError(`${message} (${response.url})`, {
           status: response.status,
         });
       }),
