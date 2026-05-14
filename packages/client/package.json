@@ -18,10 +18,6 @@
       "types": "./dist/actions/index.d.ts",
       "default": "./dist/actions/index.js"
     },
-    "./decorators": {
-      "types": "./dist/decorators/index.d.ts",
-      "default": "./dist/decorators/index.js"
-    },
     "./ethers-v5": {
       "types": "./dist/ethers-v5.d.ts",
       "default": "./dist/ethers-v5.js"
@@ -42,9 +38,6 @@
       ],
       "actions": [
         "./dist/actions/index.d.ts"
-      ],
-      "decorators": [
-        "./dist/decorators/index.d.ts"
       ],
       "ethers-v5": [
         "./dist/ethers-v5.d.ts"

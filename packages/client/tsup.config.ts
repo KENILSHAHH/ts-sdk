@@ -7,7 +7,6 @@ export default defineConfig(() => [
     entry: [
       'src/index.ts',
       'src/actions/index.ts',
-      'src/decorators/index.ts',
       'src/ethers-v5.ts',
       'src/viem.ts',
     ],
