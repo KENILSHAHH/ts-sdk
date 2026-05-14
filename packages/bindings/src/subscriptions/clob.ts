@@ -25,7 +25,17 @@ export enum TradeStatus {
   Failed = 'TRADE_STATUS_FAILED',
 }
 
-const TradeStatusSchema = z.enum(TradeStatus);
+const TradeStatusSchema = z.preprocess((value) => {
+  if (typeof value !== 'string' || value.startsWith('TRADE_STATUS_')) {
+    return value;
+  }
+
+  const normalized = Object.values(TradeStatus).find(
+    (status) => status.slice('TRADE_STATUS_'.length) === value,
+  );
+
+  return normalized ?? value;
+}, z.enum(TradeStatus));
 
 export enum UserOrderStatus {
   Live = 'LIVE',
