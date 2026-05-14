@@ -50,5 +50,11 @@ export function createSignedOrder(
 }
 
 function generateOrderSalt(): bigint {
-  return BigInt(Math.round(Math.random() * Date.now()));
+  const bytes = new Uint8Array(32);
+
+  globalThis.crypto.getRandomValues(bytes);
+
+  return BigInt(
+    `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`,
+  );
 }

@@ -139,7 +139,7 @@ function createSendOrderPayload(client: BaseSecureClient, order: SignedOrder) {
       maker: order.maker,
       makerAmount: order.makerAmount,
       metadata: order.metadata,
-      salt: Number.parseInt(order.salt, 10),
+      salt: order.salt,
       side: order.side,
       signature: order.signature,
       signatureType: order.signatureType,

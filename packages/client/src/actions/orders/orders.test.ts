@@ -2,7 +2,7 @@ import { OrderSide, OrderType, toTokenId } from '@polymarket/bindings';
 import { SignatureType } from '@polymarket/bindings/clob';
 import { WalletType } from '@polymarket/bindings/gamma';
 import type { EvmAddress } from '@polymarket/types';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUnsignedOrder } from './orders';
 import type { OrderDraft } from './types';
 
@@ -13,6 +13,10 @@ const PROXY_WALLET = '0x7754536ecd85c00b2e0cf9c1aa679340d8550756' as EvmAddress;
 const SAFE_WALLET = '0x766b6851a199bf91ae3fa13b1cfac5187355118f' as EvmAddress;
 
 describe('createUnsignedOrder', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it.each([
     {
       expectedSignatureType: SignatureType.EOA,
@@ -57,6 +61,28 @@ describe('createUnsignedOrder', () => {
         signer: expectedSigner,
       }),
     );
+  });
+
+  it('generates a cryptographically random 256-bit salt', () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues<T extends ArrayBufferView | null>(values: T): T {
+        if (!(values instanceof Uint8Array)) {
+          throw new TypeError('Expected Uint8Array');
+        }
+
+        values.fill(0xff);
+
+        return values;
+      },
+    });
+
+    const order = createUnsignedOrder(createOrderDraft(DEPOSIT_WALLET), {
+      signer: SIGNER,
+      wallet: DEPOSIT_WALLET,
+      walletType: WalletType.DEPOSIT_WALLET,
+    });
+
+    expect(order.salt).toBe((2n ** 256n - 1n).toString());
   });
 });
 
