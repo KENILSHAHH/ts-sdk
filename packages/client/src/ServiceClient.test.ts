@@ -30,7 +30,7 @@ describe('ServiceClient', () => {
     const client = new ServiceClient({ root });
 
     await expect(unwrap(client.get('/json-error'))).rejects.toMatchObject({
-      message: 'structured failure',
+      message: `structured failure (${root}/json-error)`,
       name: 'RequestRejectedError',
       status: 400,
     });
@@ -50,7 +50,7 @@ describe('ServiceClient', () => {
     await expect(
       unwrap(client.get('/cloudflare-json-error')),
     ).rejects.toMatchObject({
-      message: 'structured cloudflare failure',
+      message: `structured cloudflare failure (${root}/cloudflare-json-error)`,
       name: 'RequestRejectedError',
       status: 400,
     });
@@ -70,7 +70,7 @@ describe('ServiceClient', () => {
     const client = new ServiceClient({ root });
 
     await expect(unwrap(client.get('/text-error'))).rejects.toMatchObject({
-      message: 'plain failure',
+      message: `plain failure (${root}/text-error)`,
       name: 'RequestRejectedError',
       status: 400,
     });
@@ -92,7 +92,7 @@ describe('ServiceClient', () => {
     await expect(
       unwrap(client.get('/cloudflare-text-error')),
     ).rejects.toMatchObject({
-      message: 'plain cloudflare failure',
+      message: `plain cloudflare failure (${root}/cloudflare-text-error)`,
       name: 'RequestRejectedError',
       status: 400,
     });
