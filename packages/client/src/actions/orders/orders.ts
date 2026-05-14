@@ -58,5 +58,17 @@ function generateOrderSalt(): bigint {
     `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`,
   );
 
-  return value & ((1n << 63n) - 1n);
+  // Cap the salt to 53 bits (Number.MAX_SAFE_INTEGER == 2^53 - 1).
+  //
+  // The CLOB wire contract expects `salt` as a JSON number, so the post
+  // pipeline coerces this string through `Number.parseInt` before sending.
+  // JavaScript `number` is an IEEE-754 double and can only represent integers
+  // exactly up to 2^53 - 1; anything larger is silently rounded. The signature,
+  // however, is produced over the original (un-rounded) salt via `BigInt`, so
+  // any rounding on the wire side causes the server to reconstruct a different
+  // EIP-712 hash and reject the order with "invalid signature".
+  //
+  // 53 bits is still ~9.0e15 of collision space (vastly more than the legacy
+  // `Math.random() * Date.now()` salt), and keeps the wire round-trip lossless.
+  return value & ((1n << 53n) - 1n);
 }
