@@ -1,24 +1,22 @@
-import {
-  createSecureClient,
-  type PublicClient,
-  WalletType,
-} from '@polymarket/client';
+import { createSecureClient, WalletType } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { vi } from 'vitest';
-import { describe, expect, it } from './fixtures';
+import { describe, expect, it, publicClient } from './fixtures';
 
 const TEST_MARKET_SLUG = 'eth-flipped-in-2026';
-
-let conditionIdPromise: Promise<string> | undefined;
+const conditionId = await publicClient
+  .fetchMarket({
+    slug: TEST_MARKET_SLUG,
+  })
+  .then((market) => expectPresent(market.conditionId));
 
 describe('Positions', () => {
-  it('splits a market position', async ({
+  // Pending an investigation into split positions not being returned by the Data API
+  it.skip('splits a market position', async ({
     depositWalletAddress,
     depositWalletSigner,
-    publicClient,
     relayerAuthentication,
   }) => {
-    const conditionId = await fetchTestConditionId(publicClient);
     const secureClient = await createSecureClient({
       apiKey: relayerAuthentication,
       signer: depositWalletSigner,
@@ -51,11 +49,9 @@ describe('Positions', () => {
   it('merges complementary positions', async ({
     depositWalletAddress,
     depositWalletSigner,
-    publicClient,
     relayerAuthentication,
     skip,
   }) => {
-    const conditionId = await fetchTestConditionId(publicClient);
     const secureClient = await createSecureClient({
       apiKey: relayerAuthentication,
       signer: depositWalletSigner,
@@ -64,14 +60,14 @@ describe('Positions', () => {
 
     expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
-    const positions = await secureClient
+    const { items: positions } = await secureClient
       .listPositions({
         user: secureClient.account.wallet,
         market: [conditionId],
       })
       .firstPage();
 
-    if (positions.items.length < 2) {
+    if (positions.length < 2) {
       skip('Not enough positions to merge');
     }
 
@@ -96,13 +92,3 @@ describe('Positions', () => {
     );
   }, 20_000);
 });
-
-async function fetchTestConditionId(publicClient: PublicClient) {
-  conditionIdPromise ??= publicClient
-    .fetchMarket({
-      slug: TEST_MARKET_SLUG,
-    })
-    .then((market) => expectPresent(market.conditionId));
-
-  return conditionIdPromise;
-}
