@@ -129,6 +129,45 @@ describe('ClobUserWebSocketManager', () => {
     await expect(marketBNext).resolves.toMatchObject({ done: true });
   });
 
+  it('delivers trade events when the websocket uses short trade statuses', async () => {
+    const connection = captureConnection(server, clobUser);
+    const handle = await manager.subscribe({ topic: 'user' });
+    const next = waitForNextEvent(handle);
+
+    await connection.send({
+      asset_id: 'token-a',
+      event_type: 'trade',
+      fee_rate_bps: '0',
+      id: 'trade-a',
+      last_update: '1710000000',
+      maker_address: '0x0000000000000000000000000000000000000001',
+      market: 'market-a',
+      match_time: '1710000000',
+      owner: 'test-owner',
+      price: '0.5',
+      side: 'BUY',
+      size: '1',
+      status: 'CONFIRMED',
+      taker_order_id: 'order-a',
+      timestamp: '1710000000000',
+      trade_owner: 'test-owner',
+      type: 'TRADE',
+    });
+
+    await expect(next).resolves.toMatchObject({
+      done: false,
+      value: {
+        payload: {
+          id: 'trade-a',
+          status: 'TRADE_STATUS_CONFIRMED',
+          takerOrderId: 'order-a',
+        },
+        topic: 'user',
+        type: 'trade',
+      },
+    });
+  });
+
   it('sends PING heartbeats while subscribed', { timeout: 5_000 }, async () => {
     const frames: string[] = [];
 
