@@ -63,7 +63,7 @@ describe('createUnsignedOrder', () => {
     );
   });
 
-  it('generates a cryptographically random 256-bit salt', () => {
+  it('generates a cryptographically random positive int64 salt', () => {
     vi.stubGlobal('crypto', {
       getRandomValues<T extends ArrayBufferView | null>(values: T): T {
         if (!(values instanceof Uint8Array)) {
@@ -82,7 +82,7 @@ describe('createUnsignedOrder', () => {
       walletType: WalletType.DEPOSIT_WALLET,
     });
 
-    expect(order.salt).toBe((2n ** 256n - 1n).toString());
+    expect(order.salt).toBe((2n ** 63n - 1n).toString());
   });
 });
 

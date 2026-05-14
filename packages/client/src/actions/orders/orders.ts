@@ -50,11 +50,13 @@ export function createSignedOrder(
 }
 
 function generateOrderSalt(): bigint {
-  const bytes = new Uint8Array(32);
+  const bytes = new Uint8Array(8);
 
   globalThis.crypto.getRandomValues(bytes);
 
-  return BigInt(
+  const value = BigInt(
     `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`,
   );
+
+  return value & ((1n << 63n) - 1n);
 }
