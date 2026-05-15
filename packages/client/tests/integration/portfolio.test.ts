@@ -1,3 +1,4 @@
+import { isSameEvmAddress } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
 import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
@@ -21,6 +22,20 @@ describe('Portfolio', () => {
         }),
       );
     });
+
+    it('defaults secure clients to the authenticated wallet', async ({
+      depositWalletAddress,
+      secureClientWithDepositWallet,
+    }) => {
+      const result = await secureClientWithDepositWallet
+        .listPositions({ pageSize: 1 })
+        .firstPage()
+        .then(expectNonEmptyPage);
+
+      expect(result.items[0]?.wallet).toSatisfy((wallet) =>
+        isSameEvmAddress(wallet, depositWalletAddress),
+      );
+    });
   });
 
   describe('listClosedPositions', () => {
@@ -40,6 +55,20 @@ describe('Portfolio', () => {
         }),
       );
     });
+
+    it('defaults secure clients to the authenticated wallet', async ({
+      depositWalletAddress,
+      secureClientWithDepositWallet,
+    }) => {
+      const result = await secureClientWithDepositWallet
+        .listClosedPositions({ pageSize: 1 })
+        .firstPage()
+        .then(expectNonEmptyPage);
+
+      expect(result.items[0]?.wallet).toSatisfy((wallet) =>
+        isSameEvmAddress(wallet, depositWalletAddress),
+      );
+    });
   });
 
   describe('fetchPortfolioValue', () => {
@@ -54,6 +83,17 @@ describe('Portfolio', () => {
           value: expect.any(String),
         }),
       ]);
+    });
+
+    it('defaults secure clients to the authenticated wallet', async ({
+      depositWalletAddress,
+      secureClientWithDepositWallet,
+    }) => {
+      const result = await secureClientWithDepositWallet.fetchPortfolioValue();
+
+      expect(result[0]?.user).toSatisfy((user) =>
+        isSameEvmAddress(user, depositWalletAddress),
+      );
     });
   });
 
@@ -72,6 +112,18 @@ describe('Portfolio', () => {
         }),
       );
     });
+
+    it('defaults secure clients to the authenticated wallet', async ({
+      depositWalletAddress,
+      secureClientWithDepositWallet,
+    }) => {
+      const result =
+        await secureClientWithDepositWallet.fetchTradedMarketCount();
+
+      expect(result.user).toSatisfy((user) =>
+        isSameEvmAddress(user, depositWalletAddress),
+      );
+    });
   });
 
   describe('downloadAccountingSnapshot', () => {
@@ -81,6 +133,17 @@ describe('Portfolio', () => {
       const result = await publicClient.downloadAccountingSnapshot({
         user: TEST_USER,
       });
+
+      expect(result).toBeInstanceOf(Blob);
+      expect(result.size).toBeGreaterThan(0);
+      expect(result.type).toBe('application/zip');
+    });
+
+    it('defaults secure clients to the authenticated wallet', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const result =
+        await secureClientWithDepositWallet.downloadAccountingSnapshot();
 
       expect(result).toBeInstanceOf(Blob);
       expect(result.size).toBeGreaterThan(0);

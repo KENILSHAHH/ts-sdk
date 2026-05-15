@@ -5,32 +5,32 @@ import type {
   BaseSecureClient,
 } from '../clients';
 import {
-  type AccountActions,
-  type AccountPublicActions,
   accountActions,
+  type PublicAccountActions,
+  type SecureAccountActions,
 } from './account';
 import { type AnalyticsActions, analyticsActions } from './analytics';
 import { type DataActions, dataActions } from './data';
 import { type DiscoveryActions, discoveryActions } from './discovery';
 import {
-  type RewardsActions,
-  type RewardsPublicActions,
+  type PublicRewardsActions,
   rewardsActions,
+  type SecureRewardsActions,
 } from './rewards';
 import {
   type PublicSubscriptionsActions,
   type SecureSubscriptionsActions,
   subscriptionsActions,
 } from './subscriptions';
-import { type TradingActions, tradingActions } from './trading';
-import { type WalletActions, walletActions } from './wallet';
+import { type SecureTradingActions, tradingActions } from './trading';
+import { type SecureWalletActions, walletActions } from './wallet';
 
 export type PublicActions = Prettify<
   DiscoveryActions &
     DataActions &
     AnalyticsActions &
-    AccountPublicActions &
-    RewardsPublicActions &
+    PublicAccountActions &
+    PublicRewardsActions &
     PublicSubscriptionsActions
 >;
 
@@ -38,11 +38,11 @@ export type SecureActions = Prettify<
   DiscoveryActions &
     DataActions &
     AnalyticsActions &
-    AccountActions &
-    RewardsActions &
+    SecureAccountActions &
+    SecureRewardsActions &
     SecureSubscriptionsActions &
-    WalletActions &
-    TradingActions
+    SecureWalletActions &
+    SecureTradingActions
 >;
 
 export function allActions(client: BasePublicClient): PublicActions;

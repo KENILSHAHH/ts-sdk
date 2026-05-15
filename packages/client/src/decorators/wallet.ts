@@ -17,7 +17,7 @@ import {
 import type { BaseSecureClient } from '../clients';
 import type { TransactionHandle } from '../types';
 
-export type WalletActions = {
+export type SecureWalletActions = {
   /**
    * Checks whether the authenticated account wallet is ready for gasless transactions.
    *
@@ -182,7 +182,7 @@ export type WalletActions = {
   ): Promise<TransactionHandle>;
 };
 
-export function walletActions(client: BaseSecureClient): WalletActions {
+export function walletActions(client: BaseSecureClient): SecureWalletActions {
   return {
     isGaslessReady: () =>
       isGaslessReady(client, {
