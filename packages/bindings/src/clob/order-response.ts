@@ -34,7 +34,7 @@ export const OrderPostStatusSchema = z.nativeEnum(OrderPostStatus);
 export enum OrderResponseErrorCode {
   UNMATCHED = 'unmatched',
   MARKET_NOT_READY = 'market_not_ready',
-  NOT_ENOUGH_BALANCE = 'not_enough_balance',
+  INSUFFICIENT_BALANCE_OR_ALLOWANCE = 'insufficient_balance_or_allowance',
   INVALID_NONCE = 'invalid_nonce',
   INVALID_EXPIRATION = 'invalid_expiration',
   POST_ONLY_WOULD_CROSS = 'post_only_would_cross',
@@ -156,8 +156,10 @@ function inferOrderResponseErrorCode(
       return OrderResponseErrorCode.FAK_NOT_FILLED;
   }
 
+  // CLOB currently returns one legacy text bucket for both balance and
+  // allowance failures, so expose a combined structured code here.
   if (response.errorMsg.includes('not enough balance / allowance')) {
-    return OrderResponseErrorCode.NOT_ENOUGH_BALANCE;
+    return OrderResponseErrorCode.INSUFFICIENT_BALANCE_OR_ALLOWANCE;
   }
 
   return OrderResponseErrorCode.UNKNOWN;

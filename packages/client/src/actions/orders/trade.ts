@@ -1,4 +1,6 @@
+import { OrderSide } from '@polymarket/bindings';
 import type { OrderResponse } from '@polymarket/bindings/clob';
+import { AssetType, OrderResponseErrorCode } from '@polymarket/bindings/clob';
 import type { BaseSecureClient } from '../../clients';
 import {
   CancelledSigningError,
@@ -7,11 +9,18 @@ import {
   RateLimitError,
   RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
 } from '../../errors';
 import { completeWith } from '../../workflow';
+import { updateBalanceAllowance } from '../account';
+import { approveErc20, approveErc1155ForAll } from '../approvals';
+import { fetchNegRisk } from '../clob';
+import { resolveCurrentAllowance } from './allowance';
+import { resolveExchangeAddress } from './context';
 import { type PostOrderError, postOrder } from './post';
 import {
   type PrepareLimitOrderError,
@@ -52,13 +61,19 @@ export function createMarketOrder(
   return prepareMarketOrder(client, request).then(completeWith(client.signer));
 }
 
-export type PlaceMarketOrderError = CreateMarketOrderError | PostOrderError;
+export type PlaceMarketOrderError =
+  | CreateMarketOrderError
+  | PostOrderError
+  | TimeoutError
+  | TransactionFailedError;
 export const PlaceMarketOrderError = makeErrorGuard(
   CancelledSigningError,
   InsufficientLiquidityError,
   RateLimitError,
   RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -74,7 +89,9 @@ export function placeMarketOrder(
   client: BaseSecureClient,
   request: PrepareMarketOrderRequest,
 ): Promise<OrderResponse> {
-  return createMarketOrder(client, request).then(postOrder(client));
+  return createMarketOrder(client, request).then((order) =>
+    postOrderWithAllowanceRecovery(client, order),
+  );
 }
 
 export type CreateLimitOrderError =
@@ -103,12 +120,18 @@ export function createLimitOrder(
   return prepareLimitOrder(client, request).then(completeWith(client.signer));
 }
 
-export type PlaceLimitOrderError = CreateLimitOrderError | PostOrderError;
+export type PlaceLimitOrderError =
+  | CreateLimitOrderError
+  | PostOrderError
+  | TimeoutError
+  | TransactionFailedError;
 export const PlaceLimitOrderError = makeErrorGuard(
   CancelledSigningError,
   RateLimitError,
   RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -124,5 +147,72 @@ export function placeLimitOrder(
   client: BaseSecureClient,
   request: PrepareLimitOrderRequest,
 ): Promise<OrderResponse> {
-  return createLimitOrder(client, request).then(postOrder(client));
+  return createLimitOrder(client, request).then((order) =>
+    postOrderWithAllowanceRecovery(client, order),
+  );
+}
+
+async function postOrderWithAllowanceRecovery(
+  client: BaseSecureClient,
+  order: SignedOrder,
+): Promise<OrderResponse> {
+  const postSignedOrder = postOrder(client);
+  const response = await postSignedOrder(order);
+
+  if (!isBalanceOrAllowanceRejection(response)) {
+    return response;
+  }
+
+  const approved = await ensureOrderApproval(client, order);
+
+  return approved ? postSignedOrder(order) : response;
+}
+
+function isBalanceOrAllowanceRejection(response: OrderResponse): boolean {
+  return (
+    response.ok === false &&
+    response.code === OrderResponseErrorCode.INSUFFICIENT_BALANCE_OR_ALLOWANCE
+  );
+}
+
+async function ensureOrderApproval(
+  client: BaseSecureClient,
+  order: SignedOrder,
+): Promise<boolean> {
+  const negRisk = await fetchNegRisk(client, { tokenId: order.tokenId });
+  const exchangeAddress = resolveExchangeAddress(client, negRisk);
+  const requiredAllowance = BigInt(order.makerAmount);
+  const currentAllowance = await resolveCurrentAllowance(client, {
+    spenderAddress: exchangeAddress,
+    side: order.side,
+    tokenId: order.tokenId,
+  });
+
+  if (currentAllowance >= requiredAllowance) {
+    return false;
+  }
+
+  const handle =
+    order.side === OrderSide.BUY
+      ? await approveErc20(client, {
+          amount: 'max',
+          spenderAddress: exchangeAddress,
+          tokenAddress: client.environment.collateralToken,
+        })
+      : await approveErc1155ForAll(client, {
+          operatorAddress: exchangeAddress,
+          tokenAddress: client.environment.conditionalTokens,
+        });
+
+  await handle.wait();
+
+  await updateBalanceAllowance(client, {
+    assetType:
+      order.side === OrderSide.BUY
+        ? AssetType.COLLATERAL
+        : AssetType.CONDITIONAL,
+    tokenId: order.side === OrderSide.SELL ? order.tokenId : undefined,
+  });
+
+  return true;
 }

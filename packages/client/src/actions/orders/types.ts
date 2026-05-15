@@ -11,12 +11,8 @@ import type {
   EvmSignature,
   HexString,
 } from '@polymarket/types';
-import type { TransactionHandle, TypedDataPayload } from '../../types';
+import type { TypedDataPayload } from '../../types';
 import type { SignOrderRequest } from '../../workflow';
-import type {
-  Erc20ApprovalWorkflowRequest,
-  Erc1155ApprovalForAllWorkflowRequest,
-} from '../approvals';
 
 type BasePrepareMarketOrderRequest = {
   /** TokenID of the Conditional token asset being traded */
@@ -164,21 +160,18 @@ export type SignedOrder = {
   postOnly?: boolean;
 };
 
-export type OrderWorkflowRequest =
-  | Erc20ApprovalWorkflowRequest
-  | Erc1155ApprovalForAllWorkflowRequest
-  | SignOrderRequest;
+export type OrderWorkflowRequest = SignOrderRequest;
 
 export type OrderWorkflow = AsyncGenerator<
   OrderWorkflowRequest,
   SignedOrder,
-  EvmAddress | EvmSignature | TransactionHandle
+  EvmAddress | EvmSignature
 >;
 
 export type OrderPostingWorkflow = AsyncGenerator<
   OrderWorkflowRequest,
   OrderResponse,
-  EvmAddress | EvmSignature | TransactionHandle
+  EvmAddress | EvmSignature
 >;
 
 /** @internal */
