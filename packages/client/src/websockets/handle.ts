@@ -10,7 +10,9 @@ export function createSubscriptionHandle<TEvent>(
   return {
     close: () => {
       if (closing === undefined) {
-        closing = closeSubscription();
+        closing = Promise.resolve(queue.return()).then(() =>
+          closeSubscription(),
+        );
       }
       return closing;
     },
