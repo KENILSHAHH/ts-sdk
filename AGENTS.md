@@ -51,6 +51,7 @@
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
 - Shape implementation abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
 - When translating one public error into another at an action boundary, prefer `ResultAsync.mapErr(...)` on the request pipeline over `try`/`catch` around `unwrap(...)` when the remap can stay inside the result chain.
+- When an action starts calling another action, awaiting a workflow step, waiting on a transaction handle, or otherwise adding a new operation that can throw, validate the containing action's public `...Error` union and runtime `makeErrorGuard(...)`. Add any newly propagated public errors unless they are caught, remapped, or intentionally handled before crossing the action boundary.
 - Prefer TypeScript enums with `z.enum(MyEnum)` over `z.union([z.literal(...), ...])` for string-valued sets. This gives consumers dot-notation access, keeps the schema and type in sync, and avoids `z.nativeEnum` which is deprecated in Zod v4.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 - Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.

@@ -1,10 +1,4 @@
-import { OrderSide } from '@polymarket/bindings';
-import { AssetType } from '@polymarket/bindings/clob';
-import {
-  type EvmAddress,
-  type EvmSignature,
-  expectEvmSignature,
-} from '@polymarket/types';
+import { expectEvmSignature } from '@polymarket/types';
 import type { BaseSecureClient } from '../../clients';
 import {
   InsufficientLiquidityError,
@@ -17,15 +11,6 @@ import {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
-import type { TransactionHandle } from '../../types';
-import { updateBalanceAllowance } from '../account';
-import {
-  type Erc20ApprovalWorkflowRequest,
-  type Erc1155ApprovalForAllWorkflowRequest,
-  prepareErc20Approval,
-  prepareErc1155ApprovalForAll,
-} from '../approvals';
-import { resolveCurrentAllowance } from './allowance';
 import { PrepareLimitOrderParamsSchema, prepareLimitOrderDraft } from './limit';
 import {
   PrepareMarketOrderParamsSchema,
@@ -38,7 +23,6 @@ import {
   createOrderTypedDataPayload,
 } from './typed-data';
 import {
-  type OrderDraft,
   type OrderPostingWorkflow,
   type OrderWorkflow,
   type PrepareLimitOrderRequest,
@@ -90,8 +74,6 @@ export async function prepareMarketOrder(
 
   return async function* (): OrderWorkflow {
     const draft = await prepareMarketOrderDraft(client, params);
-
-    yield* ensureOrderApproval(client, draft);
 
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
@@ -150,8 +132,6 @@ export async function prepareLimitOrder(
 
   return async function* (): OrderWorkflow {
     const draft = await prepareLimitOrderDraft(client, params);
-
-    yield* ensureOrderApproval(client, draft);
 
     const unsignedOrder = createUnsignedOrder(draft, client.account);
 
@@ -240,45 +220,4 @@ async function createOrderPostingWorkflow(
 
     return postOrder(client)(order);
   }.call(null);
-}
-
-async function* ensureOrderApproval(
-  client: BaseSecureClient,
-  draft: OrderDraft,
-): AsyncGenerator<
-  Erc20ApprovalWorkflowRequest | Erc1155ApprovalForAllWorkflowRequest,
-  void,
-  EvmAddress | EvmSignature | TransactionHandle
-> {
-  const currentAllowance = await resolveCurrentAllowance(client, {
-    spenderAddress: draft.exchangeAddress,
-    side: draft.side,
-    tokenId: draft.tokenId,
-  });
-
-  if (currentAllowance >= draft.offeredAmount) {
-    return;
-  }
-
-  const handle =
-    draft.side === OrderSide.BUY
-      ? yield* await prepareErc20Approval(client, {
-          amount: 'max',
-          spenderAddress: draft.exchangeAddress,
-          tokenAddress: client.environment.collateralToken,
-        })
-      : yield* await prepareErc1155ApprovalForAll(client, {
-          operatorAddress: draft.exchangeAddress,
-          tokenAddress: client.environment.conditionalTokens,
-        });
-
-  await handle.wait();
-
-  await updateBalanceAllowance(client, {
-    assetType:
-      draft.side === OrderSide.BUY
-        ? AssetType.COLLATERAL
-        : AssetType.CONDITIONAL,
-    tokenId: draft.side === OrderSide.SELL ? draft.tokenId : undefined,
-  });
 }
