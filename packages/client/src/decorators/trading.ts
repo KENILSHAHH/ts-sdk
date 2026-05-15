@@ -30,7 +30,7 @@ import type { SignedOrder } from '../actions/orders';
 import type { BaseSecureClient } from '../clients';
 import type { Paginated } from '../pagination';
 
-export type TradingActions = {
+export type SecureTradingActions = {
   /**
    * Creates a signed market order for the authenticated account.
    *
@@ -238,8 +238,8 @@ export type TradingActions = {
   fetchOrder(request: FetchOrderRequest): Promise<OpenOrder>;
 };
 
-export function tradingActions(client: BaseSecureClient): TradingActions;
-export function tradingActions(client: BaseSecureClient): TradingActions {
+export function tradingActions(client: BaseSecureClient): SecureTradingActions;
+export function tradingActions(client: BaseSecureClient): SecureTradingActions {
   return {
     createMarketOrder: createMarketOrder.bind(null, client),
     placeMarketOrder: placeMarketOrder.bind(null, client),
@@ -258,7 +258,7 @@ export function tradingActions(client: BaseSecureClient): TradingActions {
 
 // Error unions and runtime `isError` guards for every action bound above.
 // Surfaced at the root entry point through `export * from './decorators'`.
-// Keep this list in sync with the methods on TradingActions.
+// Keep this list in sync with the methods on SecureTradingActions.
 export {
   CancelAllError,
   CancelMarketOrdersError,

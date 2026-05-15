@@ -32,7 +32,7 @@ import type {
 } from '../clients';
 import type { Paginated } from '../pagination';
 
-export type RewardsPublicActions = {
+export type PublicRewardsActions = {
   /**
    * Lists current active market rewards.
    *
@@ -105,8 +105,8 @@ export type RewardsPublicActions = {
   ): Paginated<MarketReward[]>;
 };
 
-export type RewardsActions = Prettify<
-  RewardsPublicActions & {
+export type SecureRewardsActions = Prettify<
+  PublicRewardsActions & {
     /**
      * Fetches whether a single order is currently scoring.
      *
@@ -240,18 +240,18 @@ export type RewardsActions = Prettify<
   }
 >;
 
-function publicRewardsActions(client: BaseClient): RewardsPublicActions {
+function publicRewardsActions(client: BaseClient): PublicRewardsActions {
   return {
     listCurrentRewards: listCurrentRewards.bind(null, client),
     listMarketRewards: listMarketRewards.bind(null, client),
   };
 }
 
-export function rewardsActions(client: BasePublicClient): RewardsPublicActions;
-export function rewardsActions(client: BaseSecureClient): RewardsActions;
+export function rewardsActions(client: BasePublicClient): PublicRewardsActions;
+export function rewardsActions(client: BaseSecureClient): SecureRewardsActions;
 export function rewardsActions(
   client: BaseClient,
-): RewardsPublicActions | RewardsActions {
+): PublicRewardsActions | SecureRewardsActions {
   const actions = publicRewardsActions(client);
 
   if (client.isPublicClient()) {
@@ -277,7 +277,7 @@ export function rewardsActions(
 
 // Error unions and runtime `isError` guards for every action bound above.
 // Surfaced at the root entry point through `export * from './decorators'`.
-// Keep this list in sync with the methods on RewardsPublicActions / RewardsActions.
+// Keep this list in sync with the methods on PublicRewardsActions / SecureRewardsActions.
 export {
   FetchOrderScoringError,
   FetchOrdersScoringError,

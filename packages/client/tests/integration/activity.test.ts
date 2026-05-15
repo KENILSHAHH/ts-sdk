@@ -1,4 +1,4 @@
-import { expectPresent } from '@polymarket/types';
+import { expectPresent, isSameEvmAddress } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
 import { expectNonEmptyPage, expectPageWindow } from './helpers';
 
@@ -51,6 +51,20 @@ describe('Activity', () => {
           type: 'TRADE',
           wallet: TEST_USER,
         }),
+      );
+    });
+
+    it('defaults secure clients to the authenticated wallet', async ({
+      depositWalletAddress,
+      secureClientWithDepositWallet,
+    }) => {
+      const result = await secureClientWithDepositWallet
+        .listActivity({ pageSize: 1, type: ['TRADE'] })
+        .firstPage()
+        .then(expectNonEmptyPage);
+
+      expect(expectPresent(result.items[0]).wallet).toSatisfy((wallet) =>
+        isSameEvmAddress(wallet, depositWalletAddress),
       );
     });
   });
