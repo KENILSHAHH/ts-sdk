@@ -1,6 +1,6 @@
 import { OrderSide } from '@polymarket/bindings';
 import type { OrderResponse } from '@polymarket/bindings/clob';
-import { AssetType, OrderResponseErrorCode } from '@polymarket/bindings/clob';
+import { AssetType } from '@polymarket/bindings/clob';
 import type { BaseSecureClient } from '../../clients';
 import {
   CancelledSigningError,
@@ -157,21 +157,45 @@ async function postOrderWithAllowanceRecovery(
   order: SignedOrder,
 ): Promise<OrderResponse> {
   const postSignedOrder = postOrder(client);
-  const response = await postSignedOrder(order);
 
-  if (!isBalanceOrAllowanceRejection(response)) {
-    return response;
+  try {
+    return await postSignedOrder(order);
+  } catch (error) {
+    if (!isBalanceOrAllowanceRequestRejection(error)) {
+      throw error;
+    }
+
+    const retryResponse = await approveOrderAndRetry(
+      client,
+      order,
+      postSignedOrder,
+    );
+
+    if (retryResponse === undefined) {
+      throw error;
+    }
+
+    return retryResponse;
   }
-
-  const approved = await ensureOrderApproval(client, order);
-
-  return approved ? postSignedOrder(order) : response;
 }
 
-function isBalanceOrAllowanceRejection(response: OrderResponse): boolean {
+async function approveOrderAndRetry(
+  client: BaseSecureClient,
+  order: SignedOrder,
+  postSignedOrder: (order: SignedOrder) => Promise<OrderResponse>,
+): Promise<OrderResponse | undefined> {
+  const approved = await ensureOrderApproval(client, order);
+
+  return approved ? postSignedOrder(order) : undefined;
+}
+
+function isBalanceOrAllowanceRequestRejection(
+  error: unknown,
+): error is RequestRejectedError {
   return (
-    response.ok === false &&
-    response.code === OrderResponseErrorCode.INSUFFICIENT_BALANCE_OR_ALLOWANCE
+    error instanceof RequestRejectedError &&
+    error.status === 400 &&
+    error.message.includes('allowance is not enough')
   );
 }
 
