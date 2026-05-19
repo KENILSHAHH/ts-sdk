@@ -22,6 +22,10 @@ export type EnvironmentConfig = {
   /** @internal */
   negRiskAdapter: EvmAddress;
   /** @internal */
+  collateralAdapter: EvmAddress;
+  /** @internal */
+  negRiskCollateralAdapter: EvmAddress;
+  /** @internal */
   standardExchange: EvmAddress;
   /** @internal */
   negRiskExchange: EvmAddress;
@@ -84,6 +88,12 @@ export const production: EnvironmentConfig = {
   ),
   negRiskAdapter: expectEvmAddress(
     '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296',
+  ),
+  collateralAdapter: expectEvmAddress(
+    '0xAdA100Db00Ca00073811820692005400218FcE1f',
+  ),
+  negRiskCollateralAdapter: expectEvmAddress(
+    '0xadA2005600Dec949baf300f4C6120000bDB6eAab',
   ),
   standardExchange: expectEvmAddress(
     '0xE111180000d2663C0091e4f400237545B87B996B',

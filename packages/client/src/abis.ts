@@ -24,9 +24,6 @@ const CTF_MERGE_POSITIONS_FUNCTION = AbiFunction.from(
 const CTF_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
   'function redeemPositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] indexSets)',
 );
-const NEG_RISK_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
-  'function redeemPositions(bytes32 _conditionId, uint256[] _amounts)',
-);
 const SAFE_MULTISEND_FUNCTION = AbiFunction.from('function multiSend(bytes)');
 const PROXY_FACTORY_FUNCTION = AbiFunction.from(
   'function proxy((uint8 typeCode, address to, uint256 value, bytes data)[] calls) returns (bytes[])',
@@ -115,7 +112,7 @@ export const SplitPositionCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `splitPosition(address,bytes32,bytes32,uint256[],uint256)`.
- * Works with both the Conditional Tokens contract and the neg-risk adapter.
+ * Works with both the standard and neg-risk collateral adapters.
  *
  * @remarks
  * This is a low-level transaction builder that most SDK consumers will not need.
@@ -128,15 +125,9 @@ export function splitPositionCall(
   collateralTokenAddress: EvmAddress,
   conditionId: ConditionId,
   amount: bigint,
-  negRisk = false,
 ): TransactionCall {
   return {
-    data: encodeSplitPositionCall(
-      collateralTokenAddress,
-      conditionId,
-      amount,
-      negRisk,
-    ),
+    data: encodeSplitPositionCall(collateralTokenAddress, conditionId, amount),
     to: targetAddress,
   };
 }
@@ -146,7 +137,7 @@ export const MergePositionsCallError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a transaction call for `mergePositions(address,bytes32,bytes32,uint256[],uint256)`.
- * Works with both the Conditional Tokens contract and the neg-risk adapter.
+ * Works with both the standard and neg-risk collateral adapters.
  *
  * @remarks
  * This is a low-level transaction builder that most SDK consumers will not need.
@@ -159,22 +150,16 @@ export function mergePositionsCall(
   collateralTokenAddress: EvmAddress,
   conditionId: ConditionId,
   amount: bigint,
-  negRisk = false,
 ): TransactionCall {
   return {
-    data: encodeMergePositionsCall(
-      collateralTokenAddress,
-      conditionId,
-      amount,
-      negRisk,
-    ),
+    data: encodeMergePositionsCall(collateralTokenAddress, conditionId, amount),
     to: targetAddress,
   };
 }
 
 /**
  * Creates a transaction call for `redeemPositions(address,bytes32,bytes32,uint256[])`
- * on the Conditional Tokens contract.
+ * on Conditional Tokens-compatible contracts, including the collateral adapters.
  *
  * @remarks
  * This is a low-level transaction builder that most SDK consumers will not need.
@@ -190,30 +175,6 @@ export function ctfRedeemPositionsCall(
   return {
     data: encodeCtfRedeemPositionsCall(collateralTokenAddress, conditionId),
     to: conditionalTokensAddress,
-  };
-}
-
-export type NegRiskRedeemPositionsCallError = UserInputError;
-export const NegRiskRedeemPositionsCallError = makeErrorGuard(UserInputError);
-
-/**
- * Creates a transaction call for `redeemPositions(bytes32,uint256[])` on the
- * negative-risk adapter contract.
- *
- * @remarks
- * This is a low-level transaction builder that most SDK consumers will not need.
- *
- * @throws {@link NegRiskRedeemPositionsCallError}
- * Thrown when the condition or redeem amounts are invalid.
- */
-export function negRiskRedeemPositionsCall(
-  negRiskAdapterAddress: EvmAddress,
-  conditionId: ConditionId,
-  amounts: readonly [bigint, bigint],
-): TransactionCall {
-  return {
-    data: encodeNegRiskRedeemPositionsCall(conditionId, amounts),
-    to: negRiskAdapterAddress,
   };
 }
 
@@ -247,13 +208,12 @@ function encodeSplitPositionCall(
   collateralTokenAddress: EvmAddress,
   conditionId: ConditionId,
   amount: bigint,
-  negRisk: boolean,
 ): HexString {
   return AbiFunction.encodeData(CTF_SPLIT_POSITION_FUNCTION, [
     collateralTokenAddress,
     ZERO_BYTES32,
     conditionId,
-    negRisk ? [] : BINARY_OUTCOME_PARTITION,
+    BINARY_OUTCOME_PARTITION,
     expectUint256(amount, 'Split amount'),
   ]);
 }
@@ -262,13 +222,12 @@ function encodeMergePositionsCall(
   collateralTokenAddress: EvmAddress,
   conditionId: ConditionId,
   amount: bigint,
-  negRisk: boolean,
 ): HexString {
   return AbiFunction.encodeData(CTF_MERGE_POSITIONS_FUNCTION, [
     collateralTokenAddress,
     ZERO_BYTES32,
     conditionId,
-    negRisk ? [] : BINARY_OUTCOME_PARTITION,
+    BINARY_OUTCOME_PARTITION,
     expectUint256(amount, 'Merge amount'),
   ]);
 }
@@ -282,16 +241,6 @@ function encodeCtfRedeemPositionsCall(
     ZERO_BYTES32,
     conditionId,
     BINARY_OUTCOME_INDEX_SETS,
-  ]);
-}
-
-function encodeNegRiskRedeemPositionsCall(
-  conditionId: ConditionId,
-  amounts: readonly [bigint, bigint],
-): HexString {
-  return AbiFunction.encodeData(NEG_RISK_REDEEM_POSITIONS_FUNCTION, [
-    conditionId,
-    amounts.map((amount) => expectUint256(amount, 'Redeem amount')),
   ]);
 }
 

@@ -13,7 +13,6 @@ import { z } from 'zod';
 import {
   ctfRedeemPositionsCall,
   mergePositionsCall,
-  negRiskRedeemPositionsCall,
   splitPositionCall,
 } from '../abis';
 import type { BaseSecureClient } from '../clients';
@@ -178,11 +177,10 @@ export async function prepareSplitPosition(
     params.conditionId,
   );
   const call = splitPositionCall(
-    resolveSplitTargetAddress(client, negativeRisk),
+    resolveLifecycleTargetAddress(client, negativeRisk),
     client.environment.collateralToken,
     params.conditionId,
     params.amount,
-    negativeRisk,
   );
 
   return async function* (): SplitPositionWorkflow {
@@ -262,11 +260,10 @@ export async function prepareMergePositions(
   const negativeRisk = expectNegativeRiskFlag(binaryPositions);
   const amount = resolveMergeAmount(binaryPositions, params.amount);
   const call = mergePositionsCall(
-    resolveMergeTargetAddress(client, negativeRisk),
+    resolveLifecycleTargetAddress(client, negativeRisk),
     client.environment.collateralToken,
     params.conditionId,
     amount,
-    negativeRisk,
   );
 
   return async function* (): MergePositionsWorkflow {
@@ -355,17 +352,11 @@ export async function prepareRedeemPositions(
   const binaryPositions = expectBinaryPositions(positions);
   const conditionId = resolveBinaryPositionsConditionId(binaryPositions);
   const negativeRisk = expectNegativeRiskFlag(binaryPositions);
-  const call = negativeRisk
-    ? negRiskRedeemPositionsCall(
-        client.environment.negRiskAdapter,
-        conditionId,
-        deriveNegRiskRedeemAmounts(binaryPositions),
-      )
-    : ctfRedeemPositionsCall(
-        client.environment.conditionalTokens,
-        client.environment.collateralToken,
-        conditionId,
-      );
+  const call = ctfRedeemPositionsCall(
+    resolveLifecycleTargetAddress(client, negativeRisk),
+    client.environment.collateralToken,
+    conditionId,
+  );
 
   return async function* (): RedeemPositionsWorkflow {
     if (client.account.walletType === WalletType.EOA) {
@@ -440,10 +431,13 @@ function sendRedeemPositionsTransaction(
   };
 }
 
-function resolveSplitTargetAddress(client: BaseSecureClient, negRisk: boolean) {
+function resolveLifecycleTargetAddress(
+  client: BaseSecureClient,
+  negRisk: boolean,
+) {
   return negRisk
-    ? client.environment.negRiskAdapter
-    : client.environment.conditionalTokens;
+    ? client.environment.negRiskCollateralAdapter
+    : client.environment.collateralAdapter;
 }
 
 async function resolveMarketNegativeRiskFlag(
@@ -473,19 +467,6 @@ async function resolveMarketNegativeRiskFlag(
   );
 
   return market.state.negRisk;
-}
-
-function resolveMergeTargetAddress(client: BaseSecureClient, negRisk: boolean) {
-  return negRisk
-    ? client.environment.negRiskAdapter
-    : client.environment.conditionalTokens;
-}
-
-function deriveNegRiskRedeemAmounts([
-  yesPosition,
-  noPosition,
-]: BinaryPositions): readonly [bigint, bigint] {
-  return [toPositionAmount(yesPosition, 0), toPositionAmount(noPosition, 1)];
 }
 
 function expectNegativeRiskFlag([

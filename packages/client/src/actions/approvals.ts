@@ -261,9 +261,9 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
  *
  * Prepares all approvals required for trading, including collateral and
  * position token approvals for both standard and neg-risk market flows.
- * The neg-risk adapter approvals cover split, merge, and redemption workflows
- * on neg-risk markets. Auto-redeem approval is included so accounts are ready
- * for supported position lifecycle workflows.
+ * The collateral adapter approvals cover split, merge, and redemption workflows.
+ * Auto-redeem approval is included so accounts are ready for supported position
+ * lifecycle workflows.
  *
  * @example
  * ```ts
@@ -276,7 +276,7 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
 export async function prepareTradingApprovals(
   client: BaseSecureClient,
 ): Promise<TradingApprovalsWorkflow> {
-  const calls = [
+  const erc20ApprovalCalls = [
     erc20ApprovalCall(
       client.environment.collateralToken,
       client.environment.standardExchange,
@@ -292,6 +292,18 @@ export async function prepareTradingApprovals(
       client.environment.negRiskAdapter,
       MAX_UINT256,
     ),
+    erc20ApprovalCall(
+      client.environment.collateralToken,
+      client.environment.collateralAdapter,
+      MAX_UINT256,
+    ),
+    erc20ApprovalCall(
+      client.environment.collateralToken,
+      client.environment.negRiskCollateralAdapter,
+      MAX_UINT256,
+    ),
+  ] as const;
+  const erc1155ApprovalCalls = [
     erc1155ApprovalForAllCall(
       client.environment.conditionalTokens,
       client.environment.standardExchange,
@@ -305,6 +317,16 @@ export async function prepareTradingApprovals(
     erc1155ApprovalForAllCall(
       client.environment.conditionalTokens,
       client.environment.negRiskAdapter,
+      true,
+    ),
+    erc1155ApprovalForAllCall(
+      client.environment.conditionalTokens,
+      client.environment.collateralAdapter,
+      true,
+    ),
+    erc1155ApprovalForAllCall(
+      client.environment.conditionalTokens,
+      client.environment.negRiskCollateralAdapter,
       true,
     ),
     erc1155ApprovalForAllCall(
@@ -313,60 +335,35 @@ export async function prepareTradingApprovals(
       true,
     ),
   ] as const;
-
   return async function* (): TradingApprovalsWorkflow {
     if (client.account.walletType === WalletType.EOA) {
-      const collateralStandardApproval = expectTransactionHandle(
-        yield sendErc20ApprovalTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[0]),
-        ),
-      );
-      await collateralStandardApproval.wait();
+      for (const call of erc20ApprovalCalls) {
+        const handle = expectTransactionHandle(
+          yield sendErc20ApprovalTransaction(
+            signerTransactionRequest(client.environment.chainId, call),
+          ),
+        );
 
-      const collateralNegRiskApproval = expectTransactionHandle(
-        yield sendErc20ApprovalTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[1]),
-        ),
-      );
-      await collateralNegRiskApproval.wait();
+        await handle.wait();
+      }
 
-      const collateralNegRiskAdapterApproval = expectTransactionHandle(
-        yield sendErc20ApprovalTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[2]),
-        ),
-      );
-      await collateralNegRiskAdapterApproval.wait();
+      for (const [index, call] of erc1155ApprovalCalls.entries()) {
+        const handle = expectTransactionHandle(
+          yield sendErc1155ApprovalForAllTransaction(
+            signerTransactionRequest(client.environment.chainId, call),
+          ),
+        );
 
-      const conditionalStandardApproval = expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[3]),
-        ),
-      );
-      await conditionalStandardApproval.wait();
+        if (index === erc1155ApprovalCalls.length - 1) {
+          return handle;
+        }
 
-      const conditionalNegRiskApproval = expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[4]),
-        ),
-      );
-      await conditionalNegRiskApproval.wait();
-
-      const conditionalNegRiskAdapterApproval = expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[5]),
-        ),
-      );
-      await conditionalNegRiskAdapterApproval.wait();
-
-      return expectTransactionHandle(
-        yield sendErc1155ApprovalForAllTransaction(
-          signerTransactionRequest(client.environment.chainId, calls[6]),
-        ),
-      );
+        await handle.wait();
+      }
     }
 
     return yield* await prepareGaslessTransaction(client, {
-      calls: [...calls],
+      calls: [...erc20ApprovalCalls, ...erc1155ApprovalCalls],
       metadata: 'Trading setup approvals',
     });
   }.call(null);
