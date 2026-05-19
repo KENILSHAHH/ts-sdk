@@ -29,7 +29,7 @@ describe('prepareTradingApprovals', () => {
     const workflow = await prepareTradingApprovals(client);
     let result = await workflow.next();
 
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < 10; index += 1) {
       expect(result.done).toBe(false);
       result = await workflow.next(TRANSACTION_HANDLE);
     }
