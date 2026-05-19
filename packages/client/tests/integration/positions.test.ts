@@ -12,7 +12,7 @@ const conditionId = await publicClient
 
 describe('Positions', () => {
   // Pending an investigation into split positions not being returned by the Data API
-  it.skip('splits a market position', async ({
+  it('splits a market position', async ({
     depositWalletAddress,
     depositWalletSigner,
     relayerAuthentication,
