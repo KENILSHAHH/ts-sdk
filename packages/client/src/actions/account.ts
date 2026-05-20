@@ -29,7 +29,6 @@ import {
 } from '@polymarket/bindings/clob';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
-import { toSignatureType } from '../account';
 import type { BaseSecureClient } from '../clients';
 import {
   makeErrorGuard,
@@ -43,6 +42,7 @@ import {
 import { parseUserInput } from '../input';
 import { PageSizeSchema, type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
+import { toSignatureType } from '../wallet';
 import { snakeCase, toSearchParams } from './params';
 
 export type FetchClosedOnlyModeError =

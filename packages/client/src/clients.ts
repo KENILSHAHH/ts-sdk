@@ -9,8 +9,6 @@ import {
   type Prettify,
 } from '@polymarket/types';
 import { z } from 'zod';
-import type { AccountIdentity } from './account';
-import { deriveDepositWalletAddress, resolveAccountIdentity } from './account';
 import {
   createOrDeriveApiKey,
   deleteApiKey,
@@ -44,9 +42,15 @@ import {
 } from './errors';
 import { buildHmacSignature } from './hmac';
 import { parseUserInput } from './input';
+import { JsonRpcClient } from './rpc';
 import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization, Signer } from './types';
+import type { AccountIdentity } from './wallet';
+import {
+  deriveCurrentDepositWalletAddress,
+  resolveAccountIdentity,
+} from './wallet';
 import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
@@ -70,6 +74,8 @@ type PublicContext = {
   clob: ServiceClient;
   /** @internal */
   relayer: ServiceClient;
+  /** @internal */
+  rpc: JsonRpcClient;
   /** @internal */
   gamma: ServiceClient;
   /** @internal */
@@ -132,6 +138,11 @@ abstract class AbstractClient<TContext extends PublicContext> {
   /** @internal */
   get relayer(): ServiceClient {
     return this.context.relayer;
+  }
+
+  /** @internal */
+  get rpc(): JsonRpcClient {
+    return this.context.rpc;
   }
 
   /** @internal */
@@ -273,6 +284,7 @@ class BasePublicClient<
         root: config.environment.relayer,
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
+      rpc: new JsonRpcClient({ url: config.environment.rpc }),
       webSockets: {
         clobMarket: new ClobMarketWebSocketManager({
           url: config.environment.clobMarketWs,
@@ -483,6 +495,7 @@ class BaseSecureClient<
         root: config.environment.relayer,
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
+      rpc: new JsonRpcClient({ url: config.environment.rpc }),
       gamma: new ServiceClient({ root: config.environment.gamma }),
       data: new ServiceClient({ root: config.environment.data }),
       secureClob: new ServiceClient({
@@ -565,7 +578,8 @@ class BaseSecureClient<
       );
     }
 
-    const depositWallet = deriveDepositWalletAddress(
+    const depositWallet = await deriveCurrentDepositWalletAddress(
+      this.rpc,
       signerAddress,
       this.environment.walletDerivation,
     );
