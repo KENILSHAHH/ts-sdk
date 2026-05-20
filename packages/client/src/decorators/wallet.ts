@@ -184,11 +184,7 @@ export type SecureWalletActions = {
 
 export function walletActions(client: BaseSecureClient): SecureWalletActions {
   return {
-    isGaslessReady: () =>
-      isGaslessReady(client, {
-        wallet: client.account.wallet,
-        type: client.account.walletType,
-      }),
+    isGaslessReady: isGaslessReady.bind(null, client),
     setupTradingApprovals: setupTradingApprovals.bind(null, client),
     approveErc20: approveErc20.bind(null, client),
     approveErc1155ForAll: approveErc1155ForAll.bind(null, client),

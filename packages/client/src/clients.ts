@@ -48,7 +48,7 @@ import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization, Signer } from './types';
 import type { AccountIdentity } from './wallet';
 import {
-  deriveUupsDepositWalletAddress,
+  deriveCurrentDepositWalletAddress,
   resolveAccountIdentity,
 } from './wallet';
 import {
@@ -578,7 +578,8 @@ class BaseSecureClient<
       );
     }
 
-    const depositWallet = deriveUupsDepositWalletAddress(
+    const depositWallet = await deriveCurrentDepositWalletAddress(
+      this.rpc,
       signerAddress,
       this.environment.walletDerivation,
     );

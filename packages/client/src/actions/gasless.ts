@@ -52,6 +52,7 @@ import type {
   TypedDataField,
   TypedDataPayload,
 } from '../types';
+import { deriveCurrentDepositWalletAddress } from '../wallet';
 import {
   type RequestAddressRequest,
   requestAddress,
@@ -189,9 +190,9 @@ export const IsGaslessReadyError = makeErrorGuard(
  */
 export async function isGaslessReady(
   client: BaseClient,
-  request: IsGaslessReadyRequest,
+  request?: IsGaslessReadyRequest,
 ): Promise<boolean> {
-  const params = parseUserInput(request, IsGaslessReadyRequestSchema);
+  const params = await resolveGaslessReadinessTarget(client, request);
 
   if (params.type === WalletType.EOA) {
     return false;
@@ -214,6 +215,37 @@ export async function isGaslessReady(
       .andThen(validateWith(RelayerDeployedResponseSchema))
       .map(({ deployed }) => deployed),
   );
+}
+
+async function resolveGaslessReadinessTarget(
+  client: BaseClient,
+  request: IsGaslessReadyRequest | undefined,
+): Promise<z.output<typeof IsGaslessReadyRequestSchema>> {
+  if (request !== undefined) {
+    return parseUserInput(request, IsGaslessReadyRequestSchema);
+  }
+
+  if (!client.isSecureClient()) {
+    throw new UserInputError(
+      'Gasless readiness inference requires a secure client. Pass a wallet and type when using a public client.',
+    );
+  }
+
+  if (client.account.walletType !== WalletType.EOA) {
+    return {
+      wallet: client.account.wallet,
+      type: client.account.walletType,
+    };
+  }
+
+  return {
+    wallet: await deriveCurrentDepositWalletAddress(
+      client.rpc,
+      client.account.signer,
+      client.environment.walletDerivation,
+    ),
+    type: WalletType.DEPOSIT_WALLET,
+  };
 }
 
 export const GaslessTransactionMetadataSchema = z.string().max(500);

@@ -228,6 +228,19 @@ export async function isBeaconDepositWalletFactory(
   return !isSameEvmAddress(beacon, ZERO_ADDRESS);
 }
 
+/** @internal */
+export async function deriveCurrentDepositWalletAddress(
+  rpc: JsonRpcClient,
+  signer: EvmAddress,
+  config: WalletDerivationConfig,
+): Promise<EvmAddress> {
+  if (await isBeaconDepositWalletFactory(rpc, config.depositWalletFactory)) {
+    return deriveBeaconDepositWalletAddress(signer, config);
+  }
+
+  return deriveUupsDepositWalletAddress(signer, config);
+}
+
 function decodeAddressReturnData(data: HexString): EvmAddress {
   if (data.length < 66) {
     return ZERO_ADDRESS;
