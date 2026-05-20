@@ -6,8 +6,9 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
+  pull-requests: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -29,13 +30,13 @@ jobs:
     uses: ./.github/workflows/integration-tests.yml
     secrets: inherit
 
-  release:
-    name: Publish Canary
+  changesets:
+    name: Changesets
     runs-on: ubuntu-latest
     needs:
       - verify
       - test
-      # Temporarily do not block publishing on integration tests while checks are blocked by a BE bug.
+      # Temporarily do not block release PR updates on integration tests while checks are blocked by a BE bug.
       # - integration-tests
 
     steps:
@@ -45,11 +46,12 @@ jobs:
       - name: Set Up Repository
         uses: ./.github/actions/setup
 
-      - name: Build
-        run: pnpm build
-
-      - name: Version Packages For Canary
-        run: pnpm version:canary
-
-      - name: Publish Canary Packages
-        run: pnpm release:canary
+      - name: Create Or Update Beta Release PR
+        uses: changesets/action@v1
+        with:
+          version: pnpm version:bump
+          publish: pnpm release
+          title: '[Release] Candidate'
+          commit: 'chore: bumps package versions'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

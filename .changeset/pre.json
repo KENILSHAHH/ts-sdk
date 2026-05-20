@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "@polymarket/bindings": "0.0.0",
+    "@polymarket/client": "0.0.0",
+    "@polymarket/types": "0.0.0"
+  },
+  "changesets": []
+}

@@ -17,8 +17,8 @@
     "changeset": "changeset",
     "clean": "rimraf packages/*/dist",
     "dev:react": "pnpm --filter @polymarket/examples-react dev",
-    "release:canary": "changeset publish --tag latest --no-git-tag",
-    "release:latest": "node scripts/update-latest-dist-tags.mjs",
+    "release": "pnpm build && pnpm release:beta",
+    "release:beta": "changeset publish --tag beta",
     "test:bindings": "vitest --project bindings --passWithNoTests",
     "test:client": "vitest --project client",
     "test:client:integration": "vitest --project client-integration",
@@ -26,7 +26,6 @@
     "test": "pnpm test:types && pnpm test:bindings && pnpm test:client",
     "typecheck": "pnpm -r --sort --if-present run typecheck",
     "version:bump": "changeset version",
-    "version:canary": "changeset version --snapshot canary",
     "lint": "biome check",
     "lint:fix": "biome check --write"
   },

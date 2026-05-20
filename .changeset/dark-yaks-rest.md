@@ -1,7 +1,7 @@
 ---
-"@polymarket/bindings": patch
-"@polymarket/client": patch
-"@polymarket/types": patch
+"@polymarket/bindings": minor
+"@polymarket/client": minor
+"@polymarket/types": minor
 ---
 
-Bootstrap canary publishing.
+Bootstrap beta prerelease publishing.

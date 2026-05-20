@@ -1,7 +1,7 @@
 {
   "name": "@polymarket/client",
   "version": "0.0.0",
-  "description": "The Polymarket SDK TypeScript client",
+  "description": "The Polymarket TypeScript client",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
