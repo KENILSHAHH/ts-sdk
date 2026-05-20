@@ -1,3 +1,4 @@
+import { ActivityType } from '@polymarket/client';
 import { expectPresent, isSameEvmAddress } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
 import { expectNonEmptyPage, expectPageWindow } from './helpers';
@@ -39,7 +40,7 @@ describe('Activity', () => {
       const paginator = publicClient.listActivity({
         user: TEST_USER,
         pageSize: 100,
-        type: ['TRADE'],
+        type: [ActivityType.TRADE],
       });
       const result = await paginator.firstPage().then(expectNonEmptyPage);
 
@@ -48,7 +49,7 @@ describe('Activity', () => {
       expect(expectPresent(result.items[0])).toEqual(
         expect.objectContaining({
           conditionId: expect.any(String),
-          type: 'TRADE',
+          type: ActivityType.TRADE,
           wallet: TEST_USER,
         }),
       );
@@ -59,7 +60,7 @@ describe('Activity', () => {
       secureClientWithDepositWallet,
     }) => {
       const result = await secureClientWithDepositWallet
-        .listActivity({ pageSize: 1, type: ['TRADE'] })
+        .listActivity({ pageSize: 1, type: [ActivityType.TRADE] })
         .firstPage()
         .then(expectNonEmptyPage);
 
