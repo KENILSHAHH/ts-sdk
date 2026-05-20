@@ -4,7 +4,21 @@ import {
   EpochMillisecondsToIsoDateTimeStringSchema,
   OrderSideSchema,
   TokenIdSchema,
+  toIsoDateTimeString,
 } from '../shared';
+
+const BuilderTradeMatchTimeSchema = z.union([
+  z
+    .union([z.number().int(), z.string().regex(/^\d+$/).transform(Number)])
+    .transform((value) =>
+      toIsoDateTimeString(
+        new Date(
+          value < 1_000_000_000_000 ? value * 1000 : value,
+        ).toISOString(),
+      ),
+    ),
+  z.string().transform(toIsoDateTimeString),
+]);
 
 export const BuilderTradeSchema = z
   .object({
@@ -24,7 +38,7 @@ export const BuilderTradeSchema = z
     owner: z.string(),
     maker: z.string(),
     transactionHash: z.string(),
-    matchTime: EpochMillisecondsToIsoDateTimeStringSchema,
+    matchTime: BuilderTradeMatchTimeSchema,
     bucketIndex: z.number().int(),
     fee: DecimalStringSchema,
     feeUsdc: DecimalStringSchema,
