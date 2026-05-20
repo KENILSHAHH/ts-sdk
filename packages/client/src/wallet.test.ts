@@ -4,6 +4,8 @@ import { expectEvmAddress, ZERO_ADDRESS } from '@polymarket/types';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { production } from './environments';
+import { JsonRpcClient } from './rpc';
 import {
   deriveBeaconDepositWalletAddress,
   deriveProxyWalletAddress,
@@ -13,14 +15,12 @@ import {
   isBeaconDepositWalletFactory,
   resolveAccountIdentity,
   toSignatureType,
-} from './account';
-import { production } from './environments';
-import { JsonRpcClient } from './rpc';
+} from './wallet';
 
 const root = 'http://localhost:4013';
 const server = setupServer();
 
-describe('Account identity', () => {
+describe('Wallet', () => {
   const signer = expectEvmAddress('0x0000000000000000000000000000000000000001');
 
   it('maps wallet types to order signature types', () => {

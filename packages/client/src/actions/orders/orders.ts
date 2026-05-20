@@ -1,7 +1,7 @@
 import { SignatureType } from '@polymarket/bindings/clob';
 import type { HexString } from '@polymarket/types';
-import type { AccountIdentity } from '../../account';
-import { toSignatureType } from '../../account';
+import type { AccountIdentity } from '../../wallet';
+import { toSignatureType } from '../../wallet';
 import type { OrderDraft, SignedOrder, UnsignedOrder } from './types';
 
 const BYTES32_ZERO =

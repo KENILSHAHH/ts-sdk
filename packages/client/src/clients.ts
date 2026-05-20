@@ -9,11 +9,6 @@ import {
   type Prettify,
 } from '@polymarket/types';
 import { z } from 'zod';
-import type { AccountIdentity } from './account';
-import {
-  deriveUupsDepositWalletAddress,
-  resolveAccountIdentity,
-} from './account';
 import {
   createOrDeriveApiKey,
   deleteApiKey,
@@ -51,6 +46,11 @@ import { JsonRpcClient } from './rpc';
 import type { ServiceRequest } from './ServiceClient';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization, Signer } from './types';
+import type { AccountIdentity } from './wallet';
+import {
+  deriveUupsDepositWalletAddress,
+  resolveAccountIdentity,
+} from './wallet';
 import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
