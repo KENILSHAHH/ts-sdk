@@ -3,6 +3,7 @@ import type { Hex } from 'ox';
 
 export type WalletDerivationConfig = {
   depositWalletFactory: EvmAddress;
+  depositWalletBeacon: EvmAddress;
   depositWalletImplementation: EvmAddress;
   proxyFactory: EvmAddress;
   proxyImplementation: EvmAddress;
@@ -66,6 +67,9 @@ export const production: EnvironmentConfig = {
   walletDerivation: {
     depositWalletFactory: expectEvmAddress(
       '0x00000000000Fb5C9ADea0298D729A0CB3823Cc07',
+    ),
+    depositWalletBeacon: expectEvmAddress(
+      '0x7A18EDfe055488A3128f01F563e5B479D92ffc3a',
     ),
     depositWalletImplementation: expectEvmAddress(
       '0x58CA52ebe0DadfdF531Cde7062e76746de4Db1eB',

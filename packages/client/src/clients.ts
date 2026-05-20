@@ -10,7 +10,10 @@ import {
 } from '@polymarket/types';
 import { z } from 'zod';
 import type { AccountIdentity } from './account';
-import { deriveDepositWalletAddress, resolveAccountIdentity } from './account';
+import {
+  deriveUupsDepositWalletAddress,
+  resolveAccountIdentity,
+} from './account';
 import {
   createOrDeriveApiKey,
   deleteApiKey,
@@ -565,7 +568,7 @@ class BaseSecureClient<
       );
     }
 
-    const depositWallet = deriveDepositWalletAddress(
+    const depositWallet = deriveUupsDepositWalletAddress(
       signerAddress,
       this.environment.walletDerivation,
     );

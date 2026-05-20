@@ -3,9 +3,10 @@ import { WalletType } from '@polymarket/bindings/gamma';
 import { expectEvmAddress } from '@polymarket/types';
 import { describe, expect, it } from 'vitest';
 import {
-  deriveDepositWalletAddress,
+  deriveBeaconDepositWalletAddress,
   deriveProxyWalletAddress,
   deriveSafeWalletAddress,
+  deriveUupsDepositWalletAddress,
   resolveAccountIdentity,
   toSignatureType,
 } from './account';
@@ -34,7 +35,12 @@ describe('Account identity', () => {
       walletType: WalletType.EOA,
     },
     {
-      derive: deriveDepositWalletAddress,
+      derive: deriveBeaconDepositWalletAddress,
+      expectedWallet: '0x94bf330955a0b957662feaf878de77bf25f76cd9',
+      walletType: WalletType.DEPOSIT_WALLET,
+    },
+    {
+      derive: deriveUupsDepositWalletAddress,
       expectedWallet: '0x57ffbc34de23124faeb8387fcd689d314e57accd',
       walletType: WalletType.DEPOSIT_WALLET,
     },
@@ -64,7 +70,7 @@ describe('Account identity', () => {
   });
 
   it('matches deterministic wallets case-insensitively', () => {
-    const derivedWallet = deriveDepositWalletAddress(
+    const derivedWallet = deriveBeaconDepositWalletAddress(
       signer,
       production.walletDerivation,
     );

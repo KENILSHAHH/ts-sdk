@@ -96,7 +96,7 @@ const ERC1967_CONST2 =
 const ERC1967_PREFIX = 0x61003d3d8160233d3973n;
 
 /** @internal */
-export function deriveDepositWalletAddress(
+export function deriveUupsDepositWalletAddress(
   signer: EvmAddress,
   config: WalletDerivationConfig,
 ): EvmAddress {
@@ -110,6 +110,37 @@ export function deriveDepositWalletAddress(
     ContractAddress.fromCreate2({
       bytecodeHash: depositWalletInitCodeHash(
         config.depositWalletImplementation,
+        args,
+      ),
+      from: config.depositWalletFactory,
+      salt: Hash.keccak256(args),
+    }),
+  );
+}
+
+const ERC1967_BEACON_CONST1 =
+  '0xb3582b35133d50545afa5036515af43d6000803e604d573d6000fd5b3d6000f3';
+const ERC1967_BEACON_CONST2 =
+  '0x1b60e01b36527fa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6c';
+const ERC1967_BEACON_CONST3 =
+  '0x60195155f3363d3d373d3d363d602036600436635c60da';
+const ERC1967_BEACON_PREFIX = 0x6100523d8160233d3973n;
+
+/** @internal */
+export function deriveBeaconDepositWalletAddress(
+  signer: EvmAddress,
+  config: WalletDerivationConfig,
+): EvmAddress {
+  const walletId = expectHexString(`0x${signer.slice(2).padStart(64, '0')}`);
+  const args = AbiParameters.encode(
+    [{ type: 'address' }, { type: 'bytes32' }],
+    [config.depositWalletFactory, walletId],
+  );
+
+  return expectEvmAddress(
+    ContractAddress.fromCreate2({
+      bytecodeHash: depositWalletBeaconInitCodeHash(
+        config.depositWalletBeacon,
         args,
       ),
       from: config.depositWalletFactory,
@@ -140,6 +171,28 @@ function depositWalletInitCodeHash(
   );
 }
 
+function depositWalletBeaconInitCodeHash(
+  beacon: EvmAddress,
+  args: HexString,
+): HexString {
+  const argsByteLength = BigInt((args.length - 2) / 2);
+  const prefix = ERC1967_BEACON_PREFIX + (argsByteLength << 56n);
+
+  return expectHexString(
+    Hash.keccak256(
+      Bytes.concat(
+        Bytes.fromNumber(prefix, { size: 10 }),
+        Bytes.fromHex(beacon),
+        Bytes.fromHex(ERC1967_BEACON_CONST3),
+        Bytes.fromHex(ERC1967_BEACON_CONST2),
+        Bytes.fromHex(ERC1967_BEACON_CONST1),
+        Bytes.fromHex(args),
+      ),
+      { as: 'Hex' },
+    ),
+  );
+}
+
 function classifyWalletType(
   environment: EnvironmentConfig,
   signer: EvmAddress,
@@ -151,16 +204,24 @@ function classifyWalletType(
 
   const config = environment.walletDerivation;
 
-  if (isSameEvmAddress(wallet, deriveDepositWalletAddress(signer, config))) {
+  if (
+    isSameEvmAddress(wallet, deriveBeaconDepositWalletAddress(signer, config))
+  ) {
     return WalletType.DEPOSIT_WALLET;
   }
 
-  if (isSameEvmAddress(wallet, deriveProxyWalletAddress(signer, config))) {
-    return WalletType.POLY_PROXY;
+  if (
+    isSameEvmAddress(wallet, deriveUupsDepositWalletAddress(signer, config))
+  ) {
+    return WalletType.DEPOSIT_WALLET;
   }
 
   if (isSameEvmAddress(wallet, deriveSafeWalletAddress(signer, config))) {
     return WalletType.GNOSIS_SAFE;
+  }
+
+  if (isSameEvmAddress(wallet, deriveProxyWalletAddress(signer, config))) {
+    return WalletType.POLY_PROXY;
   }
 
   never(
