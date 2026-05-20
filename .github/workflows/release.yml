@@ -53,5 +53,6 @@ jobs:
           publish: pnpm release
           title: '[Release] Candidate'
           commit: 'chore: bumps package versions'
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
