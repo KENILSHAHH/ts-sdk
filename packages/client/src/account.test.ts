@@ -1,16 +1,24 @@
 import { SignatureType } from '@polymarket/bindings/clob';
 import { WalletType } from '@polymarket/bindings/gamma';
-import { expectEvmAddress } from '@polymarket/types';
-import { describe, expect, it } from 'vitest';
+import { expectEvmAddress, ZERO_ADDRESS } from '@polymarket/types';
+import { HttpResponse, http } from 'msw';
+import { setupServer } from 'msw/node';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   deriveBeaconDepositWalletAddress,
   deriveProxyWalletAddress,
   deriveSafeWalletAddress,
   deriveUupsDepositWalletAddress,
+  getDepositWalletFactoryBeacon,
+  isBeaconDepositWalletFactory,
   resolveAccountIdentity,
   toSignatureType,
 } from './account';
 import { production } from './environments';
+import { JsonRpcClient } from './rpc';
+
+const root = 'http://localhost:4013';
+const server = setupServer();
 
 describe('Account identity', () => {
   const signer = expectEvmAddress('0x0000000000000000000000000000000000000001');
@@ -93,5 +101,103 @@ describe('Account identity', () => {
     expect(() =>
       resolveAccountIdentity(production, signer, unknownWallet),
     ).toThrow(/does not match the signer/);
+  });
+});
+
+describe('deposit wallet factory detection', () => {
+  const factory = production.walletDerivation.depositWalletFactory;
+  const beacon = production.walletDerivation.depositWalletBeacon;
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' });
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  it('detects beacon factories from BEACON return data', async () => {
+    server.use(
+      http.post(root, async ({ request }) => {
+        await expect(request.json()).resolves.toMatchObject({
+          method: 'eth_call',
+          params: [{ to: factory, data: '0x49493a4d' }, 'latest'],
+        });
+
+        return HttpResponse.json({
+          jsonrpc: '2.0',
+          id: 1,
+          result: `0x000000000000000000000000${beacon.slice(2)}`,
+        });
+      }),
+    );
+    const rpc = new JsonRpcClient({ url: root });
+
+    await expect(getDepositWalletFactoryBeacon(rpc, factory)).resolves.toBe(
+      beacon,
+    );
+    await expect(isBeaconDepositWalletFactory(rpc, factory)).resolves.toBe(
+      true,
+    );
+  });
+
+  it('treats short BEACON return data as no beacon', async () => {
+    server.use(
+      http.post(root, () =>
+        HttpResponse.json({ jsonrpc: '2.0', id: 1, result: '0x' }),
+      ),
+    );
+    const rpc = new JsonRpcClient({ url: root });
+
+    await expect(getDepositWalletFactoryBeacon(rpc, factory)).resolves.toBe(
+      ZERO_ADDRESS,
+    );
+    await expect(isBeaconDepositWalletFactory(rpc, factory)).resolves.toBe(
+      false,
+    );
+  });
+
+  it('treats contract reverts as legacy UUPS factories', async () => {
+    server.use(
+      http.post(root, () =>
+        HttpResponse.json({
+          jsonrpc: '2.0',
+          id: 1,
+          error: { code: 3, message: 'execution reverted' },
+        }),
+      ),
+    );
+    const rpc = new JsonRpcClient({ url: root });
+
+    await expect(getDepositWalletFactoryBeacon(rpc, factory)).resolves.toBe(
+      ZERO_ADDRESS,
+    );
+    await expect(isBeaconDepositWalletFactory(rpc, factory)).resolves.toBe(
+      false,
+    );
+  });
+
+  it('does not swallow generic JSON-RPC failures', async () => {
+    server.use(
+      http.post(root, () =>
+        HttpResponse.json({
+          jsonrpc: '2.0',
+          id: 1,
+          error: { code: -32_603, message: 'upstream unavailable' },
+        }),
+      ),
+    );
+    const rpc = new JsonRpcClient({ url: root });
+
+    await expect(
+      isBeaconDepositWalletFactory(rpc, factory),
+    ).rejects.toMatchObject({
+      message: 'JSON-RPC eth_call failed: upstream unavailable',
+      name: 'RequestRejectedError',
+    });
   });
 });

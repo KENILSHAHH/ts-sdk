@@ -15,6 +15,8 @@ export type EnvironmentConfig = {
   name: string;
   chainId: number;
   /** @internal */
+  rpc: string;
+  /** @internal */
   walletDerivation: WalletDerivationConfig;
   /** @internal */
   collateralToken: EvmAddress;
@@ -64,6 +66,7 @@ export type EnvironmentConfig = {
 export const production: EnvironmentConfig = {
   name: 'production',
   chainId: 137,
+  rpc: 'https://polygon-rpc.com',
   walletDerivation: {
     depositWalletFactory: expectEvmAddress(
       '0x00000000000Fb5C9ADea0298D729A0CB3823Cc07',

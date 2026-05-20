@@ -7,9 +7,12 @@ import {
   expectHexString,
   isSameEvmAddress,
   never,
+  ZERO_ADDRESS,
 } from '@polymarket/types';
 import { AbiParameters, Bytes, ContractAddress, Hash } from 'ox';
 import type { EnvironmentConfig, WalletDerivationConfig } from './environments';
+import type { JsonRpcClient } from './rpc';
+import { isJsonRpcContractRevert } from './rpc';
 
 export type AccountIdentity = {
   /** Authenticated EOA that signs API authentication, orders, and wallet operations. */
@@ -125,6 +128,7 @@ const ERC1967_BEACON_CONST2 =
 const ERC1967_BEACON_CONST3 =
   '0x60195155f3363d3d373d3d363d602036600436635c60da';
 const ERC1967_BEACON_PREFIX = 0x6100523d8160233d3973n;
+const FACTORY_BEACON_SELECTOR: HexString = '0x49493a4d';
 
 /** @internal */
 export function deriveBeaconDepositWalletAddress(
@@ -191,6 +195,45 @@ function depositWalletBeaconInitCodeHash(
       { as: 'Hex' },
     ),
   );
+}
+
+/** @internal */
+export async function getDepositWalletFactoryBeacon(
+  rpc: JsonRpcClient,
+  factory: EvmAddress,
+): Promise<EvmAddress> {
+  try {
+    const data = await rpc.ethCall({
+      to: factory,
+      data: FACTORY_BEACON_SELECTOR,
+    });
+
+    return decodeAddressReturnData(data);
+  } catch (error) {
+    if (isJsonRpcContractRevert(error)) {
+      return ZERO_ADDRESS;
+    }
+
+    throw error;
+  }
+}
+
+/** @internal */
+export async function isBeaconDepositWalletFactory(
+  rpc: JsonRpcClient,
+  factory: EvmAddress,
+): Promise<boolean> {
+  const beacon = await getDepositWalletFactoryBeacon(rpc, factory);
+
+  return !isSameEvmAddress(beacon, ZERO_ADDRESS);
+}
+
+function decodeAddressReturnData(data: HexString): EvmAddress {
+  if (data.length < 66) {
+    return ZERO_ADDRESS;
+  }
+
+  return expectEvmAddress(`0x${data.slice(-40)}`);
 }
 
 function classifyWalletType(
