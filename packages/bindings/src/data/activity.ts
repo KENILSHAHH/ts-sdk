@@ -12,6 +12,7 @@ import {
   TxHashSchema,
 } from '../shared';
 import {
+  ActivityType,
   ActivityTypeSchema,
   type Address,
   AddressSchema,
@@ -265,7 +266,7 @@ function normalizeActivity(activity: RawActivity): Activity {
   const base = normalizeActivityBase(activity);
 
   switch (activity.type) {
-    case 'TRADE':
+    case ActivityType.TRADE:
       return {
         ...base,
         type: activity.type,
@@ -282,10 +283,10 @@ function normalizeActivity(activity: RawActivity): Activity {
         icon: expectPresent(activity.icon, 'icon'),
         eventSlug: expectPresent(activity.eventSlug, 'eventSlug'),
       };
-    case 'SPLIT':
-    case 'MERGE':
-    case 'REDEEM':
-    case 'CONVERSION':
+    case ActivityType.SPLIT:
+    case ActivityType.MERGE:
+    case ActivityType.REDEEM:
+    case ActivityType.CONVERSION:
       return {
         ...base,
         type: activity.type,
@@ -296,10 +297,10 @@ function normalizeActivity(activity: RawActivity): Activity {
         icon: expectPresent(activity.icon, 'icon'),
         eventSlug: expectPresent(activity.eventSlug, 'eventSlug'),
       };
-    case 'REWARD':
-    case 'MAKER_REBATE':
-    case 'REFERRAL_REWARD':
-    case 'YIELD':
+    case ActivityType.REWARD:
+    case ActivityType.MAKER_REBATE:
+    case ActivityType.REFERRAL_REWARD:
+    case ActivityType.YIELD:
       return {
         ...base,
         type: activity.type,
