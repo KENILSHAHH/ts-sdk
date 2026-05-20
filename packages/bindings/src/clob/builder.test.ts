@@ -37,6 +37,15 @@ describe('BuilderTradeSchema', () => {
     expect(trade.updatedAt).toBe('2026-05-05T16:00:40.877478Z');
   });
 
+  it('still accepts matchTime epoch milliseconds', () => {
+    const trade = BuilderTradeSchema.parse({
+      ...baseBuilderTrade,
+      matchTime: '1777996829000',
+    });
+
+    expect(trade.matchedAt).toBe('2026-05-05T16:00:29.000Z');
+  });
+
   it('still accepts ISO matchTime strings', () => {
     const trade = BuilderTradeSchema.parse({
       ...baseBuilderTrade,
