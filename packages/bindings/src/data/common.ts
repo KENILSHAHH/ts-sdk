@@ -3,17 +3,19 @@ import { z } from 'zod';
 export const AddressSchema = z.string();
 export const Hash64Schema = z.string();
 
-export const ActivityTypeSchema = z.enum([
-  'TRADE',
-  'SPLIT',
-  'MERGE',
-  'REDEEM',
-  'REWARD',
-  'CONVERSION',
-  'MAKER_REBATE',
-  'REFERRAL_REWARD',
-  'YIELD',
-]);
+export const ActivityType = {
+  TRADE: 'TRADE',
+  SPLIT: 'SPLIT',
+  MERGE: 'MERGE',
+  REDEEM: 'REDEEM',
+  REWARD: 'REWARD',
+  CONVERSION: 'CONVERSION',
+  MAKER_REBATE: 'MAKER_REBATE',
+  REFERRAL_REWARD: 'REFERRAL_REWARD',
+  YIELD: 'YIELD',
+} as const;
+
+export const ActivityTypeSchema = z.enum(ActivityType);
 
 export const SideSchema = z.enum(['BUY', 'SELL']);
 
