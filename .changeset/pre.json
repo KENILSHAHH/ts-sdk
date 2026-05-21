@@ -9,6 +9,7 @@
   },
   "changesets": [
     "dark-yaks-rest",
+    "public-beta-release",
     "wide-houses-type"
   ]
 }
