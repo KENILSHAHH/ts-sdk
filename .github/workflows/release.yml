@@ -64,7 +64,7 @@ jobs:
       - test
       # Temporarily do not block canary publishing on integration tests while checks are blocked by a BE bug.
       # - integration-tests
-    if: ${{ !contains(github.event.head_commit.message, 'chore: bumps package versions') }}
+    if: "${{ !contains(github.event.head_commit.message, 'chore: bumps package versions') }}"
 
     steps:
       - name: Checkout Repository
