@@ -1,5 +1,11 @@
 # @polymarket/types
 
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- 3a8d59a: chore: configure packages for public beta release.
+
 ## 0.1.0-beta.1
 
 ### Patch Changes
