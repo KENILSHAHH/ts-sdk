@@ -4,4 +4,4 @@
 "@polymarket/types": patch
 ---
 
-Test public beta release.
+chore: configure packages for public beta release.
