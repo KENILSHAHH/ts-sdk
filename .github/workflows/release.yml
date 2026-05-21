@@ -36,8 +36,7 @@ jobs:
     needs:
       - verify
       - test
-      # Temporarily do not block release PR updates on integration tests while checks are blocked by a BE bug.
-      # - integration-tests
+      - integration-tests
 
     steps:
       - name: Checkout Repository
@@ -56,3 +55,32 @@ jobs:
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  canary:
+    name: Publish Canary
+    runs-on: ubuntu-latest
+    needs:
+      - verify
+      - test
+      # Temporarily do not block canary publishing on integration tests while checks are blocked by a BE bug.
+      # - integration-tests
+    if: ${{ !contains(github.event.head_commit.message, 'chore: bumps package versions') }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Set Up Repository
+        uses: ./.github/actions/setup
+
+      - name: Disable Beta Prerelease Mode For Canary
+        run: mv .changeset/pre.json .changeset/pre.json.disabled
+
+      - name: Version Packages For Canary
+        run: pnpm version:canary
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish Canary Packages
+        run: pnpm release:canary
