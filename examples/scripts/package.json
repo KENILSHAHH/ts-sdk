@@ -1,0 +1,18 @@
+{
+  "name": "@polymarket/examples",
+  "description": "Runnable TypeScript examples using the Polymarket SDK",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "list:markets": "tsx src/list-markets.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@polymarket/client": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^6.0.2"
+  }
+}

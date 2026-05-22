@@ -17,6 +17,7 @@ This repository is organized as a pnpm workspace with SDK packages and examples.
 | [`packages/client`](./packages/client)     | Official TypeScript client for building on Polymarket          |
 | [`packages/types`](./packages/types)       | Shared TypeScript types for SDK packages                       |
 | [`packages/bindings`](./packages/bindings) | Internal generated API bindings; not intended for direct usage |
+| [`examples/scripts`](./examples/scripts)   | Runnable TypeScript scripts for common SDK workflows           |
 
 For installation and usage, see [`packages/client`](./packages/client).
 
