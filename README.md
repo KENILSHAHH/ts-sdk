@@ -10,14 +10,13 @@ We welcome bug reports, feature requests, and general feedback through GitHub Is
 
 ## Repository Structure
 
-This repository is organized as a pnpm workspace with packages for the SDK itself and apps for runnable examples.
+This repository is organized as a pnpm workspace with SDK packages and examples.
 
 | Package                                    | Description                                                    |
 | ------------------------------------------ | -------------------------------------------------------------- |
 | [`packages/client`](./packages/client)     | Official TypeScript client for building on Polymarket          |
 | [`packages/types`](./packages/types)       | Shared TypeScript types for SDK packages                       |
 | [`packages/bindings`](./packages/bindings) | Internal generated API bindings; not intended for direct usage |
-| [`examples/react`](./examples/react)       | React + Ladle example app for exploring the SDK                |
 
 For installation and usage, see [`packages/client`](./packages/client).
 
@@ -44,12 +43,6 @@ cp .env.example .env
 
 Then open `.env` and fill in the fields.
 
-Start the React examples:
-
-```bash
-pnpm dev:react
-```
-
 Build all workspace packages:
 
 ```bash
@@ -60,7 +53,6 @@ pnpm build
 
 The root scripts are:
 
-- `pnpm dev:react` - start the Ladle examples in `examples/react`
 - `pnpm build` - build all workspace packages that expose a build script
 - `pnpm clean` - remove package build output from `packages/*/dist`
 

@@ -4,8 +4,7 @@
   "initialVersions": {
     "@polymarket/bindings": "0.0.0",
     "@polymarket/client": "0.0.0",
-    "@polymarket/types": "0.0.0",
-    "@polymarket/examples-react": "0.0.0"
+    "@polymarket/types": "0.0.0"
   },
   "changesets": [
     "dark-yaks-rest",
