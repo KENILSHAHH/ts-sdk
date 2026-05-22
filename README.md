@@ -1,4 +1,4 @@
-# Polymarket SDK
+# Polymarket TypeScript SDK
 
 ![Beta](https://img.shields.io/badge/status-beta-yellow)
 
