@@ -4,7 +4,6 @@ const client = createPublicClient();
 
 const page = await client
   .listMarkets({
-    closed: false,
     pageSize: 5,
   })
   .firstPage();
