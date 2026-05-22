@@ -1,5 +1,7 @@
 # Polymarket SDK
 
+![Beta](https://img.shields.io/badge/status-beta-yellow)
+
 This repository is the home for Polymarket's official TypeScript SDK packages.
 
 ## Beta Status
