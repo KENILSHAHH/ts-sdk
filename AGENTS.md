@@ -29,7 +29,7 @@
 - For order construction APIs, distinguish between order intent, execution constraints, and account/backend state. Prefer exposing order intent and execution constraints. Avoid asking callers for account state or cached backend data only so the SDK can infer intent.
 - Defaults are part of the API. Make the default behavior explicit, choose the least surprising default for the common workflow, and document how callers opt into materially different behavior.
 - Make asymmetric trading semantics explicit when they matter, such as BUY vs SELL, maker vs taker, platform fees vs builder fees, and fees paid on top vs deducted from amount.
-- When you discover a real boundary inconsistency between underlying CLOB, Gamma, Data, and relayer APIs, append a concise note to `docs/api-boundary-notes.md`.
+- When you discover a real boundary inconsistency between underlying CLOB, Gamma, Data, and relayer APIs, append a concise note to `../api-gateway/docs/api-boundary-notes.md`.
 - Future work includes `@polymarket/react`, which should build on the same core model with a higher-level frontend-oriented surface.
 - Each action in `packages/client/src/actions/` has a corresponding bound method in a decorator under `packages/client/src/decorators/`. When you change an action — its signature, parameter types, TSDoc, or examples — verify the matching decorator method is also updated. The decorator method is the public surface most consumers see.
 - Do not leak `ky` details outside of `ServiceClient`. Keep `ky` instances, types, and option shapes internal, and expose Polymarket-specific abstractions instead.
