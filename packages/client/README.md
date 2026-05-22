@@ -1,11 +1,11 @@
 # `@polymarket/client`
 
-The `@polymarket/client` package is the core TypeScript client for the Polymarket SDK.
+`@polymarket/client` is the official TypeScript client for building on Polymarket.
 
 ## Installation
 
 ```bash
-pnpm add @polymarket/client
+pnpm add @polymarket/client@beta
 ```
 
 ## Usage
@@ -23,14 +23,6 @@ const result = client.listMarkets({
 for await (const page of result) {
   // page.items: Market[] 
 }
-```
-
-## Development
-
-From the monorepo root:
-
-```bash
-pnpm --filter @polymarket/client build
 ```
 
 ## License

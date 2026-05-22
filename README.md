@@ -1,24 +1,32 @@
 # Polymarket SDK
 
-The Polymarket SDK is a pnpm monorepo for the core TypeScript client and runnable example applications.
+This repository is the home for Polymarket's official TypeScript SDK packages.
 
-## Monorepo Structure
+## Beta Status
+
+The TypeScript SDK is currently in beta. We are working toward a stable public API and will use feedback during the beta period to refine the developer experience.
+
+We welcome bug reports, feature requests, and general feedback through GitHub Issues. Please use the provided issue templates so we can triage reports consistently.
+
+## Repository Structure
 
 This repository is organized as a pnpm workspace with packages for the SDK itself and apps for runnable examples.
 
-| Package                                    | Description                                           |
-| ------------------------------------------ | ----------------------------------------------------- |
-| [`packages/bindings`](./packages/bindings) | Placeholder package for future OpenAPI bindings       |
-| [`packages/client`](./packages/client)     | Core TypeScript client package for the Polymarket SDK |
-| [`packages/types`](./packages/types)       | Shared TypeScript types for the Polymarket SDK        |
-| [`examples/react`](./examples/react)       | React + Ladle example app for exploring the SDK       |
+| Package                                    | Description                                                    |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| [`packages/client`](./packages/client)     | Official TypeScript client for building on Polymarket          |
+| [`packages/types`](./packages/types)       | Shared TypeScript types for SDK packages                       |
+| [`packages/bindings`](./packages/bindings) | Internal generated API bindings; not intended for direct usage |
+| [`examples/react`](./examples/react)       | React + Ladle example app for exploring the SDK                |
 
-## Requirements
+For installation and usage, see [`packages/client`](./packages/client).
+
+## Local Development
+
+### Requirements
 
 - Node.js `>=24`
 - pnpm `>=10`
-
-## Quick Start
 
 Install dependencies:
 
@@ -39,7 +47,7 @@ Then open `.env` and fill in the fields.
 Start the React examples:
 
 ```bash
-pnpm dev
+pnpm dev:react
 ```
 
 Build all workspace packages:
@@ -48,28 +56,25 @@ Build all workspace packages:
 pnpm build
 ```
 
-## Development Workflow
+### Development Scripts
 
 The root scripts are:
 
-- `pnpm dev` - start the Ladle examples in `examples/react`
+- `pnpm dev:react` - start the Ladle examples in `examples/react`
 - `pnpm build` - build all workspace packages that expose a build script
 - `pnpm clean` - remove package build output from `packages/*/dist`
-
-## Publishing
-
-Publishing is managed by the Changesets GitHub Action. Packages are published to npm through trusted publishing.
-
-## Design Notes
-
-- [`docs/sdk-direction.md`](./docs/sdk-direction.md) - current direction for `@polymarket/client`, package scope, and how the SDK should relate to Polymarket's existing API surfaces
-- [`docs/open-questions.md`](./docs/open-questions.md) - unresolved SDK questions to revisit later
 
 ## TypeScript Config
 
 - Root `tsconfig.json` and package-level `tsconfig.json` files are for editor tooling and source navigation.
 - `tsconfig.build.json` files are the configs used by package build and typecheck commands.
 - When changing build behavior, prefer updating `tsconfig.build.json`.
+
+## Maintainer Notes
+
+### Publishing
+
+Publishing is managed by the Changesets GitHub Action. Packages are published to npm through trusted publishing.
 
 ## License
 

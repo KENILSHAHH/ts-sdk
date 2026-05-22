@@ -1,50 +1,53 @@
 # SDK Direction
 
-This repo is the home for Polymarket's TypeScript SDKs.
+This repository is the home for Polymarket's official TypeScript SDK packages.
 
-The first shipping target is `@polymarket/client`. Its job is to make Polymarket easier to integrate with today, without waiting for full platform consolidation across backend services.
+## Purpose
 
-## Current Goal
+The TypeScript SDK should make building on Polymarket simpler, typed, and workflow-oriented. Public packages should organize around developer workflows rather than internal API boundaries.
 
-- Ship the first iteration of `@polymarket/client`.
-- Build on top of Polymarket's 4 current API surfaces: CLOB, Gamma, data, and relayer.
-- Give consumers one coherent TypeScript interface for common workflows.
+The SDK should hide internal service boundaries where possible while staying close to real integration needs. Lower-level controls can still be exposed when they support concrete workflows, but the default experience should feel cohesive.
 
-## Design Direction
+## Beta Focus
 
-- The public SDK should hide today's service boundaries where possible.
-- Package design should follow developer workflows rather than the current internal API split.
-- The SDK should feel pragmatic and typed, staying close to real integration needs without forcing consumers to understand how current services are divided.
-- The SDK can still expose lower-level controls when they are useful, but the default experience should feel unified.
+- Iterate on `@polymarket/client` during beta and move toward a stable public API.
+- Support common workflows across market data, trading, account, wallet, and realtime APIs.
+- Keep `@polymarket/client` focused on backend, script, and automation workflows.
+- Use beta feedback to refine developer experience without mirroring internal services directly.
 
-## Current Decisions
+## Design Principles
 
-- Omit readonly API key management from the first `@polymarket/client` surface for now.
-- Keep phase 2 focused on standard authenticated account reads that are clearly part of the primary trading workflow.
-- Revisit readonly API keys later if there is a concrete SDK use case and clearer public documentation.
-- Pause a public server-time action until there is clear evidence that clock synchronization is needed for supported SDK workflows.
-- Do not add `simplified-markets`, `sampling-markets`, or `sampling-simplified-markets` actions unless a concrete SDK workflow needs those legacy market listing variants.
-- Do not add heartbeat actions to `@polymarket/client`; the current heartbeat endpoint is expected to be removed in v2.
+- Prefer workflow-first APIs over service-shaped APIs.
+- Keep public models pragmatic, typed, and consistent.
+- Standardize SDK identifier naming on JS/TS-style `...Id` forms such as `orderId`, `tradeId`, `tokenId`, and `marketId`.
 - Normalize the CTF position identifier to `tokenId` in the SDK public model, even when upstream services call the same value `assetId`.
-- Auto-redeem is an ERC-1155 operator approval on the Conditional Tokens position contract. `setupTradingApprovals` includes it for integrators who want a fully ready account.
-- Standardize SDK identifier naming on JS/TS-style `...Id` forms such as `orderId`, `tradeId`, `tokenId`, and `marketId`, and translate legacy `...ID` and wire-format variants at the service boundary.
+- Translate legacy `...ID` and wire-format variants at the service boundary.
+- Add lower-level controls only when they support a concrete SDK workflow.
+
+## API Scope Decisions
+
+- Add readonly API key management only if there is a concrete SDK use case and clearer public documentation.
+- Add a public server-time action only if clock synchronization becomes necessary for supported SDK workflows.
+- Add `simplified-markets`, `sampling-markets`, and `sampling-simplified-markets` market listing variants only when they support a concrete SDK workflow.
+- Treat auto-redeem as an ERC-1155 operator approval on the Conditional Tokens position contract. `setupTradingApprovals` includes it for integrators who want a fully ready account.
+- Do not add every low-level endpoint just because it exists.
 
 ## Wallet Direction
 
 - Existing EOA, Poly Proxy, and Poly Safe wallets must continue to authenticate and trade.
-- The next wallet deployment target is the Deposit Wallet. Once introduced, new wallet setup flows should deploy Deposit Wallets rather than the current gasless Safe wallet.
-- Treat the current `SecureClient.setupGaslessWallet` naming as transitional. Future public APIs may become `SecureClient.setupDepositWallet` and, if needed, a separate `SecureClient.upgradeDepositWallet` migration path.
-- During the transitional period, `SecureClient.setupGaslessWallet` should treat Proxy-bound clients as already gasless and preserve the Proxy binding rather than migrating them to Safe.
-- Do not make proxy-to-deposit migration implicit until the migration product behavior is decided. Existing wallet-bound clients should remain usable while migration is introduced over time.
+- Deposit Wallet is the current wallet setup direction. Existing EOA, Poly Proxy, and Poly Safe wallets must remain supported.
+- `SecureClient.setupGaslessWallet` should treat Proxy-bound and Safe-bound clients as already gasless and preserve the existing wallet binding.
+- Do not make wallet migration implicit. Existing wallet-bound clients should remain usable as Deposit Wallet support evolves.
 
 ## Package Direction
 
-- `@polymarket/client` is the main near-term package.
-- It should provide a cohesive server-side and TypeScript-first integration surface.
-- Future work includes `@polymarket/react`, which should build on the same core model but offer a higher-level frontend-oriented interface.
+- `@polymarket/client` is the first package in this TypeScript SDK repository.
+- `@polymarket/client` should provide a cohesive TypeScript-first API for backend, script, and automation workflows.
+- `@polymarket/types` and `@polymarket/bindings` support SDK packages and are not the main user-facing surface.
+- Future work includes `@polymarket/react`, which should build on the same workflow model and provide a higher-level React interface.
 
 ## Non-Goals
 
-- Mirror today's service fragmentation directly in the public SDK surface.
-- Make all future SDKs expose the exact same abstraction level.
-- Wait for backend consolidation before improving developer experience.
+- Mirror internal service boundaries directly in the public SDK surface.
+- Wait for internal platform consolidation before improving developer experience.
+- Expose every underlying endpoint as a public SDK action.
