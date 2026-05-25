@@ -1,0 +1,27 @@
+{
+  "name": "@polymarket/examples",
+  "description": "Runnable TypeScript examples using the Polymarket SDK",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "fetch:market": "tsx src/fetch-market.ts",
+    "list:markets": "tsx src/list-markets.ts",
+    "market:prices": "tsx src/market-prices.ts",
+    "order:create-limit": "tsx src/create-limit-order.ts",
+    "order:create-market": "tsx src/create-market-order.ts",
+    "stream:public": "tsx src/public-streams.ts",
+    "pagination": "tsx src/pagination.ts",
+    "positions:list": "tsx src/list-positions.ts",
+    "search": "tsx src/search.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@polymarket/client": "workspace:*",
+    "viem": "^2.46.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^6.0.2"
+  }
+}
