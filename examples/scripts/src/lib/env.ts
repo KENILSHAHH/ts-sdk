@@ -1,4 +1,5 @@
 try {
+  process.loadEnvFile?.('../../.env');
   process.loadEnvFile?.();
 } catch {
   // Examples can run without a local .env when all required variables are set externally.

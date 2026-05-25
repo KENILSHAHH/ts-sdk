@@ -41,6 +41,9 @@ importers:
       '@polymarket/client':
         specifier: workspace:*
         version: link:../../packages/client
+      viem:
+        specifier: ^2.46.3
+        version: 2.47.10(typescript@6.0.2)(zod@4.3.6)
     devDependencies:
       tsx:
         specifier: ^4.20.3
