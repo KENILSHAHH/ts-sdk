@@ -18,7 +18,7 @@ import {
   SubscriptionRegistry,
   type SubscriptionRegistryChange,
 } from '../registry';
-import type { WebSocketManager } from '../types';
+import type { WebSocketSubscriptionManager } from '../types';
 import {
   buildUserSubscribeMessage,
   deriveUserServerSubscription,
@@ -36,7 +36,7 @@ export type ClobUserWebSocketManagerOptions = {
 };
 
 export class ClobUserWebSocketManager
-  implements WebSocketManager<UserSubscription, UserEvent>
+  implements WebSocketSubscriptionManager<UserSubscription, UserEvent>
 {
   readonly #url: string;
   readonly #resolveCredentials: ApiKeyCredsProvider;

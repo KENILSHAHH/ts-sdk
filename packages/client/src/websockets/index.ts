@@ -4,5 +4,5 @@ export { SportsWebSocketManager } from './sports';
 export type {
   PublicWebSocketManagers,
   SecureWebSocketManagers,
-  WebSocketManager,
+  WebSocketSubscriptionManager,
 } from './types';

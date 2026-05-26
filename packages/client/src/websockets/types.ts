@@ -30,7 +30,7 @@ import type {
  *
  * `close()` is best-effort and idempotent.
  */
-export interface WebSocketManager<TSpec, TEvent> {
+export interface WebSocketSubscriptionManager<TSpec, TEvent> {
   subscribe(subscription: TSpec): Promise<SubscriptionHandle<TEvent>>;
 
   close(): Promise<void>;
@@ -38,9 +38,15 @@ export interface WebSocketManager<TSpec, TEvent> {
 
 // Surfaces available on the public client.
 export type PublicWebSocketManagers = {
-  readonly clobMarket: WebSocketManager<MarketSubscription, MarketEvent>;
-  readonly sports: WebSocketManager<SportsSubscription, SportsEvent>;
-  readonly rtds: WebSocketManager<
+  readonly clobMarket: WebSocketSubscriptionManager<
+    MarketSubscription,
+    MarketEvent
+  >;
+  readonly sports: WebSocketSubscriptionManager<
+    SportsSubscription,
+    SportsEvent
+  >;
+  readonly rtds: WebSocketSubscriptionManager<
     CommentsSubscription | CryptoPricesSubscription | EquityPricesSubscription,
     CommentsEvent | CryptoPricesEvent | EquityPricesEvent
   >;
@@ -48,5 +54,5 @@ export type PublicWebSocketManagers = {
 
 // Secure client additionally exposes the user surface.
 export type SecureWebSocketManagers = PublicWebSocketManagers & {
-  readonly clobUser: WebSocketManager<UserSubscription, UserEvent>;
+  readonly clobUser: WebSocketSubscriptionManager<UserSubscription, UserEvent>;
 };
