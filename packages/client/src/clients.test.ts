@@ -5,7 +5,7 @@ import { type EvmAddress, expectEvmAddress } from '@polymarket/types';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { BaseSecureClient } from './clients';
+import { BaseSecureClient, createSecureClient } from './clients';
 import { walletActions } from './decorators/wallet';
 import { production } from './environments';
 import type { ApiKeyAuthorization, Signer } from './types';
@@ -17,6 +17,7 @@ import {
 
 const rpcRoot = 'http://localhost:4014';
 const relayerRoot = 'http://localhost:4015';
+const clobRoot = 'http://localhost:4016';
 const server = setupServer();
 const signerAddress = expectEvmAddress(
   '0x0000000000000000000000000000000000000001',
@@ -24,6 +25,7 @@ const signerAddress = expectEvmAddress(
 
 const environment = {
   ...production,
+  clob: clobRoot,
   relayer: relayerRoot,
   rpc: rpcRoot,
 };
@@ -122,6 +124,29 @@ describe('secure client gasless wallet setup', () => {
     await expect(walletActions(client).isGaslessReady()).resolves.toBe(true);
   });
 
+  it('defaults createSecureClient without a wallet to the deterministic deposit wallet', async () => {
+    const expectedWallet = deriveBeaconDepositWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    mockApiKeys();
+    mockBeaconFactory();
+    mockDeployedWallet(expectedWallet);
+
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+    });
+
+    expect(client.account).toEqual({
+      signer: signerAddress,
+      wallet: expectedWallet,
+      walletType: WalletType.DEPOSIT_WALLET,
+    });
+  });
+
   it('does not silently fall back when factory detection fails generically', async () => {
     mockFactoryRpcError();
     const client = createEoaClient();
@@ -175,6 +200,14 @@ function mockFactoryRpcError() {
         id: 1,
         error: { code: -32_603, message: 'upstream unavailable' },
       }),
+    ),
+  );
+}
+
+function mockApiKeys() {
+  server.use(
+    http.get(`${clobRoot}/auth/api-keys`, () =>
+      HttpResponse.json({ apiKeys: [credentials.key] }),
     ),
   );
 }

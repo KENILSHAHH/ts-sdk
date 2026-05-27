@@ -823,13 +823,10 @@ export type SecureClientOptions = PublicClientOptions & {
   /**
    * Wallet address to use as the account wallet.
    *
-   * If omitted, the client uses the signer address as the account wallet and
-   * operates as an EOA account. EOA clients do not use gasless relayer flows:
-   * approvals, transfers, and other wallet operations are submitted directly by
-   * the signer and require the signer wallet to hold gas. Pass a supported Poly
-   * Deposit Wallet, Poly Safe, or Poly Proxy wallet address to use that wallet
-   * as the account/funder and enable gasless wallet operations when an API key
-   * strategy supports them.
+   * If omitted, the client uses the signer's deterministic Deposit Wallet as
+   * the account wallet. Pass the signer address itself to explicitly trade as
+   * an EOA account, or pass a supported Poly Deposit Wallet, Poly Safe, or Poly
+   * Proxy wallet address to use that wallet as the account/funder.
    */
   wallet?: string;
 
@@ -878,6 +875,8 @@ export type CreateSecureClientError =
   | RateLimitError
   | RequestRejectedError
   | SigningError
+  | TimeoutError
+  | TransactionFailedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
@@ -886,6 +885,8 @@ export const CreateSecureClientError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -930,7 +931,7 @@ export async function createSecureClient(
   });
   const wallet = options.wallet ?? (await options.signer.getAddress());
 
-  return client
+  const secureClient = await client
     .beginAuthentication(
       {
         wallet,
@@ -940,4 +941,10 @@ export async function createSecureClient(
       options.signer,
     )
     .then(authenticateWith(options.signer));
+
+  if (options.wallet !== undefined) {
+    return secureClient;
+  }
+
+  return secureClient.setupGaslessWallet();
 }
