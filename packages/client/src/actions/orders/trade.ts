@@ -110,6 +110,11 @@ export const CreateLimitOrderError = makeErrorGuard(
 /**
  * Creates a signed limit order for the authenticated account.
  *
+ * @remarks
+ * GTD expirations must be at least 60 seconds in the future. Add your own
+ * buffer for network latency and clock skew when deriving an expiration from
+ * the current time.
+ *
  * @throws {@link CreateLimitOrderError}
  * Thrown on failure.
  */
@@ -139,6 +144,11 @@ export const PlaceLimitOrderError = makeErrorGuard(
 
 /**
  * Creates and posts a limit order for the authenticated account.
+ *
+ * @remarks
+ * GTD expirations must be at least 60 seconds in the future. Add your own
+ * buffer for network latency and clock skew when deriving an expiration from
+ * the current time.
  *
  * @throws {@link PlaceLimitOrderError}
  * Thrown on failure.
