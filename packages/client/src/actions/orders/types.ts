@@ -102,6 +102,10 @@ export type PrepareLimitOrderRequest = {
    * When provided, the SDK prepares a Good-Til-Date (GTD) limit order that
    * expires at the given timestamp.
    *
+   * The timestamp must be at least 60 seconds in the future. Add your own
+   * buffer for network latency and clock skew when deriving it from the
+   * current time.
+   *
    * When omitted, the SDK prepares a Good-Til-Cancelled (GTC) limit order.
    */
   expiration?: number;
