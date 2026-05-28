@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  type ConditionId,
+  ConditionIdSchema,
   type DecimalString,
   DecimalStringSchema,
   type EpochMilliseconds,
@@ -14,7 +16,7 @@ export type OrderBookLevel = {
 };
 
 export type OrderBook = {
-  market: string;
+  market: ConditionId;
   tokenId: TokenId;
   timestamp?: EpochMilliseconds | null;
 
@@ -38,7 +40,7 @@ export const OrderBookLevelSchema = z.object({
 
 export const OrderBookSchema = z
   .object({
-    market: z.string(),
+    market: ConditionIdSchema,
     asset_id: TokenIdSchema,
     timestamp: EpochMillisecondsStringSchema.nullish(),
     bids: z.array(OrderBookLevelSchema),
