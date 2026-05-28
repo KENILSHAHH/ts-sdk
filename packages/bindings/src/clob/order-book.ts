@@ -15,6 +15,9 @@ export type OrderBookLevel = {
   size: DecimalString;
 };
 
+/** SHA-1 hash of the serialized order book summary, encoded as bare lowercase hex. */
+export type OrderBookHash = string & { readonly __tag: 'OrderBookHash' };
+
 export type OrderBook = {
   market: ConditionId;
   tokenId: TokenId;
@@ -30,13 +33,18 @@ export type OrderBook = {
   tickSize: DecimalString;
   negRisk: boolean;
   lastTradePrice?: DecimalString | null;
-  hash: string;
+  hash: OrderBookHash;
 };
 
 export const OrderBookLevelSchema = z.object({
   price: DecimalStringSchema,
   size: DecimalStringSchema,
 }) satisfies z.ZodType<OrderBookLevel>;
+
+export const OrderBookHashSchema = z
+  .string()
+  .regex(/^[a-f0-9]{40}$/)
+  .transform((value) => value as OrderBookHash);
 
 export const OrderBookSchema = z
   .object({
@@ -49,7 +57,7 @@ export const OrderBookSchema = z
     tick_size: DecimalStringSchema,
     neg_risk: z.boolean(),
     last_trade_price: DecimalStringSchema.nullish(),
-    hash: z.string(),
+    hash: OrderBookHashSchema,
   })
   .transform(
     ({
