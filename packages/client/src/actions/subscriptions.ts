@@ -46,7 +46,13 @@ export type EquityPricesEventType = EquityPricesEvent['type'];
 // Subscription specs.
 export type MarketSubscription = {
   topic: 'market';
+  /** Token IDs whose market events should be delivered. */
   tokenIds: readonly string[];
+
+  /**
+   * When `true`, the server additionally emits `MarketBestBidAskEvent`,
+   * `NewMarketEvent`, and `MarketResolvedEvent`.
+   */
   customFeatureEnabled?: boolean;
 };
 

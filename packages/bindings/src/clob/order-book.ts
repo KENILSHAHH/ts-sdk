@@ -1,14 +1,40 @@
 import { z } from 'zod';
 import {
+  type DecimalString,
   DecimalStringSchema,
+  type EpochMilliseconds,
   EpochMillisecondsStringSchema,
+  type TokenId,
   TokenIdSchema,
 } from '../shared';
+
+export type OrderBookLevel = {
+  price: DecimalString;
+  size: DecimalString;
+};
+
+export type OrderBook = {
+  market: string;
+  tokenId: TokenId;
+  timestamp?: EpochMilliseconds | null;
+
+  /** Bid levels in ascending price order, lowest bid first. */
+  bids: OrderBookLevel[];
+
+  /** Ask levels in descending price order, highest ask first. */
+  asks: OrderBookLevel[];
+
+  minOrderSize: DecimalString;
+  tickSize: DecimalString;
+  negRisk: boolean;
+  lastTradePrice?: DecimalString | null;
+  hash: string;
+};
 
 export const OrderBookLevelSchema = z.object({
   price: DecimalStringSchema,
   size: DecimalStringSchema,
-});
+}) satisfies z.ZodType<OrderBookLevel>;
 
 export const OrderBookSchema = z
   .object({
@@ -39,14 +65,10 @@ export const OrderBookSchema = z
       negRisk: neg_risk,
       lastTradePrice: last_trade_price,
     }),
-  );
+  ) satisfies z.ZodType<OrderBook>;
 
 export const FetchOrderBookResponseSchema = OrderBookSchema;
 export const OrderBooksSchema = z.array(OrderBookSchema);
 
-export type OrderBookLevel = z.infer<typeof OrderBookLevelSchema>;
-export type OrderBook = z.infer<typeof OrderBookSchema>;
-export type OrderBooks = z.infer<typeof OrderBooksSchema>;
-export type FetchOrderBookResponse = z.infer<
-  typeof FetchOrderBookResponseSchema
->;
+export type OrderBooks = OrderBook[];
+export type FetchOrderBookResponse = OrderBook;
