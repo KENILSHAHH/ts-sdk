@@ -36,7 +36,7 @@ export const PrepareLimitOrderParamsSchema = z
     if (params.expiration !== undefined) {
       const minimumExpiration = Math.floor(Date.now() / 1000) + 60;
 
-      if (params.expiration <= minimumExpiration) {
+      if (params.expiration < minimumExpiration) {
         context.addIssue({
           code: 'custom',
           message: 'Expiration must be at least 60 seconds in the future.',
