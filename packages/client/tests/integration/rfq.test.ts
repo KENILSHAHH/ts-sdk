@@ -8,10 +8,12 @@ import {
   authAckFrame,
   confirmationAckFrame,
   confirmationRequestFrame,
+  executionUpdateFrame,
   QUOTE_ID,
   QUOTE_SIZE_E6,
   quoteAckFrame,
   quoteRequestFrame,
+  TX_HASH,
 } from './rfq-frames';
 
 const rfq = ws.link(production.rfqQuoterWs);
@@ -37,6 +39,7 @@ describe('RFQ sessions', () => {
         rfq.addEventListener('connection', ({ client: socket }) => {
           socket.addEventListener('message', (event) => {
             const frame = JSON.parse(String(event.data)) as {
+              decision?: unknown;
               price_e6?: unknown;
               size_e6?: unknown;
               type?: string;
@@ -68,7 +71,14 @@ describe('RFQ sessions', () => {
             }
 
             if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
-              socket.send(JSON.stringify(confirmationAckFrame()));
+              invariant(
+                typeof frame.decision === 'string',
+                'Expected RFQ confirmation decision.',
+              );
+              socket.send(JSON.stringify(confirmationAckFrame(frame.decision)));
+              if (frame.decision === 'CONFIRM') {
+                socket.send(JSON.stringify(executionUpdateFrame()));
+              }
             }
           });
         }),
@@ -169,6 +179,77 @@ describe('RFQ sessions', () => {
                 type: 'RFQ_CONFIRMATION_RESPONSE',
               }),
             );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+
+    it('declines confirmation requests', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            await event.quote({ price: 0.45 });
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            const ack = await event.decline();
+
+            expect(ack).toEqual({
+              rfqId: event.rfqId,
+              quoteId: event.quoteId,
+            });
+
+            expect(outboundFrames).toContainEqual(
+              expect.objectContaining({
+                decision: 'DECLINE',
+                quote_id: event.quoteId,
+                rfq_id: event.rfqId,
+                type: 'RFQ_CONFIRMATION_RESPONSE',
+              }),
+            );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+
+    it('yields execution updates', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            await event.quote({ price: 0.45 });
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            await event.confirm();
+            continue;
+          }
+
+          if (event.type === 'execution_update') {
+            expect(event).toMatchObject({
+              rfqId: quoteRequestFrame().rfq_id,
+              status: 'CONFIRMED',
+              txHash: TX_HASH,
+            });
 
             await session.close();
             break;

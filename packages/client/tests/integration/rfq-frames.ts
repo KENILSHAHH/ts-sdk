@@ -1,7 +1,10 @@
 import { SignatureType } from '@polymarket/bindings/clob';
+import { RfqExecutionStatus } from '@polymarket/bindings/rfq';
 
 export const QUOTE_ID = 'quote-1';
 export const QUOTE_SIZE_E6 = 1_000_000;
+export const TX_HASH =
+  '0x1111111111111111111111111111111111111111111111111111111111111111';
 
 const RFQ_ID = 'rfq-1';
 
@@ -56,11 +59,20 @@ export function confirmationRequestFrame(priceE6: number, fillSizeE6: number) {
   };
 }
 
-export function confirmationAckFrame() {
+export function confirmationAckFrame(decision: string) {
   return {
-    decision: 'CONFIRM',
+    decision,
     quote_id: QUOTE_ID,
     rfq_id: RFQ_ID,
     type: 'ACK_RFQ_CONFIRMATION_RESPONSE',
+  };
+}
+
+export function executionUpdateFrame() {
+  return {
+    rfq_id: RFQ_ID,
+    status: RfqExecutionStatus.Confirmed,
+    tx_hash: TX_HASH,
+    type: 'RFQ_EXECUTION_UPDATE',
   };
 }
