@@ -87,6 +87,29 @@ describe('RFQ sessions', () => {
       );
     });
 
+    it('authenticates with the secure client credentials', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      try {
+        const session = await secureClientWithDepositWallet.openRfqSession();
+
+        expect(outboundFrames).toContainEqual(
+          expect.objectContaining({
+            auth: {
+              apiKey: secureClientWithDepositWallet.credentials.key,
+              passphrase: secureClientWithDepositWallet.credentials.passphrase,
+              secret: secureClientWithDepositWallet.credentials.secret,
+            },
+            type: 'auth',
+          }),
+        );
+
+        await session.close();
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+
     it('quotes the requested size when no size is provided', async ({
       secureClientWithDepositWallet,
     }) => {
