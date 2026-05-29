@@ -1,4 +1,9 @@
-import { production, TimeoutError } from '@polymarket/client';
+import {
+  production,
+  TimeoutError,
+  TransportError,
+  UserInputError,
+} from '@polymarket/client';
 import { invariant } from '@polymarket/types';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
@@ -18,7 +23,12 @@ import {
 
 const rfq = ws.link(production.rfqQuoterWs);
 const server = setupServer();
-let responseMode: 'happy' | 'quoteTimeout' = 'happy';
+let responseMode:
+  | 'closeAfterConfirmation'
+  | 'closeAfterQuote'
+  | 'confirmationTimeout'
+  | 'happy'
+  | 'quoteTimeout' = 'happy';
 let outboundFrames: unknown[] = [];
 let connectionCount = 0;
 
@@ -70,6 +80,10 @@ describe('RFQ sessions', () => {
                 'Expected RFQ quote size.',
               );
               if (responseMode === 'quoteTimeout') return;
+              if (responseMode === 'closeAfterQuote') {
+                socket.close();
+                return;
+              }
 
               socket.send(JSON.stringify(quoteAckFrame()));
               socket.send(
@@ -85,6 +99,12 @@ describe('RFQ sessions', () => {
                 typeof frame.decision === 'string',
                 'Expected RFQ confirmation decision.',
               );
+              if (responseMode === 'confirmationTimeout') return;
+              if (responseMode === 'closeAfterConfirmation') {
+                socket.close();
+                return;
+              }
+
               socket.send(JSON.stringify(confirmationAckFrame(frame.decision)));
               if (frame.decision === 'CONFIRM') {
                 socket.send(JSON.stringify(executionUpdateFrame()));
@@ -320,6 +340,151 @@ describe('RFQ sessions', () => {
             await vi.advanceTimersByTimeAsync(30_000);
 
             await quoteRejection;
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when confirmation acknowledgement times out', () => {
+    beforeEach(() => {
+      responseMode = 'confirmationTimeout';
+    });
+
+    it('rejects the confirmation response', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+      vi.useFakeTimers();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            await event.quote({ price: 0.45 });
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            const confirmation = event.confirm();
+            const confirmationRejection =
+              expect(confirmation).rejects.toBeInstanceOf(TimeoutError);
+
+            await vi.waitFor(() => {
+              expect(outboundFrames).toContainEqual(
+                expect.objectContaining({
+                  type: 'RFQ_CONFIRMATION_RESPONSE',
+                }),
+              );
+            });
+            await vi.advanceTimersByTimeAsync(30_000);
+
+            await confirmationRejection;
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when the connection closes before quote acknowledgement', () => {
+    beforeEach(() => {
+      responseMode = 'closeAfterQuote';
+    });
+
+    it('rejects the quote response', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const quote = event.quote({ price: 0.45 });
+            const quoteRejection =
+              expect(quote).rejects.toBeInstanceOf(TransportError);
+
+            await vi.waitFor(() => {
+              expect(outboundFrames).toContainEqual(
+                expect.objectContaining({ type: 'RFQ_QUOTE' }),
+              );
+            });
+
+            await quoteRejection;
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when the connection closes before confirmation acknowledgement', () => {
+    beforeEach(() => {
+      responseMode = 'closeAfterConfirmation';
+    });
+
+    it('rejects the confirmation response', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            await event.quote({ price: 0.45 });
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            const confirmation = event.confirm();
+            const confirmationRejection =
+              expect(confirmation).rejects.toBeInstanceOf(TransportError);
+
+            await vi.waitFor(() => {
+              expect(outboundFrames).toContainEqual(
+                expect.objectContaining({
+                  type: 'RFQ_CONFIRMATION_RESPONSE',
+                }),
+              );
+            });
+
+            await confirmationRejection;
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when quote input is invalid', () => {
+    it('rejects before sending a quote response', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            await expect(event.quote({ price: 1 })).rejects.toBeInstanceOf(
+              UserInputError,
+            );
+
+            expect(outboundFrames).not.toContainEqual(
+              expect.objectContaining({ type: 'RFQ_QUOTE' }),
+            );
+
             await session.close();
             break;
           }
