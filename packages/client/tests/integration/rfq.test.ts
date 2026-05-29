@@ -1,8 +1,8 @@
-import { production } from '@polymarket/client';
+import { production, TimeoutError } from '@polymarket/client';
 import { invariant } from '@polymarket/types';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, beforeAll, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { describe, expect, it } from './fixtures';
 import {
   authAckFrame,
@@ -18,6 +18,7 @@ import {
 
 const rfq = ws.link(production.rfqQuoterWs);
 const server = setupServer();
+let responseMode: 'happy' | 'quoteTimeout' = 'happy';
 let outboundFrames: unknown[] = [];
 let connectionCount = 0;
 
@@ -29,6 +30,11 @@ describe('RFQ sessions', () => {
   beforeEach(() => {
     connectionCount = 0;
     outboundFrames = [];
+    responseMode = 'happy';
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   afterAll(() => {
@@ -63,6 +69,8 @@ describe('RFQ sessions', () => {
                 typeof frame.size_e6 === 'number',
                 'Expected RFQ quote size.',
               );
+              if (responseMode === 'quoteTimeout') return;
+
               socket.send(JSON.stringify(quoteAckFrame()));
               socket.send(
                 JSON.stringify(
@@ -276,6 +284,42 @@ describe('RFQ sessions', () => {
               txHash: TX_HASH,
             });
 
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when quote acknowledgement times out', () => {
+    beforeEach(() => {
+      responseMode = 'quoteTimeout';
+    });
+
+    it('rejects the quote response', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+      vi.useFakeTimers();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const quote = event.quote({ price: 0.45 });
+            const quoteRejection =
+              expect(quote).rejects.toBeInstanceOf(TimeoutError);
+
+            await vi.waitFor(() => {
+              expect(outboundFrames).toContainEqual(
+                expect.objectContaining({ type: 'RFQ_QUOTE' }),
+              );
+            });
+            await vi.advanceTimersByTimeAsync(30_000);
+
+            await quoteRejection;
             await session.close();
             break;
           }
