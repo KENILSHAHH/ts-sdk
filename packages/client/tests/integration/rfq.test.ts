@@ -9,6 +9,7 @@ import {
   confirmationAckFrame,
   confirmationRequestFrame,
   QUOTE_ID,
+  QUOTE_SIZE_E6,
   quoteAckFrame,
   quoteRequestFrame,
 } from './rfq-frames';
@@ -74,7 +75,7 @@ describe('RFQ sessions', () => {
       );
     });
 
-    it('quotes and confirms through the secure client session', async ({
+    it('quotes the requested size when no size is provided', async ({
       secureClientWithDepositWallet,
     }) => {
       const session = await secureClientWithDepositWallet.openRfqSession();
@@ -93,7 +94,58 @@ describe('RFQ sessions', () => {
               expect.objectContaining({
                 price_e6: 450_000,
                 rfq_id: event.rfqId,
-                size_e6: 1_000_000,
+                size_e6: QUOTE_SIZE_E6,
+                type: 'RFQ_QUOTE',
+              }),
+            );
+
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            const ack = await event.confirm();
+
+            expect(ack).toEqual({
+              rfqId: event.rfqId,
+              quoteId: event.quoteId,
+            });
+
+            expect(outboundFrames).toContainEqual(
+              expect.objectContaining({
+                decision: 'CONFIRM',
+                quote_id: event.quoteId,
+                rfq_id: event.rfqId,
+                type: 'RFQ_CONFIRMATION_RESPONSE',
+              }),
+            );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+
+    it('quotes an explicit size', async ({ secureClientWithDepositWallet }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const ack = await event.quote({ price: 0.45, size: 0.5 });
+
+            expect(ack).toEqual({
+              rfqId: event.rfqId,
+              quoteId: QUOTE_ID,
+            });
+
+            expect(outboundFrames).toContainEqual(
+              expect.objectContaining({
+                price_e6: 450_000,
+                rfq_id: event.rfqId,
+                size_e6: 500_000,
                 type: 'RFQ_QUOTE',
               }),
             );

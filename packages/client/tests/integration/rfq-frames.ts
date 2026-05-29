@@ -1,9 +1,9 @@
 import { SignatureType } from '@polymarket/bindings/clob';
 
 export const QUOTE_ID = 'quote-1';
+export const QUOTE_SIZE_E6 = 1_000_000;
 
 const RFQ_ID = 'rfq-1';
-const QUOTE_SIZE_E6 = 1_000_000;
 
 const signerAddress = '0x1111111111111111111111111111111111111111';
 const makerAddress = '0x2222222222222222222222222222222222222222';
