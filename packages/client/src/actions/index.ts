@@ -13,6 +13,7 @@ export * from './orders';
 export * from './portfolio';
 export * from './positions';
 export * from './profiles';
+export * from './rfq';
 export * from './search';
 export * from './series';
 export * from './sports';

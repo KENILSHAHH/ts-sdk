@@ -17,6 +17,7 @@ import {
   rewardsActions,
   type SecureRewardsActions,
 } from './rewards';
+import { rfqActions, type SecureRfqActions } from './rfq';
 import {
   type PublicSubscriptionsActions,
   type SecureSubscriptionsActions,
@@ -40,6 +41,7 @@ export type SecureActions = Prettify<
     AnalyticsActions &
     SecureAccountActions &
     SecureRewardsActions &
+    SecureRfqActions &
     SecureSubscriptionsActions &
     SecureWalletActions &
     SecureTradingActions
@@ -55,6 +57,7 @@ export function allActions(client: BaseClient): PublicActions | SecureActions {
       ...dataActions(client),
       ...discoveryActions(client),
       ...rewardsActions(client),
+      ...rfqActions(client),
       ...subscriptionsActions(client),
       ...tradingActions(client),
       ...walletActions(client),
@@ -76,6 +79,7 @@ export * from './analytics';
 export * from './data';
 export * from './discovery';
 export * from './rewards';
+export * from './rfq';
 export * from './subscriptions';
 export * from './trading';
 export * from './wallet';

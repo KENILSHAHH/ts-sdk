@@ -34,7 +34,7 @@ export type WebSocketConnectionResult = {
 };
 
 export type WebSocketConnectionConstructorOptions = {
-  heartbeat: WebSocketHeartbeat;
+  heartbeat?: WebSocketHeartbeat;
 };
 
 export class ReconnectScheduler {
@@ -80,12 +80,12 @@ export class ReconnectScheduler {
 }
 
 export class WebSocketConnection {
-  readonly #heartbeat: WebSocketHeartbeat;
+  readonly #heartbeat: WebSocketHeartbeat | undefined;
   #socket: WebSocket | undefined;
   #connecting: Promise<WebSocketConnectionResult> | undefined;
   #watchdog: ReturnType<typeof setInterval> | undefined;
 
-  constructor(options: WebSocketConnectionConstructorOptions) {
+  constructor(options: WebSocketConnectionConstructorOptions = {}) {
     this.#heartbeat = options.heartbeat;
   }
 
@@ -165,7 +165,7 @@ export class WebSocketConnection {
       socket.addEventListener('message', (event) => {
         if (this.#socket !== socket) return;
         const message = String(event.data);
-        if (this.#heartbeat.handleMessage(message)) return;
+        if (this.#heartbeat?.handleMessage(message)) return;
 
         let raw: unknown;
         try {
@@ -196,9 +196,12 @@ export class WebSocketConnection {
 
   #startHeartbeat(): void {
     this.#stopHeartbeat();
-    this.#heartbeat.start((message) => this.#sendRaw(message));
+    const heartbeat = this.#heartbeat;
+    if (heartbeat === undefined) return;
+
+    heartbeat.start((message) => this.#sendRaw(message));
     this.#watchdog = setNonBlockingInterval(() => {
-      if (!this.#heartbeat.isStale(Date.now())) return;
+      if (!heartbeat.isStale(Date.now())) return;
       const socket = this.#socket;
       if (socket?.readyState === WebSocket.OPEN) {
         // Let the normal close path reconnect and resubscribe active handles.
@@ -212,7 +215,7 @@ export class WebSocketConnection {
       clearInterval(this.#watchdog);
       this.#watchdog = undefined;
     }
-    this.#heartbeat.stop();
+    this.#heartbeat?.stop();
   }
 
   async #takeCurrent(): Promise<WebSocket | undefined> {

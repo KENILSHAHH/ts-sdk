@@ -31,6 +31,10 @@
       "types": "./dist/relayer/index.d.ts",
       "default": "./dist/relayer/index.js"
     },
+    "./rfq": {
+      "types": "./dist/rfq.d.ts",
+      "default": "./dist/rfq.js"
+    },
     "./subscriptions": {
       "types": "./dist/subscriptions/index.d.ts",
       "default": "./dist/subscriptions/index.js"
@@ -49,6 +53,9 @@
       ],
       "relayer": [
         "./dist/relayer/index.d.ts"
+      ],
+      "rfq": [
+        "./dist/rfq.d.ts"
       ],
       "subscriptions": [
         "./dist/subscriptions/index.d.ts"

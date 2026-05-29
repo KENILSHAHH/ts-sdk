@@ -55,6 +55,7 @@ import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
   type PublicWebSocketManagers,
+  RfqQuoterWebSocketManager,
   RtdsWebSocketManager,
   type SecureWebSocketManagers,
   SportsWebSocketManager,
@@ -513,6 +514,14 @@ class BaseSecureClient<
           resolveCredentials: () => this.credentials,
           url: config.environment.clobUserWs,
         }),
+        rfqQuoter: new RfqQuoterWebSocketManager({
+          chainId: config.environment.chainId,
+          exchangeV3: config.environment.exchangeV3,
+          resolveAccount: () => this.account,
+          resolveCredentials: () => this.credentials,
+          resolveSigner: () => this.signer,
+          url: config.environment.rfqQuoterWs,
+        }),
         sports: new SportsWebSocketManager({
           url: config.environment.sportsWs,
         }),
@@ -590,6 +599,7 @@ class BaseSecureClient<
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
       this.webSockets.clobUser.close(),
+      this.webSockets.rfqQuoter.close(),
     ]).then(() => undefined);
   }
 

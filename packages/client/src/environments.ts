@@ -33,6 +33,8 @@ export type EnvironmentConfig = {
   /** @internal */
   negRiskExchange: EvmAddress;
   /** @internal */
+  exchangeV3: EvmAddress;
+  /** @internal */
   autoRedeemOperator: EvmAddress;
   /** @internal */
   safeMultisend: EvmAddress;
@@ -54,6 +56,8 @@ export type EnvironmentConfig = {
   rtdsWs: string;
   /** @internal */
   sportsWs: string;
+  /** @internal */
+  rfqQuoterWs: string;
   /** @internal */
   relayerMaxPolls: number;
   /** @internal */
@@ -108,6 +112,7 @@ export const production: EnvironmentConfig = {
   negRiskExchange: expectEvmAddress(
     '0xe2222d279d744050d28e00520010520000310F59',
   ),
+  exchangeV3: expectEvmAddress('0x9fE6e61422AdB6F610d8597F9684b16912D50C3D'),
   autoRedeemOperator: expectEvmAddress(
     '0xF3cFb6a6eBFeB51876289Eb235719EB1C65252B0',
   ),
@@ -120,6 +125,7 @@ export const production: EnvironmentConfig = {
   gamma: 'https://gamma-api.polymarket.com',
   data: 'https://data-api.polymarket.com',
   rtdsWs: 'wss://ws-live-data.polymarket.com',
+  rfqQuoterWs: 'wss://rfq-quoter.example.invalid/ws',
   sportsWs: 'wss://sports-api.polymarket.com/ws',
   relayerMaxPolls: 100,
   relayerPollFrequencyMs: 2000,

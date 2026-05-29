@@ -6,6 +6,7 @@ import type {
   SportsEvent,
   UserEvent,
 } from '@polymarket/bindings/subscriptions';
+import type { RfqSession } from '../actions/rfq';
 import type {
   CommentsSubscription,
   CryptoPricesSubscription,
@@ -15,6 +16,27 @@ import type {
   SubscriptionHandle,
   UserSubscription,
 } from '../actions/subscriptions';
+
+/**
+ * An authenticated bidirectional WebSocket session.
+ *
+ * The session is an async iterable of server-initiated events and also exposes
+ * `send` for protocol messages that respond to, update, or otherwise interact
+ * with that stream. Callers control processing semantics: await event handlers
+ * inline for sequential handling, or dispatch work without awaiting to fan out.
+ */
+export interface WebSocketSession<TEvent, TMessage>
+  extends AsyncIterable<TEvent> {
+  /**
+   * Closes the session. Idempotent: subsequent calls resolve without effect.
+   */
+  close(): Promise<void>;
+
+  /**
+   * Sends a protocol message on this authenticated websocket session.
+   */
+  send(message: TMessage): Promise<void>;
+}
 
 /**
  * A WebSocket manager owns a single upstream socket surface and exposes a
@@ -32,6 +54,12 @@ import type {
  */
 export interface WebSocketSubscriptionManager<TSpec, TEvent> {
   subscribe(subscription: TSpec): Promise<SubscriptionHandle<TEvent>>;
+
+  close(): Promise<void>;
+}
+
+export interface WebSocketSessionManager<TSession> {
+  connect(): Promise<TSession>;
 
   close(): Promise<void>;
 }
@@ -55,4 +83,5 @@ export type PublicWebSocketManagers = {
 // Secure client additionally exposes the user surface.
 export type SecureWebSocketManagers = PublicWebSocketManagers & {
   readonly clobUser: WebSocketSubscriptionManager<UserSubscription, UserEvent>;
+  readonly rfqQuoter: WebSocketSessionManager<RfqSession>;
 };
