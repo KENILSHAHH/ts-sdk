@@ -22,6 +22,12 @@ import {
   toDecimalString,
 } from './shared';
 
+export type {
+  RfqId,
+  RfqQuoteId,
+  RfqRequestorPublicId,
+} from './shared';
+
 export enum RfqDirection {
   Buy = 'BUY',
   Sell = 'SELL',

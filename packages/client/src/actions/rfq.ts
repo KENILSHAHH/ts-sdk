@@ -1,24 +1,39 @@
 import type {
-  RfqConfirmationAck,
+  RfqConfirmationAck as BindingRfqConfirmationAck,
+  RfqQuoteAck as BindingRfqQuoteAck,
   RfqConfirmationRequest,
   RfqDirection,
   RfqExecutionUpdate,
-  RfqQuoteAck,
+  RfqId,
+  RfqQuoteId,
   RfqQuoteRequest,
   RfqSide,
 } from '@polymarket/bindings/rfq';
+import { PolymarketError } from '@polymarket/types';
 import type { BaseSecureClient } from '../clients';
-import { makeErrorGuard, TransportError, UserInputError } from '../errors';
+import {
+  makeErrorGuard,
+  SigningError,
+  TimeoutError,
+  TransportError,
+  UserInputError,
+} from '../errors';
 
 export type {
-  RfqConfirmationAck,
   RfqConfirmationRequest,
   RfqDirection,
   RfqExecutionUpdate,
-  RfqQuoteAck,
+  RfqId,
+  RfqQuoteId,
   RfqQuoteRequest,
   RfqSide,
 };
+
+export type RfqQuoteAck = Omit<BindingRfqQuoteAck, 'type'>;
+export type RfqConfirmationAck = Omit<
+  BindingRfqConfirmationAck,
+  'decision' | 'type'
+>;
 
 export type RfqQuoteResponse = {
   /** Quote price, for example `0.45` or `"0.45"`. */
@@ -30,12 +45,91 @@ export type RfqQuoteResponse = {
   size?: number | string;
 };
 
+export type RfqQuoteRejectedErrorOptions = {
+  /** RFQ identifier for the rejected quote. */
+  rfqId: RfqId;
+};
+
+/**
+ * Error thrown when the RFQ server rejects a quote response.
+ */
+export class RfqQuoteRejectedError extends PolymarketError {
+  override name = 'RfqQuoteRejectedError' as const;
+
+  readonly rfqId: RfqId;
+
+  constructor(
+    message: string,
+    options: ErrorOptions & RfqQuoteRejectedErrorOptions,
+  ) {
+    super(message, options);
+    this.rfqId = options.rfqId;
+  }
+}
+
+export type RfqQuoteError =
+  | RfqQuoteRejectedError
+  | SigningError
+  | TimeoutError
+  | TransportError
+  | UserInputError;
+export const RfqQuoteError = makeErrorGuard(
+  RfqQuoteRejectedError,
+  SigningError,
+  TimeoutError,
+  TransportError,
+  UserInputError,
+);
+
+export type RfqConfirmationRejectedErrorOptions = {
+  /** RFQ identifier for the rejected confirmation decision. */
+  rfqId: RfqId;
+  /** Quote identifier for the rejected confirmation decision. */
+  quoteId: RfqQuoteId;
+};
+
+/**
+ * Error thrown when the RFQ server rejects a confirmation decision.
+ */
+export class RfqConfirmationRejectedError extends PolymarketError {
+  override name = 'RfqConfirmationRejectedError' as const;
+
+  readonly rfqId: RfqId;
+  readonly quoteId: RfqQuoteId;
+
+  constructor(
+    message: string,
+    options: ErrorOptions & RfqConfirmationRejectedErrorOptions,
+  ) {
+    super(message, options);
+    this.rfqId = options.rfqId;
+    this.quoteId = options.quoteId;
+  }
+}
+
+export type RfqConfirmationError =
+  | RfqConfirmationRejectedError
+  | TimeoutError
+  | TransportError;
+export const RfqConfirmationError = makeErrorGuard(
+  RfqConfirmationRejectedError,
+  TimeoutError,
+  TransportError,
+);
+
 /**
  * Server request asking the market maker to provide a quote for an RFQ.
  */
 export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
   /**
    * Sends a quote response for this RFQ request.
+   *
+   * @remarks
+   * If this resolves, the server accepted the quote and assigned `quoteId`.
+   *
+   * @throws {@link RfqQuoteError}
+   * Thrown when validation fails, signing fails, the websocket fails, the quote
+   * acknowledgement times out, or the server rejects the quote.
    */
   quote(response: RfqQuoteResponse): Promise<RfqQuoteAck>;
 }
@@ -46,11 +140,25 @@ export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
 export interface RfqConfirmationRequestEvent extends RfqConfirmationRequest {
   /**
    * Confirms that the maker wants to proceed with the selected quote.
+   *
+   * @remarks
+   * If this resolves, the server accepted the confirmation decision.
+   *
+   * @throws {@link RfqConfirmationError}
+   * Thrown when the websocket fails, the acknowledgement times out, or the
+   * server rejects the confirmation decision.
    */
   confirm(): Promise<RfqConfirmationAck>;
 
   /**
    * Declines the selected quote during the confirmation window.
+   *
+   * @remarks
+   * If this resolves, the server accepted the decline decision.
+   *
+   * @throws {@link RfqConfirmationError}
+   * Thrown when the websocket fails, the acknowledgement times out, or the
+   * server rejects the decline decision.
    */
   decline(): Promise<RfqConfirmationAck>;
 }

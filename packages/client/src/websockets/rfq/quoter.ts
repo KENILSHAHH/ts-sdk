@@ -1,5 +1,6 @@
 import {
   OrderSide,
+  type PositionId,
   PositiveDecimalNumberSchema,
   toBaseUnits,
 } from '@polymarket/bindings';
@@ -10,6 +11,8 @@ import {
   type RfqConfirmationRequest,
   RfqDirection,
   type RfqExecutionUpdate,
+  type RfqId,
+  type RfqQuoteId,
   type RfqQuoteRequest,
   RfqQuoterInboundMessageSchema,
   type RfqQuoterOutboundMessage,
@@ -38,7 +41,12 @@ import type {
   RfqQuoteResponse,
   RfqSession,
 } from '../../actions/rfq';
-import { SigningError, TransportError, UserInputError } from '../../errors';
+import {
+  SigningError,
+  TimeoutError,
+  TransportError,
+  UserInputError,
+} from '../../errors';
 import { parseUserInput } from '../../input';
 import type { Signer, TypedDataPayload } from '../../types';
 import type { AccountIdentity } from '../../wallet';
@@ -46,6 +54,7 @@ import { toSignatureType } from '../../wallet';
 import { WebSocketConnection } from '../lifecycle';
 
 const AUTH_TIMEOUT_MS = 30_000;
+const ACK_TIMEOUT_MS = 30_000;
 const BYTES32_ZERO =
   '0x0000000000000000000000000000000000000000000000000000000000000000' satisfies HexString;
 const ORDER_TYPE_STRING =
@@ -283,7 +292,10 @@ class RfqWebSocketSession implements RfqSession {
       response: params,
       signer: this.#signer,
     });
-    const pending = this.#waitFor<RfqQuoteAck>(quoteAckKey(request.rfqId));
+    const pending = this.#waitFor<RfqQuoteAck>(
+      quoteAckKey(request.rfqId),
+      `Timed out waiting for RFQ quote acknowledgement for ${request.rfqId}.`,
+    );
     try {
       await this.#send({
         price_e6: quote.priceE6,
@@ -300,12 +312,15 @@ class RfqWebSocketSession implements RfqSession {
   }
 
   async respondToConfirmation(
-    rfqId: RfqConfirmationAck['rfqId'],
-    quoteId: RfqConfirmationAck['quoteId'],
-    decision: RfqConfirmationAck['decision'],
+    rfqId: RfqId,
+    quoteId: RfqQuoteId,
+    decision: RfqConfirmationDecision,
   ): Promise<RfqConfirmationAck> {
     const key = confirmationAckKey(rfqId, quoteId);
-    const pending = this.#waitFor<RfqConfirmationAck>(key);
+    const pending = this.#waitFor<RfqConfirmationAck>(
+      key,
+      `Timed out waiting for RFQ confirmation acknowledgement for ${rfqId}.`,
+    );
     try {
       await this.#send({
         decision,
@@ -373,7 +388,7 @@ class RfqWebSocketSession implements RfqSession {
         this.#queue.push(toQuoteRequestEvent(this, message));
         return;
       case 'quote_ack':
-        this.#resolvePending(quoteAckKey(message.rfqId), message);
+        this.#resolvePending(quoteAckKey(message.rfqId), toQuoteAck(message));
         return;
       case 'confirmation_request':
         this.#queue.push(toConfirmationRequestEvent(this, message));
@@ -381,7 +396,7 @@ class RfqWebSocketSession implements RfqSession {
       case 'confirmation_ack':
         this.#resolvePending(
           confirmationAckKey(message.rfqId, message.quoteId),
-          message,
+          toConfirmationAck(message),
         );
         return;
       case 'execution_update':
@@ -406,12 +421,18 @@ class RfqWebSocketSession implements RfqSession {
     void this.close();
   }
 
-  #waitFor<T>(key: string): Promise<T> {
+  #waitFor<T>(key: string, timeoutMessage: string): Promise<T> {
     const pending = createPending<T>();
+    let promise!: Promise<T>;
+    const timeout = setNonBlockingTimeout(() => {
+      this.#removePending(key, promise);
+      pending.reject(new TimeoutError(timeoutMessage));
+    }, ACK_TIMEOUT_MS);
+    promise = pending.promise.finally(() => clearTimeout(timeout));
     const entries = this.#pending.get(key) ?? [];
-    entries.push(pending as PendingResponse<unknown>);
+    entries.push({ ...pending, promise } as PendingResponse<unknown>);
     this.#pending.set(key, entries);
-    return pending.promise;
+    return promise;
   }
 
   #resolvePending<T>(key: string, value: T): void {
@@ -484,6 +505,26 @@ function toExecutionUpdateEvent(
   return message;
 }
 
+function toQuoteAck(message: {
+  quoteId: RfqQuoteId;
+  rfqId: RfqId;
+}): RfqQuoteAck {
+  return {
+    quoteId: message.quoteId,
+    rfqId: message.rfqId,
+  };
+}
+
+function toConfirmationAck(message: {
+  quoteId: RfqQuoteId;
+  rfqId: RfqId;
+}): RfqConfirmationAck {
+  return {
+    quoteId: message.quoteId,
+    rfqId: message.rfqId,
+  };
+}
+
 function quoteAckKey(rfqId: string): string {
   return `ACK_RFQ_QUOTE:${rfqId}`;
 }
@@ -534,7 +575,7 @@ type SignRfqQuoteOrderParams = {
   orderPriceE6: number;
   signer: Signer;
   sizeE6: number;
-  tokenId: RfqQuoteRequest['yesPositionId'];
+  tokenId: PositionId;
 };
 
 async function signRfqQuoteOrder(
@@ -577,9 +618,7 @@ async function signRfqQuoteOrder(
   };
 }
 
-function quoteOrderTokenId(
-  request: RfqQuoteRequest,
-): RfqQuoteRequest['yesPositionId'] {
+function quoteOrderTokenId(request: RfqQuoteRequest): PositionId {
   return request.direction === RfqDirection.Buy
     ? request.noPositionId
     : request.yesPositionId;
