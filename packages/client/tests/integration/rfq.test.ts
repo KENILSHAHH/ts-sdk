@@ -19,6 +19,7 @@ import {
 const rfq = ws.link(production.rfqQuoterWs);
 const server = setupServer();
 let outboundFrames: unknown[] = [];
+let connectionCount = 0;
 
 describe('RFQ sessions', () => {
   beforeAll(() => {
@@ -26,6 +27,7 @@ describe('RFQ sessions', () => {
   });
 
   beforeEach(() => {
+    connectionCount = 0;
     outboundFrames = [];
   });
 
@@ -255,6 +257,42 @@ describe('RFQ sessions', () => {
             break;
           }
         }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when opening repeated RFQ sessions', () => {
+    beforeAll(() => {
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          connectionCount += 1;
+
+          socket.addEventListener('message', (event) => {
+            const frame = JSON.parse(String(event.data)) as { type?: string };
+
+            if (frame.type === 'auth') {
+              socket.send(JSON.stringify(authAckFrame()));
+            }
+          });
+        }),
+      );
+    });
+
+    it('reuses the connecting session', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      try {
+        const [first, second] = await Promise.all([
+          secureClientWithDepositWallet.openRfqSession(),
+          secureClientWithDepositWallet.openRfqSession(),
+        ]);
+
+        expect(second).toBe(first);
+        expect(connectionCount).toBe(1);
+
+        await first.close();
       } finally {
         await secureClientWithDepositWallet.closeSubscriptions();
       }
