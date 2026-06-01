@@ -16,6 +16,8 @@ import {
   MarketIdSchema,
   MixedDateTimeStringSchema,
   PaginationCursorSchema,
+  type PositionId,
+  PositionIdSchema,
   type QuestionId,
   QuestionIdSchema,
   type ResolutionRequestId,
@@ -53,6 +55,10 @@ const OutcomePriceArraySchema = z
 
 const TokenIdArraySchema = z
   .preprocess(parseJsonString, z.array(TokenIdSchema).nullish())
+  .transform((value) => value ?? []);
+
+const PositionIdArraySchema = z
+  .preprocess(parseJsonString, z.array(PositionIdSchema).nullish())
   .transform((value) => value ?? []);
 
 export enum UmaResolutionStatus {
@@ -176,6 +182,7 @@ export type Market = {
   sports: MarketSportsMetadata;
   events: MarketEvent[];
   tags: MarketTag[];
+  positionIds: PositionId[];
 };
 
 export const GammaMarketSchema = z.object({
@@ -263,6 +270,7 @@ export const GammaMarketSchema = z.object({
   gameStartTime: IsoDateTimeStringSchema.nullish(),
   secondsDelay: z.number().int().nullish(),
   clobTokenIds: TokenIdArraySchema,
+  positionIds: PositionIdArraySchema,
   disqusThread: z.string().nullish(),
   shortOutcomes: z.string().nullish(),
   teamAID: z.string().nullish(),
@@ -458,6 +466,7 @@ export function normalizeMarket(market: GammaMarket): Market {
       slug: event.slug ?? null,
       title: event.title ?? null,
     })),
+    positionIds: market.positionIds,
     tags: (market.tags ?? []).map((tag) => ({
       id: tag.id,
       slug: tag.slug,
