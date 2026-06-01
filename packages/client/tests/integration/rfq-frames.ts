@@ -5,6 +5,7 @@ import { invariant } from '@polymarket/types';
 export const RFQ_ID = 'rfq-1';
 export const QUOTE_ID = 'quote-1';
 export const QUOTE_SIZE_E6 = 1_000_000;
+export const BUY_QUOTE_SIZE_E6 = 2_222_222;
 export const TX_HASH =
   '0x1111111111111111111111111111111111111111111111111111111111111111';
 
@@ -61,16 +62,19 @@ export function authAckMessage() {
 }
 
 function quoteRequestFrame(options: { direction?: 'BUY' | 'SELL' } = {}) {
+  const direction = options.direction ?? 'BUY';
+
   return {
     condition_id:
       '0x032def24bfb0c5c57fb236fac08b94236a000000000000000000000000000000',
-    direction: options.direction ?? 'BUY',
+    direction,
     leg_position_ids: ['1', '2'],
     no_position_id: '456',
     requestor_public_id: 'req-1',
     rfq_id: RFQ_ID,
     side: 'YES',
-    size_e6: QUOTE_SIZE_E6,
+    size_notional_e6: direction === 'BUY' ? QUOTE_SIZE_E6 : undefined,
+    size_shares_e6: direction === 'SELL' ? QUOTE_SIZE_E6 : undefined,
     submission_deadline: 123,
     type: 'RFQ_REQUEST',
     yes_position_id: '123',

@@ -2,12 +2,13 @@ import type {
   RfqConfirmationAck as BindingRfqConfirmationAck,
   RfqQuoteAck as BindingRfqQuoteAck,
   RfqConfirmationRequest,
-  RfqDirection,
   RfqErrorCode,
   RfqExecutionUpdate,
   RfqId,
   RfqQuoteId,
   RfqQuoteRequest,
+  RfqRequestedSize,
+  RfqRequestorPublicId,
   RfqSide,
 } from '@polymarket/bindings/rfq';
 import { PolymarketError } from '@polymarket/types';
@@ -20,15 +21,22 @@ import {
   UserInputError,
 } from '../errors';
 
-export type {
-  RfqConfirmationRequest,
+export {
+  RfqConfirmationDecision,
   RfqDirection,
   RfqErrorCode,
+  RfqExecutionStatus,
+  RfqRequestedSizeUnit,
+  RfqSide,
+} from '@polymarket/bindings/rfq';
+export type {
+  RfqConfirmationRequest,
   RfqExecutionUpdate,
   RfqId,
   RfqQuoteId,
   RfqQuoteRequest,
-  RfqSide,
+  RfqRequestedSize,
+  RfqRequestorPublicId,
 };
 
 export type RfqQuoteAck = Omit<BindingRfqQuoteAck, 'type'>;
@@ -68,7 +76,7 @@ export type RfqQuoteResponse = {
 };
 
 export type RfqQuoteRejectedErrorOptions = {
-  /** Backend RFQ error code for the rejected quote. */
+  /** RFQ error code for the rejected quote. */
   code?: RfqErrorCode;
   /** RFQ identifier for the rejected quote. */
   rfqId: RfqId;
@@ -108,7 +116,7 @@ export const RfqQuoteError = makeErrorGuard(
 );
 
 export type RfqConfirmationRejectedErrorOptions = {
-  /** Backend RFQ error code for the rejected confirmation decision. */
+  /** RFQ error code for the rejected confirmation decision. */
   code?: RfqErrorCode;
   /** RFQ identifier for the rejected confirmation decision. */
   rfqId: RfqId;
@@ -151,11 +159,14 @@ export const RfqConfirmationError = makeErrorGuard(
  * Server request asking the market maker to provide a quote for an RFQ.
  */
 export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
+  /** Requested RFQ size and unit. */
+  requestedSize: RfqRequestedSize;
+
   /**
    * Requested RFQ position side.
    *
    * @remarks
-   * The current RFQ backend only supports YES-side requests, so this is always
+   * The current RFQ system only supports YES-side requests, so this is always
    * {@link RfqSide.Yes}. Use {@link RfqQuoteRequestEvent.direction} to determine
    * whether the requester wants to buy or sell that YES-side position.
    */
@@ -182,7 +193,7 @@ export interface RfqConfirmationRequestEvent extends RfqConfirmationRequest {
    * Requested RFQ position side.
    *
    * @remarks
-   * The current RFQ backend only supports YES-side requests, so this is always
+   * The current RFQ system only supports YES-side requests, so this is always
    * {@link RfqSide.Yes}. Use {@link RfqConfirmationRequestEvent.direction} to
    * determine whether the requester wants to buy or sell that YES-side position.
    */

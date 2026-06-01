@@ -6,6 +6,8 @@ import {
 import {
   RfqDirection,
   type RfqQuoteRequest,
+  type RfqRequestedSize,
+  RfqRequestedSizeUnit,
   type RfqSignedOrder,
 } from '@polymarket/bindings/rfq';
 import type { EvmAddress } from '@polymarket/types';
@@ -64,8 +66,10 @@ async function createParsedRfqQuote(
   params: CreateParsedRfqQuoteParams,
 ): Promise<RfqQuote> {
   const priceE6 = decimalToE6(params.response.price, 'RFQ quote price');
-  const size = params.response.size ?? Number(params.request.size);
-  const sizeE6 = decimalToE6(size, 'RFQ quote size');
+  const sizeE6 =
+    params.response.size === undefined
+      ? defaultQuoteSizeE6(params.request.requestedSize, priceE6)
+      : decimalToE6(params.response.size, 'RFQ quote size');
   const signedOrder = await signRfqQuoteOrder({
     account: params.account,
     chainId: params.chainId,
@@ -111,6 +115,42 @@ function quoteOrderPriceE6(
 
 function quoteOrderSide(source: RfqQuoteSource): OrderSide {
   return source === 'collateral' ? OrderSide.BUY : OrderSide.SELL;
+}
+
+function defaultQuoteSizeE6(
+  requestedSize: RfqRequestedSize,
+  priceE6: number,
+): number {
+  const valueE6 = decimalStringToE6(requestedSize.value, 'RFQ requested size');
+
+  if (requestedSize.unit === RfqRequestedSizeUnit.Shares) {
+    return valueE6;
+  }
+
+  const sizeE6 = (BigInt(valueE6) * 1_000_000n) / BigInt(priceE6);
+
+  if (sizeE6 > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new UserInputError('RFQ quote size is too large.');
+  }
+
+  return Number(sizeE6);
+}
+
+function decimalStringToE6(value: string, field: string): number {
+  const [whole = '', fraction = ''] = value.split('.');
+
+  if (fraction.length > 6) {
+    throw new UserInputError(`${field} must have at most 6 decimal places.`);
+  }
+
+  const wireValue =
+    BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, '0'));
+
+  if (wireValue > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new UserInputError(`${field} is too large.`);
+  }
+
+  return Number(wireValue);
 }
 
 function decimalToE6(value: number, field: string): number {

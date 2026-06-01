@@ -5,7 +5,7 @@ import type {
 } from '@polymarket/types';
 import { z } from 'zod';
 import { type SignatureType, SignatureTypeSchema } from './clob/signature-type';
-import type { BaseUnits, EvmAddress, TokenId } from './shared';
+import type { BaseUnits, DecimalString, EvmAddress, TokenId } from './shared';
 import {
   ConditionIdSchema,
   EpochMicrosecondsSchema,
@@ -51,6 +51,11 @@ export enum RfqExecutionStatus {
   Failed = 'FAILED',
 }
 
+export enum RfqRequestedSizeUnit {
+  Notional = 'notional',
+  Shares = 'shares',
+}
+
 export enum RfqErrorCode {
   AddressMismatch = 'ADDRESS_MISMATCH',
   CompetitionWindowClosed = 'COMPETITION_WINDOW_CLOSED',
@@ -83,9 +88,20 @@ export const RfqDirectionSchema = z.enum(RfqDirection);
 export const RfqSideSchema = z.literal(RfqSide.Yes);
 export const RfqConfirmationDecisionSchema = z.enum(RfqConfirmationDecision);
 export const RfqExecutionStatusSchema = z.enum(RfqExecutionStatus);
+export const RfqRequestedSizeUnitSchema = z.enum(RfqRequestedSizeUnit);
 export const RfqErrorCodeSchema = z.enum(RfqErrorCode);
 
 const E6DecimalStringSchema = z.number().int().transform(toDecimalStringFromE6);
+
+export type RfqRequestedSize =
+  | {
+      unit: RfqRequestedSizeUnit.Notional;
+      value: DecimalString;
+    }
+  | {
+      unit: RfqRequestedSizeUnit.Shares;
+      value: DecimalString;
+    };
 
 export type RfqSignedOrder = {
   salt: string;
@@ -142,18 +158,20 @@ export const RfqQuoteRequestSchema = z
     no_position_id: PositionIdSchema,
     direction: RfqDirectionSchema,
     side: RfqSideSchema,
-    size_e6: E6DecimalStringSchema,
+    size_notional_e6: E6DecimalStringSchema.optional(),
+    size_shares_e6: E6DecimalStringSchema.optional(),
     submission_deadline: EpochMicrosecondsSchema,
   })
+  .superRefine(validateRequestedSizeFields)
   .transform((message) => ({
     conditionId: message.condition_id,
     direction: message.direction,
     legPositionIds: message.leg_position_ids,
     noPositionId: message.no_position_id,
     requestorPublicId: message.requestor_public_id,
+    requestedSize: toRequestedSize(message),
     rfqId: message.rfq_id,
     side: message.side,
-    size: message.size_e6,
     submissionDeadline: message.submission_deadline,
     type: 'quote_request' as const,
     yesPositionId: message.yes_position_id,
@@ -262,24 +280,6 @@ export const RfqExecutionUpdateSchema = z
 
 export type RfqExecutionUpdate = z.infer<typeof RfqExecutionUpdateSchema>;
 
-export const RfqErrorRequestSchema = z
-  .object({
-    leg_position_ids: z.array(z.string()),
-    direction: z.string(),
-    side: z.string(),
-    size_notional_e6: z.number().int().optional(),
-    size_shares_e6: z.number().int().optional(),
-  })
-  .transform((request) => ({
-    direction: request.direction,
-    legPositionIds: request.leg_position_ids,
-    side: request.side,
-    sizeNotionalE6: request.size_notional_e6,
-    sizeSharesE6: request.size_shares_e6,
-  }));
-
-export type RfqErrorRequest = z.infer<typeof RfqErrorRequestSchema>;
-
 export const RfqErrorMessageSchema = z
   .object({
     type: z.literal('RFQ_ERROR'),
@@ -288,13 +288,12 @@ export const RfqErrorMessageSchema = z
     quote_id: RfqQuoteIdSchema.optional(),
     code: RfqErrorCodeSchema,
     error: z.string(),
-    request: RfqErrorRequestSchema.optional(),
+    request: z.unknown().optional(),
   })
   .transform((message) => ({
     code: message.code,
     message: message.error,
     quoteId: message.quote_id,
-    request: message.request,
     requestType: message.request_type,
     rfqId: message.rfq_id,
     type: 'rfq_error' as const,
@@ -335,4 +334,42 @@ function toDecimalStringFromE6(value: number) {
   return toDecimalString(
     `${whole}${trimmedFraction === '' ? '' : `.${trimmedFraction}`}`,
   );
+}
+
+type RequestedSizeFields = {
+  size_notional_e6?: DecimalString;
+  size_shares_e6?: DecimalString;
+};
+
+function validateRequestedSizeFields(
+  fields: RequestedSizeFields,
+  ctx: z.RefinementCtx,
+): void {
+  if (
+    (fields.size_notional_e6 === undefined) ===
+    (fields.size_shares_e6 === undefined)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Expected exactly one RFQ requested size field.',
+    });
+  }
+}
+
+function toRequestedSize(fields: RequestedSizeFields): RfqRequestedSize {
+  if (fields.size_notional_e6 !== undefined) {
+    return {
+      unit: RfqRequestedSizeUnit.Notional,
+      value: fields.size_notional_e6,
+    };
+  }
+
+  if (fields.size_shares_e6 === undefined) {
+    throw new TypeError('Expected RFQ requested size.');
+  }
+
+  return {
+    unit: RfqRequestedSizeUnit.Shares,
+    value: fields.size_shares_e6,
+  };
 }

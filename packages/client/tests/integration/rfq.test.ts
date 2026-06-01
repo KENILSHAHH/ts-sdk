@@ -11,6 +11,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { describe, expect, it } from './fixtures';
 import {
   authAckMessage,
+  BUY_QUOTE_SIZE_E6,
   confirmationAckMessage,
   confirmationDecision,
   confirmationRequestMessage,
@@ -121,6 +122,11 @@ describe('RFQ sessions', () => {
       try {
         for await (const event of session) {
           if (event.type === 'quote_request') {
+            expect(event.requestedSize).toEqual({
+              unit: 'notional',
+              value: '1',
+            });
+
             const ack = await event.quote({ price: 0.45 });
 
             expect(ack).toEqual({
@@ -133,15 +139,15 @@ describe('RFQ sessions', () => {
                 price_e6: 450_000,
                 rfq_id: event.rfqId,
                 signed_order: expect.objectContaining({
-                  makerAmount: '550000',
+                  makerAmount: '1222223',
                   maker: secureClientWithDepositWallet.account.wallet,
                   side: 0,
                   signatureType: SignatureType.POLY_1271,
                   signer: secureClientWithDepositWallet.account.wallet,
-                  takerAmount: '1000000',
+                  takerAmount: '2222222',
                   tokenId: event.noPositionId,
                 }),
-                size_e6: QUOTE_SIZE_E6,
+                size_e6: BUY_QUOTE_SIZE_E6,
                 type: 'RFQ_QUOTE',
               }),
             );
@@ -183,6 +189,11 @@ describe('RFQ sessions', () => {
       try {
         for await (const event of session) {
           if (event.type === 'quote_request') {
+            expect(event.requestedSize).toEqual({
+              unit: 'notional',
+              value: '1',
+            });
+
             const ack = await event.quote({ price: 0.45, source: 'inventory' });
 
             expect(ack).toEqual({
@@ -195,12 +206,12 @@ describe('RFQ sessions', () => {
                 price_e6: 450_000,
                 rfq_id: event.rfqId,
                 signed_order: expect.objectContaining({
-                  makerAmount: '1000000',
+                  makerAmount: '2222222',
                   side: 1,
-                  takerAmount: '450000',
+                  takerAmount: '999999',
                   tokenId: event.yesPositionId,
                 }),
-                size_e6: QUOTE_SIZE_E6,
+                size_e6: BUY_QUOTE_SIZE_E6,
                 type: 'RFQ_QUOTE',
               }),
             );
@@ -366,6 +377,11 @@ describe('RFQ sessions', () => {
       try {
         for await (const event of session) {
           if (event.type === 'quote_request') {
+            expect(event.requestedSize).toEqual({
+              unit: 'shares',
+              value: '1',
+            });
+
             const ack = await event.quote({ price: 0.45, source: 'inventory' });
 
             expect(ack).toEqual({

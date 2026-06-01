@@ -1,6 +1,37 @@
 import { openRfqSession, type RfqSession } from '../actions';
 import type { BaseSecureClient } from '../clients';
 
+export type {
+  RfqConfirmationAck,
+  RfqConfirmationRequest,
+  RfqConfirmationRequestEvent,
+  RfqEvent,
+  RfqExecutionUpdate,
+  RfqId,
+  RfqQuoteAck,
+  RfqQuoteId,
+  RfqQuoteRejectedErrorOptions,
+  RfqQuoteRequest,
+  RfqQuoteRequestEvent,
+  RfqQuoteResponse,
+  RfqQuoteSource,
+  RfqRequestedSize,
+  RfqRequestorPublicId,
+  RfqSession,
+} from '../actions/rfq';
+export {
+  RfqConfirmationDecision,
+  RfqConfirmationError,
+  RfqConfirmationRejectedError,
+  RfqDirection,
+  RfqErrorCode,
+  RfqExecutionStatus,
+  RfqQuoteError,
+  RfqQuoteRejectedError,
+  RfqRequestedSizeUnit,
+  RfqSide,
+} from '../actions/rfq';
+
 export type SecureRfqActions = {
   /**
    * Opens an RFQ event session.
@@ -80,14 +111,14 @@ export type SecureRfqActions = {
    *         case RfqDirection.Buy:
    *           await event.quote({
    *             price: 0.45,
-   *             source: chooseSource(event.yesPositionId, event.size),
+   *             source: chooseSource(event.yesPositionId, event.requestedSize),
    *           });
    *           break;
    *
    *         case RfqDirection.Sell:
    *           await event.quote({
    *             price: 0.45,
-   *             source: chooseSource(event.noPositionId, event.size),
+   *             source: chooseSource(event.noPositionId, event.requestedSize),
    *           });
    *           break;
    *       }
