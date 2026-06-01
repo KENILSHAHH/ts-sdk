@@ -23,6 +23,7 @@ import {
   quoteRequestMessage,
   RFQ_ID,
   recordOutboundFrame,
+  rfqErrorMessage,
   TX_HASH,
 } from './rfq-frames';
 
@@ -450,6 +451,63 @@ describe('RFQ sessions', () => {
     });
   });
 
+  describe('when the server rejects a quote response', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.send(
+                rfqErrorMessage({
+                  code: 'INVALID_QUOTE',
+                  error: 'invalid quote',
+                  requestType: 'RFQ_QUOTE',
+                  rfqId: RFQ_ID,
+                }),
+              );
+            }
+          });
+        }),
+      );
+    });
+
+    it('rejects the quote response with the correlated RFQ error', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const quote = event.quote({ price: 0.45 });
+
+            await expect(quote).rejects.toMatchObject({
+              code: 'INVALID_QUOTE',
+              message: 'invalid quote',
+              name: 'RfqQuoteRejectedError',
+              rfqId: event.rfqId,
+            });
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
   describe('when confirmation acknowledgement times out', () => {
     beforeEach(() => {
       server.resetHandlers();
@@ -509,6 +567,79 @@ describe('RFQ sessions', () => {
             await vi.advanceTimersByTimeAsync(30_000);
 
             await confirmationRejection;
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when the server rejects a confirmation response', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              const quote = quoteAmounts(frame);
+              socket.send(quoteAckMessage());
+              socket.send(
+                confirmationRequestMessage(quote.priceE6, quote.sizeE6),
+              );
+              return;
+            }
+
+            if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
+              confirmationDecision(frame);
+              socket.send(
+                rfqErrorMessage({
+                  code: 'INVALID_CONFIRMATION',
+                  error: 'invalid confirmation',
+                  quoteId: QUOTE_ID,
+                  requestType: 'RFQ_CONFIRMATION_RESPONSE',
+                  rfqId: RFQ_ID,
+                }),
+              );
+            }
+          });
+        }),
+      );
+    });
+
+    it('rejects the confirmation response with the correlated RFQ error', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            await event.quote({ price: 0.45 });
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            const confirmation = event.confirm();
+
+            await expect(confirmation).rejects.toMatchObject({
+              code: 'INVALID_CONFIRMATION',
+              message: 'invalid confirmation',
+              name: 'RfqConfirmationRejectedError',
+              quoteId: event.quoteId,
+              rfqId: event.rfqId,
+            });
+
             await session.close();
             break;
           }

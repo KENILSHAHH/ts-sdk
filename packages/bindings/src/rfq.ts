@@ -51,10 +51,39 @@ export enum RfqExecutionStatus {
   Failed = 'FAILED',
 }
 
+export enum RfqErrorCode {
+  AddressMismatch = 'ADDRESS_MISMATCH',
+  CompetitionWindowClosed = 'COMPETITION_WINDOW_CLOSED',
+  ContradictoryLegs = 'CONTRADICTORY_LEGS',
+  ExpiredRfq = 'EXPIRED_RFQ',
+  InvalidAcceptance = 'INVALID_ACCEPTANCE',
+  InvalidConfirmation = 'INVALID_CONFIRMATION',
+  InvalidExecutionResult = 'INVALID_EXECUTION_RESULT',
+  InvalidIdentity = 'INVALID_IDENTITY',
+  InvalidMessage = 'INVALID_MESSAGE',
+  InvalidQuote = 'INVALID_QUOTE',
+  InvalidRfq = 'INVALID_RFQ',
+  InvalidRfqState = 'INVALID_RFQ_STATE',
+  InvalidRole = 'INVALID_ROLE',
+  LegMetadataUnavailable = 'LEG_METADATA_UNAVAILABLE',
+  MakerAlreadyResponded = 'MAKER_ALREADY_RESPONDED',
+  MakerNotRequired = 'MAKER_NOT_REQUIRED',
+  QuoteMismatch = 'QUOTE_MISMATCH',
+  QuoteUnavailable = 'QUOTE_UNAVAILABLE',
+  RateLimited = 'RATE_LIMITED',
+  RequestFailed = 'REQUEST_FAILED',
+  ServiceUnavailable = 'SERVICE_UNAVAILABLE',
+  TradeSubmissionFailed = 'TRADE_SUBMISSION_FAILED',
+  Unauthenticated = 'UNAUTHENTICATED',
+  UnauthorizedRole = 'UNAUTHORIZED_ROLE',
+  UnknownRfq = 'UNKNOWN_RFQ',
+}
+
 export const RfqDirectionSchema = z.enum(RfqDirection);
 export const RfqSideSchema = z.literal(RfqSide.Yes);
 export const RfqConfirmationDecisionSchema = z.enum(RfqConfirmationDecision);
 export const RfqExecutionStatusSchema = z.enum(RfqExecutionStatus);
+export const RfqErrorCodeSchema = z.enum(RfqErrorCode);
 
 const E6DecimalStringSchema = z.number().int().transform(toDecimalStringFromE6);
 
@@ -233,10 +262,43 @@ export const RfqExecutionUpdateSchema = z
 
 export type RfqExecutionUpdate = z.infer<typeof RfqExecutionUpdateSchema>;
 
-export const RfqErrorMessageSchema = z.object({
-  type: z.literal('error'),
-  error: z.string(),
-});
+export const RfqErrorRequestSchema = z
+  .object({
+    leg_position_ids: z.array(z.string()),
+    direction: z.string(),
+    side: z.string(),
+    size_notional_e6: z.number().int().optional(),
+    size_shares_e6: z.number().int().optional(),
+  })
+  .transform((request) => ({
+    direction: request.direction,
+    legPositionIds: request.leg_position_ids,
+    side: request.side,
+    sizeNotionalE6: request.size_notional_e6,
+    sizeSharesE6: request.size_shares_e6,
+  }));
+
+export type RfqErrorRequest = z.infer<typeof RfqErrorRequestSchema>;
+
+export const RfqErrorMessageSchema = z
+  .object({
+    type: z.literal('RFQ_ERROR'),
+    request_type: z.string().optional(),
+    rfq_id: RfqIdSchema.optional(),
+    quote_id: RfqQuoteIdSchema.optional(),
+    code: RfqErrorCodeSchema,
+    error: z.string(),
+    request: RfqErrorRequestSchema.optional(),
+  })
+  .transform((message) => ({
+    code: message.code,
+    message: message.error,
+    quoteId: message.quote_id,
+    request: message.request,
+    requestType: message.request_type,
+    rfqId: message.rfq_id,
+    type: 'rfq_error' as const,
+  }));
 
 export type RfqErrorMessage = z.infer<typeof RfqErrorMessageSchema>;
 

@@ -1,6 +1,7 @@
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
 import {
   type RfqConfirmationDecision,
+  type RfqErrorMessage,
   type RfqId,
   type RfqQuoteId,
   type RfqQuoteRequest,
@@ -15,6 +16,10 @@ import type {
   RfqQuoteAck,
   RfqQuoteResponse,
   RfqSession,
+} from '../../actions/rfq';
+import {
+  RfqConfirmationRejectedError,
+  RfqQuoteRejectedError,
 } from '../../actions/rfq';
 import { TransportError, UserInputError } from '../../errors';
 import type { Signer } from '../../types';
@@ -254,7 +259,8 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       case 'execution_update':
         this.#queue.push(toExecutionUpdateEvent(message));
         return;
-      case 'error':
+      case 'rfq_error':
+        this.#handleRfqError(message);
         return;
     }
   }
@@ -271,6 +277,34 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
 
   #handleClose(): void {
     void this.close();
+  }
+
+  #handleRfqError(message: RfqErrorMessage): void {
+    if (message.requestType === 'RFQ_QUOTE' && message.rfqId !== undefined) {
+      this.#pending.reject(
+        quoteAckKey(message.rfqId),
+        new RfqQuoteRejectedError(message.message, {
+          code: message.code,
+          rfqId: message.rfqId,
+        }),
+      );
+      return;
+    }
+
+    if (
+      message.requestType === 'RFQ_CONFIRMATION_RESPONSE' &&
+      message.rfqId !== undefined &&
+      message.quoteId !== undefined
+    ) {
+      this.#pending.reject(
+        confirmationAckKey(message.rfqId, message.quoteId),
+        new RfqConfirmationRejectedError(message.message, {
+          code: message.code,
+          quoteId: message.quoteId,
+          rfqId: message.rfqId,
+        }),
+      );
+    }
   }
 
   async quote(

@@ -3,6 +3,7 @@ import type {
   RfqQuoteAck as BindingRfqQuoteAck,
   RfqConfirmationRequest,
   RfqDirection,
+  RfqErrorCode,
   RfqExecutionUpdate,
   RfqId,
   RfqQuoteId,
@@ -22,6 +23,7 @@ import {
 export type {
   RfqConfirmationRequest,
   RfqDirection,
+  RfqErrorCode,
   RfqExecutionUpdate,
   RfqId,
   RfqQuoteId,
@@ -66,6 +68,8 @@ export type RfqQuoteResponse = {
 };
 
 export type RfqQuoteRejectedErrorOptions = {
+  /** Backend RFQ error code for the rejected quote. */
+  code?: RfqErrorCode;
   /** RFQ identifier for the rejected quote. */
   rfqId: RfqId;
 };
@@ -76,6 +80,7 @@ export type RfqQuoteRejectedErrorOptions = {
 export class RfqQuoteRejectedError extends PolymarketError {
   override name = 'RfqQuoteRejectedError' as const;
 
+  readonly code: RfqErrorCode | undefined;
   readonly rfqId: RfqId;
 
   constructor(
@@ -83,6 +88,7 @@ export class RfqQuoteRejectedError extends PolymarketError {
     options: ErrorOptions & RfqQuoteRejectedErrorOptions,
   ) {
     super(message, options);
+    this.code = options.code;
     this.rfqId = options.rfqId;
   }
 }
@@ -102,6 +108,8 @@ export const RfqQuoteError = makeErrorGuard(
 );
 
 export type RfqConfirmationRejectedErrorOptions = {
+  /** Backend RFQ error code for the rejected confirmation decision. */
+  code?: RfqErrorCode;
   /** RFQ identifier for the rejected confirmation decision. */
   rfqId: RfqId;
   /** Quote identifier for the rejected confirmation decision. */
@@ -114,6 +122,7 @@ export type RfqConfirmationRejectedErrorOptions = {
 export class RfqConfirmationRejectedError extends PolymarketError {
   override name = 'RfqConfirmationRejectedError' as const;
 
+  readonly code: RfqErrorCode | undefined;
   readonly rfqId: RfqId;
   readonly quoteId: RfqQuoteId;
 
@@ -122,6 +131,7 @@ export class RfqConfirmationRejectedError extends PolymarketError {
     options: ErrorOptions & RfqConfirmationRejectedErrorOptions,
   ) {
     super(message, options);
+    this.code = options.code;
     this.rfqId = options.rfqId;
     this.quoteId = options.quoteId;
   }

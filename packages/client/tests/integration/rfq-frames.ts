@@ -47,7 +47,7 @@ export function confirmationDecision(frame: OutboundFrame) {
   return frame.decision;
 }
 
-export function authAckFrame() {
+function authAckFrame() {
   return {
     address: signerAddress,
     role: 'maker',
@@ -60,9 +60,7 @@ export function authAckMessage() {
   return JSON.stringify(authAckFrame());
 }
 
-export function quoteRequestFrame(
-  options: { direction?: 'BUY' | 'SELL' } = {},
-) {
+function quoteRequestFrame(options: { direction?: 'BUY' | 'SELL' } = {}) {
   return {
     condition_id:
       '0x032def24bfb0c5c57fb236fac08b94236a000000000000000000000000000000',
@@ -85,7 +83,7 @@ export function quoteRequestMessage(
   return JSON.stringify(quoteRequestFrame(options));
 }
 
-export function quoteAckFrame() {
+function quoteAckFrame() {
   return {
     quote_id: QUOTE_ID,
     rfq_id: RFQ_ID,
@@ -97,7 +95,7 @@ export function quoteAckMessage() {
   return JSON.stringify(quoteAckFrame());
 }
 
-export function confirmationRequestFrame(
+function confirmationRequestFrame(
   priceE6: number,
   fillSizeE6: number,
   options: { direction?: 'BUY' | 'SELL' } = {},
@@ -123,7 +121,7 @@ export function confirmationRequestMessage(
   return JSON.stringify(confirmationRequestFrame(priceE6, fillSizeE6, options));
 }
 
-export function confirmationAckFrame(decision: string) {
+function confirmationAckFrame(decision: string) {
   return {
     decision,
     quote_id: QUOTE_ID,
@@ -136,7 +134,7 @@ export function confirmationAckMessage(decision: string) {
   return JSON.stringify(confirmationAckFrame(decision));
 }
 
-export function executionUpdateFrame() {
+function executionUpdateFrame() {
   return {
     rfq_id: RFQ_ID,
     status: RfqExecutionStatus.Confirmed,
@@ -147,4 +145,31 @@ export function executionUpdateFrame() {
 
 export function executionUpdateMessage() {
   return JSON.stringify(executionUpdateFrame());
+}
+
+function rfqErrorFrame(options: {
+  code: string;
+  error: string;
+  quoteId?: string;
+  requestType: string;
+  rfqId?: string;
+}) {
+  return {
+    code: options.code,
+    error: options.error,
+    quote_id: options.quoteId,
+    request_type: options.requestType,
+    rfq_id: options.rfqId,
+    type: 'RFQ_ERROR',
+  };
+}
+
+export function rfqErrorMessage(options: {
+  code: string;
+  error: string;
+  quoteId?: string;
+  requestType: string;
+  rfqId?: string;
+}) {
+  return JSON.stringify(rfqErrorFrame(options));
 }

@@ -39,6 +39,16 @@ export class PendingResponses {
     pending.resolve(value);
   }
 
+  reject(key: string, error: Error): void {
+    const entries = this.#pending.get(key);
+    const pending = entries?.shift();
+    if (pending === undefined) return;
+    if (entries !== undefined && entries.length === 0) {
+      this.#pending.delete(key);
+    }
+    pending.reject(error);
+  }
+
   remove<T>(key: string, promise: Promise<T>): void {
     const entries = this.#pending.get(key);
     if (entries === undefined) return;
