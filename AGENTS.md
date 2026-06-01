@@ -47,6 +47,7 @@
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
 - When a type is specific to a single function, such as a one-off params object, argument union, or return shape, colocate that `type` directly above the function declaration. Promote it to a shared or domain abstraction only when it is reused, part of the public model, or needed to express a real abstraction boundary.
 - Treat property-access-derived types like `SecureClient['signatureType']` as a code smell in most cases. Prefer a named domain type when the value is part of the public or shared model.
+- Do not use indexed-access-derived types like `SomeType['field']` in implementation code, public APIs, examples, TSDoc, or docs. This is non-negotiable; define and use a named type instead.
 - Prefer simple, local code. Accept small duplication when it keeps logic easier to read.
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
 - Shape implementation abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.

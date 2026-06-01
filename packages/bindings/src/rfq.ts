@@ -35,6 +35,7 @@ export enum RfqDirection {
 
 export enum RfqSide {
   Yes = 'YES',
+  No = 'NO',
 }
 
 export enum RfqConfirmationDecision {
@@ -51,7 +52,7 @@ export enum RfqExecutionStatus {
 }
 
 export const RfqDirectionSchema = z.enum(RfqDirection);
-export const RfqSideSchema = z.enum(RfqSide);
+export const RfqSideSchema = z.literal(RfqSide.Yes);
 export const RfqConfirmationDecisionSchema = z.enum(RfqConfirmationDecision);
 export const RfqExecutionStatusSchema = z.enum(RfqExecutionStatus);
 

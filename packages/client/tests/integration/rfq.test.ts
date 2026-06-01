@@ -1,35 +1,34 @@
 import {
   production,
+  SignatureType,
   TimeoutError,
   TransportError,
   UserInputError,
 } from '@polymarket/client';
-import { invariant } from '@polymarket/types';
 import { ws } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { describe, expect, it } from './fixtures';
 import {
-  authAckFrame,
-  confirmationAckFrame,
-  confirmationRequestFrame,
-  executionUpdateFrame,
+  authAckMessage,
+  confirmationAckMessage,
+  confirmationDecision,
+  confirmationRequestMessage,
+  executionUpdateMessage,
+  type OutboundFrame,
   QUOTE_ID,
   QUOTE_SIZE_E6,
-  quoteAckFrame,
-  quoteRequestFrame,
+  quoteAckMessage,
+  quoteAmounts,
+  quoteRequestMessage,
+  RFQ_ID,
+  recordOutboundFrame,
   TX_HASH,
 } from './rfq-frames';
 
 const rfq = ws.link(production.rfqQuoterWs);
 const server = setupServer();
-let responseMode:
-  | 'closeAfterConfirmation'
-  | 'closeAfterQuote'
-  | 'confirmationTimeout'
-  | 'happy'
-  | 'quoteTimeout' = 'happy';
-let outboundFrames: unknown[] = [];
+let outboundFrames: OutboundFrame[] = [];
 let connectionCount = 0;
 
 describe('RFQ sessions', () => {
@@ -40,7 +39,6 @@ describe('RFQ sessions', () => {
   beforeEach(() => {
     connectionCount = 0;
     outboundFrames = [];
-    responseMode = 'happy';
   });
 
   afterEach(() => {
@@ -52,62 +50,33 @@ describe('RFQ sessions', () => {
   });
 
   describe('when the server completes the happy-path quoter flow', () => {
-    beforeAll(() => {
+    beforeEach(() => {
+      server.resetHandlers();
       server.use(
         rfq.addEventListener('connection', ({ client: socket }) => {
           socket.addEventListener('message', (event) => {
-            const frame = JSON.parse(String(event.data)) as {
-              decision?: unknown;
-              price_e6?: unknown;
-              size_e6?: unknown;
-              type?: string;
-            };
-            outboundFrames.push(frame);
+            const frame = recordOutboundFrame(event.data, outboundFrames);
 
             if (frame.type === 'auth') {
-              socket.send(JSON.stringify(authAckFrame()));
-              socket.send(JSON.stringify(quoteRequestFrame()));
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
               return;
             }
 
             if (frame.type === 'RFQ_QUOTE') {
-              invariant(
-                typeof frame.price_e6 === 'number',
-                'Expected RFQ quote price.',
-              );
-              invariant(
-                typeof frame.size_e6 === 'number',
-                'Expected RFQ quote size.',
-              );
-              if (responseMode === 'quoteTimeout') return;
-              if (responseMode === 'closeAfterQuote') {
-                socket.close();
-                return;
-              }
-
-              socket.send(JSON.stringify(quoteAckFrame()));
+              const quote = quoteAmounts(frame);
+              socket.send(quoteAckMessage());
               socket.send(
-                JSON.stringify(
-                  confirmationRequestFrame(frame.price_e6, frame.size_e6),
-                ),
+                confirmationRequestMessage(quote.priceE6, quote.sizeE6),
               );
               return;
             }
 
             if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
-              invariant(
-                typeof frame.decision === 'string',
-                'Expected RFQ confirmation decision.',
-              );
-              if (responseMode === 'confirmationTimeout') return;
-              if (responseMode === 'closeAfterConfirmation') {
-                socket.close();
-                return;
-              }
-
-              socket.send(JSON.stringify(confirmationAckFrame(frame.decision)));
-              if (frame.decision === 'CONFIRM') {
-                socket.send(JSON.stringify(executionUpdateFrame()));
+              const decision = confirmationDecision(frame);
+              socket.send(confirmationAckMessage(decision));
+              if (decision === 'CONFIRM') {
+                socket.send(executionUpdateMessage());
               }
             }
           });
@@ -127,6 +96,11 @@ describe('RFQ sessions', () => {
               apiKey: secureClientWithDepositWallet.credentials.key,
               passphrase: secureClientWithDepositWallet.credentials.passphrase,
               secret: secureClientWithDepositWallet.credentials.secret,
+            },
+            identity: {
+              maker_address: secureClientWithDepositWallet.account.wallet,
+              signature_type: SignatureType.POLY_1271,
+              signer_address: secureClientWithDepositWallet.account.wallet,
             },
             type: 'auth',
           }),
@@ -157,6 +131,15 @@ describe('RFQ sessions', () => {
               expect.objectContaining({
                 price_e6: 450_000,
                 rfq_id: event.rfqId,
+                signed_order: expect.objectContaining({
+                  makerAmount: '550000',
+                  maker: secureClientWithDepositWallet.account.wallet,
+                  side: 0,
+                  signatureType: SignatureType.POLY_1271,
+                  signer: secureClientWithDepositWallet.account.wallet,
+                  takerAmount: '1000000',
+                  tokenId: event.noPositionId,
+                }),
                 size_e6: QUOTE_SIZE_E6,
                 type: 'RFQ_QUOTE',
               }),
@@ -179,6 +162,45 @@ describe('RFQ sessions', () => {
                 quote_id: event.quoteId,
                 rfq_id: event.rfqId,
                 type: 'RFQ_CONFIRMATION_RESPONSE',
+              }),
+            );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+
+    it('quotes from inventory for buy requests', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const ack = await event.quote({ price: 0.45, source: 'inventory' });
+
+            expect(ack).toEqual({
+              rfqId: event.rfqId,
+              quoteId: QUOTE_ID,
+            });
+
+            expect(outboundFrames).toContainEqual(
+              expect.objectContaining({
+                price_e6: 450_000,
+                rfq_id: event.rfqId,
+                signed_order: expect.objectContaining({
+                  makerAmount: '1000000',
+                  side: 1,
+                  takerAmount: '450000',
+                  tokenId: event.yesPositionId,
+                }),
+                size_e6: QUOTE_SIZE_E6,
+                type: 'RFQ_QUOTE',
               }),
             );
 
@@ -299,7 +321,7 @@ describe('RFQ sessions', () => {
 
           if (event.type === 'execution_update') {
             expect(event).toMatchObject({
-              rfqId: quoteRequestFrame().rfq_id,
+              rfqId: RFQ_ID,
               status: 'CONFIRMED',
               txHash: TX_HASH,
             });
@@ -314,9 +336,87 @@ describe('RFQ sessions', () => {
     });
   });
 
+  describe('when the RFQ request direction is sell', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage({ direction: 'SELL' }));
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.send(quoteAckMessage());
+            }
+          });
+        }),
+      );
+    });
+
+    it('quotes from inventory', async ({ secureClientWithDepositWallet }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const ack = await event.quote({ price: 0.45, source: 'inventory' });
+
+            expect(ack).toEqual({
+              rfqId: event.rfqId,
+              quoteId: QUOTE_ID,
+            });
+
+            expect(outboundFrames).toContainEqual(
+              expect.objectContaining({
+                price_e6: 450_000,
+                rfq_id: event.rfqId,
+                signed_order: expect.objectContaining({
+                  makerAmount: '1000000',
+                  side: 1,
+                  takerAmount: '550000',
+                  tokenId: event.noPositionId,
+                }),
+                size_e6: QUOTE_SIZE_E6,
+                type: 'RFQ_QUOTE',
+              }),
+            );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
   describe('when quote acknowledgement times out', () => {
     beforeEach(() => {
-      responseMode = 'quoteTimeout';
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+            }
+          });
+        }),
+      );
     });
 
     it('rejects the quote response', async ({
@@ -352,7 +452,33 @@ describe('RFQ sessions', () => {
 
   describe('when confirmation acknowledgement times out', () => {
     beforeEach(() => {
-      responseMode = 'confirmationTimeout';
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              const quote = quoteAmounts(frame);
+              socket.send(quoteAckMessage());
+              socket.send(
+                confirmationRequestMessage(quote.priceE6, quote.sizeE6),
+              );
+              return;
+            }
+
+            if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
+              confirmationDecision(frame);
+            }
+          });
+        }),
+      );
     });
 
     it('rejects the confirmation response', async ({
@@ -395,7 +521,25 @@ describe('RFQ sessions', () => {
 
   describe('when the connection closes before quote acknowledgement', () => {
     beforeEach(() => {
-      responseMode = 'closeAfterQuote';
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.close();
+            }
+          });
+        }),
+      );
     });
 
     it('rejects the quote response', async ({
@@ -429,7 +573,34 @@ describe('RFQ sessions', () => {
 
   describe('when the connection closes before confirmation acknowledgement', () => {
     beforeEach(() => {
-      responseMode = 'closeAfterConfirmation';
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              const quote = quoteAmounts(frame);
+              socket.send(quoteAckMessage());
+              socket.send(
+                confirmationRequestMessage(quote.priceE6, quote.sizeE6),
+              );
+              return;
+            }
+
+            if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
+              confirmationDecision(frame);
+              socket.close();
+            }
+          });
+        }),
+      );
     });
 
     it('rejects the confirmation response', async ({
@@ -469,6 +640,22 @@ describe('RFQ sessions', () => {
   });
 
   describe('when quote input is invalid', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+            }
+          });
+        }),
+      );
+    });
+
     it('rejects before sending a quote response', async ({
       secureClientWithDepositWallet,
     }) => {
@@ -496,16 +683,17 @@ describe('RFQ sessions', () => {
   });
 
   describe('when opening repeated RFQ sessions', () => {
-    beforeAll(() => {
+    beforeEach(() => {
+      server.resetHandlers();
       server.use(
         rfq.addEventListener('connection', ({ client: socket }) => {
           connectionCount += 1;
 
           socket.addEventListener('message', (event) => {
-            const frame = JSON.parse(String(event.data)) as { type?: string };
+            const frame = recordOutboundFrame(event.data, outboundFrames);
 
             if (frame.type === 'auth') {
-              socket.send(JSON.stringify(authAckFrame()));
+              socket.send(authAckMessage());
             }
           });
         }),

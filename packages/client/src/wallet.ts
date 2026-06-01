@@ -50,6 +50,27 @@ export function toSignatureType(walletType: WalletType): SignatureType {
   }
 }
 
+/** @internal */
+export type OrderIdentity = {
+  maker: EvmAddress;
+  signatureType: SignatureType;
+  signer: EvmAddress;
+};
+
+/** @internal */
+export function resolveOrderIdentity(account: AccountIdentity): OrderIdentity {
+  const signatureType = toSignatureType(account.walletType);
+
+  return {
+    maker: account.wallet,
+    signatureType,
+    signer:
+      signatureType === SignatureType.POLY_1271
+        ? account.wallet
+        : account.signer,
+  };
+}
+
 const PROXY_BYTECODE_TEMPLATE =
   '3d3d606380380380913d393d73%s5af4602a57600080fd5b602d8060366000396000f3363d3d373d3d3d363d73%s5af43d82803e903d91602b57fd5bf352e831dd00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000';
 

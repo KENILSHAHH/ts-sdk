@@ -511,15 +511,15 @@ class BaseSecureClient<
           url: config.environment.clobMarketWs,
         }),
         clobUser: new ClobUserWebSocketManager({
-          resolveCredentials: () => this.credentials,
+          credentials: config.credentials,
           url: config.environment.clobUserWs,
         }),
         rfqQuoter: new RfqQuoterWebSocketManager({
+          account: config.account,
           chainId: config.environment.chainId,
-          exchangeV3: config.environment.exchangeV3,
-          resolveAccount: () => this.account,
-          resolveCredentials: () => this.credentials,
-          resolveSigner: () => this.signer,
+          credentials: config.credentials,
+          exchange: config.environment.exchangeV3,
+          signer: config.signer,
           url: config.environment.rfqQuoterWs,
         }),
         sports: new SportsWebSocketManager({

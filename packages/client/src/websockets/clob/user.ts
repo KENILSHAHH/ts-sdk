@@ -28,10 +28,8 @@ import {
   userMatcherFor,
 } from './protocol';
 
-type ApiKeyCredsProvider = () => ApiKeyCreds;
-
 export type ClobUserWebSocketManagerOptions = {
-  resolveCredentials: ApiKeyCredsProvider;
+  credentials: ApiKeyCreds;
   url: string;
 };
 
@@ -39,7 +37,7 @@ export class ClobUserWebSocketManager
   implements WebSocketSubscriptionManager<UserSubscription, UserEvent>
 {
   readonly #url: string;
-  readonly #resolveCredentials: ApiKeyCredsProvider;
+  readonly #credentials: ApiKeyCreds;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection({
     heartbeat: new ClobWebSocketHeartbeat(),
@@ -53,7 +51,7 @@ export class ClobUserWebSocketManager
 
   constructor(options: ClobUserWebSocketManagerOptions) {
     this.#url = options.url;
-    this.#resolveCredentials = options.resolveCredentials;
+    this.#credentials = options.credentials;
   }
 
   async subscribe(
@@ -127,7 +125,7 @@ export class ClobUserWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: (credentials) => this.#onConnectionOpen(credentials),
-      prepare: () => this.#resolveCredentials(),
+      prepare: () => this.#credentials,
       url: this.#url,
     });
   }

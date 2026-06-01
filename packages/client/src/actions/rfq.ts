@@ -35,9 +35,29 @@ export type RfqConfirmationAck = Omit<
   'decision' | 'type'
 >;
 
+export type RfqQuoteSource = 'collateral' | 'inventory';
+
 export type RfqQuoteResponse = {
   /** Quote price, for example `0.45` or `"0.45"`. */
   price: number | string;
+
+  /**
+   * How the maker wants to fund the quote.
+   *
+   * @remarks
+   * For a BUY request (BUY YES):
+   * - `inventory` sells YES tokens from the maker's inventory at `price`.
+   * - `collateral` buys NO tokens with collateral at `1 - price`.
+   *
+   * For a SELL request (SELL YES):
+   * - `inventory` sells NO tokens from the maker's inventory at `1 - price`.
+   * - `collateral` buys YES tokens with collateral at `price`.
+   *
+   * When omitted, the SDK uses `collateral`.
+   *
+   * @defaultValue `'collateral'`
+   */
+  source?: RfqQuoteSource;
 
   /**
    * Optional quote size. When omitted, the quote uses the full RFQ request size.
@@ -122,6 +142,16 @@ export const RfqConfirmationError = makeErrorGuard(
  */
 export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
   /**
+   * Requested RFQ position side.
+   *
+   * @remarks
+   * The current RFQ backend only supports YES-side requests, so this is always
+   * {@link RfqSide.Yes}. Use {@link RfqQuoteRequestEvent.direction} to determine
+   * whether the requester wants to buy or sell that YES-side position.
+   */
+  side: RfqSide.Yes;
+
+  /**
    * Sends a quote response for this RFQ request.
    *
    * @remarks
@@ -138,6 +168,16 @@ export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
  * Server request asking the market maker to confirm or decline a selected quote.
  */
 export interface RfqConfirmationRequestEvent extends RfqConfirmationRequest {
+  /**
+   * Requested RFQ position side.
+   *
+   * @remarks
+   * The current RFQ backend only supports YES-side requests, so this is always
+   * {@link RfqSide.Yes}. Use {@link RfqConfirmationRequestEvent.direction} to
+   * determine whether the requester wants to buy or sell that YES-side position.
+   */
+  side: RfqSide.Yes;
+
   /**
    * Confirms that the maker wants to proceed with the selected quote.
    *

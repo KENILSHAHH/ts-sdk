@@ -1,15 +1,51 @@
 import { SignatureType } from '@polymarket/bindings/clob';
 import { RfqExecutionStatus } from '@polymarket/bindings/rfq';
+import { invariant } from '@polymarket/types';
 
+export const RFQ_ID = 'rfq-1';
 export const QUOTE_ID = 'quote-1';
 export const QUOTE_SIZE_E6 = 1_000_000;
 export const TX_HASH =
   '0x1111111111111111111111111111111111111111111111111111111111111111';
 
-const RFQ_ID = 'rfq-1';
-
 const signerAddress = '0x1111111111111111111111111111111111111111';
 const makerAddress = '0x2222222222222222222222222222222222222222';
+
+export type OutboundFrame = {
+  decision?: unknown;
+  price_e6?: unknown;
+  size_e6?: unknown;
+  signed_order?: unknown;
+  type?: string;
+};
+
+export function recordOutboundFrame(
+  data: unknown,
+  frames: OutboundFrame[],
+): OutboundFrame {
+  const frame = JSON.parse(String(data)) as OutboundFrame;
+  frames.push(frame);
+  return frame;
+}
+
+export function quoteAmounts(frame: OutboundFrame) {
+  invariant(typeof frame.price_e6 === 'number', 'Expected RFQ quote price.');
+  invariant(typeof frame.size_e6 === 'number', 'Expected RFQ quote size.');
+
+  return {
+    priceE6: frame.price_e6,
+    sizeE6: frame.size_e6,
+  };
+}
+
+export function confirmationDecision(frame: OutboundFrame) {
+  invariant(
+    typeof frame.decision === 'string',
+    'Expected RFQ confirmation decision.',
+  );
+
+  return frame.decision;
+}
 
 export function authAckFrame() {
   return {
@@ -20,11 +56,17 @@ export function authAckFrame() {
   };
 }
 
-export function quoteRequestFrame() {
+export function authAckMessage() {
+  return JSON.stringify(authAckFrame());
+}
+
+export function quoteRequestFrame(
+  options: { direction?: 'BUY' | 'SELL' } = {},
+) {
   return {
     condition_id:
       '0x032def24bfb0c5c57fb236fac08b94236a000000000000000000000000000000',
-    direction: 'BUY',
+    direction: options.direction ?? 'BUY',
     leg_position_ids: ['1', '2'],
     no_position_id: '456',
     requestor_public_id: 'req-1',
@@ -37,6 +79,12 @@ export function quoteRequestFrame() {
   };
 }
 
+export function quoteRequestMessage(
+  options: { direction?: 'BUY' | 'SELL' } = {},
+) {
+  return JSON.stringify(quoteRequestFrame(options));
+}
+
 export function quoteAckFrame() {
   return {
     quote_id: QUOTE_ID,
@@ -45,9 +93,17 @@ export function quoteAckFrame() {
   };
 }
 
-export function confirmationRequestFrame(priceE6: number, fillSizeE6: number) {
+export function quoteAckMessage() {
+  return JSON.stringify(quoteAckFrame());
+}
+
+export function confirmationRequestFrame(
+  priceE6: number,
+  fillSizeE6: number,
+  options: { direction?: 'BUY' | 'SELL' } = {},
+) {
   return {
-    ...quoteRequestFrame(),
+    ...quoteRequestFrame(options),
     confirm_by: 456,
     fill_size_e6: fillSizeE6,
     maker_address: makerAddress,
@@ -59,6 +115,14 @@ export function confirmationRequestFrame(priceE6: number, fillSizeE6: number) {
   };
 }
 
+export function confirmationRequestMessage(
+  priceE6: number,
+  fillSizeE6: number,
+  options: { direction?: 'BUY' | 'SELL' } = {},
+) {
+  return JSON.stringify(confirmationRequestFrame(priceE6, fillSizeE6, options));
+}
+
 export function confirmationAckFrame(decision: string) {
   return {
     decision,
@@ -68,6 +132,10 @@ export function confirmationAckFrame(decision: string) {
   };
 }
 
+export function confirmationAckMessage(decision: string) {
+  return JSON.stringify(confirmationAckFrame(decision));
+}
+
 export function executionUpdateFrame() {
   return {
     rfq_id: RFQ_ID,
@@ -75,4 +143,8 @@ export function executionUpdateFrame() {
     tx_hash: TX_HASH,
     type: 'RFQ_EXECUTION_UPDATE',
   };
+}
+
+export function executionUpdateMessage() {
+  return JSON.stringify(executionUpdateFrame());
 }
