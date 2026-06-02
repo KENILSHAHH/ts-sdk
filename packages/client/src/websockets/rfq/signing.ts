@@ -18,10 +18,10 @@ export type SignRfqQuoteOrderParams = {
   account: AccountIdentity;
   chainId: number;
   exchange: EvmAddress;
-  orderPriceE6: number;
+  orderPrice: bigint;
   orderSide: OrderSide;
   signer: Signer;
-  sizeE6: number;
+  size: bigint;
   tokenId: PositionId;
 };
 
@@ -33,7 +33,7 @@ export async function signRfqQuoteOrder(
     builder: BYTES32_ZERO,
     maker: identity.maker,
     makerAmount: toBaseUnits(
-      makerAmount(params.orderSide, params.orderPriceE6, params.sizeE6),
+      makerAmount(params.orderSide, params.orderPrice, params.size),
     ),
     metadata: BYTES32_ZERO,
     salt: generateOrderSalt().toString(),
@@ -41,7 +41,7 @@ export async function signRfqQuoteOrder(
     signatureType: identity.signatureType,
     signer: identity.signer,
     takerAmount: toBaseUnits(
-      takerAmount(params.orderSide, params.orderPriceE6, params.sizeE6),
+      takerAmount(params.orderSide, params.orderPrice, params.size),
     ),
     timestamp: Math.floor(Date.now() / 1000).toString(),
     tokenId: params.tokenId,
@@ -77,26 +77,18 @@ function createRfqExchangeDomain(params: SignRfqQuoteOrderParams) {
   };
 }
 
-function ceilDiv(numerator: bigint, denominator: bigint): string {
-  return ((numerator + denominator - 1n) / denominator).toString();
+function makerAmount(side: OrderSide, price: bigint, size: bigint): string {
+  if (side === OrderSide.SELL) return size.toString();
+
+  return ((price * size + 999_999n) / 1_000_000n).toString();
 }
 
-function floorDiv(numerator: bigint, denominator: bigint): string {
-  return (numerator / denominator).toString();
-}
-
-function makerAmount(side: OrderSide, priceE6: number, sizeE6: number): string {
-  if (side === OrderSide.SELL) return String(sizeE6);
-
-  return ceilDiv(BigInt(priceE6) * BigInt(sizeE6), 1_000_000n);
-}
-
-function takerAmount(side: OrderSide, priceE6: number, sizeE6: number): string {
+function takerAmount(side: OrderSide, price: bigint, size: bigint): string {
   if (side === OrderSide.SELL) {
-    return floorDiv(BigInt(priceE6) * BigInt(sizeE6), 1_000_000n);
+    return ((price * size) / 1_000_000n).toString();
   }
 
-  return String(sizeE6);
+  return size.toString();
 }
 
 function encodeOrderSide(side: OrderSide): 0 | 1 {

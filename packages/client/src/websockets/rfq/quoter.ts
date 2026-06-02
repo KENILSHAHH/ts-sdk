@@ -21,7 +21,7 @@ import {
   RfqConfirmationRejectedError,
   RfqQuoteRejectedError,
 } from '../../actions/rfq';
-import { TransportError, UserInputError } from '../../errors';
+import { TransportError } from '../../errors';
 import type { Signer } from '../../types';
 import type { AccountIdentity } from '../../wallet';
 import { WebSocketConnection } from '../lifecycle';
@@ -39,7 +39,7 @@ import {
   createQuoteMessage,
 } from './messages';
 import { PendingResponses } from './pending';
-import { createRfqQuote } from './quote';
+import { createRfqQuote, parseRfqQuoteResponse } from './quote';
 
 const AUTH_TIMEOUT_MS = 30_000;
 const ACK_TIMEOUT_MS = 30_000;
@@ -49,7 +49,7 @@ export type RfqQuoterWebSocketManagerOptions = {
   chainId: number;
   credentials: ApiKeyCreds;
   exchange: EvmAddress;
-  signer?: Signer;
+  signer: Signer;
   url: string;
 };
 
@@ -58,7 +58,7 @@ export class RfqQuoterWebSocketManager {
   readonly #chainId: number;
   readonly #credentials: ApiKeyCreds;
   readonly #exchange: EvmAddress;
-  readonly #signer: Signer | undefined;
+  readonly #signer: Signer;
   readonly #url: string;
   #session: RfqWebSocketSession | undefined;
   #connectingSession: RfqWebSocketSession | undefined;
@@ -76,11 +76,6 @@ export class RfqQuoterWebSocketManager {
   async connect(): Promise<RfqSession> {
     if (this.#session !== undefined) return this.#session;
     if (this.#connecting !== undefined) return this.#connecting;
-    if (this.#signer === undefined) {
-      throw new UserInputError(
-        'RFQ quoter sessions require a signer. Create a secure client with a signer to use openRfqSession().',
-      );
-    }
 
     const session = new RfqWebSocketSession({
       account: this.#account,
@@ -311,12 +306,13 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
     request: RfqQuoteRequest,
     response: RfqQuoteResponse,
   ): Promise<RfqQuoteAck> {
+    const parsedResponse = parseRfqQuoteResponse(response);
     const quote = await createRfqQuote({
       account: this.#account,
       chainId: this.#chainId,
       exchange: this.#exchange,
       request,
-      response,
+      response: parsedResponse,
       signer: this.#signer,
     });
     const pending = this.#pending.waitFor<RfqQuoteAck>(

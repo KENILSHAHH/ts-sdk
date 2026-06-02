@@ -374,7 +374,7 @@ class BasePublicClient<
    */
   beginAuthentication(
     request: BeginAuthenticationRequest,
-    signer?: Signer,
+    signer: Signer,
   ): Promise<
     AuthenticationWorkflow<SecureClient<TPublicActions, TSecureActions>>
   > {
@@ -440,7 +440,7 @@ class BasePublicClient<
   #createSecureClient(
     credentials: ApiKeyCreds,
     account: AccountIdentity,
-    signer?: Signer,
+    signer: Signer,
   ): SecureClient<TPublicActions, TSecureActions> {
     const client = new BaseSecureClient({
       account: account,
@@ -551,11 +551,6 @@ class BaseSecureClient<
 
   /** @internal */
   get signer(): Signer {
-    invariant(
-      this.context.signer !== undefined,
-      'Secure client does not have a signer. Create secure clients with createSecureClient to use wallet-interactive methods.',
-    );
-
     return this.context.signer;
   }
 
@@ -719,7 +714,7 @@ type SecureContext = PublicContext & {
   /** @internal */
   credentials: ApiKeyCreds;
   /** @internal */
-  signer?: Signer;
+  signer: Signer;
   /** @internal */
   secureClob: ServiceClient;
   /** @internal */
@@ -729,7 +724,7 @@ type SecureContext = PublicContext & {
 type SecureClientConfig = PublicClientConfig & {
   account: AccountIdentity;
   credentials: ApiKeyCreds;
-  signer?: Signer;
+  signer: Signer;
 };
 
 export type PublicClient<

@@ -244,11 +244,8 @@ export interface RfqSession extends AsyncIterable<RfqEvent> {
   close(): Promise<void>;
 }
 
-export type OpenRfqSessionError = TransportError | UserInputError;
-export const OpenRfqSessionError = makeErrorGuard(
-  TransportError,
-  UserInputError,
-);
+export type OpenRfqSessionError = TransportError;
+export const OpenRfqSessionError = makeErrorGuard(TransportError);
 
 /**
  * Opens an RFQ event session.
