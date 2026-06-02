@@ -64,7 +64,10 @@ export type PrepareMarketSellOrderRequest = BasePrepareMarketOrderRequest & {
   side: OrderSide.SELL;
 
   /**
-   * Number of conditional-token shares to sell.
+   * Number of outcome tokens to sell.
+   *
+   * This is the human-readable token amount: `1` means one full share, not one
+   * 6-decimal base unit.
    */
   shares: number | string;
 };
@@ -80,7 +83,12 @@ export type PrepareLimitOrderRequest = {
   /** Price used to create the order */
   price: number | string;
 
-  /** Size in terms of the conditional token */
+  /**
+   * Order size in outcome tokens.
+   *
+   * This is the human-readable token amount: `1` means one full share, not one
+   * 6-decimal base unit.
+   */
   size: number | string;
 
   /** Side of the order */

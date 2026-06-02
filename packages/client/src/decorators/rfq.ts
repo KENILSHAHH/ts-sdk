@@ -20,6 +20,7 @@ export type {
   RfqSession,
 } from '../actions/rfq';
 export {
+  OpenRfqSessionError,
   RfqConfirmationDecision,
   RfqConfirmationError,
   RfqConfirmationRejectedError,
@@ -62,7 +63,8 @@ export type SecureRfqActions = {
    * ```
    *
    * @example
-   * Quote a specific size:
+   * Quote a specific outcome-token size. `0.5` means half of one share, not
+   * half of one 6-decimal base unit:
    * ```ts
    * const session = await client.openRfqSession();
    *
@@ -133,8 +135,8 @@ export type SecureRfqActions = {
    *   }
    * }
    *
-   * function chooseSource(positionId: PositionId, size: DecimalString): RfqQuoteSource {
-   *   return hasInventory(positionId, size) ? 'inventory' : 'collateral';
+   * function chooseSource(positionId: PositionId, requestedSize: RfqRequestedSize): RfqQuoteSource {
+   *   return hasInventory(positionId, requestedSize) ? 'inventory' : 'collateral';
    * }
    * ```
    *

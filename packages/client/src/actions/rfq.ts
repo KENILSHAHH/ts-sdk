@@ -48,7 +48,7 @@ export type RfqConfirmationAck = Omit<
 export type RfqQuoteSource = 'collateral' | 'inventory';
 
 export type RfqQuoteResponse = {
-  /** Quote price, for example `0.45` or `"0.45"`. */
+  /** Quote price in pUSD per outcome token, for example `0.45` or `"0.45"`. */
   price: number | string;
 
   /**
@@ -70,7 +70,10 @@ export type RfqQuoteResponse = {
   source?: RfqQuoteSource;
 
   /**
-   * Optional quote size. When omitted, the quote uses the full RFQ request size.
+   * Optional quote size in outcome tokens.
+   *
+   * This is the human-readable token amount: `1` means one full share, not one
+   * 6-decimal base unit. When omitted, the quote uses the full RFQ request size.
    */
   size?: number | string;
 };
@@ -159,7 +162,7 @@ export const RfqConfirmationError = makeErrorGuard(
  * Server request asking the market maker to provide a quote for an RFQ.
  */
 export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
-  /** Requested RFQ size and unit. */
+  /** Requested RFQ size and unit. Share values are human-readable outcome-token amounts. */
   requestedSize: RfqRequestedSize;
 
   /**
