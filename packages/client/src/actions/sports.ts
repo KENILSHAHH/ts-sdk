@@ -30,6 +30,9 @@ export const ListSportsError = makeErrorGuard(
 /**
  * Lists available sports metadata.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListSportsError}
  * Thrown on failure.
  *
@@ -64,6 +67,9 @@ export const FetchSportsMarketTypesError = makeErrorGuard(
 
 /**
  * Fetches the available market types grouped by sport.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchSportsMarketTypesError}
  * Thrown on failure.

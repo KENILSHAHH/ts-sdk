@@ -155,6 +155,9 @@ export type SubscribeError = TransportError;
 /**
  * Starts one or more realtime subscriptions on this client.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link SubscribeError}
  * Thrown when the realtime subscription cannot be established or fails.
  *

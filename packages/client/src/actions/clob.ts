@@ -78,6 +78,9 @@ export const FetchMidpointError = makeErrorGuard(
 /**
  * Fetches the midpoint price for a token.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchMidpointError}
  * Thrown on failure.
  *
@@ -135,6 +138,9 @@ export const FetchMidpointsError = makeErrorGuard(
 /**
  * Fetches midpoint prices for multiple tokens.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchMidpointsError}
  * Thrown on failure.
  *
@@ -190,7 +196,7 @@ export const FetchTickSizeError = makeErrorGuard(
  * Fetches the minimum price tick size for a token's order book.
  *
  * @remarks
- * This is a low-level market action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchTickSizeError}
  * Thrown on failure.
@@ -245,7 +251,7 @@ export const FetchNegRiskError = makeErrorGuard(
  * Fetches whether a token is in a negative-risk market.
  *
  * @remarks
- * This is a low-level market action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchNegRiskError}
  * Thrown on failure.
@@ -302,7 +308,7 @@ export const ResolveConditionByTokenError = makeErrorGuard(
  * Resolves the condition ID for a token.
  *
  * @remarks
- * This is a low-level market action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ResolveConditionByTokenError}
  * Thrown on failure.
@@ -346,7 +352,7 @@ export const FetchMarketInfoError = makeErrorGuard(
  * Fetches market-level metadata for a condition.
  *
  * @remarks
- * This is a low-level market action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchMarketInfoError}
  * Thrown on failure.
@@ -390,7 +396,7 @@ export const FetchBuilderFeeRatesError = makeErrorGuard(
  * Fetches builder maker and taker fee rates.
  *
  * @remarks
- * This is a low-level market action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchBuilderFeeRatesError}
  * Thrown on failure.
@@ -431,6 +437,9 @@ export const FetchPriceError = makeErrorGuard(
 
 /**
  * Fetches the current quoted price for a token and side.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchPriceError}
  * Thrown on failure.
@@ -491,6 +500,9 @@ export const FetchPricesError = makeErrorGuard(
 /**
  * Fetches quoted prices for multiple tokens.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchPricesError}
  * Thrown on failure.
  *
@@ -545,6 +557,9 @@ export const FetchOrderBookError = makeErrorGuard(
 
 /**
  * Fetches the current order book for a token.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchOrderBookError}
  * Thrown on failure.
@@ -603,6 +618,9 @@ export const FetchOrderBooksError = makeErrorGuard(
 /**
  * Fetches order books for multiple tokens.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchOrderBooksError}
  * Thrown on failure.
  *
@@ -655,6 +673,9 @@ export const FetchSpreadError = makeErrorGuard(
 
 /**
  * Fetches the spread for a token.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchSpreadError}
  * Thrown on failure.
@@ -713,6 +734,9 @@ export const FetchSpreadsError = makeErrorGuard(
 /**
  * Fetches spreads for multiple tokens.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchSpreadsError}
  * Thrown on failure.
  *
@@ -768,6 +792,9 @@ export const FetchLastTradePriceError = makeErrorGuard(
 
 /**
  * Fetches the last traded price for a token.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchLastTradePriceError}
  * Thrown on failure.
@@ -826,6 +853,9 @@ export const FetchLastTradePricesError = makeErrorGuard(
 
 /**
  * Fetches last traded prices for multiple tokens.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchLastTradePricesError}
  * Thrown on failure.
@@ -886,6 +916,9 @@ export const FetchPriceHistoryError = makeErrorGuard(
 
 /**
  * Fetches historical price points for a token.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchPriceHistoryError}
  * Thrown on failure.
@@ -952,6 +985,9 @@ export const ListCurrentRewardsError = makeErrorGuard(
 
 /**
  * Lists current active market rewards.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListCurrentRewardsError}
  * Thrown on failure.
@@ -1040,6 +1076,9 @@ export const ListMarketRewardsError = makeErrorGuard(
 
 /**
  * Lists reward configurations for a market.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListMarketRewardsError}
  * Thrown on failure.

@@ -123,7 +123,7 @@ export const FetchExecuteParamsError = makeErrorGuard(
  * Fetches the parameters needed to prepare a low-level transaction submission.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchExecuteParamsError}
  * Thrown on failure.
@@ -176,7 +176,7 @@ export const IsGaslessReadyError = makeErrorGuard(
  * Checks whether a wallet is ready for gasless transactions.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link IsGaslessReadyError}
  * Thrown on failure.
@@ -270,7 +270,7 @@ export const DeployDepositWalletError = makeErrorGuard(
  * Deploys a Deposit Wallet for the authenticated signer.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link DeployDepositWalletError}
  * Thrown on failure.
@@ -295,7 +295,7 @@ export async function deployDepositWallet(
  * Fetches a submitted transaction.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchGaslessTransactionError}
  * Thrown on failure.
@@ -362,7 +362,7 @@ export const PrepareGaslessTransactionError = makeErrorGuard(
  * Starts preparing a low-level transaction workflow from one or more calls.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link PrepareGaslessTransactionError}
  * Thrown on failure.

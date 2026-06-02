@@ -60,7 +60,7 @@ export const PrepareErc20ApprovalError = makeErrorGuard(UserInputError);
  * Starts an ERC-20 approval workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -121,6 +121,9 @@ export const ApproveErc20Error = makeErrorGuard(
 /**
  * Approves ERC-20 token spending for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ApproveErc20Error}
  * Thrown on failure.
  */
@@ -161,7 +164,7 @@ export const PrepareErc1155ApprovalForAllError = makeErrorGuard(UserInputError);
  * Starts an ERC-1155 approval-for-all workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -227,6 +230,9 @@ export const ApproveErc1155ForAllError = makeErrorGuard(
 /**
  * Approves or revokes ERC-1155 operator access for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ApproveErc1155ForAllError}
  * Thrown on failure.
  */
@@ -257,7 +263,7 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
  * Starts a trading-setup approval workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * Prepares all approvals required for trading, including collateral and
  * position token approvals for both standard and neg-risk market flows.
@@ -381,6 +387,9 @@ export const SetupTradingApprovalsError = makeErrorGuard(
 
 /**
  * Sets up the approvals required for trading.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link SetupTradingApprovalsError}
  * Thrown on failure.

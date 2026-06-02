@@ -51,6 +51,9 @@ export const ListTeamsError = makeErrorGuard(
 /**
  * Lists teams.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListTeamsError}
  * Thrown on failure.
  *

@@ -96,6 +96,9 @@ export const ListTradesError = makeErrorGuard(
 /**
  * Lists trades for a wallet, market, or event.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListTradesError}
  * Thrown on failure.
  *
@@ -182,6 +185,9 @@ export const ListActivityError = makeErrorGuard(
 
 /**
  * Lists wallet activity.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListActivityError}
  * Thrown on failure.

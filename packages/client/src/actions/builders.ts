@@ -54,6 +54,9 @@ export const ListBuilderTradesError = makeErrorGuard(
 /**
  * Lists builder-attributed trades.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListBuilderTradesError}
  * Thrown on failure.
  *

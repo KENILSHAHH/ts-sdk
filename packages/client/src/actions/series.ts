@@ -68,6 +68,9 @@ export const ListSeriesError = makeErrorGuard(
 /**
  * Lists series.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListSeriesError}
  * Thrown on failure.
  *
@@ -160,6 +163,9 @@ export const FetchSeriesError = makeErrorGuard(
 
 /**
  * Fetches a series.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchSeriesError}
  * Thrown on failure.

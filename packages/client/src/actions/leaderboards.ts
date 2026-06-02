@@ -79,6 +79,9 @@ export const ListBuilderLeaderboardError = makeErrorGuard(
 /**
  * Lists builder leaderboard rankings.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListBuilderLeaderboardError}
  * Thrown on failure.
  *
@@ -166,6 +169,9 @@ export const ListBuilderVolumeError = makeErrorGuard(
 /**
  * Lists daily builder volume entries.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListBuilderVolumeError}
  * Thrown on failure.
  *
@@ -209,6 +215,9 @@ export const ListTraderLeaderboardError = makeErrorGuard(
 
 /**
  * Lists trader leaderboard rankings.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListTraderLeaderboardError}
  * Thrown on failure.

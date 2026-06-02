@@ -62,6 +62,9 @@ export const FetchClosedOnlyModeError = makeErrorGuard(
 /**
  * Fetches whether the account is restricted to closed-only trading.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchClosedOnlyModeError}
  *
  * @example
@@ -109,6 +112,9 @@ export const ListOpenOrdersError = makeErrorGuard(
 
 /**
  * Lists open orders for the authenticated account across all pages.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListOpenOrdersError}
  *
@@ -195,6 +201,9 @@ export const FetchOrderError = makeErrorGuard(
 /**
  * Fetches a single order for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchOrderError}
  *
  * @example
@@ -252,6 +261,9 @@ export const ListAccountTradesError = makeErrorGuard(
 
 /**
  * Lists trades for the authenticated account across all pages.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListAccountTradesError}
  *
@@ -339,6 +351,9 @@ export type DropNotificationsRequest = z.input<
 /**
  * Fetches notifications for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchNotificationsError}
  *
  * @example
@@ -378,6 +393,9 @@ export const DropNotificationsError = makeErrorGuard(
 
 /**
  * Drops notifications for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link DropNotificationsError}
  * Thrown on failure.
@@ -439,7 +457,7 @@ export const FetchBalanceAllowanceError = makeErrorGuard(
  * Fetches balance and allowance for the authenticated account.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchBalanceAllowanceError}
  * Thrown on failure.
@@ -496,7 +514,7 @@ export const UpdateBalanceAllowanceError = makeErrorGuard(
  * Refreshes balance and allowance for the authenticated account.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link UpdateBalanceAllowanceError}
  * Thrown on failure.
@@ -554,6 +572,9 @@ export const FetchOrderScoringError = makeErrorGuard(
 /**
  * Fetches whether a single order is currently scoring.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchOrderScoringError}
  *
  * @example
@@ -604,6 +625,9 @@ export const FetchOrdersScoringError = makeErrorGuard(
 
 /**
  * Fetches scoring state for multiple orders.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchOrdersScoringError}
  *
@@ -656,6 +680,9 @@ export const ListUserEarningsForDayError = makeErrorGuard(
 
 /**
  * Lists per-market earnings for the authenticated account on a given day.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListUserEarningsForDayError}
  *
@@ -745,6 +772,9 @@ export const FetchTotalEarningsForUserForDayError = makeErrorGuard(
 /**
  * Fetches total earnings for the authenticated account on a given day.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchTotalEarningsForUserForDayError}
  *
  * @example
@@ -806,6 +836,9 @@ export const ListUserEarningsAndMarketsConfigError = makeErrorGuard(
 
 /**
  * Lists market reward configuration and earnings for the authenticated account on a given day.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListUserEarningsAndMarketsConfigError}
  *
@@ -889,6 +922,9 @@ export const FetchRewardPercentagesError = makeErrorGuard(
 
 /**
  * Fetches reward percentages for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchRewardPercentagesError}
  *

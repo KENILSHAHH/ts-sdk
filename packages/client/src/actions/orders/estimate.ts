@@ -107,6 +107,9 @@ export const EstimateMarketPriceError = makeErrorGuard(
  * should be treated as a partial-fill execution estimate rather than a full-fill
  * guarantee.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @example
  * ```ts
  * const price = await estimateMarketPrice(client, {
