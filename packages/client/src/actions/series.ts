@@ -28,12 +28,9 @@ import { snakeCase, toSearchParams } from './params';
 
 const ListSeriesRequestSchema = z.object({
   ascending: z.boolean().optional(),
-  categoriesIds: z.array(z.number().int()).optional(),
-  categoriesLabels: z.array(z.string()).optional(),
   closed: z.boolean().optional(),
   cursor: PaginationCursorSchema.optional(),
   excludeEvents: z.boolean().optional(),
-  includeChat: z.boolean().optional(),
   locale: z.string().optional(),
   order: z.string().optional(),
   pageSize: PageSizeSchema.default(20),
@@ -43,13 +40,11 @@ const ListSeriesRequestSchema = z.object({
 
 const FetchSeriesRequestSchema = z.object({
   id: z.string(),
-  includeChat: z.boolean().optional(),
   locale: z.string().optional(),
 });
 
 export type ListSeriesRequest = z.input<typeof ListSeriesRequestSchema>;
 export type FetchSeriesRequest = z.input<typeof FetchSeriesRequestSchema>;
-type ListSeriesParams = z.output<typeof ListSeriesRequestSchema>;
 
 export type ListSeriesError =
   | RateLimitError
@@ -123,10 +118,7 @@ export function listSeries(
             limit: decoded.pageSize + 1,
             offset: decoded.offset,
           },
-          snakeCase<ListSeriesParams>({
-            categoriesIds: 'categories_ids',
-            categoriesLabels: 'categories_labels',
-          }),
+          snakeCase(),
         ),
       })
       .andThen(validateWith(ListSeriesResponseSchema))
@@ -174,7 +166,7 @@ export const FetchSeriesError = makeErrorGuard(
  * ```ts
  * const series = await fetchSeries(client, {
  *   id: 'fed-daily-series',
- *   includeChat: true,
+ *   locale: 'en',
  * });
  *
  * // series === Series
@@ -191,7 +183,6 @@ export async function fetchSeries(
       .get(`series/${params.id}`, {
         params: toSearchParams(
           {
-            includeChat: params.includeChat,
             locale: params.locale,
           },
           snakeCase(),

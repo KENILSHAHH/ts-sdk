@@ -32,7 +32,6 @@ import { snakeCase, toSearchParams } from './params';
 const ListTagsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   cursor: PaginationCursorSchema.optional(),
-  includeChat: z.boolean().optional(),
   includeTemplate: z.boolean().optional(),
   isCarousel: z.boolean().optional(),
   locale: z.string().optional(),
@@ -43,7 +42,6 @@ const ListTagsRequestSchema = z.object({
 const FetchTagRequestSchema = z.union([
   z.object({
     id: z.string(),
-    includeChat: z.boolean().optional(),
     includeTemplate: z.boolean().optional(),
     locale: z.string().optional(),
   }),
@@ -224,7 +222,6 @@ export async function fetchTag(
         .get(`tags/${params.id}`, {
           params: toSearchParams(
             {
-              includeChat: params.includeChat,
               includeTemplate: params.includeTemplate,
               locale: params.locale,
             },

@@ -1,19 +1,24 @@
 import { z } from 'zod';
 import { TagIdSchema } from '../shared';
 import { TagReferenceSchema } from './common';
-import { ChatSchema, TemplateReferenceSchema } from './event';
+import { TemplateReferenceSchema } from './event';
 
 export const TagSchema = TagReferenceSchema.extend({
-  chats: z.array(ChatSchema).nullish(),
   templates: z.array(TemplateReferenceSchema).nullish(),
 });
 
-export const RelatedTagSchema = z.object({
-  id: z.string(),
-  tagID: z.number().int().nullish(),
-  relatedTagID: z.number().int().nullish(),
-  rank: z.number().int().nullish(),
-});
+export const RelatedTagSchema = z
+  .object({
+    id: z.string(),
+    tagID: z.number().int().nullish(),
+    relatedTagID: z.number().int().nullish(),
+    rank: z.number().int().nullish(),
+  })
+  .transform(({ tagID, relatedTagID, ...rest }) => ({
+    ...rest,
+    tagId: tagID,
+    relatedTagId: relatedTagID,
+  }));
 
 export const ListTagsResponseSchema = z.array(TagSchema);
 export const ListRelatedTagsResponseSchema = z.array(RelatedTagSchema);
