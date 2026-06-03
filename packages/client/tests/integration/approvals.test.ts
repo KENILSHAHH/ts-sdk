@@ -33,8 +33,10 @@ describe('Approvals', () => {
     it('supports EOA approvals as traditional transactions', async ({
       randomEoaSigner,
     }) => {
+      const signerAddress = await randomEoaSigner.getAddress();
       const secureClient = await createSecureClient({
         signer: randomEoaSigner,
+        wallet: signerAddress,
       });
 
       expect(secureClient.account.walletType).toBe(WalletType.EOA);
@@ -88,9 +90,11 @@ describe('Approvals', () => {
 
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
-      const handle = await secureClient.setupTradingApprovals();
-
-      await expect(handle.wait()).resolves.toBeTruthy();
+      await expect(secureClient.setupTradingApprovals()).resolves.toMatchObject(
+        {
+          wait: expect.any(Function),
+        },
+      );
     });
   });
 });

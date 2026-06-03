@@ -1,7 +1,7 @@
 import {
   approveErc20,
   approveErc1155ForAll,
-  isGaslessReady,
+  type DeprecatedTransactionHandle,
   mergePositions,
   type PrepareErc20ApprovalRequest,
   type PrepareErc20TransferRequest,
@@ -19,15 +19,9 @@ import type { TransactionHandle } from '../types';
 
 export type SecureWalletActions = {
   /**
-   * Checks whether the authenticated account wallet is ready for gasless transactions.
-   *
-   * @throws {@link IsGaslessReadyError}
-   * Thrown on failure.
-   *
-   * @example
-   * ```ts
-   * const ready = await client.isGaslessReady();
-   * ```
+   * @deprecated You no longer need to call this. `createSecureClient` ensures
+   * the account wallet is set up for its trading flow, so this always resolves
+   * to `true` and is retained only for backward compatibility.
    */
   isGaslessReady(): Promise<boolean>;
   /**
@@ -38,14 +32,10 @@ export type SecureWalletActions = {
    *
    * @example
    * ```ts
-   * const handle = await client.setupTradingApprovals();
-   *
-   * const outcome = await handle.wait();
-   *
-   * // outcome.transactionHash: TxHash
+   * await client.setupTradingApprovals();
    * ```
    */
-  setupTradingApprovals(): Promise<TransactionHandle>;
+  setupTradingApprovals(): Promise<DeprecatedTransactionHandle>;
   /**
    * Approves ERC-20 token spending for the authenticated account.
    *
@@ -184,7 +174,7 @@ export type SecureWalletActions = {
 
 export function walletActions(client: BaseSecureClient): SecureWalletActions {
   return {
-    isGaslessReady: isGaslessReady.bind(null, client),
+    isGaslessReady: () => Promise.resolve(true),
     setupTradingApprovals: setupTradingApprovals.bind(null, client),
     approveErc20: approveErc20.bind(null, client),
     approveErc1155ForAll: approveErc1155ForAll.bind(null, client),
@@ -201,7 +191,6 @@ export function walletActions(client: BaseSecureClient): SecureWalletActions {
 export {
   ApproveErc20Error,
   ApproveErc1155ForAllError,
-  IsGaslessReadyError,
   MergePositionsError,
   RedeemPositionsError,
   SetupTradingApprovalsError,

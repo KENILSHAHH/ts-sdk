@@ -44,6 +44,41 @@ describe('JsonRpcClient', () => {
     );
   });
 
+  it('performs batched eth_call requests', async () => {
+    const to = expectEvmAddress('0x0000000000000000000000000000000000000001');
+    server.use(
+      http.post(root, async ({ request }) => {
+        await expect(request.json()).resolves.toEqual([
+          {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_call',
+            params: [{ to, data: '0x12345678' }, 'latest'],
+          },
+          {
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'eth_call',
+            params: [{ to, data: '0xabcdef12' }, 'latest'],
+          },
+        ]);
+
+        return HttpResponse.json([
+          { jsonrpc: '2.0', id: 2, result: '0xbbbb' },
+          { jsonrpc: '2.0', id: 1, result: '0xaaaa' },
+        ]);
+      }),
+    );
+    const client = new JsonRpcClient({ url: root });
+
+    await expect(
+      client.ethCallBatch([
+        { to, data: '0x12345678' },
+        { to, data: '0xabcdef12' },
+      ]),
+    ).resolves.toEqual(['0xaaaa', '0xbbbb']);
+  });
+
   it('wraps JSON-RPC errors as rejected requests', async () => {
     const to = expectEvmAddress('0x0000000000000000000000000000000000000001');
     server.use(

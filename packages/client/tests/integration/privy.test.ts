@@ -132,9 +132,7 @@ async function createPrivyTestAccount({
     ).balance !== '0';
 
   if (hasCollateralBalance && runMeteredTests) {
-    const handle = await depositWalletClient.setupTradingApprovals();
-
-    await handle.wait();
+    await depositWalletClient.setupTradingApprovals();
   }
 
   return {

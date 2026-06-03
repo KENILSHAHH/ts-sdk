@@ -17,8 +17,8 @@ import {
 import {
   type DeployDepositWalletError,
   deployDepositWallet,
-  type IsGaslessReadyError,
-  isGaslessReady,
+  type IsWalletDeployedError,
+  isWalletDeployed,
   type WaitForGaslessTransactionError,
 } from './actions/gasless';
 import { createApiKeyAuthTypedDataPayload } from './authentication';
@@ -551,71 +551,14 @@ class BaseSecureClient<
   }
 
   /**
-   * Sets up a gasless wallet and returns a secure client bound to it.
-   *
-   * @remarks
-   * If this client is already bound to a gasless wallet, this returns a secure
-   * client for the current wallet. For EOA clients, this deploys or reuses the
-   * authenticated signer's deterministic Deposit Wallet.
-   *
-   * @throws {@link SetupGaslessWalletError}
-   * Thrown on failure.
+   * @deprecated `createSecureClient` now sets up the account wallet for its
+   * trading flow, so this is a no-op retained only for backward compatibility
+   * and returns the current secure client.
    */
-  async setupGaslessWallet(): Promise<
-    SecureClient<TPublicActions, TSecureActions>
-  > {
-    const signerAddress = expectEvmAddress(await this.signer.getAddress());
-
-    invariant(
-      isSameEvmAddress(signerAddress, this.account.signer),
-      'The current signer address does not match the authenticated signer for this client.',
+  setupGaslessWallet(): Promise<SecureClient<TPublicActions, TSecureActions>> {
+    return Promise.resolve(
+      this as unknown as SecureClient<TPublicActions, TSecureActions>,
     );
-
-    if (this.account.walletType !== WalletType.EOA) {
-      return this.#createSecureClientForWallet(
-        this.account.wallet,
-        signerAddress,
-      );
-    }
-
-    const depositWallet = await deriveCurrentDepositWalletAddress(
-      this.rpc,
-      signerAddress,
-      this.environment.walletDerivation,
-    );
-
-    if (
-      await isGaslessReady(this, {
-        wallet: depositWallet,
-        type: WalletType.DEPOSIT_WALLET,
-      })
-    ) {
-      return this.#createSecureClientForWallet(depositWallet, signerAddress);
-    }
-
-    const handle = await deployDepositWallet(this);
-    await handle.wait();
-
-    return this.#createSecureClientForWallet(depositWallet, signerAddress);
-  }
-
-  #createSecureClientForWallet(
-    wallet: AccountIdentity['wallet'],
-    signerAddress: AccountIdentity['signer'],
-  ): SecureClient<TPublicActions, TSecureActions> {
-    const client = new BaseSecureClient<TPublicActions, TSecureActions>({
-      account: resolveAccountIdentity(this.environment, signerAddress, wallet),
-      apiKey: this.context.apiKey,
-      credentials: this.credentials,
-      environment: this.environment,
-      signer: this.context.signer,
-    });
-
-    for (const decorator of this.decorators) {
-      client.extend(decorator);
-    }
-
-    return client as SecureClient<TPublicActions, TSecureActions>;
   }
 
   /** @internal */
@@ -823,13 +766,10 @@ export type SecureClientOptions = PublicClientOptions & {
   /**
    * Wallet address to use as the account wallet.
    *
-   * If omitted, the client uses the signer address as the account wallet and
-   * operates as an EOA account. EOA clients do not use gasless relayer flows:
-   * approvals, transfers, and other wallet operations are submitted directly by
-   * the signer and require the signer wallet to hold gas. Pass a supported Poly
-   * Deposit Wallet, Poly Safe, or Poly Proxy wallet address to use that wallet
-   * as the account/funder and enable gasless wallet operations when an API key
-   * strategy supports them.
+   * If omitted, the client uses the signer's deterministic Deposit Wallet as
+   * the account wallet. Pass the signer address itself to explicitly trade as
+   * an EOA account, or pass a supported Poly Deposit Wallet, Poly Safe, or Poly
+   * Proxy wallet address to use that wallet as the account/funder.
    */
   wallet?: string;
 
@@ -875,29 +815,19 @@ export function createPublicClient(
 
 export type CreateSecureClientError =
   | CancelledSigningError
+  | DeployDepositWalletError
+  | IsWalletDeployedError
   | RateLimitError
   | RequestRejectedError
   | SigningError
+  | TimeoutError
+  | TransactionFailedError
   | TransportError
   | UnexpectedResponseError
-  | UserInputError;
+  | UserInputError
+  | WaitForGaslessTransactionError;
 export const CreateSecureClientError = makeErrorGuard(
   CancelledSigningError,
-  RateLimitError,
-  RequestRejectedError,
-  SigningError,
-  TransportError,
-  UnexpectedResponseError,
-  UserInputError,
-);
-
-export type SetupGaslessWalletError =
-  | DeployDepositWalletError
-  | IsGaslessReadyError
-  | SigningError
-  | WaitForGaslessTransactionError
-  | UserInputError;
-export const SetupGaslessWalletError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -907,6 +837,9 @@ export const SetupGaslessWalletError = makeErrorGuard(
   UnexpectedResponseError,
   UserInputError,
 );
+
+export type SetupGaslessWalletError = UserInputError;
+export const SetupGaslessWalletError = makeErrorGuard(UserInputError);
 
 /**
  * Creates a new authenticated `SecureClient` instance.
@@ -928,9 +861,9 @@ export async function createSecureClient(
     environment: options.environment,
     apiKey: options.apiKey,
   });
-  const wallet = options.wallet ?? (await options.signer.getAddress());
+  const wallet = await resolveRequestedWallet(client, options);
 
-  return client
+  const secureClient = await client
     .beginAuthentication(
       {
         wallet,
@@ -940,4 +873,72 @@ export async function createSecureClient(
       options.signer,
     )
     .then(authenticateWith(options.signer));
+
+  if (secureClient.account.walletType === WalletType.EOA) {
+    return secureClient;
+  }
+
+  const deployed = await isWalletDeployed(secureClient, {
+    wallet: secureClient.account.wallet,
+    type: secureClient.account.walletType,
+  });
+
+  if (deployed) {
+    return secureClient;
+  }
+
+  if (secureClient.account.walletType === WalletType.DEPOSIT_WALLET) {
+    await deployDefaultDepositWallet(secureClient);
+    return secureClient;
+  }
+
+  throw new UserInputError(
+    `Wallet ${secureClient.account.wallet} does not exist. Provide an existing wallet address, or omit wallet to use the default Deposit Wallet flow.`,
+  );
+}
+
+/**
+ * Resolves the wallet address to authenticate as. Defaults to the signer's
+ * current deterministic Deposit Wallet when no wallet is provided.
+ */
+async function resolveRequestedWallet(
+  client: BasePublicClient,
+  options: SecureClientOptions,
+): Promise<string> {
+  if (options.wallet !== undefined) {
+    return options.wallet;
+  }
+
+  const signerAddress = expectEvmAddress(await options.signer.getAddress());
+
+  return deriveCurrentDepositWalletAddress(
+    client.rpc,
+    signerAddress,
+    client.environment.walletDerivation,
+  );
+}
+
+/**
+ * Deploys the signer's current deterministic Deposit Wallet for the secure
+ * client. Only the current Deposit Wallet can be deployed: a provided Deposit
+ * Wallet that does not match the current deterministic address would deploy a
+ * different wallet than the client is bound to, so it is rejected.
+ */
+async function deployDefaultDepositWallet(
+  secureClient: SecureClient<PublicActions, SecureActions>,
+): Promise<void> {
+  const currentDepositWallet = await deriveCurrentDepositWalletAddress(
+    secureClient.rpc,
+    secureClient.account.signer,
+    secureClient.environment.walletDerivation,
+  );
+
+  if (!isSameEvmAddress(secureClient.account.wallet, currentDepositWallet)) {
+    throw new UserInputError(
+      `Wallet ${secureClient.account.wallet} does not match the expected Deposit Wallet ${currentDepositWallet} for this signer, nor a deployed wallet address.`,
+    );
+  }
+
+  const handle = await deployDepositWallet(secureClient);
+  await handle.wait();
 }
