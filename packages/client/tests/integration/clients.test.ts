@@ -1,5 +1,5 @@
 import { createSecureClient, WalletType } from '@polymarket/client';
-import { fetchApiKeys } from '@polymarket/client/actions';
+import { fetchApiKeys, isWalletDeployed } from '@polymarket/client/actions';
 import { InvariantError, ZERO_ADDRESS } from '@polymarket/types';
 import { describe, expect, it, runMeteredTests } from './fixtures';
 
@@ -68,7 +68,8 @@ describe('clients', () => {
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
 
-    it('authenticates as EOA when wallet is omitted', async ({
+    it('defaults omitted wallet to the current Deposit Wallet', async ({
+      depositWalletAddress,
       depositWalletSigner,
     }) => {
       const signerAddress = await depositWalletSigner.getAddress();
@@ -77,10 +78,27 @@ describe('clients', () => {
       });
 
       expect(secureClient.account.signer).toBe(signerAddress);
-      expect(secureClient.account.wallet).toBe(signerAddress);
-      expect(secureClient.account.walletType).toBe(WalletType.EOA);
+      expect(secureClient.account.wallet).toBe(depositWalletAddress);
+      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
       await expect(fetchApiKeys(secureClient)).resolves.toBeDefined();
     });
+
+    it.runIf(runMeteredTests)(
+      'deploys the default Deposit Wallet when omitted wallet is not deployed',
+      async ({ builderAuthentication, randomEoaSigner }) => {
+        const signerAddress = await randomEoaSigner.getAddress();
+        const secureClient = await createSecureClient({
+          apiKey: builderAuthentication,
+          signer: randomEoaSigner,
+        });
+
+        expect(secureClient.account.signer).toBe(signerAddress);
+        expect(secureClient.account.wallet).not.toBe(signerAddress);
+        expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
+        await expect(isWalletDeployed(secureClient)).resolves.toBe(true);
+      },
+      20_000,
+    );
 
     it('rejects with InvariantError when wallet does not match signer or any supported derived wallet', async ({
       depositWalletSigner,
@@ -144,68 +162,6 @@ describe('clients', () => {
       expect(remainingApiKeys).toContain(resumedClient.credentials.key);
       expect(remainingApiKeys).not.toContain(revokedKey);
     });
-  });
-
-  describe('SecureClient.setupGaslessWallet', () => {
-    it('returns a secure client for an already-bound Deposit Wallet', async ({
-      depositWalletAddress,
-      depositWalletSigner,
-      relayerAuthentication,
-    }) => {
-      const signerAddress = await depositWalletSigner.getAddress();
-      const secureClient = await createSecureClient({
-        apiKey: relayerAuthentication,
-        signer: depositWalletSigner,
-        wallet: depositWalletAddress,
-      });
-
-      const depositWalletClient = await secureClient.setupGaslessWallet();
-
-      expect(depositWalletClient.account.signer).toBe(signerAddress);
-      expect(depositWalletClient.account.wallet).toBe(depositWalletAddress);
-      expect(depositWalletClient.account.walletType).toBe(
-        WalletType.DEPOSIT_WALLET,
-      );
-    });
-
-    it('returns a secure client for an already-bound Proxy wallet', async ({
-      proxyWalletAddress,
-      proxyWalletSigner,
-      relayerAuthentication,
-    }) => {
-      const signerAddress = await proxyWalletSigner.getAddress();
-      const secureClient = await createSecureClient({
-        apiKey: relayerAuthentication,
-        signer: proxyWalletSigner,
-        wallet: proxyWalletAddress,
-      });
-
-      const gaslessClient = await secureClient.setupGaslessWallet();
-
-      expect(gaslessClient.account.signer).toBe(signerAddress);
-      expect(gaslessClient.account.wallet).toBe(proxyWalletAddress);
-      expect(gaslessClient.account.walletType).toBe(WalletType.POLY_PROXY);
-    });
-
-    it.runIf(runMeteredTests)(
-      'deploys the Deposit Wallet and returns a secure client bound to it',
-      async ({ builderAuthentication, randomEoaSigner }) => {
-        const secureClient = await createSecureClient({
-          apiKey: builderAuthentication,
-          signer: randomEoaSigner,
-        });
-
-        await expect(secureClient.isGaslessReady()).resolves.toBe(false);
-
-        const depositWalletClient = await secureClient.setupGaslessWallet();
-
-        expect(depositWalletClient.account.walletType).toBe(
-          WalletType.DEPOSIT_WALLET,
-        );
-        await expect(depositWalletClient.isGaslessReady()).resolves.toBe(true);
-      },
-      20_000,
-    );
   });
 
   describe('SecureClient.endAuthentication', () => {
