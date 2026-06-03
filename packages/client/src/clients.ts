@@ -55,6 +55,7 @@ import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
   type PublicWebSocketManagers,
+  RfqQuoterWebSocketManager,
   RtdsWebSocketManager,
   type SecureWebSocketManagers,
   SportsWebSocketManager,
@@ -373,7 +374,7 @@ class BasePublicClient<
    */
   beginAuthentication(
     request: BeginAuthenticationRequest,
-    signer?: Signer,
+    signer: Signer,
   ): Promise<
     AuthenticationWorkflow<SecureClient<TPublicActions, TSecureActions>>
   > {
@@ -439,7 +440,7 @@ class BasePublicClient<
   #createSecureClient(
     credentials: ApiKeyCreds,
     account: AccountIdentity,
-    signer?: Signer,
+    signer: Signer,
   ): SecureClient<TPublicActions, TSecureActions> {
     const client = new BaseSecureClient({
       account: account,
@@ -510,8 +511,17 @@ class BaseSecureClient<
           url: config.environment.clobMarketWs,
         }),
         clobUser: new ClobUserWebSocketManager({
-          resolveCredentials: () => this.credentials,
+          credentials: config.credentials,
           url: config.environment.clobUserWs,
+        }),
+        rfqQuoter: new RfqQuoterWebSocketManager({
+          account: config.account,
+          chainId: config.environment.chainId,
+          credentials: config.credentials,
+          exchange: config.environment.exchangeV3,
+          headers: config.environment.rfqQuoterWsHeaders,
+          signer: config.signer,
+          url: config.environment.rfqQuoterWs,
         }),
         sports: new SportsWebSocketManager({
           url: config.environment.sportsWs,
@@ -542,11 +552,6 @@ class BaseSecureClient<
 
   /** @internal */
   get signer(): Signer {
-    invariant(
-      this.context.signer !== undefined,
-      'Secure client does not have a signer. Create secure clients with createSecureClient to use wallet-interactive methods.',
-    );
-
     return this.context.signer;
   }
 
@@ -590,6 +595,7 @@ class BaseSecureClient<
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
       this.webSockets.clobUser.close(),
+      this.webSockets.rfqQuoter.close(),
     ]).then(() => undefined);
   }
 
@@ -709,7 +715,7 @@ type SecureContext = PublicContext & {
   /** @internal */
   credentials: ApiKeyCreds;
   /** @internal */
-  signer?: Signer;
+  signer: Signer;
   /** @internal */
   secureClob: ServiceClient;
   /** @internal */
@@ -719,7 +725,7 @@ type SecureContext = PublicContext & {
 type SecureClientConfig = PublicClientConfig & {
   account: AccountIdentity;
   credentials: ApiKeyCreds;
-  signer?: Signer;
+  signer: Signer;
 };
 
 export type PublicClient<

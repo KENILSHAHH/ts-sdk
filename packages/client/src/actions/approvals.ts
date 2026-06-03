@@ -301,13 +301,6 @@ type TradingApprovalRequirements = {
  * @remarks
  * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
- * Prepares missing approvals required for trading, including collateral and
- * position token approvals for both standard and neg-risk market flows.
- * The collateral adapter approvals cover split, merge, and redemption workflows.
- * Auto-redeem approval is included so accounts are ready for supported position
- * lifecycle workflows. If all approvals are already in place, the workflow
- * completes without yielding any transaction requests.
- *
  * @example
  * ```ts
  * const workflow = await prepareTradingApprovals(client);
@@ -495,6 +488,16 @@ function getRequiredTradingApprovals(
         spenderAddress: client.environment.negRiskCollateralAdapter,
         tokenAddress: client.environment.collateralToken,
       },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.protocolV2Router,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.exchangeV3,
+        tokenAddress: client.environment.collateralToken,
+      },
     ],
     erc1155: [
       {
@@ -520,6 +523,18 @@ function getRequiredTradingApprovals(
       {
         operatorAddress: client.environment.autoRedeemOperator,
         tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.protocolV2Router,
+        tokenAddress: client.environment.positionManager,
+      },
+      {
+        operatorAddress: client.environment.exchangeV3,
+        tokenAddress: client.environment.positionManager,
+      },
+      {
+        operatorAddress: client.environment.autoRedeemOperator,
+        tokenAddress: client.environment.positionManager,
       },
     ],
   };

@@ -2,6 +2,7 @@ import {
   ConditionIdSchema,
   IsoDateTimeStringSchema,
   PaginationCursorSchema,
+  PositionIdSchema,
 } from '@polymarket/bindings';
 import {
   ListMarketHoldersResponseSchema,
@@ -61,6 +62,7 @@ const ListMarketsRequestSchema = z.object({
   locale: z.string().optional(),
   marketMakerAddresses: z.array(z.string()).optional(),
   order: z.string().optional(),
+  positionIds: z.array(PositionIdSchema).optional(),
   questionIds: z.array(z.string()).optional(),
   relatedTags: z.boolean().optional(),
   rfqEnabled: z.boolean().optional(),

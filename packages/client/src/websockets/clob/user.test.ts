@@ -22,7 +22,7 @@ const credentials = ApiKeyCredsSchema.parse({
   secret: 'test-secret',
 });
 const manager = new ClobUserWebSocketManager({
-  resolveCredentials: () => credentials,
+  credentials,
   url: production.clobUserWs,
 });
 

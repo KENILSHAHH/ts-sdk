@@ -65,8 +65,12 @@ export type MixedDateTimeString = Tagged<string, 'MixedDateTimeString'>;
 export type NotificationId = Tagged<number, 'NotificationId'>;
 export type PartnerId = Tagged<number, 'PartnerId'>;
 export type PaginationCursor = Tagged<string, 'PaginationCursor'>;
+export type PositionId = Tagged<string, 'PositionId'>;
 export type QuestionId = Tagged<HexString, 'QuestionId'>;
 export type ResolutionRequestId = Tagged<HexString, 'ResolutionRequestId'>;
+export type RfqId = Tagged<string, 'RfqId'>;
+export type RfqQuoteId = Tagged<string, 'RfqQuoteId'>;
+export type RfqRequestorPublicId = Tagged<string, 'RfqRequestorPublicId'>;
 export type SeriesId = Tagged<string, 'SeriesId'>;
 export type SportId = Tagged<number, 'SportId'>;
 export type TagId = Tagged<string, 'TagId'>;
@@ -175,12 +179,28 @@ export function toPaginationCursor(value: string): PaginationCursor {
   return toTaggedString<PaginationCursor>(value);
 }
 
+export function toPositionId(value: string): PositionId {
+  return toTaggedString<PositionId>(value);
+}
+
 export function toQuestionId(value: string): QuestionId {
   return to32ByteHexString(value) as QuestionId;
 }
 
 export function toResolutionRequestId(value: string): ResolutionRequestId {
   return to32ByteHexString(value) as ResolutionRequestId;
+}
+
+export function toRfqId(value: string): RfqId {
+  return toTaggedString<RfqId>(value);
+}
+
+export function toRfqQuoteId(value: string): RfqQuoteId {
+  return toTaggedString<RfqQuoteId>(value);
+}
+
+export function toRfqRequestorPublicId(value: string): RfqRequestorPublicId {
+  return toTaggedString<RfqRequestorPublicId>(value);
 }
 
 export function toSeriesId(value: string): SeriesId {
@@ -319,10 +339,16 @@ export const PaginationCursorSchema = z
   .string()
   .min(1)
   .transform(toPaginationCursor);
+export const PositionIdSchema = z.string().transform(toPositionId);
 export const QuestionIdSchema = z.string().transform(toQuestionId);
 export const ResolutionRequestIdSchema = z
   .string()
   .transform(toResolutionRequestId);
+export const RfqIdSchema = z.string().transform(toRfqId);
+export const RfqQuoteIdSchema = z.string().transform(toRfqQuoteId);
+export const RfqRequestorPublicIdSchema = z
+  .string()
+  .transform(toRfqRequestorPublicId);
 export const TagIdSchema = z.string().transform(toTagId);
 export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);

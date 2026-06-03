@@ -23,7 +23,7 @@ import {
   type SubscriptionRegistryChange,
   type SubscriptionRegistryEntry,
 } from './registry';
-import type { WebSocketManager } from './types';
+import type { WebSocketSubscriptionManager } from './types';
 
 type RtdsSpec =
   | CommentsSubscription
@@ -45,12 +45,12 @@ type RtdsServerState = Map<string, RtdsServerSubscription>;
 /**
  * Realtime Data Service (RTDS) WebSocket manager.
  *
- * Implements {@link WebSocketManager} for the comments, crypto prices, and
+ * Implements {@link WebSocketSubscriptionManager} for the comments, crypto prices, and
  * equity prices topics multiplexed over a single shared upstream socket
  * opened lazily on the first subscribe.
  */
 export class RtdsWebSocketManager
-  implements WebSocketManager<RtdsSpec, RtdsEvent>
+  implements WebSocketSubscriptionManager<RtdsSpec, RtdsEvent>
 {
   readonly #url: string;
   #closing: Promise<void> | undefined;

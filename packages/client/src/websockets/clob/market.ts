@@ -17,7 +17,7 @@ import {
   SubscriptionRegistry,
   type SubscriptionRegistryChange,
 } from '../registry';
-import type { WebSocketManager } from '../types';
+import type { WebSocketSubscriptionManager } from '../types';
 import {
   buildMarketSubscribeMessage,
   deriveMarketServerSubscription,
@@ -38,7 +38,7 @@ export type ClobMarketWebSocketManagerOptions = {
  * Incremental subscribe/unsubscribe frames mutate that server-side asset set.
  */
 export class ClobMarketWebSocketManager
-  implements WebSocketManager<MarketSubscription, MarketEvent>
+  implements WebSocketSubscriptionManager<MarketSubscription, MarketEvent>
 {
   readonly #url: string;
   #closing: Promise<void> | undefined;
