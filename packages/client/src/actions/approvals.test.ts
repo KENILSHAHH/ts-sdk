@@ -22,39 +22,33 @@ const MAX_UINT256_RESULT = `0x${'f'.repeat(64)}` as HexString;
 const wallet = expectEvmAddress('0x0000000000000000000000000000000000000001');
 
 describe('prepareTradingApprovals', () => {
-  it('includes auto-redeem approval in account setup', async () => {
+  it('submits every missing approval and waits after each EOA transaction', async () => {
     const { client } = createClient([
-      ...Array<HexString>(5).fill(FALSE_RESULT),
-      ...Array<HexString>(6).fill(FALSE_RESULT),
+      ...Array<HexString>(7).fill(FALSE_RESULT),
+      ...Array<HexString>(9).fill(FALSE_RESULT),
     ]);
     const workflow = await prepareTradingApprovals(client);
+    const handles = Array.from({ length: 16 }, createTransactionHandle);
     let result = await workflow.next();
 
-    for (let index = 0; index < 10; index += 1) {
+    for (const handle of handles) {
       expect(result.done).toBe(false);
-      result = await workflow.next(createTransactionHandle());
+      result = await workflow.next(handle);
     }
 
     expect(result).toEqual({
-      done: false,
-      value: {
-        kind: 'sendErc1155ApprovalForAllTransaction',
-        request: {
-          chainId: production.chainId,
-          ...erc1155ApprovalForAllCall(
-            production.conditionalTokens,
-            production.autoRedeemOperator,
-            true,
-          ),
-        },
-      },
+      done: true,
+      value: undefined,
     });
+    for (const handle of handles) {
+      expect(handle.wait).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('completes without transactions when approvals are already set', async () => {
     const { client, ethCallBatch } = createClient([
-      ...Array<HexString>(5).fill(MAX_UINT256_RESULT),
-      ...Array<HexString>(6).fill(TRUE_RESULT),
+      ...Array<HexString>(7).fill(MAX_UINT256_RESULT),
+      ...Array<HexString>(9).fill(TRUE_RESULT),
     ]);
 
     const workflow = await prepareTradingApprovals(client);
@@ -66,15 +60,15 @@ describe('prepareTradingApprovals', () => {
       value: undefined,
     });
     expect(ethCallBatch).toHaveBeenCalledTimes(1);
-    expect(ethCallBatch.mock.calls[0]?.[0]).toHaveLength(11);
+    expect(ethCallBatch.mock.calls[0]?.[0]).toHaveLength(16);
   });
 
   it('submits only missing approvals', async () => {
     const { client } = createClient([
       FALSE_RESULT,
-      ...Array<HexString>(4).fill(MAX_UINT256_RESULT),
+      ...Array<HexString>(6).fill(MAX_UINT256_RESULT),
       FALSE_RESULT,
-      ...Array<HexString>(5).fill(TRUE_RESULT),
+      ...Array<HexString>(8).fill(TRUE_RESULT),
     ]);
     const firstHandle = createTransactionHandle();
     const secondHandle = createTransactionHandle();
