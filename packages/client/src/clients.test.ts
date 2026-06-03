@@ -229,7 +229,7 @@ describe('secure client gasless wallet setup', () => {
         wallet: safeWallet,
       }),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('is not deployed'),
+      message: expect.stringContaining('does not exist'),
       name: 'UserInputError',
     });
   });

@@ -1,6 +1,7 @@
 import {
   approveErc20,
   approveErc1155ForAll,
+  type DeprecatedTransactionHandle,
   mergePositions,
   type PrepareErc20ApprovalRequest,
   type PrepareErc20TransferRequest,
@@ -31,14 +32,10 @@ export type SecureWalletActions = {
    *
    * @example
    * ```ts
-   * const handle = await client.setupTradingApprovals();
-   *
-   * const outcome = await handle.wait();
-   *
-   * // outcome.transactionHash: TxHash
+   * await client.setupTradingApprovals();
    * ```
    */
-  setupTradingApprovals(): Promise<TransactionHandle>;
+  setupTradingApprovals(): Promise<DeprecatedTransactionHandle>;
   /**
    * Approves ERC-20 token spending for the authenticated account.
    *

@@ -9,11 +9,17 @@ const ZERO_BYTES32 =
 const ERC20_APPROVE_FUNCTION = AbiFunction.from(
   'function approve(address spender, uint256 amount)',
 );
+const ERC20_ALLOWANCE_FUNCTION = AbiFunction.from(
+  'function allowance(address owner, address spender) view returns (uint256)',
+);
 const ERC20_TRANSFER_FUNCTION = AbiFunction.from(
   'function transfer(address recipient, uint256 amount)',
 );
 const ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION = AbiFunction.from(
   'function setApprovalForAll(address operator, bool approved)',
+);
+const ERC1155_IS_APPROVED_FOR_ALL_FUNCTION = AbiFunction.from(
+  'function isApprovedForAll(address account, address operator) view returns (bool)',
 );
 const CTF_SPLIT_POSITION_FUNCTION = AbiFunction.from(
   'function splitPosition(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount)',
@@ -62,6 +68,23 @@ export function erc20ApprovalCall(
   };
 }
 
+/** @internal */
+export function erc20AllowanceCall(
+  tokenAddress: EvmAddress,
+  owner: EvmAddress,
+  spender: EvmAddress,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ERC20_ALLOWANCE_FUNCTION, [owner, spender]),
+    to: tokenAddress,
+  };
+}
+
+/** @internal */
+export function decodeErc20AllowanceResult(data: HexString): bigint {
+  return AbiFunction.decodeResult(ERC20_ALLOWANCE_FUNCTION, data);
+}
+
 /**
  * Creates a transaction call for `setApprovalForAll(address,bool)` on an ERC-1155 token.
  */
@@ -74,6 +97,26 @@ export function erc1155ApprovalForAllCall(
     data: encodeErc1155SetApprovalForAllCall(operator, approved),
     to: tokenAddress,
   };
+}
+
+/** @internal */
+export function erc1155IsApprovedForAllCall(
+  tokenAddress: EvmAddress,
+  owner: EvmAddress,
+  operator: EvmAddress,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ERC1155_IS_APPROVED_FOR_ALL_FUNCTION, [
+      owner,
+      operator,
+    ]),
+    to: tokenAddress,
+  };
+}
+
+/** @internal */
+export function decodeErc1155IsApprovedForAllResult(data: HexString): boolean {
+  return AbiFunction.decodeResult(ERC1155_IS_APPROVED_FOR_ALL_FUNCTION, data);
 }
 
 export type Erc20TransferCallError = UserInputError;
