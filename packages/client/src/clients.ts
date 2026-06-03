@@ -519,6 +519,7 @@ class BaseSecureClient<
           chainId: config.environment.chainId,
           credentials: config.credentials,
           exchange: config.environment.exchangeV3,
+          headers: config.environment.rfqQuoterWsHeaders,
           signer: config.signer,
           url: config.environment.rfqQuoterWs,
         }),

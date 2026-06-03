@@ -53,6 +53,7 @@ export type RfqQuoterWebSocketManagerOptions = {
   chainId: number;
   credentials: ApiKeyCreds;
   exchange: EvmAddress;
+  headers?: Record<string, string>;
   signer: Signer;
   url: string;
 };
@@ -62,6 +63,7 @@ export class RfqQuoterWebSocketManager {
   readonly #chainId: number;
   readonly #credentials: ApiKeyCreds;
   readonly #exchange: EvmAddress;
+  readonly #headers: Record<string, string> | undefined;
   readonly #signer: Signer;
   readonly #url: string;
   #session: RfqWebSocketSession | undefined;
@@ -73,6 +75,7 @@ export class RfqQuoterWebSocketManager {
     this.#chainId = options.chainId;
     this.#credentials = options.credentials;
     this.#exchange = options.exchange;
+    this.#headers = options.headers;
     this.#signer = options.signer;
     this.#url = options.url;
   }
@@ -86,6 +89,7 @@ export class RfqQuoterWebSocketManager {
       chainId: this.#chainId,
       credentials: this.#credentials,
       exchange: this.#exchange,
+      headers: this.#headers,
       onClose: () => this.#clearSession(session),
       signer: this.#signer,
       url: this.#url,
@@ -146,6 +150,7 @@ type RfqWebSocketSessionConfig = {
   chainId: number;
   credentials: ApiKeyCreds;
   exchange: EvmAddress;
+  headers?: Record<string, string>;
   onClose: () => void;
   signer: Signer;
   url: string;
@@ -156,6 +161,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   readonly #chainId: number;
   readonly #credentials: ApiKeyCreds;
   readonly #exchange: EvmAddress;
+  readonly #headers: Record<string, string> | undefined;
   readonly #onClose: () => void;
   readonly #signer: Signer;
   readonly #url: string;
@@ -170,6 +176,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
     this.#chainId = options.chainId;
     this.#credentials = options.credentials;
     this.#exchange = options.exchange;
+    this.#headers = options.headers;
     this.#onClose = options.onClose;
     this.#signer = options.signer;
     this.#url = options.url;
@@ -184,6 +191,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
 
     try {
       await this.#connection.connect({
+        headers: this.#headers,
         onClose: () => this.#handleClose(),
         onError: () => undefined,
         onMessage: (message) => this.#handleMessage(message),

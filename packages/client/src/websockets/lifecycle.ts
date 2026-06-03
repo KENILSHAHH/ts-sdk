@@ -21,6 +21,7 @@ export type ScheduleReconnectOptions = {
 };
 
 export type WebSocketConnectionOptions<TContext = undefined> = {
+  headers?: Record<string, string>;
   onClose: () => void;
   onError: () => void;
   onMessage: (message: unknown) => void;
@@ -142,7 +143,7 @@ export class WebSocketConnection {
     const context = await options.prepare?.();
 
     return new Promise<WebSocket>((resolve, reject) => {
-      const socket = new WebSocket(options.url);
+      const socket = createWebSocket(options.url, options.headers);
 
       const onOpen = () => {
         socket.removeEventListener('error', onOpenError);
@@ -231,6 +232,27 @@ export class WebSocketConnection {
       () => undefined,
     );
   }
+}
+
+function createWebSocket(
+  url: string,
+  headers: Record<string, string> | undefined,
+): WebSocket {
+  if (headers === undefined) return new WebSocket(url);
+
+  try {
+    const socket: unknown = Reflect.construct(WebSocket, [url, { headers }]);
+    if (socket instanceof WebSocket) return socket;
+  } catch (cause) {
+    throw new TransportError(
+      'WebSocket headers require a header-capable WebSocket implementation.',
+      { cause },
+    );
+  }
+
+  throw new TransportError(
+    'WebSocket headers require a header-capable WebSocket implementation.',
+  );
 }
 
 type ReconnectDelayOptions = {

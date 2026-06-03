@@ -63,6 +63,8 @@ export type EnvironmentConfig = {
   /** @internal */
   rfqQuoterWs: string;
   /** @internal */
+  rfqQuoterWsHeaders?: Record<string, string>;
+  /** @internal */
   relayerMaxPolls: number;
   /** @internal */
   relayerPollFrequencyMs: number;
