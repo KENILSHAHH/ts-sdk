@@ -135,6 +135,9 @@ export const ListEventsError = makeErrorGuard(
 /**
  * Lists events.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListEventsError}
  * Thrown on failure.
  *
@@ -209,6 +212,9 @@ export const FetchEventError = makeErrorGuard(
 /**
  * Fetches an event.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchEventError}
  * Thrown on failure.
  *
@@ -274,6 +280,9 @@ export const FetchEventTagsError = makeErrorGuard(
 /**
  * Fetches an event's tags.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchEventTagsError}
  * Thrown on failure.
  *
@@ -315,6 +324,9 @@ export const FetchEventLiveVolumeError = makeErrorGuard(
 
 /**
  * Fetches live volume for an event.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchEventLiveVolumeError}
  * Thrown on failure.

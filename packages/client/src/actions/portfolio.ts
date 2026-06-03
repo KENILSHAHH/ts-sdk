@@ -132,6 +132,9 @@ export const ListPositionsError = makeErrorGuard(
 /**
  * Lists current positions for a wallet.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListPositionsError}
  * Thrown on failure.
  *
@@ -218,6 +221,9 @@ export const ListClosedPositionsError = makeErrorGuard(
 
 /**
  * Lists closed positions for a wallet.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListClosedPositionsError}
  * Thrown on failure.
@@ -306,6 +312,9 @@ export const FetchPortfolioValueError = makeErrorGuard(
 /**
  * Fetches the total value for a wallet's positions.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchPortfolioValueError}
  * Thrown on failure.
  *
@@ -350,6 +359,9 @@ export const FetchTradedMarketCountError = makeErrorGuard(
 /**
  * Fetches the total number of markets a wallet has traded.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchTradedMarketCountError}
  * Thrown on failure.
  *
@@ -393,6 +405,9 @@ export const DownloadAccountingSnapshotError = makeErrorGuard(
 
 /**
  * Downloads an accounting snapshot archive for a wallet.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link DownloadAccountingSnapshotError}
  * Thrown on failure.

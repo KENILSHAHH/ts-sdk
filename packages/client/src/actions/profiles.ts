@@ -42,6 +42,9 @@ export const FetchPublicProfileError = makeErrorGuard(
 /**
  * Fetches a public profile by wallet address.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchPublicProfileError}
  * Thrown on failure.
  *

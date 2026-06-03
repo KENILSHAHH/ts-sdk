@@ -77,6 +77,9 @@ export const SearchError = makeErrorGuard(
 /**
  * Runs a public full-text search.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link SearchError}
  * Thrown on failure.
  *

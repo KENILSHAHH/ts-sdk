@@ -55,7 +55,7 @@ export const PrepareErc20TransferError = makeErrorGuard(UserInputError);
  * Starts an ERC-20 transfer workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -118,6 +118,9 @@ export const TransferErc20Error = makeErrorGuard(
 
 /**
  * Transfers ERC-20 tokens from the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link TransferErc20Error}
  * Thrown on failure.

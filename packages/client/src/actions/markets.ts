@@ -170,6 +170,9 @@ export const ListMarketsError = makeErrorGuard(
 /**
  * Lists markets.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListMarketsError}
  * Thrown on failure.
  *
@@ -244,6 +247,9 @@ export const FetchMarketError = makeErrorGuard(
 /**
  * Fetches a market.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchMarketError}
  * Thrown on failure.
  *
@@ -302,6 +308,9 @@ export const FetchMarketTagsError = makeErrorGuard(
 /**
  * Fetches a market's tags.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchMarketTagsError}
  * Thrown on failure.
  *
@@ -343,6 +352,9 @@ export const ListMarketHoldersError = makeErrorGuard(
 
 /**
  * Lists the top holders for one or more markets.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListMarketHoldersError}
  * Thrown on failure.
@@ -389,6 +401,9 @@ export const ListOpenInterestError = makeErrorGuard(
 /**
  * Lists open interest for one or more markets.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListOpenInterestError}
  * Thrown on failure.
  *
@@ -432,6 +447,9 @@ export const ListMarketPositionsError = makeErrorGuard(
 
 /**
  * Lists positions for a market.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListMarketPositionsError}
  * Thrown on failure.

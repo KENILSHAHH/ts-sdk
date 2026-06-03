@@ -153,7 +153,7 @@ export const PrepareRedeemPositionsError = makeErrorGuard(
  * Starts a split workflow for a market condition.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -214,6 +214,9 @@ export const SplitPositionError = makeErrorGuard(
 /**
  * Splits collateral into market positions.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link SplitPositionError}
  * Thrown on failure.
  */
@@ -230,7 +233,7 @@ export function splitPosition(
  * Starts a workflow to merge complementary positions in a market back into collateral.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -301,6 +304,9 @@ export const MergePositionsError = makeErrorGuard(
 /**
  * Merges complementary market positions back into collateral.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link MergePositionsError}
  * Thrown on failure.
  */
@@ -317,7 +323,7 @@ export function mergePositions(
  * Starts a redemption workflow for resolved positions.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -391,6 +397,9 @@ export const RedeemPositionsError = makeErrorGuard(
 
 /**
  * Redeems resolved market positions.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link RedeemPositionsError}
  * Thrown on failure.

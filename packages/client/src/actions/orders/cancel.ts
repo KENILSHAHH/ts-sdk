@@ -59,6 +59,9 @@ export const CancelOrderError = makeErrorGuard(
 /**
  * Cancels a single open order for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link CancelOrderError}
  * Thrown on failure.
  *
@@ -102,6 +105,9 @@ export const CancelOrdersError = makeErrorGuard(
 /**
  * Cancels multiple open orders for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link CancelOrdersError}
  * Thrown on failure.
  *
@@ -139,6 +145,9 @@ export const CancelAllError = makeErrorGuard(
 
 /**
  * Cancels all open orders for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link CancelAllError}
  * Thrown on failure.
@@ -178,6 +187,9 @@ export const CancelMarketOrdersError = makeErrorGuard(
 /**
  * Cancels all open orders for the authenticated account that match the market
  * or token filter.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link CancelMarketOrdersError}
  * Thrown on failure.

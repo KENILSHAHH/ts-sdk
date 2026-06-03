@@ -80,6 +80,9 @@ export const ListCommentsError = makeErrorGuard(
 /**
  * Lists comments for an event or series.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListCommentsError}
  * Thrown on failure.
  *
@@ -177,6 +180,9 @@ export const FetchCommentsByIdError = makeErrorGuard(
 /**
  * Fetches a comment thread by comment id.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchCommentsByIdError}
  * Thrown on failure.
  *
@@ -226,6 +232,9 @@ export const ListCommentsByUserAddressError = makeErrorGuard(
 
 /**
  * Lists comments written by a wallet address.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListCommentsByUserAddressError}
  * Thrown on failure.
