@@ -5,14 +5,14 @@ import { type EvmAddress, expectEvmAddress } from '@polymarket/types';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { BaseSecureClient, createSecureClient } from './clients';
-import { walletActions } from './decorators/wallet';
+import { createSecureClient } from './clients';
 import { production } from './environments';
 import type { ApiKeyAuthorization, Signer } from './types';
 import {
   deriveBeaconDepositWalletAddress,
+  deriveProxyWalletAddress,
+  deriveSafeWalletAddress,
   deriveUupsDepositWalletAddress,
-  resolveAccountIdentity,
 } from './wallet';
 
 const rpcRoot = 'http://localhost:4014';
@@ -76,52 +76,29 @@ describe('secure client gasless wallet setup', () => {
     server.close();
   });
 
-  it('uses the beacon deposit wallet when the factory exposes BEACON', async () => {
+  it('deploys the default deposit wallet when it is not yet deployed', async () => {
     const expectedWallet = deriveBeaconDepositWalletAddress(
       signerAddress,
       environment.walletDerivation,
     );
+    mockApiKeys();
     mockBeaconFactory();
-    mockDeployedWallet(expectedWallet);
-    const client = createEoaClient();
+    mockUndeployedWallet(expectedWallet);
+    const submit = mockDeployDepositWallet();
 
-    const gaslessClient = await client.setupGaslessWallet();
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+    });
 
-    expect(gaslessClient.account).toEqual({
+    expect(submit.called).toBe(true);
+    expect(client.account).toEqual({
       signer: signerAddress,
       wallet: expectedWallet,
       walletType: WalletType.DEPOSIT_WALLET,
     });
-  });
-
-  it('uses the UUPS deposit wallet when the factory BEACON call reverts', async () => {
-    const expectedWallet = deriveUupsDepositWalletAddress(
-      signerAddress,
-      environment.walletDerivation,
-    );
-    mockLegacyFactory();
-    mockDeployedWallet(expectedWallet);
-    const client = createEoaClient();
-
-    const gaslessClient = await client.setupGaslessWallet();
-
-    expect(gaslessClient.account).toEqual({
-      signer: signerAddress,
-      wallet: expectedWallet,
-      walletType: WalletType.DEPOSIT_WALLET,
-    });
-  });
-
-  it('checks the current deterministic deposit wallet for EOA gasless readiness', async () => {
-    const expectedWallet = deriveBeaconDepositWalletAddress(
-      signerAddress,
-      environment.walletDerivation,
-    );
-    mockBeaconFactory();
-    mockDeployedWallet(expectedWallet);
-    const client = createEoaClient();
-
-    await expect(walletActions(client).isGaslessReady()).resolves.toBe(true);
   });
 
   it('defaults createSecureClient without a wallet to the deterministic deposit wallet', async () => {
@@ -147,26 +124,159 @@ describe('secure client gasless wallet setup', () => {
     });
   });
 
-  it('does not silently fall back when factory detection fails generically', async () => {
-    mockFactoryRpcError();
-    const client = createEoaClient();
+  it('verifies an explicit deposit wallet before returning the secure client', async () => {
+    const expectedWallet = deriveBeaconDepositWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    mockApiKeys();
+    const deployedWallet = mockDeployedWallet(expectedWallet);
 
-    await expect(client.setupGaslessWallet()).rejects.toMatchObject({
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+      wallet: expectedWallet,
+    });
+
+    expect(deployedWallet.called).toBe(true);
+    expect(client.account).toEqual({
+      signer: signerAddress,
+      wallet: expectedWallet,
+      walletType: WalletType.DEPOSIT_WALLET,
+    });
+  });
+
+  it('keeps an explicit EOA wallet bound to the EOA', async () => {
+    mockApiKeys();
+
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+      wallet: signerAddress,
+    });
+
+    expect(client.account).toEqual({
+      signer: signerAddress,
+      wallet: signerAddress,
+      walletType: WalletType.EOA,
+    });
+  });
+
+  it('keeps an explicit deployed Safe wallet bound to the Safe', async () => {
+    const safeWallet = deriveSafeWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    mockApiKeys();
+    mockAccountWalletDeployed(safeWallet, true);
+
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+      wallet: safeWallet,
+    });
+
+    expect(client.account).toEqual({
+      signer: signerAddress,
+      wallet: safeWallet,
+      walletType: WalletType.GNOSIS_SAFE,
+    });
+  });
+
+  it('keeps an explicit deployed proxy wallet bound to the proxy', async () => {
+    const proxyWallet = deriveProxyWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    mockApiKeys();
+    mockAccountWalletDeployed(proxyWallet, true);
+
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+      wallet: proxyWallet,
+    });
+
+    expect(client.account).toEqual({
+      signer: signerAddress,
+      wallet: proxyWallet,
+      walletType: WalletType.POLY_PROXY,
+    });
+  });
+
+  it('rejects an explicit Safe wallet with no deployed code', async () => {
+    const safeWallet = deriveSafeWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    mockApiKeys();
+    mockAccountWalletDeployed(safeWallet, false);
+
+    await expect(
+      createSecureClient({
+        apiKey,
+        credentials,
+        environment,
+        signer,
+        wallet: safeWallet,
+      }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('is not deployed'),
+      name: 'UserInputError',
+    });
+  });
+
+  it('rejects an explicit undeployed deposit wallet that is not the current one', async () => {
+    const currentWallet = deriveBeaconDepositWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    const legacyWallet = deriveUupsDepositWalletAddress(
+      signerAddress,
+      environment.walletDerivation,
+    );
+    mockApiKeys();
+    mockBeaconFactory();
+    mockUndeployedWallet(legacyWallet);
+
+    await expect(
+      createSecureClient({
+        apiKey,
+        credentials,
+        environment,
+        signer,
+        wallet: legacyWallet,
+      }),
+    ).rejects.toMatchObject({
+      message: `Wallet ${legacyWallet} does not match the expected Deposit Wallet ${currentWallet} for this signer, nor a deployed wallet address.`,
+      name: 'UserInputError',
+    });
+  });
+
+  it('does not silently fall back when default deposit wallet detection fails generically', async () => {
+    mockFactoryRpcError();
+
+    await expect(
+      createSecureClient({
+        apiKey,
+        credentials,
+        environment,
+        signer,
+      }),
+    ).rejects.toMatchObject({
       message: 'JSON-RPC eth_call failed: upstream unavailable',
       name: 'RequestRejectedError',
     });
   });
 });
-
-function createEoaClient() {
-  return new BaseSecureClient({
-    account: resolveAccountIdentity(environment, signerAddress, signerAddress),
-    apiKey,
-    credentials,
-    environment,
-    signer,
-  });
-}
 
 function mockBeaconFactory() {
   server.use(
@@ -175,18 +285,6 @@ function mockBeaconFactory() {
         jsonrpc: '2.0',
         id: 1,
         result: `0x000000000000000000000000${environment.walletDerivation.depositWalletBeacon.slice(2)}`,
-      }),
-    ),
-  );
-}
-
-function mockLegacyFactory() {
-  server.use(
-    http.post(rpcRoot, () =>
-      HttpResponse.json({
-        jsonrpc: '2.0',
-        id: 1,
-        error: { code: 3, message: 'execution reverted' },
       }),
     ),
   );
@@ -212,9 +310,64 @@ function mockApiKeys() {
   );
 }
 
-function mockDeployedWallet(expectedWallet: EvmAddress) {
+function mockAccountWalletDeployed(wallet: EvmAddress, deployed: boolean) {
   server.use(
     http.get(`${relayerRoot}/deployed`, ({ request }) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('address')).toBe(wallet);
+
+      return HttpResponse.json({ deployed });
+    }),
+  );
+}
+
+function mockUndeployedWallet(expectedWallet: EvmAddress) {
+  server.use(
+    http.get(`${relayerRoot}/deployed`, ({ request }) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('address')).toBe(expectedWallet);
+      expect(url.searchParams.get('type')).toBe('WALLET');
+
+      return HttpResponse.json({ deployed: false });
+    }),
+  );
+}
+
+function mockDeployDepositWallet() {
+  const state = { called: false };
+  const transactionId = '00000000-0000-0000-0000-000000000001';
+  const transactionHash = `0x${'1'.repeat(64)}`;
+
+  server.use(
+    http.post(`${relayerRoot}/submit`, () => {
+      state.called = true;
+
+      return HttpResponse.json({
+        state: 'STATE_MINED',
+        transactionHash,
+        transactionID: transactionId,
+      });
+    }),
+    http.get(`${relayerRoot}/v1/account/transactions/${transactionId}`, () =>
+      HttpResponse.json({
+        state: 'STATE_MINED',
+        transaction_hash: transactionHash,
+        transaction_id: transactionId,
+      }),
+    ),
+  );
+
+  return state;
+}
+
+function mockDeployedWallet(expectedWallet: EvmAddress) {
+  const state = { called: false };
+
+  server.use(
+    http.get(`${relayerRoot}/deployed`, ({ request }) => {
+      state.called = true;
       const url = new URL(request.url);
 
       expect(url.searchParams.get('address')).toBe(expectedWallet);
@@ -223,4 +376,6 @@ function mockDeployedWallet(expectedWallet: EvmAddress) {
       return HttpResponse.json({ deployed: true });
     }),
   );
+
+  return state;
 }

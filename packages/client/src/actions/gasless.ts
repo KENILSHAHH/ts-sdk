@@ -151,20 +151,22 @@ export type FetchGaslessTransactionRequest = z.input<
   typeof FetchGaslessTransactionRequestSchema
 >;
 
-const IsGaslessReadyRequestSchema = z.object({
+const IsWalletDeployedRequestSchema = z.object({
   wallet: EvmAddressSchema,
   type: z.enum(WalletType),
 });
 
-export type IsGaslessReadyRequest = z.input<typeof IsGaslessReadyRequestSchema>;
+export type IsWalletDeployedRequest = z.input<
+  typeof IsWalletDeployedRequestSchema
+>;
 
-export type IsGaslessReadyError =
+export type IsWalletDeployedError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
   | UnexpectedResponseError
   | UserInputError;
-export const IsGaslessReadyError = makeErrorGuard(
+export const IsWalletDeployedError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   TransportError,
@@ -173,26 +175,29 @@ export const IsGaslessReadyError = makeErrorGuard(
 );
 
 /**
- * Checks whether a wallet is ready for gasless transactions.
+ * Checks whether a wallet is deployed for relayer-backed transactions.
+ *
+ * It only checks deployment status; it does not check trading approvals or complete
+ * order-readiness.
  *
  * @remarks
  * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
- * @throws {@link IsGaslessReadyError}
+ * @throws {@link IsWalletDeployedError}
  * Thrown on failure.
  *
  * @example
  * ```ts
- * const ready = await isGaslessReady(client, {
+ * const deployed = await isWalletDeployed(client, {
  *   wallet: '0x1234...',
  * });
  * ```
  */
-export async function isGaslessReady(
+export async function isWalletDeployed(
   client: BaseClient,
-  request?: IsGaslessReadyRequest,
+  request?: IsWalletDeployedRequest,
 ): Promise<boolean> {
-  const params = await resolveGaslessReadinessTarget(client, request);
+  const params = await resolveWalletDeploymentTarget(client, request);
 
   if (params.type === WalletType.EOA) {
     return false;
@@ -217,12 +222,12 @@ export async function isGaslessReady(
   );
 }
 
-async function resolveGaslessReadinessTarget(
+async function resolveWalletDeploymentTarget(
   client: BaseClient,
-  request: IsGaslessReadyRequest | undefined,
-): Promise<z.output<typeof IsGaslessReadyRequestSchema>> {
+  request: IsWalletDeployedRequest | undefined,
+): Promise<z.output<typeof IsWalletDeployedRequestSchema>> {
   if (request !== undefined) {
-    return parseUserInput(request, IsGaslessReadyRequestSchema);
+    return parseUserInput(request, IsWalletDeployedRequestSchema);
   }
 
   if (!client.isSecureClient()) {
