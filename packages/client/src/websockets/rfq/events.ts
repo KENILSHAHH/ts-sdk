@@ -1,6 +1,7 @@
 import {
   type RfqConfirmationAck as BindingRfqConfirmationAck,
   type RfqQuoteAck as BindingRfqQuoteAck,
+  type RfqQuoteCancelAck as BindingRfqQuoteCancelAck,
   RfqConfirmationDecision,
   type RfqConfirmationRequest,
   type RfqExecutionUpdate,
@@ -9,10 +10,11 @@ import {
   type RfqQuoteRequest,
 } from '@polymarket/bindings/rfq';
 import type {
+  RfqCancelQuoteAck,
   RfqConfirmationAck,
   RfqConfirmationRequestEvent,
   RfqExecutionUpdateEvent,
-  RfqQuoteAck,
+  RfqQuoteReference,
   RfqQuoteRequestEvent,
   RfqQuoteResponse,
 } from '../../actions/rfq';
@@ -21,7 +23,7 @@ export interface RfqEventController {
   quote(
     request: RfqQuoteRequest,
     response: RfqQuoteResponse,
-  ): Promise<RfqQuoteAck>;
+  ): Promise<RfqQuoteReference>;
   respondToConfirmation(
     rfqId: RfqId,
     quoteId: RfqQuoteId,
@@ -68,7 +70,16 @@ export function toExecutionUpdateEvent(
   return message;
 }
 
-export function toQuoteAck(message: BindingRfqQuoteAck): RfqQuoteAck {
+export function toQuoteAck(message: BindingRfqQuoteAck): RfqQuoteReference {
+  return {
+    quoteId: message.quoteId,
+    rfqId: message.rfqId,
+  };
+}
+
+export function toQuoteCancelAck(
+  message: BindingRfqQuoteCancelAck,
+): RfqCancelQuoteAck {
   return {
     quoteId: message.quoteId,
     rfqId: message.rfqId,

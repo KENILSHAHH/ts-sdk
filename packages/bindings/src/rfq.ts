@@ -215,6 +215,14 @@ export type RfqQuoteMessage = {
   signed_order: RfqSignedOrder;
 };
 
+export type RfqQuoteCancelMessage = {
+  type: 'RFQ_QUOTE_CANCEL';
+  rfq_id: RfqId;
+  quote_id: RfqQuoteId;
+  signer_address: EvmAddress;
+  maker_address: EvmAddress;
+};
+
 export const RfqQuoteAckSchema = z
   .object({
     type: z.literal('ACK_RFQ_QUOTE'),
@@ -228,6 +236,20 @@ export const RfqQuoteAckSchema = z
   }));
 
 export type RfqQuoteAck = z.infer<typeof RfqQuoteAckSchema>;
+
+export const RfqQuoteCancelAckSchema = z
+  .object({
+    type: z.literal('ACK_RFQ_QUOTE_CANCEL'),
+    rfq_id: RfqIdSchema,
+    quote_id: RfqQuoteIdSchema,
+  })
+  .transform((message) => ({
+    quoteId: message.quote_id,
+    rfqId: message.rfq_id,
+    type: 'quote_cancel_ack' as const,
+  }));
+
+export type RfqQuoteCancelAck = z.infer<typeof RfqQuoteCancelAckSchema>;
 
 export const RfqConfirmationRequestSchema = z
   .object({
@@ -333,6 +355,7 @@ export const RfqQuoterInboundMessageSchema = z.union([
   RfqAuthResponseMessageSchema,
   RfqQuoteRequestSchema,
   RfqQuoteAckSchema,
+  RfqQuoteCancelAckSchema,
   RfqConfirmationRequestSchema,
   RfqConfirmationAckSchema,
   RfqExecutionUpdateSchema,
@@ -345,4 +368,5 @@ export type RfqQuoterInboundMessage = z.infer<
 
 export type RfqQuoterOutboundMessage =
   | RfqQuoteMessage
+  | RfqQuoteCancelMessage
   | RfqConfirmationResponseMessage;

@@ -2,14 +2,16 @@ import { openRfqSession, type RfqSession } from '../actions';
 import type { BaseSecureClient } from '../clients';
 
 export type {
+  RfqCancelQuoteAck,
+  RfqCancelQuoteRejectedErrorOptions,
   RfqConfirmationAck,
   RfqConfirmationRequest,
   RfqConfirmationRequestEvent,
   RfqEvent,
   RfqExecutionUpdate,
   RfqId,
-  RfqQuoteAck,
   RfqQuoteId,
+  RfqQuoteReference,
   RfqQuoteRejectedErrorOptions,
   RfqQuoteRequest,
   RfqQuoteRequestEvent,
@@ -21,6 +23,8 @@ export type {
 } from '../actions/rfq';
 export {
   OpenRfqSessionError,
+  RfqCancelQuoteError,
+  RfqCancelQuoteRejectedError,
   RfqConfirmationDecision,
   RfqConfirmationError,
   RfqConfirmationRejectedError,
@@ -78,6 +82,29 @@ export type SecureRfqActions = {
    *   }
    * }
    * ```
+   *
+   * @example
+   * Cancel a submitted quote using the live session:
+   * ```ts
+   * const session = await client.openRfqSession();
+   *
+   * for await (const event of session) {
+   *   switch (event.type) {
+   *     case 'quote_request': {
+   *       const ref = await event.quote({ price: 0.45 });
+   *
+   *       if (shouldCancel(ref)) {
+   *         await session.cancelQuote(ref);
+   *       }
+   *       break;
+   *     }
+   *
+   *     // …
+   *   }
+   * }
+   * ```
+   * The cancellation ack means the backend processed the request; it does not
+   * guarantee the quote was withdrawn from an already-selected RFQ.
    *
    * @example
    * Handle Last Look confirmation requests:

@@ -4,6 +4,7 @@ import type {
   RfqConfirmationDecision,
   RfqConfirmationResponseMessage,
   RfqId,
+  RfqQuoteCancelMessage,
   RfqQuoteId,
   RfqQuoteMessage,
   RfqQuoteRequest,
@@ -43,6 +44,22 @@ export function createQuoteMessage(
     signed_order: quote.signedOrder,
     size_e6: quote.size.toString(),
     type: 'RFQ_QUOTE',
+  };
+}
+
+export function createQuoteCancelMessage(
+  account: AccountIdentity,
+  rfqId: RfqId,
+  quoteId: RfqQuoteId,
+): RfqQuoteCancelMessage {
+  const identity = resolveOrderIdentity(account);
+
+  return {
+    maker_address: identity.maker,
+    quote_id: quoteId,
+    rfq_id: rfqId,
+    signer_address: identity.signer,
+    type: 'RFQ_QUOTE_CANCEL',
   };
 }
 

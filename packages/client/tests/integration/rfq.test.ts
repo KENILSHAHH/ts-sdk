@@ -21,6 +21,7 @@ import {
   QUOTE_SIZE_E6,
   quoteAckMessage,
   quoteAmounts,
+  quoteCancelAckMessage,
   quoteRequestMessage,
   RFQ_ID,
   recordOutboundFrame,
@@ -403,6 +404,144 @@ describe('RFQ sessions', () => {
                 type: 'RFQ_QUOTE',
               }),
             );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when cancelling a submitted quote', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.send(quoteAckMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE_CANCEL') {
+              socket.send(quoteCancelAckMessage());
+            }
+          });
+        }),
+      );
+    });
+
+    it('sends quote cancellation identity and resolves on acknowledgement', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const quote = await event.quote({ price: 0.45 });
+            const ack = await session.cancelQuote(quote);
+
+            expect(quote).toEqual({
+              quoteId: QUOTE_ID,
+              rfqId: event.rfqId,
+            });
+            expect(ack).toEqual(quote);
+            expect(outboundFrames).toContainEqual(
+              expect.objectContaining({
+                maker_address: secureClientWithDepositWallet.account.wallet,
+                quote_id: quote.quoteId,
+                rfq_id: quote.rfqId,
+                signer_address: secureClientWithDepositWallet.account.wallet,
+                type: 'RFQ_QUOTE_CANCEL',
+              }),
+            );
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when the server rejects a quote cancellation', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.send(quoteAckMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE_CANCEL') {
+              socket.send(
+                rfqErrorMessage({
+                  code: 'INVALID_RFQ_STATE',
+                  error: 'unrelated cancellation',
+                  quoteId: 'quote-other',
+                  requestType: 'RFQ_QUOTE_CANCEL',
+                  rfqId: RFQ_ID,
+                }),
+              );
+              socket.send(
+                rfqErrorMessage({
+                  code: 'INVALID_RFQ_STATE',
+                  error: 'invalid cancellation',
+                  quoteId: QUOTE_ID,
+                  requestType: 'RFQ_QUOTE_CANCEL',
+                  rfqId: RFQ_ID,
+                }),
+              );
+            }
+          });
+        }),
+      );
+    });
+
+    it('rejects only the matching pending cancellation', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const quote = await event.quote({ price: 0.45 });
+            const cancellation = session.cancelQuote(quote);
+
+            await expect(cancellation).rejects.toMatchObject({
+              code: 'INVALID_RFQ_STATE',
+              message: 'invalid cancellation',
+              name: 'RfqCancelQuoteRejectedError',
+              quoteId: quote.quoteId,
+              rfqId: quote.rfqId,
+            });
 
             await session.close();
             break;

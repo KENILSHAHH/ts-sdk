@@ -14,7 +14,11 @@ const makerAddress = '0x2222222222222222222222222222222222222222';
 
 export type OutboundFrame = {
   decision?: unknown;
+  maker_address?: unknown;
   price_e6?: unknown;
+  quote_id?: unknown;
+  rfq_id?: unknown;
+  signer_address?: unknown;
   size_e6?: unknown;
   signed_order?: unknown;
   type?: string;
@@ -99,6 +103,18 @@ function quoteAckFrame() {
 
 export function quoteAckMessage() {
   return JSON.stringify(quoteAckFrame());
+}
+
+function quoteCancelAckFrame(options: { quoteId?: string } = {}) {
+  return {
+    quote_id: options.quoteId ?? QUOTE_ID,
+    rfq_id: RFQ_ID,
+    type: 'ACK_RFQ_QUOTE_CANCEL',
+  };
+}
+
+export function quoteCancelAckMessage(options: { quoteId?: string } = {}) {
+  return JSON.stringify(quoteCancelAckFrame(options));
 }
 
 function confirmationRequestFrame(

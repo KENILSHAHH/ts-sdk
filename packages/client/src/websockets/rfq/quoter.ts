@@ -11,13 +11,15 @@ import {
 import { type EvmAddress, setNonBlockingTimeout } from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import type {
+  RfqCancelQuoteAck,
   RfqConfirmationAck,
   RfqEvent,
-  RfqQuoteAck,
+  RfqQuoteReference,
   RfqQuoteResponse,
   RfqSession,
 } from '../../actions/rfq';
 import {
+  RfqCancelQuoteRejectedError,
   RfqConfirmationRejectedError,
   RfqQuoteRejectedError,
 } from '../../actions/rfq';
@@ -31,11 +33,13 @@ import {
   toConfirmationRequestEvent,
   toExecutionUpdateEvent,
   toQuoteAck,
+  toQuoteCancelAck,
   toQuoteRequestEvent,
 } from './events';
 import {
   createAuthMessage,
   createConfirmationResponseMessage,
+  createQuoteCancelMessage,
   createQuoteMessage,
 } from './messages';
 import { PendingResponses } from './pending';
@@ -242,6 +246,12 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       case 'quote_ack':
         this.#pending.resolve(quoteAckKey(message.rfqId), toQuoteAck(message));
         return;
+      case 'quote_cancel_ack':
+        this.#pending.resolve(
+          quoteCancelAckKey(message.rfqId, message.quoteId),
+          toQuoteCancelAck(message),
+        );
+        return;
       case 'confirmation_request':
         this.#queue.push(toConfirmationRequestEvent(this, message));
         return;
@@ -287,6 +297,22 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
     }
 
     if (
+      message.requestType === 'RFQ_QUOTE_CANCEL' &&
+      message.rfqId !== undefined &&
+      message.quoteId !== undefined
+    ) {
+      this.#pending.reject(
+        quoteCancelAckKey(message.rfqId, message.quoteId),
+        new RfqCancelQuoteRejectedError(message.message, {
+          code: message.code,
+          quoteId: message.quoteId,
+          rfqId: message.rfqId,
+        }),
+      );
+      return;
+    }
+
+    if (
       message.requestType === 'RFQ_CONFIRMATION_RESPONSE' &&
       message.rfqId !== undefined &&
       message.quoteId !== undefined
@@ -305,7 +331,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   async quote(
     request: RfqQuoteRequest,
     response: RfqQuoteResponse,
-  ): Promise<RfqQuoteAck> {
+  ): Promise<RfqQuoteReference> {
     const parsedResponse = parseRfqQuoteResponse(response);
     const quote = await createRfqQuote({
       account: this.#account,
@@ -315,7 +341,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       response: parsedResponse,
       signer: this.#signer,
     });
-    const pending = this.#pending.waitFor<RfqQuoteAck>(
+    const pending = this.#pending.waitFor<RfqQuoteReference>(
       quoteAckKey(request.rfqId),
       `Timed out waiting for RFQ quote acknowledgement for ${request.rfqId}.`,
     );
@@ -324,6 +350,27 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       return await pending;
     } catch (error) {
       this.#pending.remove(quoteAckKey(request.rfqId), pending);
+      throw error;
+    }
+  }
+
+  async cancelQuote(reference: RfqQuoteReference): Promise<RfqCancelQuoteAck> {
+    const key = quoteCancelAckKey(reference.rfqId, reference.quoteId);
+    const pending = this.#pending.waitFor<RfqCancelQuoteAck>(
+      key,
+      `Timed out waiting for RFQ quote cancellation acknowledgement for ${reference.rfqId}.`,
+    );
+    try {
+      await this.#send(
+        createQuoteCancelMessage(
+          this.#account,
+          reference.rfqId,
+          reference.quoteId,
+        ),
+      );
+      return await pending;
+    } catch (error) {
+      this.#pending.remove(key, pending);
       throw error;
     }
   }
@@ -352,6 +399,10 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
 
 function quoteAckKey(rfqId: RfqId): string {
   return `ACK_RFQ_QUOTE:${rfqId}`;
+}
+
+function quoteCancelAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
+  return `ACK_RFQ_QUOTE_CANCEL:${rfqId}:${quoteId}`;
 }
 
 function confirmationAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {

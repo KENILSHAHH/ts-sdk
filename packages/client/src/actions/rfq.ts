@@ -1,6 +1,7 @@
 import type {
   RfqConfirmationAck as BindingRfqConfirmationAck,
   RfqQuoteAck as BindingRfqQuoteAck,
+  RfqQuoteCancelAck as BindingRfqQuoteCancelAck,
   RfqConfirmationRequest,
   RfqErrorCode,
   RfqExecutionUpdate,
@@ -39,7 +40,17 @@ export type {
   RfqRequestorPublicId,
 };
 
-export type RfqQuoteAck = Omit<BindingRfqQuoteAck, 'type'>;
+/**
+ * Plain-data reference identifying a submitted RFQ quote.
+ *
+ * @remarks
+ * This identifies the quote; it does not imply execution or guarantee that a
+ * later cancellation request can withdraw it.
+ */
+export type RfqQuoteReference = Omit<BindingRfqQuoteAck, 'type'>;
+
+/** Acknowledgement that a quote cancellation request was processed. */
+export type RfqCancelQuoteAck = Omit<BindingRfqQuoteCancelAck, 'type'>;
 export type RfqConfirmationAck = Omit<
   BindingRfqConfirmationAck,
   'decision' | 'type'
@@ -118,6 +129,46 @@ export const RfqQuoteError = makeErrorGuard(
   UserInputError,
 );
 
+export type RfqCancelQuoteRejectedErrorOptions = {
+  /** RFQ error code for the rejected cancellation request. */
+  code?: RfqErrorCode;
+  /** RFQ identifier for the cancellation request. */
+  rfqId: RfqId;
+  /** Quote identifier for the cancellation request. */
+  quoteId: RfqQuoteId;
+};
+
+/**
+ * Error thrown when the RFQ server rejects a quote cancellation request.
+ */
+export class RfqCancelQuoteRejectedError extends PolymarketError {
+  override name = 'RfqCancelQuoteRejectedError' as const;
+
+  readonly code: RfqErrorCode | undefined;
+  readonly rfqId: RfqId;
+  readonly quoteId: RfqQuoteId;
+
+  constructor(
+    message: string,
+    options: ErrorOptions & RfqCancelQuoteRejectedErrorOptions,
+  ) {
+    super(message, options);
+    this.code = options.code;
+    this.rfqId = options.rfqId;
+    this.quoteId = options.quoteId;
+  }
+}
+
+export type RfqCancelQuoteError =
+  | RfqCancelQuoteRejectedError
+  | TimeoutError
+  | TransportError;
+export const RfqCancelQuoteError = makeErrorGuard(
+  RfqCancelQuoteRejectedError,
+  TimeoutError,
+  TransportError,
+);
+
 export type RfqConfirmationRejectedErrorOptions = {
   /** RFQ error code for the rejected confirmation decision. */
   code?: RfqErrorCode;
@@ -185,7 +236,7 @@ export interface RfqQuoteRequestEvent extends RfqQuoteRequest {
    * Thrown when validation fails, signing fails, the websocket fails, the quote
    * acknowledgement times out, or the server rejects the quote.
    */
-  quote(response: RfqQuoteResponse): Promise<RfqQuoteAck>;
+  quote(response: RfqQuoteResponse): Promise<RfqQuoteReference>;
 }
 
 /**
@@ -241,6 +292,19 @@ export type RfqEvent =
   | RfqExecutionUpdateEvent;
 
 export interface RfqSession extends AsyncIterable<RfqEvent> {
+  /**
+   * Requests cancellation of a submitted RFQ quote.
+   *
+   * @remarks
+   * The returned ack means the backend processed the cancellation request; it
+   * does not guarantee the quote was withdrawn from an already-selected RFQ.
+   *
+   * @throws {@link RfqCancelQuoteError}
+   * Thrown when the websocket fails, the acknowledgement times out, or the
+   * server rejects the cancellation request.
+   */
+  cancelQuote(reference: RfqQuoteReference): Promise<RfqCancelQuoteAck>;
+
   /**
    * Closes the RFQ quoter stream.
    */
