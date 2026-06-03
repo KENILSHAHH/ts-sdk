@@ -136,7 +136,7 @@ describe('RFQ sessions', () => {
 
             expect(outboundFrames).toContainEqual(
               expect.objectContaining({
-                price_e6: 450_000,
+                price_e6: '450000',
                 rfq_id: event.rfqId,
                 signed_order: expect.objectContaining({
                   makerAmount: '1222223',
@@ -147,7 +147,7 @@ describe('RFQ sessions', () => {
                   takerAmount: '2222222',
                   tokenId: event.noPositionId,
                 }),
-                size_e6: BUY_QUOTE_SIZE_E6,
+                size_e6: String(BUY_QUOTE_SIZE_E6),
                 type: 'RFQ_QUOTE',
               }),
             );
@@ -203,7 +203,7 @@ describe('RFQ sessions', () => {
 
             expect(outboundFrames).toContainEqual(
               expect.objectContaining({
-                price_e6: 450_000,
+                price_e6: '450000',
                 rfq_id: event.rfqId,
                 signed_order: expect.objectContaining({
                   makerAmount: '2222222',
@@ -211,7 +211,7 @@ describe('RFQ sessions', () => {
                   takerAmount: '999999',
                   tokenId: event.yesPositionId,
                 }),
-                size_e6: BUY_QUOTE_SIZE_E6,
+                size_e6: String(BUY_QUOTE_SIZE_E6),
                 type: 'RFQ_QUOTE',
               }),
             );
@@ -240,9 +240,9 @@ describe('RFQ sessions', () => {
 
             expect(outboundFrames).toContainEqual(
               expect.objectContaining({
-                price_e6: 450_000,
+                price_e6: '450000',
                 rfq_id: event.rfqId,
-                size_e6: 500_000,
+                size_e6: '500000',
                 type: 'RFQ_QUOTE',
               }),
             );
@@ -391,7 +391,7 @@ describe('RFQ sessions', () => {
 
             expect(outboundFrames).toContainEqual(
               expect.objectContaining({
-                price_e6: 450_000,
+                price_e6: '450000',
                 rfq_id: event.rfqId,
                 signed_order: expect.objectContaining({
                   makerAmount: '1000000',
@@ -399,7 +399,7 @@ describe('RFQ sessions', () => {
                   takerAmount: '550000',
                   tokenId: event.noPositionId,
                 }),
-                size_e6: QUOTE_SIZE_E6,
+                size_e6: String(QUOTE_SIZE_E6),
                 type: 'RFQ_QUOTE',
               }),
             );

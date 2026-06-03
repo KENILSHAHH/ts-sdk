@@ -30,12 +30,12 @@ export function recordOutboundFrame(
 }
 
 export function quoteAmounts(frame: OutboundFrame) {
-  invariant(typeof frame.price_e6 === 'number', 'Expected RFQ quote price.');
-  invariant(typeof frame.size_e6 === 'number', 'Expected RFQ quote size.');
+  invariant(typeof frame.price_e6 === 'string', 'Expected RFQ quote price.');
+  invariant(typeof frame.size_e6 === 'string', 'Expected RFQ quote size.');
 
   return {
-    priceE6: frame.price_e6,
-    sizeE6: frame.size_e6,
+    priceE6: Number(frame.price_e6),
+    sizeE6: Number(frame.size_e6),
   };
 }
 
@@ -71,10 +71,12 @@ function quoteRequestFrame(options: { direction?: 'BUY' | 'SELL' } = {}) {
     leg_position_ids: ['1', '2'],
     no_position_id: '456',
     requestor_public_id: 'req-1',
+    requested_size: {
+      unit: direction === 'BUY' ? 'notional' : 'shares',
+      value_e6: String(QUOTE_SIZE_E6),
+    },
     rfq_id: RFQ_ID,
     side: 'YES',
-    size_notional_e6: direction === 'BUY' ? QUOTE_SIZE_E6 : undefined,
-    size_shares_e6: direction === 'SELL' ? QUOTE_SIZE_E6 : undefined,
     submission_deadline: 123,
     type: 'RFQ_REQUEST',
     yes_position_id: '123',
@@ -107,9 +109,9 @@ function confirmationRequestFrame(
   return {
     ...quoteRequestFrame(options),
     confirm_by: 456,
-    fill_size_e6: fillSizeE6,
+    fill_size_e6: String(fillSizeE6),
     maker_address: makerAddress,
-    price_e6: priceE6,
+    price_e6: String(priceE6),
     quote_id: QUOTE_ID,
     signature_type: SignatureType.EOA,
     signer_address: signerAddress,

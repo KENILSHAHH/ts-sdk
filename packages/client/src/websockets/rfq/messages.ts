@@ -38,10 +38,10 @@ export function createQuoteMessage(
   quote: RfqQuote,
 ): RfqQuoteMessage {
   return {
-    price_e6: Number(quote.price),
+    price_e6: quote.price.toString(),
     rfq_id: request.rfqId,
     signed_order: quote.signedOrder,
-    size_e6: Number(quote.size),
+    size_e6: quote.size.toString(),
     type: 'RFQ_QUOTE',
   };
 }

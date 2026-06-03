@@ -80,7 +80,6 @@ export type TransactionId = Tagged<string, 'TransactionId'>;
 export type TokenId = Tagged<string, 'TokenId'>;
 export type DecimalString = Tagged<string, 'DecimalString'>;
 export type BaseUnits = Tagged<string, 'BaseUnits'>;
-export type EpochMicroseconds = Tagged<number, 'EpochMicroseconds'>;
 
 export function toBestLineId(value: string): BestLineId {
   return toTaggedString<BestLineId>(value);
@@ -240,10 +239,6 @@ export function toBaseUnits(value: string): BaseUnits {
   return toTaggedString<BaseUnits>(value);
 }
 
-export function toEpochMicroseconds(value: number): EpochMicroseconds {
-  return toTaggedInteger<EpochMicroseconds>(value);
-}
-
 export const CategoryIdSchema = z.string().transform(toCategoryId);
 export const ApiKeySchema = z.string().transform(toApiKey);
 export const BuilderCodeSchema = z.string().transform(toBuilderCode);
@@ -259,10 +254,6 @@ export const EpochMillisecondsSchema = z
   .number()
   .int()
   .transform(toEpochMilliseconds);
-export const EpochMicrosecondsSchema = z
-  .number()
-  .int()
-  .transform(toEpochMicroseconds);
 export const EpochSecondsToMillisecondsSchema = z
   .number()
   .int()

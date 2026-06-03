@@ -8,7 +8,7 @@ import { type SignatureType, SignatureTypeSchema } from './clob/signature-type';
 import type { BaseUnits, DecimalString, EvmAddress, TokenId } from './shared';
 import {
   ConditionIdSchema,
-  EpochMicrosecondsSchema,
+  EpochMillisecondsSchema,
   EvmAddressSchema,
   type OrderSide,
   type PositionId,
@@ -91,7 +91,19 @@ export const RfqExecutionStatusSchema = z.enum(RfqExecutionStatus);
 export const RfqRequestedSizeUnitSchema = z.enum(RfqRequestedSizeUnit);
 export const RfqErrorCodeSchema = z.enum(RfqErrorCode);
 
-const E6DecimalStringSchema = z.number().int().transform(toDecimalStringFromE6);
+const BigIntStringToDecimalStringSchema = z
+  .string()
+  .regex(/^\d+$/)
+  .transform((value) => {
+    const scaledValue = BigInt(value);
+    const whole = scaledValue / 1_000_000n;
+    const fraction = (scaledValue % 1_000_000n)
+      .toString()
+      .padStart(6, '0')
+      .replace(/0+$/, '');
+
+    return toDecimalString(`${whole}${fraction === '' ? '' : `.${fraction}`}`);
+  });
 
 export type RfqRequestedSize =
   | {
@@ -102,6 +114,24 @@ export type RfqRequestedSize =
       unit: RfqRequestedSizeUnit.Shares;
       value: DecimalString;
     };
+
+const RfqRequestedSizeSchema = z
+  .discriminatedUnion('unit', [
+    z.object({
+      unit: z.literal(RfqRequestedSizeUnit.Notional),
+      value_e6: BigIntStringToDecimalStringSchema,
+    }),
+    z.object({
+      unit: z.literal(RfqRequestedSizeUnit.Shares),
+      value_e6: BigIntStringToDecimalStringSchema,
+    }),
+  ])
+  .transform(
+    (size): RfqRequestedSize => ({
+      unit: size.unit,
+      value: size.value_e6,
+    }),
+  ) satisfies z.ZodType<RfqRequestedSize>;
 
 export type RfqSignedOrder = {
   salt: string;
@@ -158,18 +188,16 @@ export const RfqQuoteRequestSchema = z
     no_position_id: PositionIdSchema,
     direction: RfqDirectionSchema,
     side: RfqSideSchema,
-    size_notional_e6: E6DecimalStringSchema.optional(),
-    size_shares_e6: E6DecimalStringSchema.optional(),
-    submission_deadline: EpochMicrosecondsSchema,
+    requested_size: RfqRequestedSizeSchema,
+    submission_deadline: EpochMillisecondsSchema,
   })
-  .superRefine(validateRequestedSizeFields)
   .transform((message) => ({
     conditionId: message.condition_id,
     direction: message.direction,
     legPositionIds: message.leg_position_ids,
     noPositionId: message.no_position_id,
     requestorPublicId: message.requestor_public_id,
-    requestedSize: toRequestedSize(message),
+    requestedSize: message.requested_size,
     rfqId: message.rfq_id,
     side: message.side,
     submissionDeadline: message.submission_deadline,
@@ -182,8 +210,8 @@ export type RfqQuoteRequest = z.infer<typeof RfqQuoteRequestSchema>;
 export type RfqQuoteMessage = {
   type: 'RFQ_QUOTE';
   rfq_id: RfqId;
-  price_e6: number;
-  size_e6: number;
+  price_e6: string;
+  size_e6: string;
   signed_order: RfqSignedOrder;
 };
 
@@ -215,9 +243,9 @@ export const RfqConfirmationRequestSchema = z
     no_position_id: PositionIdSchema,
     direction: RfqDirectionSchema,
     side: RfqSideSchema,
-    fill_size_e6: E6DecimalStringSchema,
-    price_e6: E6DecimalStringSchema,
-    confirm_by: EpochMicrosecondsSchema,
+    fill_size_e6: BigIntStringToDecimalStringSchema,
+    price_e6: BigIntStringToDecimalStringSchema,
+    confirm_by: EpochMillisecondsSchema,
   })
   .transform((message) => ({
     conditionId: message.condition_id,
@@ -318,58 +346,3 @@ export type RfqQuoterInboundMessage = z.infer<
 export type RfqQuoterOutboundMessage =
   | RfqQuoteMessage
   | RfqConfirmationResponseMessage;
-
-function toDecimalStringFromE6(value: number) {
-  if (!Number.isSafeInteger(value)) {
-    throw new TypeError(`Expected a safe integer, received: ${value}`);
-  }
-  if (value < 0) {
-    throw new TypeError(`Expected a non-negative integer, received: ${value}`);
-  }
-
-  const whole = Math.floor(value / 1_000_000);
-  const fraction = (value % 1_000_000).toString().padStart(6, '0');
-  const trimmedFraction = fraction.replace(/0+$/, '');
-
-  return toDecimalString(
-    `${whole}${trimmedFraction === '' ? '' : `.${trimmedFraction}`}`,
-  );
-}
-
-type RequestedSizeFields = {
-  size_notional_e6?: DecimalString;
-  size_shares_e6?: DecimalString;
-};
-
-function validateRequestedSizeFields(
-  fields: RequestedSizeFields,
-  ctx: z.RefinementCtx,
-): void {
-  if (
-    (fields.size_notional_e6 === undefined) ===
-    (fields.size_shares_e6 === undefined)
-  ) {
-    ctx.addIssue({
-      code: 'custom',
-      message: 'Expected exactly one RFQ requested size field.',
-    });
-  }
-}
-
-function toRequestedSize(fields: RequestedSizeFields): RfqRequestedSize {
-  if (fields.size_notional_e6 !== undefined) {
-    return {
-      unit: RfqRequestedSizeUnit.Notional,
-      value: fields.size_notional_e6,
-    };
-  }
-
-  if (fields.size_shares_e6 === undefined) {
-    throw new TypeError('Expected RFQ requested size.');
-  }
-
-  return {
-    unit: RfqRequestedSizeUnit.Shares,
-    value: fields.size_shares_e6,
-  };
-}
