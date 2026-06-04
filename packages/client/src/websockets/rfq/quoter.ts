@@ -47,6 +47,7 @@ import { createRfqQuote, parseRfqQuoteResponse } from './quote';
 
 const AUTH_TIMEOUT_MS = 30_000;
 const ACK_TIMEOUT_MS = 30_000;
+const RFQ_WEBSOCKET_CLOSED_ERROR = 'RFQ quoter websocket closed.';
 
 export type RfqQuoterWebSocketManagerOptions = {
   account: AccountIdentity;
@@ -223,10 +224,27 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   async #shutdown(): Promise<void> {
-    this.#pending.rejectAll(new TransportError('RFQ quoter websocket closed.'));
+    const error = new TransportError(RFQ_WEBSOCKET_CLOSED_ERROR);
+    await this.#shutdownWithError(error);
+  }
+
+  async #fail(error: Error): Promise<void> {
+    if (this.#closing === undefined) {
+      this.#closing = this.#shutdownWithError(error);
+    }
+    await this.#closing;
+  }
+
+  async #shutdownWithError(error: Error): Promise<void> {
+    this.#failPending(error);
     this.#queue.end();
     await this.#connection.close();
     this.#onClose();
+  }
+
+  #failPending(error: Error): void {
+    this.#auth?.reject(error);
+    this.#pending.rejectAll(error);
   }
 
   #sendAuthMessage(): void {
@@ -234,12 +252,14 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   #handleMessage(rawMessage: unknown): void {
+    if (!isKnownRfqInboundType(inboundMessageType(rawMessage))) return;
+
     const parsed = RfqQuoterInboundMessageSchema.safeParse(rawMessage);
     if (!parsed.success) {
       const error = new TransportError('Invalid RFQ quoter message.', {
         cause: parsed.error,
       });
-      this.#pending.rejectAll(error);
+      void this.#fail(error);
       return;
     }
 
@@ -415,6 +435,28 @@ function quoteCancelAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
 
 function confirmationAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
   return `ACK_RFQ_CONFIRMATION_RESPONSE:${rfqId}:${quoteId}`;
+}
+
+function inboundMessageType(rawMessage: unknown): string | undefined {
+  if (typeof rawMessage !== 'object' || rawMessage === null) return undefined;
+  const type = (rawMessage as { type?: unknown }).type;
+  return typeof type === 'string' ? type : undefined;
+}
+
+function isKnownRfqInboundType(type: string | undefined): boolean {
+  switch (type) {
+    case 'auth':
+    case 'RFQ_REQUEST':
+    case 'ACK_RFQ_QUOTE':
+    case 'ACK_RFQ_QUOTE_CANCEL':
+    case 'RFQ_CONFIRMATION_REQUEST':
+    case 'ACK_RFQ_CONFIRMATION_RESPONSE':
+    case 'RFQ_EXECUTION_UPDATE':
+    case 'RFQ_ERROR':
+      return true;
+    default:
+      return false;
+  }
 }
 
 type PendingResponse<T> = {

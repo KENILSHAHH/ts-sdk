@@ -16,6 +16,7 @@ import {
   confirmationDecision,
   confirmationRequestMessage,
   executionUpdateMessage,
+  malformedQuoteAckMessage,
   type OutboundFrame,
   QUOTE_ID,
   QUOTE_SIZE_E6,
@@ -27,6 +28,7 @@ import {
   recordOutboundFrame,
   rfqErrorMessage,
   TX_HASH,
+  unknownRfqMessage,
 } from './rfq-frames';
 
 const rfq = ws.link(production.rfqQuoterWs);
@@ -799,6 +801,130 @@ describe('RFQ sessions', () => {
             break;
           }
         }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when the server sends unknown RFQ frames', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              const quote = quoteAmounts(frame);
+              socket.send(unknownRfqMessage());
+              socket.send(quoteAckMessage());
+              socket.send(
+                confirmationRequestMessage(quote.priceE6, quote.sizeE6),
+              );
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE_CANCEL') {
+              socket.send(unknownRfqMessage());
+              socket.send(quoteCancelAckMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
+              const decision = confirmationDecision(frame);
+              socket.send(unknownRfqMessage());
+              socket.send(confirmationAckMessage(decision));
+            }
+          });
+        }),
+      );
+    });
+
+    it('keeps quote, cancellation, and confirmation waits pending until their acknowledgements arrive', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        for await (const event of session) {
+          if (event.type === 'quote_request') {
+            const quote = await event.quote({ price: 0.45 });
+            const cancellation = await session.cancelQuote(quote);
+
+            expect(quote).toEqual({
+              quoteId: QUOTE_ID,
+              rfqId: event.rfqId,
+            });
+            expect(cancellation).toEqual(quote);
+            continue;
+          }
+
+          if (event.type === 'confirmation_request') {
+            const confirmation = await event.confirm();
+
+            expect(confirmation).toEqual({
+              quoteId: event.quoteId,
+              rfqId: event.rfqId,
+            });
+
+            await session.close();
+            break;
+          }
+        }
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
+  describe('when the server sends a malformed known RFQ frame', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.send(malformedQuoteAckMessage());
+            }
+          });
+        }),
+      );
+    });
+
+    it('fails the session and ends the event stream', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        const iterator = session[Symbol.asyncIterator]();
+        const next = await iterator.next();
+
+        if (next.done === true || next.value.type !== 'quote_request') {
+          throw new Error('Expected RFQ quote request.');
+        }
+
+        await expect(next.value.quote({ price: 0.45 })).rejects.toMatchObject({
+          message: 'Invalid RFQ quoter message.',
+          name: 'TransportError',
+        });
+        await expect(iterator.next()).resolves.toMatchObject({ done: true });
       } finally {
         await secureClientWithDepositWallet.closeSubscriptions();
       }
