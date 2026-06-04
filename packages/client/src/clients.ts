@@ -231,7 +231,7 @@ const BeginAuthenticationRequestSchema: z.ZodType<BeginAuthenticationRequest> =
     .object({
       wallet: EvmAddressSchema,
       credentials: BeginAuthenticationCredentialsSchema.optional(),
-      nonce: z.number().int().positive().optional(),
+      nonce: z.number().int().nonnegative().optional(),
     })
     .superRefine((value, context) => {
       if (value.credentials !== undefined && value.nonce !== undefined) {

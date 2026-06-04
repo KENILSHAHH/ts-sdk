@@ -1,7 +1,11 @@
 import { ApiKeySchema } from '@polymarket/bindings';
 import type { ApiKeyCreds } from '@polymarket/bindings/clob';
 import { WalletType } from '@polymarket/bindings/gamma';
-import { type EvmAddress, expectEvmAddress } from '@polymarket/types';
+import {
+  type EvmAddress,
+  expectEvmAddress,
+  expectEvmSignature,
+} from '@polymarket/types';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -156,6 +160,41 @@ describe('secure client gasless wallet setup', () => {
       credentials,
       environment,
       signer,
+      wallet: signerAddress,
+    });
+
+    expect(client.account).toEqual({
+      signer: signerAddress,
+      wallet: signerAddress,
+      walletType: WalletType.EOA,
+    });
+  });
+
+  it('accepts an explicit zero nonce for fresh authentication', async () => {
+    const signingSigner: Signer = {
+      ...signer,
+      signTypedData(payload) {
+        expect(payload.message.nonce).toBe(0);
+        return Promise.resolve(expectEvmSignature(`0x${'1'.repeat(130)}`));
+      },
+    };
+
+    server.use(
+      http.post(`${clobRoot}/auth/api-key`, ({ request }) => {
+        expect(request.headers.get('POLY_NONCE')).toBe('0');
+
+        return HttpResponse.json({
+          apiKey: credentials.key,
+          passphrase: credentials.passphrase,
+          secret: credentials.secret,
+        });
+      }),
+    );
+
+    const client = await createSecureClient({
+      environment,
+      nonce: 0,
+      signer: signingSigner,
       wallet: signerAddress,
     });
 
