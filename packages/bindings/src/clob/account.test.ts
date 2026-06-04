@@ -2,14 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { ClobTradeSchema } from './account';
 
 const baseTrade = {
-  asset_id: '1',
+  token_id: '1',
   bucket_index: 7,
   fee_rate_bps: '0',
   id: 'trade-1',
   maker_address: `0x${'aa'.repeat(20)}`,
   maker_orders: [
     {
-      asset_id: '1',
       fee_rate_bps: '0',
       maker_address: `0x${'bb'.repeat(20)}`,
       matched_amount: '1.5',
@@ -18,9 +17,10 @@ const baseTrade = {
       owner: 'owner-1',
       price: '0.5',
       side: 'BUY',
+      token_id: '1',
     },
   ],
-  market: `0x${'cc'.repeat(32)}`,
+  market_id: `0x${'cc'.repeat(32)}`,
   outcome: 'Yes',
   owner: 'owner-1',
   price: '0.5',
@@ -33,13 +33,16 @@ const baseTrade = {
 };
 
 describe('ClobTradeSchema', () => {
-  it('normalizes legacy epoch seconds timestamp strings', () => {
+  it('normalizes unified account trade responses', () => {
     const trade = ClobTradeSchema.parse({
       ...baseTrade,
-      match_time: '1777996829',
-      last_update: '1777996840',
+      match_time: 1_777_996_829_000,
+      last_update: 1_777_996_840_000,
     });
 
+    expect(trade.market).toBe(baseTrade.market_id);
+    expect(trade.tokenId).toBe(baseTrade.token_id);
+    expect(trade.makerOrders[0]?.tokenId).toBe('1');
     expect(trade.matchedAt).toBe('2026-05-05T16:00:29.000Z');
     expect(trade.updatedAt).toBe('2026-05-05T16:00:40.000Z');
   });
