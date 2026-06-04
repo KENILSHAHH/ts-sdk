@@ -48,6 +48,7 @@ import { createRfqQuote, parseRfqQuoteResponse } from './quote';
 const AUTH_TIMEOUT_MS = 30_000;
 const ACK_TIMEOUT_MS = 30_000;
 const RFQ_WEBSOCKET_CLOSED_ERROR = 'RFQ quoter websocket closed.';
+const UNCORRELATED_RFQ_ERROR_MESSAGE = 'Uncorrelated RFQ quoter error.';
 
 export type RfqQuoterWebSocketManagerOptions = {
   account: AccountIdentity;
@@ -312,8 +313,15 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
     void this.close();
   }
 
+  // Unsupported RFQ_ERROR request types are ignored for forward compatibility.
+  // Known outbound request errors without enough IDs are protocol failures.
   #handleRfqError(message: RfqErrorMessage): void {
-    if (message.requestType === 'RFQ_QUOTE' && message.rfqId !== undefined) {
+    if (message.requestType === 'RFQ_QUOTE') {
+      if (message.rfqId === undefined) {
+        void this.#fail(uncorrelatedRfqError());
+        return;
+      }
+
       this.#pending.reject(
         quoteAckKey(message.rfqId),
         new RfqQuoteRejectedError(message.message, {
@@ -324,11 +332,12 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       return;
     }
 
-    if (
-      message.requestType === 'RFQ_QUOTE_CANCEL' &&
-      message.rfqId !== undefined &&
-      message.quoteId !== undefined
-    ) {
+    if (message.requestType === 'RFQ_QUOTE_CANCEL') {
+      if (message.rfqId === undefined || message.quoteId === undefined) {
+        void this.#fail(uncorrelatedRfqError());
+        return;
+      }
+
       this.#pending.reject(
         quoteCancelAckKey(message.rfqId, message.quoteId),
         new RfqCancelQuoteRejectedError(message.message, {
@@ -340,11 +349,12 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       return;
     }
 
-    if (
-      message.requestType === 'RFQ_CONFIRMATION_RESPONSE' &&
-      message.rfqId !== undefined &&
-      message.quoteId !== undefined
-    ) {
+    if (message.requestType === 'RFQ_CONFIRMATION_RESPONSE') {
+      if (message.rfqId === undefined || message.quoteId === undefined) {
+        void this.#fail(uncorrelatedRfqError());
+        return;
+      }
+
       this.#pending.reject(
         confirmationAckKey(message.rfqId, message.quoteId),
         new RfqConfirmationRejectedError(message.message, {
@@ -435,6 +445,10 @@ function quoteCancelAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
 
 function confirmationAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
   return `ACK_RFQ_CONFIRMATION_RESPONSE:${rfqId}:${quoteId}`;
+}
+
+function uncorrelatedRfqError(): TransportError {
+  return new TransportError(UNCORRELATED_RFQ_ERROR_MESSAGE);
 }
 
 function inboundMessageType(rawMessage: unknown): string | undefined {
