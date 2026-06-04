@@ -246,7 +246,7 @@ const ListAccountTradesRequestSchema = z
   .object(ListAccountTradesRequestFields)
   .default({});
 
-const ACCOUNT_TRADES_BACKEND_LIMIT = 300;
+const ACCOUNT_TRADES_PAGE_SIZE = 50;
 
 export type ListAccountTradesRequest = z.input<
   typeof ListAccountTradesRequestSchema
@@ -312,10 +312,7 @@ export function listAccountTrades(
   );
 
   return paginate((nextCursor) => {
-    const decoded = decodeOffsetCursor(
-      nextCursor,
-      ACCOUNT_TRADES_BACKEND_LIMIT,
-    );
+    const decoded = decodeOffsetCursor(nextCursor, ACCOUNT_TRADES_PAGE_SIZE);
 
     return client.secureClob
       .get('/v1/account/trades', {
@@ -325,16 +322,21 @@ export function listAccountTrades(
         ),
       })
       .andThen(validateWith(ClobTradesPageSchema))
-      .map((response) => ({
-        items: response.data,
-        hasMore: response.hasMore,
-        nextCursor: response.hasMore
-          ? encodeOffsetCursor({
-              offset: decoded.offset + ACCOUNT_TRADES_BACKEND_LIMIT,
-              pageSize: ACCOUNT_TRADES_BACKEND_LIMIT,
-            })
-          : undefined,
-      }));
+      .map((response) => {
+        const hasMore =
+          response.hasMore || response.data.length > decoded.pageSize;
+
+        return {
+          items: response.data.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
   }, cursor);
 }
 
