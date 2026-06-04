@@ -323,15 +323,17 @@ export function listAccountTrades(
       })
       .andThen(validateWith(ClobTradesPageSchema))
       .map((response) => {
+        const items = response.data.slice(0, decoded.pageSize);
         const hasMore =
-          response.hasMore || response.data.length > decoded.pageSize;
+          items.length > 0 &&
+          (response.hasMore || response.data.length > decoded.pageSize);
 
         return {
-          items: response.data.slice(0, decoded.pageSize),
+          items,
           hasMore,
           nextCursor: hasMore
             ? encodeOffsetCursor({
-                offset: decoded.offset + decoded.pageSize,
+                offset: decoded.offset + items.length,
                 pageSize: decoded.pageSize,
               })
             : undefined,
