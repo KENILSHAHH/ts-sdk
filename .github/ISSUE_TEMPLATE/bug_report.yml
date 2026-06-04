@@ -23,8 +23,8 @@ body:
     id: runtime
     attributes:
       label: Runtime
-      description: Include your Node.js version, browser/runtime if relevant, and package manager.
-      placeholder: "Node.js 22.11.0, pnpm 9.15.0"
+      description: Include your Node.js version, browser/runtime if relevant, and package manager/version.
+      placeholder: "Node.js 24.14.0, pnpm 10.33.0"
     validations:
       required: true
   - type: textarea
