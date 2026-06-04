@@ -3,6 +3,7 @@ import {
   type RfqConfirmationDecision,
   type RfqErrorMessage,
   type RfqId,
+  RfqKnownInboundMessageSchema,
   type RfqQuoteId,
   type RfqQuoteRequest,
   RfqQuoterInboundMessageSchema,
@@ -260,7 +261,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   #handleMessage(rawMessage: unknown): void {
-    if (!isKnownRfqInboundType(inboundMessageType(rawMessage))) return;
+    if (!RfqKnownInboundMessageSchema.safeParse(rawMessage).success) return;
 
     const parsed = RfqQuoterInboundMessageSchema.safeParse(rawMessage);
     if (!parsed.success) {
@@ -457,28 +458,6 @@ function confirmationAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
 
 function uncorrelatedRfqError(): TransportError {
   return new TransportError(UNCORRELATED_RFQ_ERROR_MESSAGE);
-}
-
-function inboundMessageType(rawMessage: unknown): string | undefined {
-  if (typeof rawMessage !== 'object' || rawMessage === null) return undefined;
-  const type = (rawMessage as { type?: unknown }).type;
-  return typeof type === 'string' ? type : undefined;
-}
-
-function isKnownRfqInboundType(type: string | undefined): boolean {
-  switch (type) {
-    case 'auth':
-    case 'RFQ_REQUEST':
-    case 'ACK_RFQ_QUOTE':
-    case 'ACK_RFQ_QUOTE_CANCEL':
-    case 'RFQ_CONFIRMATION_REQUEST':
-    case 'ACK_RFQ_CONFIRMATION_RESPONSE':
-    case 'RFQ_EXECUTION_UPDATE':
-    case 'RFQ_ERROR':
-      return true;
-    default:
-      return false;
-  }
 }
 
 type PendingResponse<T> = {
