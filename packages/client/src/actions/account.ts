@@ -246,7 +246,7 @@ const ListAccountTradesRequestSchema = z
   .object(ListAccountTradesRequestFields)
   .default({});
 
-const ACCOUNT_TRADES_PAGE_SIZE = 300;
+const ACCOUNT_TRADES_BACKEND_LIMIT = 300;
 
 export type ListAccountTradesRequest = z.input<
   typeof ListAccountTradesRequestSchema
@@ -312,7 +312,10 @@ export function listAccountTrades(
   );
 
   return paginate((nextCursor) => {
-    const decoded = decodeOffsetCursor(nextCursor, ACCOUNT_TRADES_PAGE_SIZE);
+    const decoded = decodeOffsetCursor(
+      nextCursor,
+      ACCOUNT_TRADES_BACKEND_LIMIT,
+    );
 
     return client.secureClob
       .get('/v1/account/trades', {
@@ -327,8 +330,8 @@ export function listAccountTrades(
         hasMore: response.hasMore,
         nextCursor: response.hasMore
           ? encodeOffsetCursor({
-              offset: decoded.offset + ACCOUNT_TRADES_PAGE_SIZE,
-              pageSize: ACCOUNT_TRADES_PAGE_SIZE,
+              offset: decoded.offset + ACCOUNT_TRADES_BACKEND_LIMIT,
+              pageSize: ACCOUNT_TRADES_BACKEND_LIMIT,
             })
           : undefined,
       }));
