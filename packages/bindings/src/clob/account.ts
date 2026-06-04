@@ -91,7 +91,6 @@ export type OpenOrdersPage = z.infer<typeof OpenOrdersPageSchema>;
 
 export const MakerOrderSchema = z
   .object({
-    asset_id: TokenIdSchema,
     fee_rate_bps: DecimalStringSchema,
     maker_address: z.string(),
     matched_amount: DecimalStringSchema,
@@ -100,18 +99,19 @@ export const MakerOrderSchema = z
     owner: z.string(),
     price: DecimalStringSchema,
     side: z.string(),
+    token_id: TokenIdSchema,
   })
   .transform(
     ({
-      asset_id,
       fee_rate_bps,
       maker_address,
       matched_amount,
       order_id,
+      token_id,
       ...rest
     }) => ({
       ...rest,
-      tokenId: asset_id,
+      tokenId: token_id,
       feeRateBps: fee_rate_bps,
       makerAddress: maker_address,
       matchedAmount: matched_amount,
@@ -121,14 +121,14 @@ export const MakerOrderSchema = z
 
 export const ClobTradeSchema = z
   .object({
-    asset_id: TokenIdSchema,
+    token_id: TokenIdSchema,
     bucket_index: z.number(),
-    fee_rate_bps: DecimalStringSchema,
+    fee_rate_bps: DecimalStringSchema.optional(),
     id: z.string(),
     last_update: EpochMillisecondsToIsoDateTimeStringSchema,
     maker_address: z.string(),
     maker_orders: z.array(MakerOrderSchema),
-    market: z.string(),
+    market_id: z.string(),
     match_time: EpochMillisecondsToIsoDateTimeStringSchema,
     outcome: z.string(),
     owner: z.string(),
@@ -138,16 +138,17 @@ export const ClobTradeSchema = z
     status: z.string(),
     taker_order_id: z.string(),
     trader_side: z.enum(['TAKER', 'MAKER']),
-    transaction_hash: z.string(),
+    transaction_hash: z.string().optional(),
   })
   .transform(
     ({
-      asset_id,
+      token_id,
       bucket_index,
       fee_rate_bps,
       last_update,
       maker_address,
       maker_orders,
+      market_id,
       match_time,
       taker_order_id,
       trader_side,
@@ -155,7 +156,8 @@ export const ClobTradeSchema = z
       ...rest
     }) => ({
       ...rest,
-      tokenId: asset_id,
+      market: market_id,
+      tokenId: token_id,
       bucketIndex: bucket_index,
       feeRateBps: fee_rate_bps,
       updatedAt: last_update,
@@ -170,7 +172,15 @@ export const ClobTradeSchema = z
 
 export type ClobTrade = z.infer<typeof ClobTradeSchema>;
 
-export const ClobTradesPageSchema = createCursorPageSchema(ClobTradeSchema);
+export const ClobTradesPageSchema = z
+  .object({
+    data: z.array(ClobTradeSchema),
+    has_more: z.boolean(),
+  })
+  .transform(({ has_more, ...rest }) => ({
+    ...rest,
+    hasMore: has_more,
+  }));
 
 export type ClobTradesPage = z.infer<typeof ClobTradesPageSchema>;
 

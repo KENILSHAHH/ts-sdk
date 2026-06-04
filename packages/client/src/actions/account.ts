@@ -40,7 +40,13 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import { PageSizeSchema, type Paginated, paginate } from '../pagination';
+import {
+  decodeOffsetCursor,
+  encodeOffsetCursor,
+  PageSizeSchema,
+  type Paginated,
+  paginate,
+} from '../pagination';
 import { validateWith } from '../response';
 import { toSignatureType } from '../wallet';
 import { snakeCase, toSearchParams } from './params';
@@ -240,6 +246,8 @@ const ListAccountTradesRequestSchema = z
   .object(ListAccountTradesRequestFields)
   .default({});
 
+const ACCOUNT_TRADES_PAGE_SIZE = 50;
+
 export type ListAccountTradesRequest = z.input<
   typeof ListAccountTradesRequestSchema
 >;
@@ -303,27 +311,35 @@ export function listAccountTrades(
     ListAccountTradesRequestSchema,
   );
 
-  return paginate(
-    (nextCursor) =>
-      client.secureClob
-        .get('/data/trades', {
-          params: toSearchParams(
-            { ...params, nextCursor },
-            snakeCase({ tokenId: 'asset_id' }),
-          ),
-        })
-        .andThen(validateWith(ClobTradesPageSchema))
-        .map((response) => ({
-          items: response.data,
-          hasMore: response.nextCursor !== END_CURSOR,
-          nextCursor:
-            response.nextCursor === END_CURSOR
-              ? undefined
-              : toPaginationCursor(response.nextCursor),
-          totalCount: response.count,
-        })),
-    cursor,
-  );
+  return paginate((nextCursor) => {
+    const decoded = decodeOffsetCursor(nextCursor, ACCOUNT_TRADES_PAGE_SIZE);
+
+    return client.secureClob
+      .get('/v1/account/trades', {
+        params: toSearchParams(
+          { ...params, offset: decoded.offset },
+          snakeCase({ market: 'market_id', tokenId: 'token_id' }),
+        ),
+      })
+      .andThen(validateWith(ClobTradesPageSchema))
+      .map((response) => {
+        const items = response.data.slice(0, decoded.pageSize);
+        const hasMore =
+          items.length > 0 &&
+          (response.hasMore || response.data.length > decoded.pageSize);
+
+        return {
+          items,
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + items.length,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
 }
 
 export type FetchNotificationsError =
