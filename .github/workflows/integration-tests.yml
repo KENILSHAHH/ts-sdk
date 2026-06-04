@@ -9,7 +9,7 @@ permissions:
 jobs:
   integration-tests:
     name: Run
-    runs-on: arc-runner-set-euw1
+    runs-on: arc-public-runner-set-euw1
 
     steps:
       - name: Checkout Repository
