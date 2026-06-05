@@ -1,4 +1,8 @@
-import type { ConditionId, PositionId } from '@polymarket/bindings';
+import {
+  type ConditionId,
+  type PositionId,
+  toPositionId,
+} from '@polymarket/bindings';
 import type { Tagged } from '@polymarket/types';
 import { AbiParameters, Hash } from 'ox';
 import { UserInputError } from './errors';
@@ -13,16 +17,17 @@ export type CanonicalComboLegs = Tagged<
   'CanonicalComboLegs'
 >;
 
-export type DecodedComboPositionId = {
+export type ComboPositionContext = {
   conditionId: ConditionId;
-  outcomeIndex: 0 | 1;
-  positionId: bigint;
+  positionIds: [yes: PositionId, no: PositionId];
 };
 
 /**
- * Derives a combo condition ID from canonical combo legs.
+ * Derives a combo condition ID and its complementary YES/NO position IDs from canonical combo legs.
  */
-export function deriveComboConditionId(legs: CanonicalComboLegs): ConditionId {
+export function deriveComboPositionContext(
+  legs: CanonicalComboLegs,
+): ComboPositionContext {
   const encodedLegs = AbiParameters.encode(
     [{ name: 'legs', type: 'uint256[]' }],
     [legs],
@@ -36,8 +41,16 @@ export function deriveComboConditionId(legs: CanonicalComboLegs): ConditionId {
       [COMBINATORIAL_MODULE_ID, encodedLegs],
     ),
   );
+  const conditionId =
+    `0x03${baseHash.slice(34)}0000000000000000000000000000` as ConditionId;
 
-  return `0x03${baseHash.slice(34)}0000000000000000000000000000` as ConditionId;
+  return {
+    conditionId,
+    positionIds: [
+      toPositionId(BigInt(`${conditionId}00`).toString()),
+      toPositionId(BigInt(`${conditionId}01`).toString()),
+    ],
+  };
 }
 
 /**
@@ -103,15 +116,20 @@ export function canonicalizeComboLegs(
   ) as unknown as CanonicalComboLegs;
 }
 
+export type DecodedComboOutcomePositionId = {
+  conditionId: ConditionId;
+  outcomeIndex: 0 | 1;
+};
+
 /**
  * Decodes a combo YES/NO position ID into its condition ID and outcome index.
  *
  * @throws {@link UserInputError}
  * Thrown when the position ID is not a valid combo YES/NO position ID.
  */
-export function decodeComboPositionId(
+export function decodeComboOutcomePositionId(
   positionId: PositionId,
-): DecodedComboPositionId {
+): DecodedComboOutcomePositionId {
   const value = parsePositionId(positionId);
   const hex = value.toString(16).padStart(UINT256_BYTE_LENGTH * 2, '0');
   const moduleId = BigInt(`0x${hex.slice(0, 2)}`);
@@ -130,7 +148,6 @@ export function decodeComboPositionId(
   return {
     conditionId: `0x${hex.slice(0, -2)}` as ConditionId,
     outcomeIndex,
-    positionId: value,
   };
 }
 

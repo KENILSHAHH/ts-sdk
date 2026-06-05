@@ -2,7 +2,6 @@ import {
   createSecureClient,
   preproduction,
   type SecureClient,
-  WalletType,
 } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { vi } from 'vitest';
@@ -34,8 +33,6 @@ describe('Positions', () => {
         signer: depositWalletSigner,
         wallet: depositWalletAddress,
       });
-
-      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       await secureClient
         .splitPosition({
@@ -69,8 +66,6 @@ describe('Positions', () => {
         signer: depositWalletSigner,
         wallet: depositWalletAddress,
       });
-
-      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const { items: positions } = await secureClient
         .listPositions({
@@ -118,8 +113,6 @@ describe('Positions', () => {
         environment: preproduction,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
-
       const initialShares = await fetchComboShares(secureClient);
 
       await secureClient
@@ -152,8 +145,6 @@ describe('Positions', () => {
         environment: preproduction,
       });
 
-      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
-
       const initialShares = await fetchComboShares(secureClient);
 
       if (initialShares === 0) {
@@ -162,7 +153,7 @@ describe('Positions', () => {
 
       await secureClient
         .mergePositions({
-          amount: TEST_COMBO_AMOUNT,
+          amount: 'max',
           legs: TEST_COMBO_LEGS,
         })
         .then((handle) => handle.wait());

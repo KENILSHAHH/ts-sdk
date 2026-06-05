@@ -1,23 +1,28 @@
 import type {
   ConditionId,
-  DecimalString,
+  MarketId,
   PositionId,
+  TokenId,
 } from '@polymarket/bindings';
-import { ConditionIdSchema, PositionIdSchema } from '@polymarket/bindings';
-import type { Position } from '@polymarket/bindings/data';
-import { WalletType } from '@polymarket/bindings/gamma';
+import {
+  ConditionIdSchema,
+  MarketIdSchema,
+  PositionIdSchema,
+} from '@polymarket/bindings';
+import { type Market, WalletType } from '@polymarket/bindings/gamma';
 import {
   type EvmAddress,
   type EvmSignature,
   invariant,
-  isNullish,
   isPresent,
 } from '@polymarket/types';
 import { z } from 'zod';
 import {
   combinatorialPrepareConditionCall,
   ctfRedeemPositionsCall,
+  decodeErc1155BalanceOfBatchResult,
   decodeErc1155BalanceOfResult,
+  erc1155BalanceOfBatchCall,
   erc1155BalanceOfCall,
   mergePositionsCall,
   mergeV2Call,
@@ -42,8 +47,8 @@ import { parseUserInput } from '../input';
 import {
   type CanonicalComboLegs,
   canonicalizeComboLegs,
-  decodeComboPositionId,
-  deriveComboConditionId,
+  decodeComboOutcomePositionId,
+  deriveComboPositionContext,
 } from '../protocol';
 import {
   expectTransactionHandle,
@@ -64,13 +69,6 @@ import {
   type WaitForGaslessTransactionError,
 } from './gasless';
 import { listMarkets } from './markets';
-import { listPositions } from './portfolio';
-
-type BinaryPositions =
-  | readonly [yes: Position, no: Position | undefined]
-  | readonly [yes: undefined, no: Position];
-
-type PositiveAmount = bigint;
 
 /**
  * Parameters for preparing a market position split.
@@ -245,14 +243,13 @@ export async function prepareSplitMarketPosition(
     request,
     PrepareSplitMarketPositionRequestSchema,
   );
-  const negativeRisk = await resolveMarketNegativeRiskFlag(
-    client,
-    params.conditionId,
-  );
+  const context = await resolveMarketClobContext(client, {
+    conditionId: params.conditionId,
+  });
   const call = splitPositionCall(
-    resolveLifecycleTargetAddress(client, negativeRisk),
+    context.adapterAddress,
     client.environment.collateralToken,
-    params.conditionId,
+    context.conditionId,
     params.amount,
   );
 
@@ -269,7 +266,7 @@ export async function prepareSplitMarketPosition(
       calls: [call],
       metadata:
         params.metadata ??
-        `Split ${params.amount} positions for condition ${params.conditionId}`,
+        `Split ${params.amount} positions for market ${context.marketId} (condition ${context.conditionId})`,
     });
   }.call(null);
 }
@@ -303,10 +300,10 @@ export async function prepareSplitComboPosition(
     client.environment.combinatorialModule,
     params.legs,
   );
-  const conditionId = deriveComboConditionId(params.legs);
+  const combo = deriveComboPositionContext(params.legs);
   const splitCall = splitV2Call(
     client.environment.protocolV2Router,
-    conditionId,
+    combo.conditionId,
     params.amount,
   );
 
@@ -333,7 +330,7 @@ export async function prepareSplitComboPosition(
       calls: [prepareConditionCall, splitCall],
       metadata:
         params.metadata ??
-        `Split ${params.amount} combo positions for condition ${conditionId}`,
+        `Split ${params.amount} combo positions for condition ${combo.conditionId}`,
     });
   }.call(null);
 }
@@ -446,7 +443,7 @@ export type PrepareMergeMarketPositionRequest = {
  */
 export type PrepareMergeComboPositionRequest = {
   /** Amount per complementary combo position to merge. */
-  amount: bigint;
+  amount: bigint | 'max';
   /** Protocol v2 leg position IDs that define the combo condition. */
   legs: string[] | PositionId[];
   /** Optional transaction metadata for workflows that support metadata. */
@@ -464,7 +461,7 @@ export type PrepareMergePositionsRequest =
   | PrepareMergeComboPositionRequest;
 
 type ParsedMergeComboPositionRequest = {
-  amount: bigint;
+  amount: bigint | 'max';
   legs: CanonicalComboLegs;
   metadata?: string;
 };
@@ -476,13 +473,13 @@ const PrepareMergeMarketPositionRequestSchema = z.object({
 }) satisfies z.ZodType<PrepareMergeMarketPositionRequest>;
 
 const PrepareMergeComboPositionInputSchema = z.object({
-  amount: z.bigint().positive(),
+  amount: z.union([z.bigint().positive(), z.literal('max')]),
   legs: z.array(PositionIdSchema).min(1).max(50),
   metadata: GaslessTransactionMetadataSchema.optional(),
 }) satisfies z.ZodType<PrepareMergeComboPositionRequest>;
 
 const PrepareMergeComboPositionRequestSchema = z.object({
-  amount: z.bigint().positive(),
+  amount: z.union([z.bigint().positive(), z.literal('max')]),
   legs: CanonicalComboLegsSchema,
   metadata: GaslessTransactionMetadataSchema.optional(),
 }) satisfies z.ZodType<
@@ -525,20 +522,27 @@ export async function prepareMergeMarketPosition(
     request,
     PrepareMergeMarketPositionRequestSchema,
   );
-  const positions = await listPositions(client, {
-    user: client.account.wallet,
-    market: [params.conditionId],
-    sizeThreshold: 0,
-  })
-    .firstPage()
-    .then((page) => page.items);
-  const binaryPositions = expectBinaryPositions(positions);
-  const negativeRisk = expectNegativeRiskFlag(binaryPositions);
-  const amount = resolveMergeAmount(binaryPositions, params.amount);
+  const context = await resolveMarketClobContext(client, {
+    conditionId: params.conditionId,
+  });
+  const balances = decodeErc1155BalanceOfBatchResult(
+    await client.rpc.ethCall(
+      erc1155BalanceOfBatchCall(
+        context.positionErc1155Address,
+        client.account.wallet,
+        context.tokenIds,
+      ),
+    ),
+  );
+  const amount = resolveMergeAmount(
+    context.conditionId,
+    balances,
+    params.amount,
+  );
   const call = mergePositionsCall(
-    resolveLifecycleTargetAddress(client, negativeRisk),
+    context.adapterAddress,
     client.environment.collateralToken,
-    params.conditionId,
+    context.conditionId,
     amount,
   );
 
@@ -555,7 +559,7 @@ export async function prepareMergeMarketPosition(
       calls: [call],
       metadata:
         params.metadata ??
-        `Merge ${amount} positions for condition ${params.conditionId}`,
+        `Merge ${amount} positions for market ${context.marketId} (condition ${context.conditionId})`,
     });
   }.call(null);
 }
@@ -569,7 +573,7 @@ export async function prepareMergeMarketPosition(
  * @example
  * ```ts
  * const workflow = await prepareMergeComboPosition(client, {
- *   amount: 1n,
+ *   amount: 'max',
  *   legs: ['123', '456'],
  * });
  * ```
@@ -589,11 +593,21 @@ export async function prepareMergeComboPosition(
     client.environment.combinatorialModule,
     params.legs,
   );
-  const conditionId = deriveComboConditionId(params.legs);
+  const combo = deriveComboPositionContext(params.legs);
+  const balances = decodeErc1155BalanceOfBatchResult(
+    await client.rpc.ethCall(
+      erc1155BalanceOfBatchCall(
+        client.environment.positionManager,
+        client.account.wallet,
+        combo.positionIds,
+      ),
+    ),
+  );
+  const amount = resolveMergeAmount(combo.conditionId, balances, params.amount);
   const mergeCall = mergeV2Call(
     client.environment.protocolV2Router,
-    conditionId,
-    params.amount,
+    combo.conditionId,
+    amount,
   );
 
   return async function* (): MergePositionsWorkflow {
@@ -619,7 +633,7 @@ export async function prepareMergeComboPosition(
       calls: [prepareConditionCall, mergeCall],
       metadata:
         params.metadata ??
-        `Merge ${params.amount} combo positions for condition ${conditionId}`,
+        `Merge ${amount} combo positions for condition ${combo.conditionId}`,
     });
   }.call(null);
 }
@@ -644,14 +658,22 @@ export async function prepareMergePositions(
 }
 
 export type MergePositionsError =
-  | PrepareMergePositionsError
   | CancelledSigningError
-  | SigningError;
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TimeoutError
+  | TransactionFailedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
 export const MergePositionsError = makeErrorGuard(
   CancelledSigningError,
   RateLimitError,
   RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
@@ -761,11 +783,9 @@ export type PrepareRedeemPositionsRequest =
   | PrepareRedeemMarketPositionsByMarketIdRequest
   | PrepareRedeemComboPositionRequest;
 
-export type PrepareRedeemMarketPositionsRequest = Extract<
-  PrepareRedeemPositionsRequest,
+export type PrepareRedeemMarketPositionsRequest =
   | PrepareRedeemMarketPositionsByConditionIdRequest
-  | PrepareRedeemMarketPositionsByMarketIdRequest
->;
+  | PrepareRedeemMarketPositionsByMarketIdRequest;
 
 const PrepareRedeemMarketPositionsByConditionIdRequestSchema = z.object({
   conditionId: ConditionIdSchema,
@@ -777,7 +797,7 @@ const PrepareRedeemMarketPositionsByConditionIdRequestSchema = z.object({
 
 const PrepareRedeemMarketPositionsByMarketIdRequestSchema = z.object({
   conditionId: z.never().optional(),
-  marketId: z.string().min(1),
+  marketId: MarketIdSchema,
   amount: z.never().optional(),
   positionId: z.never().optional(),
   metadata: GaslessTransactionMetadataSchema.optional(),
@@ -833,20 +853,16 @@ export async function prepareRedeemMarketPositions(
     request,
     PrepareRedeemMarketPositionsRequestSchema,
   );
-  const positions = await listPositions(client, {
-    user: client.account.wallet,
-    market: [params.conditionId ?? params.marketId],
-    sizeThreshold: 0,
-  })
-    .firstPage()
-    .then((page) => page.items);
-  const binaryPositions = expectBinaryPositions(positions);
-  const conditionId = resolveBinaryPositionsConditionId(binaryPositions);
-  const negativeRisk = expectNegativeRiskFlag(binaryPositions);
+  const context = await resolveMarketClobContext(
+    client,
+    params.conditionId !== undefined
+      ? { conditionId: params.conditionId }
+      : { marketId: params.marketId },
+  );
   const call = ctfRedeemPositionsCall(
-    resolveLifecycleTargetAddress(client, negativeRisk),
+    context.adapterAddress,
     client.environment.collateralToken,
-    conditionId,
+    context.conditionId,
   );
 
   return async function* (): RedeemPositionsWorkflow {
@@ -861,7 +877,8 @@ export async function prepareRedeemMarketPositions(
     return yield* await prepareGaslessTransaction(client, {
       calls: [call],
       metadata:
-        params.metadata ?? `Redeem positions for condition ${conditionId}`,
+        params.metadata ??
+        `Redeem positions for market ${context.marketId} (condition ${context.conditionId})`,
     });
   }.call(null);
 }
@@ -890,13 +907,13 @@ export async function prepareRedeemComboPosition(
     request,
     PrepareRedeemComboPositionRequestSchema,
   );
-  const decoded = decodeComboPositionId(params.positionId);
+  const decoded = decodeComboOutcomePositionId(params.positionId);
   const balance = decodeErc1155BalanceOfResult(
     await client.rpc.ethCall(
       erc1155BalanceOfCall(
         client.environment.positionManager,
         client.account.wallet,
-        decoded.positionId,
+        params.positionId,
       ),
     ),
   );
@@ -1009,139 +1026,101 @@ function sendRedeemPositionsTransaction(
   };
 }
 
-function resolveLifecycleTargetAddress(
-  client: BaseSecureClient,
-  negRisk: boolean,
-) {
-  return negRisk
-    ? client.environment.negRiskCollateralAdapter
-    : client.environment.collateralAdapter;
-}
+type MarketClobContext = {
+  marketId: MarketId;
+  conditionId: ConditionId;
+  negRisk: boolean;
+  adapterAddress: EvmAddress;
+  positionErc1155Address: EvmAddress;
+  tokenIds: [yes: TokenId, no: TokenId];
+};
 
-async function resolveMarketNegativeRiskFlag(
+type ResolveMarketClobContextRequest =
+  | { conditionId: ConditionId; marketId?: never }
+  | { marketId: MarketId; conditionId?: never };
+
+async function resolveMarketClobContext(
   client: BaseSecureClient,
-  conditionId: ConditionId,
-): Promise<boolean> {
-  const page = await listMarkets(client, {
-    conditionIds: [conditionId],
-    pageSize: 2,
-  }).firstPage();
+  request: ResolveMarketClobContextRequest,
+): Promise<MarketClobContext> {
+  const context =
+    request.conditionId !== undefined
+      ? `condition ${request.conditionId}`
+      : `market ${request.marketId}`;
+  const page = await listMarkets(
+    client,
+    request.conditionId !== undefined
+      ? { conditionIds: [request.conditionId], pageSize: 1 }
+      : { ids: [parseMarketId(request.marketId)], pageSize: 1 },
+  ).firstPage();
   const markets = page.items;
 
-  invariant(
-    markets.length === 1,
-    `Expected exactly one market for condition ${conditionId}`,
-  );
+  invariant(markets.length === 1, `Expected exactly one ${context}`);
 
   const market = markets[0];
 
-  invariant(
-    market !== undefined,
-    `No market found for condition ${conditionId}`,
-  );
-  invariant(
-    isPresent(market.state.negRisk),
-    `Missing negRisk flag for condition ${conditionId}`,
-  );
+  invariant(market !== undefined, `No market found for ${context}`);
 
-  return market.state.negRisk;
+  const marketContext = normalizeMarketClobContext(market, context);
+
+  return {
+    ...marketContext,
+    adapterAddress: marketContext.negRisk
+      ? client.environment.negRiskCollateralAdapter
+      : client.environment.collateralAdapter,
+    positionErc1155Address: marketContext.negRisk
+      ? client.environment.negRiskAdapter
+      : client.environment.conditionalTokens,
+  };
 }
 
-function expectNegativeRiskFlag([
-  yesPosition,
-  noPosition,
-]: BinaryPositions): boolean {
-  const first = yesPosition ?? noPosition;
-  const conditionId = first.conditionId;
+function parseMarketId(id: MarketId): number {
+  const parsed = Number(id);
 
-  invariant(
-    isPresent(first.negativeRisk),
-    `Missing negativeRisk flag for condition ${conditionId}`,
-  );
-
-  if (yesPosition !== undefined && noPosition !== undefined) {
-    invariant(
-      isPresent(yesPosition.negativeRisk),
-      `Missing negativeRisk flag for condition ${conditionId}`,
-    );
-    invariant(
-      isPresent(noPosition.negativeRisk),
-      `Missing negativeRisk flag for condition ${conditionId}`,
-    );
-    invariant(
-      yesPosition.negativeRisk === noPosition.negativeRisk,
-      `Mixed negativeRisk flags for condition ${conditionId}`,
-    );
+  if (!Number.isInteger(parsed)) {
+    throw new UserInputError(`Market ID must be an integer, received ${id}`);
   }
 
-  return first.negativeRisk;
+  return parsed;
 }
 
-function expectBinaryPositions(
-  positions: readonly Position[],
-): BinaryPositions {
-  const firstPosition = positions[0];
-
-  if (firstPosition === undefined) {
-    throw new UserInputError('You have no positions');
+function normalizeMarketClobContext(
+  market: Market,
+  context: string,
+): Omit<MarketClobContext, 'adapterAddress' | 'positionErc1155Address'> {
+  if (!isPresent(market.conditionId)) {
+    throw new UnexpectedResponseError(`Missing condition ID for ${context}`);
   }
 
-  const conditionId = firstPosition.conditionId;
-
-  invariant(
-    positions.length <= 2,
-    `Expected at most two positions for condition ${conditionId}`,
-  );
-
-  let yesPosition: Position | undefined;
-  let noPosition: Position | undefined;
-
-  for (const position of positions) {
-    invariant(
-      position.outcomeIndex === 0 || position.outcomeIndex === 1,
-      `Unexpected outcomeIndex ${position.outcomeIndex} for condition ${conditionId}`,
+  if (!isPresent(market.state.negRisk)) {
+    throw new UnexpectedResponseError(
+      `Missing negative-risk flag for ${context}`,
     );
+  }
 
-    if (position.outcomeIndex === 0) {
-      invariant(
-        yesPosition === undefined,
-        `Duplicate YES position for condition ${conditionId}`,
-      );
-      yesPosition = position;
-      continue;
-    }
+  const yesTokenId = market.outcomes.yes.tokenId;
+  const noTokenId = market.outcomes.no.tokenId;
 
-    invariant(
-      noPosition === undefined,
-      `Duplicate NO position for condition ${conditionId}`,
+  if (!isPresent(yesTokenId) || !isPresent(noTokenId)) {
+    throw new UnexpectedResponseError(
+      `Missing market token IDs for ${context}`,
     );
-    noPosition = position;
   }
 
-  if (yesPosition !== undefined) {
-    return [yesPosition, noPosition];
-  }
-
-  invariant(
-    noPosition !== undefined,
-    `Expected positions for condition ${conditionId}`,
-  );
-
-  return [undefined, noPosition];
-}
-
-function resolveBinaryPositionsConditionId(
-  positions: BinaryPositions,
-): ConditionId {
-  return (positions[0] ?? positions[1]).conditionId;
+  return {
+    marketId: market.id,
+    conditionId: market.conditionId,
+    negRisk: market.state.negRisk,
+    tokenIds: [yesTokenId, noTokenId],
+  };
 }
 
 function resolveMergeAmount(
-  positions: BinaryPositions,
+  conditionId: ConditionId,
+  balances: readonly bigint[],
   requestedAmount: bigint | 'max',
-): PositiveAmount {
-  const maxAmount = calculateMaxMergeAmount(positions);
-  const conditionId = resolveBinaryPositionsConditionId(positions);
+): bigint {
+  const maxAmount = calculateMaxMergeAmount(balances);
 
   if (maxAmount === 0n) {
     throw new UserInputError(
@@ -1162,44 +1141,15 @@ function resolveMergeAmount(
   return requestedAmount;
 }
 
-function calculateMaxMergeAmount([
-  yesPosition,
-  noPosition,
-]: BinaryPositions): bigint {
-  const yesAmount = toPositionAmount(yesPosition, 0);
-  const noAmount = toPositionAmount(noPosition, 1);
+function calculateMaxMergeAmount(balances: readonly bigint[]): bigint {
+  if (balances.length !== 2) {
+    throw new UnexpectedResponseError('Expected two position balances');
+  }
+
+  const [yesAmount, noAmount] = balances;
+
+  invariant(yesAmount !== undefined, 'Expected YES position balance');
+  invariant(noAmount !== undefined, 'Expected NO position balance');
 
   return yesAmount < noAmount ? yesAmount : noAmount;
-}
-
-function toPositionAmount(
-  position: Position | undefined,
-  expectedOutcomeIndex: 0 | 1,
-): bigint {
-  if (position === undefined) {
-    return 0n;
-  }
-
-  invariant(
-    position.outcomeIndex === expectedOutcomeIndex,
-    `Expected outcomeIndex ${expectedOutcomeIndex}`,
-  );
-
-  if (isNullish(position.size)) {
-    return 0n;
-  }
-
-  return toTokenBaseUnits(position.size);
-}
-
-function toTokenBaseUnits(size: DecimalString): bigint {
-  const numericSize = Number(size);
-
-  if (!Number.isFinite(numericSize) || numericSize < 0) {
-    throw new UserInputError(
-      'Position size must be a non-negative finite number',
-    );
-  }
-
-  return BigInt(Math.floor(numericSize * 1e6));
 }

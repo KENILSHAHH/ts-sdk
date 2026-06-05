@@ -1,4 +1,4 @@
-import type { ConditionId } from '@polymarket/bindings';
+import type { ConditionId, PositionId, TokenId } from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
 import { makeErrorGuard, UserInputError } from './errors';
@@ -27,6 +27,9 @@ const ERC1155_IS_APPROVED_FOR_ALL_FUNCTION = AbiFunction.from(
 );
 const ERC1155_BALANCE_OF_FUNCTION = AbiFunction.from(
   'function balanceOf(address account, uint256 id) view returns (uint256)',
+);
+const ERC1155_BALANCE_OF_BATCH_FUNCTION = AbiFunction.from(
+  'function balanceOfBatch(address[] accounts, uint256[] ids) view returns (uint256[])',
 );
 const CTF_SPLIT_POSITION_FUNCTION = AbiFunction.from(
   'function splitPosition(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount)',
@@ -142,12 +145,12 @@ export function decodeErc1155IsApprovedForAllResult(data: HexString): boolean {
 export function erc1155BalanceOfCall(
   tokenAddress: EvmAddress,
   owner: EvmAddress,
-  positionId: bigint,
+  id: PositionId,
 ): TransactionCall {
   return {
     data: AbiFunction.encodeData(ERC1155_BALANCE_OF_FUNCTION, [
       owner,
-      expectUint256(positionId, 'Position ID'),
+      expectUint256(BigInt(id), 'Position ID'),
     ]),
     to: tokenAddress,
   };
@@ -156,6 +159,28 @@ export function erc1155BalanceOfCall(
 /** @internal */
 export function decodeErc1155BalanceOfResult(data: HexString): bigint {
   return AbiFunction.decodeResult(ERC1155_BALANCE_OF_FUNCTION, data);
+}
+
+/** @internal */
+export function erc1155BalanceOfBatchCall(
+  tokenAddress: EvmAddress,
+  owner: EvmAddress,
+  ids: readonly (PositionId | TokenId)[],
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ERC1155_BALANCE_OF_BATCH_FUNCTION, [
+      ids.map(() => owner),
+      ids.map((id) => expectUint256(BigInt(id), 'id')),
+    ]),
+    to: tokenAddress,
+  };
+}
+
+/** @internal */
+export function decodeErc1155BalanceOfBatchResult(
+  data: HexString,
+): readonly bigint[] {
+  return AbiFunction.decodeResult(ERC1155_BALANCE_OF_BATCH_FUNCTION, data);
 }
 
 export type Erc20TransferCallError = UserInputError;

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   type CanonicalComboLegs,
   canonicalizeComboLegs,
-  decodeComboPositionId,
-  deriveComboConditionId,
+  decodeComboOutcomePositionId,
+  deriveComboPositionContext,
 } from './protocol';
 
 const CONDITION_ID =
@@ -31,14 +31,20 @@ describe('Protocol helpers', () => {
     });
   });
 
-  describe('deriveComboConditionId', () => {
-    it('derives a combo condition ID from canonical legs', () => {
+  describe('deriveComboPositionContext', () => {
+    it('derives a combo condition ID and position IDs from canonical legs', () => {
       const legs = [
         BigInt(legPosition(1, 0)),
         BigInt(legPosition(2, 1)),
       ] as unknown as CanonicalComboLegs;
 
-      expect(deriveComboConditionId(legs)).toBe(CONDITION_ID);
+      expect(deriveComboPositionContext(legs)).toEqual({
+        conditionId: CONDITION_ID,
+        positionIds: [
+          comboPosition(CONDITION_ID, 0),
+          comboPosition(CONDITION_ID, 1),
+        ],
+      });
     });
   });
 
@@ -46,22 +52,21 @@ describe('Protocol helpers', () => {
     it('decodes a combo position ID into a condition ID and outcome index', () => {
       const positionId = comboPosition(CONDITION_ID, 1);
 
-      expect(decodeComboPositionId(positionId)).toEqual({
+      expect(decodeComboOutcomePositionId(positionId)).toEqual({
         conditionId: CONDITION_ID,
         outcomeIndex: 1,
-        positionId: BigInt(positionId),
       });
     });
 
     it('rejects non-combo position IDs', () => {
-      expect(() => decodeComboPositionId(legPosition(1, 0))).toThrow(
+      expect(() => decodeComboOutcomePositionId(legPosition(1, 0))).toThrow(
         /combinatorial module/,
       );
     });
 
     it('rejects combo position IDs with non-binary outcomes', () => {
       expect(() =>
-        decodeComboPositionId(comboPosition(CONDITION_ID, 2)),
+        decodeComboOutcomePositionId(comboPosition(CONDITION_ID, 2)),
       ).toThrow(/YES\/NO/);
     });
   });

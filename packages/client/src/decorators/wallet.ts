@@ -157,7 +157,7 @@ export type SecureWalletActions = {
    * @example Merge a combo by legs.
    * ```ts
    * const handle = await client.mergePositions({
-   *   amount: 1n,
+   *   amount: 'max',
    *   legs: ['123', '456'],
    * });
    *
