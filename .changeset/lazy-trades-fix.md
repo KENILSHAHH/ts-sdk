@@ -3,4 +3,4 @@
 "@polymarket/bindings": patch
 ---
 
-Move account trade listing to the unified CLOB account trades endpoint.
+Restore account trade listing to the legacy endpoint and parse legacy epoch-seconds timestamps correctly.

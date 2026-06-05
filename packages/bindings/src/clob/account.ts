@@ -4,6 +4,7 @@ import {
   ConditionIdSchema,
   DecimalishSchema,
   DecimalStringSchema,
+  EpochLikeToIsoDateTimeStringSchema,
   EpochMillisecondsSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   EvmAddressSchema,
@@ -91,6 +92,7 @@ export type OpenOrdersPage = z.infer<typeof OpenOrdersPageSchema>;
 
 export const MakerOrderSchema = z
   .object({
+    asset_id: TokenIdSchema,
     fee_rate_bps: DecimalStringSchema,
     maker_address: z.string(),
     matched_amount: DecimalStringSchema,
@@ -99,19 +101,18 @@ export const MakerOrderSchema = z
     owner: z.string(),
     price: DecimalStringSchema,
     side: z.string(),
-    token_id: TokenIdSchema,
   })
   .transform(
     ({
+      asset_id,
       fee_rate_bps,
       maker_address,
       matched_amount,
       order_id,
-      token_id,
       ...rest
     }) => ({
       ...rest,
-      tokenId: token_id,
+      tokenId: asset_id,
       feeRateBps: fee_rate_bps,
       makerAddress: maker_address,
       matchedAmount: matched_amount,
@@ -121,15 +122,15 @@ export const MakerOrderSchema = z
 
 export const ClobTradeSchema = z
   .object({
-    token_id: TokenIdSchema,
+    asset_id: TokenIdSchema,
     bucket_index: z.number(),
-    fee_rate_bps: DecimalStringSchema.optional(),
+    fee_rate_bps: DecimalStringSchema,
     id: z.string(),
-    last_update: EpochMillisecondsToIsoDateTimeStringSchema,
+    last_update: EpochLikeToIsoDateTimeStringSchema,
     maker_address: z.string(),
     maker_orders: z.array(MakerOrderSchema),
-    market_id: z.string(),
-    match_time: EpochMillisecondsToIsoDateTimeStringSchema,
+    market: z.string(),
+    match_time: EpochLikeToIsoDateTimeStringSchema,
     outcome: z.string(),
     owner: z.string(),
     price: DecimalStringSchema,
@@ -138,17 +139,16 @@ export const ClobTradeSchema = z
     status: z.string(),
     taker_order_id: z.string(),
     trader_side: z.enum(['TAKER', 'MAKER']),
-    transaction_hash: z.string().optional(),
+    transaction_hash: z.string(),
   })
   .transform(
     ({
-      token_id,
+      asset_id,
       bucket_index,
       fee_rate_bps,
       last_update,
       maker_address,
       maker_orders,
-      market_id,
       match_time,
       taker_order_id,
       trader_side,
@@ -156,8 +156,7 @@ export const ClobTradeSchema = z
       ...rest
     }) => ({
       ...rest,
-      market: market_id,
-      tokenId: token_id,
+      tokenId: asset_id,
       bucketIndex: bucket_index,
       feeRateBps: fee_rate_bps,
       updatedAt: last_update,
@@ -172,15 +171,7 @@ export const ClobTradeSchema = z
 
 export type ClobTrade = z.infer<typeof ClobTradeSchema>;
 
-export const ClobTradesPageSchema = z
-  .object({
-    data: z.array(ClobTradeSchema),
-    has_more: z.boolean(),
-  })
-  .transform(({ has_more, ...rest }) => ({
-    ...rest,
-    hasMore: has_more,
-  }));
+export const ClobTradesPageSchema = createCursorPageSchema(ClobTradeSchema);
 
 export type ClobTradesPage = z.infer<typeof ClobTradesPageSchema>;
 
