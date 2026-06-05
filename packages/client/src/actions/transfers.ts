@@ -7,7 +7,11 @@ import type { BaseSecureClient } from '../clients';
 import {
   CancelledSigningError,
   makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
@@ -107,12 +111,20 @@ export async function prepareErc20Transfer(
 }
 
 export type TransferErc20Error =
-  | PrepareErc20TransferError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const TransferErc20Error = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 

@@ -175,8 +175,19 @@ export type RedeemPositionsWorkflow = AsyncGenerator<
   EvmAddress | EvmSignature | TransactionHandle
 >;
 
-export type PrepareSplitPositionError = UserInputError;
-export const PrepareSplitPositionError = makeErrorGuard(UserInputError);
+export type PrepareSplitPositionError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const PrepareSplitPositionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 export type PrepareSplitMarketPositionError = PrepareSplitPositionError;
 export const PrepareSplitMarketPositionError = PrepareSplitPositionError;
 export type PrepareSplitComboPositionError = PrepareSplitPositionError;
@@ -972,7 +983,11 @@ export async function prepareRedeemPositions(
 }
 
 export type RedeemPositionsError =
-  | PrepareRedeemPositionsError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const RedeemPositionsError = makeErrorGuard(

@@ -289,6 +289,14 @@ export const DateLikeToIsoDateTimeStringSchema = z.union([
   ),
   DateLikeStringToIsoDateTimeStringSchema,
 ]);
+export const EpochLikeToIsoDateTimeStringSchema = z.union([
+  EpochMillisecondsLikeSchema.transform((value) =>
+    toIsoDateTimeString(
+      new Date(value < 1_000_000_000_000 ? value * 1000 : value).toISOString(),
+    ),
+  ),
+  DateLikeStringToIsoDateTimeStringSchema,
+]);
 export const OptionalDateLikeToIsoDateTimeStringSchema = z.union([
   EpochMillisecondsLikeSchema.transform((value) =>
     value === 0

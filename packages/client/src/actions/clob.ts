@@ -410,7 +410,17 @@ export async function fetchBuilderFeeRates(
   return unwrap(
     client.clob
       .get(`/fees/builder-fees/${params.builderCode}`)
-      .andThen(validateWith(FetchBuilderFeeRatesResponseSchema)),
+      .andThen(validateWith(FetchBuilderFeeRatesResponseSchema))
+      .mapErr((error) => {
+        if (error instanceof RequestRejectedError && error.status === 404) {
+          return new UserInputError(
+            `Unknown builder code: ${params.builderCode}`,
+            { cause: error },
+          );
+        }
+
+        return error;
+      }),
   );
 }
 
