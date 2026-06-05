@@ -170,20 +170,39 @@ export type SecureWalletActions = {
     request: PrepareMergePositionsRequest,
   ): Promise<TransactionHandle>;
   /**
-   * Redeems resolved market positions.
+   * Redeems resolved market or combo positions.
    *
    * @throws {@link RedeemPositionsError}
    * Thrown on failure.
    *
    * @example
    * ```ts
+   * // Redeem a market by condition ID.
    * const handle = await client.redeemPositions({
    *   conditionId:
    *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
    * });
    *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
+   *
+   * @example Redeem a market by market ID.
+   * ```ts
    * const handle = await client.redeemPositions({
    *   marketId: '12345',
+   * });
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
+   *
+   * @example Redeem a combo by position ID.
+   * ```ts
+   * const handle = await client.redeemPositions({
+   *   positionId: '123',
    * });
    *
    * const outcome = await handle.wait();

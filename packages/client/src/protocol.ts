@@ -13,6 +13,12 @@ export type CanonicalComboLegs = Tagged<
   'CanonicalComboLegs'
 >;
 
+export type DecodedComboPositionId = {
+  conditionId: ConditionId;
+  outcomeIndex: 0 | 1;
+  positionId: bigint;
+};
+
 /**
  * Derives a combo condition ID from canonical combo legs.
  */
@@ -97,7 +103,38 @@ export function canonicalizeComboLegs(
   ) as unknown as CanonicalComboLegs;
 }
 
-function parsePositionId(positionId: string): bigint {
+/**
+ * Decodes a combo YES/NO position ID into its condition ID and outcome index.
+ *
+ * @throws {@link UserInputError}
+ * Thrown when the position ID is not a valid combo YES/NO position ID.
+ */
+export function decodeComboPositionId(
+  positionId: PositionId,
+): DecodedComboPositionId {
+  const value = parsePositionId(positionId);
+  const hex = value.toString(16).padStart(UINT256_BYTE_LENGTH * 2, '0');
+  const moduleId = BigInt(`0x${hex.slice(0, 2)}`);
+  const outcomeIndex = Number.parseInt(hex.slice(-2), 16);
+
+  if (moduleId !== COMBINATORIAL_MODULE_ID) {
+    throw new UserInputError(
+      'Combo position ID must use the combinatorial module',
+    );
+  }
+
+  if (outcomeIndex !== 0 && outcomeIndex !== 1) {
+    throw new UserInputError('Combo position ID must be a YES/NO position ID');
+  }
+
+  return {
+    conditionId: `0x${hex.slice(0, -2)}` as ConditionId,
+    outcomeIndex,
+    positionId: value,
+  };
+}
+
+function parsePositionId(positionId: PositionId): bigint {
   const value = positionId.trim();
   let parsed: bigint;
 

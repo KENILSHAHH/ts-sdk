@@ -17,8 +17,11 @@ import { z } from 'zod';
 import {
   combinatorialPrepareConditionCall,
   ctfRedeemPositionsCall,
+  decodeErc1155BalanceOfResult,
+  erc1155BalanceOfCall,
   mergePositionsCall,
   mergeV2Call,
+  redeemV2Call,
   splitPositionCall,
   splitV2Call,
 } from '../abis';
@@ -39,6 +42,7 @@ import { parseUserInput } from '../input';
 import {
   type CanonicalComboLegs,
   canonicalizeComboLegs,
+  decodeComboPositionId,
   deriveComboConditionId,
 } from '../protocol';
 import {
@@ -144,19 +148,6 @@ const PrepareSplitPositionRequestSchema = z.union([
   }),
 ]) satisfies z.ZodType<PrepareSplitPositionRequest>;
 
-const PrepareRedeemPositionsRequestSchema = z.union([
-  z.object({
-    conditionId: ConditionIdSchema,
-    marketId: z.never().optional(),
-    metadata: GaslessTransactionMetadataSchema.optional(),
-  }),
-  z.object({
-    conditionId: z.never().optional(),
-    marketId: z.string().min(1),
-    metadata: GaslessTransactionMetadataSchema.optional(),
-  }),
-]);
-
 export type SplitPositionWorkflowRequest =
   | GaslessWorkflowRequest
   | SendSplitPositionTransactionRequest;
@@ -185,10 +176,6 @@ export type RedeemPositionsWorkflow = AsyncGenerator<
   RedeemPositionsWorkflowRequest,
   TransactionHandle,
   EvmAddress | EvmSignature | TransactionHandle
->;
-
-export type PrepareRedeemPositionsRequest = z.input<
-  typeof PrepareRedeemPositionsRequestSchema
 >;
 
 export type PrepareSplitPositionError = UserInputError;
@@ -227,6 +214,10 @@ export const PrepareRedeemPositionsError = makeErrorGuard(
   UnexpectedResponseError,
   UserInputError,
 );
+export type PrepareRedeemMarketPositionsError = PrepareRedeemPositionsError;
+export const PrepareRedeemMarketPositionsError = PrepareRedeemPositionsError;
+export type PrepareRedeemComboPositionError = PrepareRedeemPositionsError;
+export const PrepareRedeemComboPositionError = PrepareRedeemPositionsError;
 
 /**
  * Starts a split workflow for a market condition.
@@ -722,14 +713,103 @@ export function mergePositions(
 }
 
 /**
- * Starts a redemption workflow for resolved positions.
+ * Parameters for preparing a market position redemption by condition ID.
+ */
+export type PrepareRedeemMarketPositionsByConditionIdRequest = {
+  /** Existing market condition ID that identifies the positions to redeem. */
+  conditionId: string | ConditionId;
+  marketId?: never;
+  amount?: never;
+  positionId?: never;
+  /** Optional transaction metadata for workflows that support metadata. */
+  metadata?: string;
+};
+
+/**
+ * Parameters for preparing a market position redemption by market ID.
+ */
+export type PrepareRedeemMarketPositionsByMarketIdRequest = {
+  conditionId?: never;
+  /** Existing market ID that identifies the positions to redeem. */
+  marketId: string;
+  amount?: never;
+  positionId?: never;
+  /** Optional transaction metadata for workflows that support metadata. */
+  metadata?: string;
+};
+
+/**
+ * Parameters for preparing a combo position redemption.
+ */
+export type PrepareRedeemComboPositionRequest = {
+  /** Protocol v2 combo YES/NO position ID to redeem. */
+  positionId: string | PositionId;
+  conditionId?: never;
+  marketId?: never;
+  /** Optional transaction metadata for workflows that support metadata. */
+  metadata?: string;
+};
+
+/**
+ * Parameters for preparing either supported position redemption workflow.
+ *
+ * @remarks
+ * Provide either a market `conditionId` or `marketId`, or a combo `positionId`.
+ */
+export type PrepareRedeemPositionsRequest =
+  | PrepareRedeemMarketPositionsByConditionIdRequest
+  | PrepareRedeemMarketPositionsByMarketIdRequest
+  | PrepareRedeemComboPositionRequest;
+
+export type PrepareRedeemMarketPositionsRequest = Extract<
+  PrepareRedeemPositionsRequest,
+  | PrepareRedeemMarketPositionsByConditionIdRequest
+  | PrepareRedeemMarketPositionsByMarketIdRequest
+>;
+
+const PrepareRedeemMarketPositionsByConditionIdRequestSchema = z.object({
+  conditionId: ConditionIdSchema,
+  marketId: z.never().optional(),
+  amount: z.never().optional(),
+  positionId: z.never().optional(),
+  metadata: GaslessTransactionMetadataSchema.optional(),
+}) satisfies z.ZodType<PrepareRedeemMarketPositionsByConditionIdRequest>;
+
+const PrepareRedeemMarketPositionsByMarketIdRequestSchema = z.object({
+  conditionId: z.never().optional(),
+  marketId: z.string().min(1),
+  amount: z.never().optional(),
+  positionId: z.never().optional(),
+  metadata: GaslessTransactionMetadataSchema.optional(),
+}) satisfies z.ZodType<PrepareRedeemMarketPositionsByMarketIdRequest>;
+
+const PrepareRedeemMarketPositionsRequestSchema = z.union([
+  PrepareRedeemMarketPositionsByConditionIdRequestSchema,
+  PrepareRedeemMarketPositionsByMarketIdRequestSchema,
+]) satisfies z.ZodType<PrepareRedeemMarketPositionsRequest>;
+
+const PrepareRedeemComboPositionRequestSchema = z.object({
+  positionId: PositionIdSchema,
+  conditionId: z.never().optional(),
+  marketId: z.never().optional(),
+  metadata: GaslessTransactionMetadataSchema.optional(),
+}) satisfies z.ZodType<PrepareRedeemComboPositionRequest>;
+
+const PrepareRedeemPositionsRequestSchema = z.union([
+  PrepareRedeemMarketPositionsByConditionIdRequestSchema,
+  PrepareRedeemMarketPositionsByMarketIdRequestSchema,
+  PrepareRedeemComboPositionRequestSchema,
+]) satisfies z.ZodType<PrepareRedeemPositionsRequest>;
+
+/**
+ * Starts a redemption workflow for resolved market positions.
  *
  * @remarks
  * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
- * const workflow = await prepareRedeemPositions(client, {
+ * const workflow = await prepareRedeemMarketPositions(client, {
  *   conditionId:
  *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
  * });
@@ -737,19 +817,22 @@ export function mergePositions(
  *
  * @example
  * ```ts
- * const workflow = await prepareRedeemPositions(client, {
+ * const workflow = await prepareRedeemMarketPositions(client, {
  *   marketId: '12345',
  * });
  * ```
  *
- * @throws {@link PrepareRedeemPositionsError}
+ * @throws {@link PrepareRedeemMarketPositionsError}
  * Thrown on failure.
  */
-export async function prepareRedeemPositions(
+export async function prepareRedeemMarketPositions(
   client: BaseSecureClient,
-  request: PrepareRedeemPositionsRequest,
+  request: PrepareRedeemMarketPositionsRequest,
 ): Promise<RedeemPositionsWorkflow> {
-  const params = parseUserInput(request, PrepareRedeemPositionsRequestSchema);
+  const params = parseUserInput(
+    request,
+    PrepareRedeemMarketPositionsRequestSchema,
+  );
   const positions = await listPositions(client, {
     user: client.account.wallet,
     market: [params.conditionId ?? params.marketId],
@@ -783,6 +866,90 @@ export async function prepareRedeemPositions(
   }.call(null);
 }
 
+/**
+ * Starts a redemption workflow for a resolved combo position.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
+ * @example
+ * ```ts
+ * const workflow = await prepareRedeemComboPosition(client, {
+ *   positionId: '123',
+ * });
+ * ```
+ *
+ * @throws {@link PrepareRedeemComboPositionError}
+ * Thrown on failure.
+ */
+export async function prepareRedeemComboPosition(
+  client: BaseSecureClient,
+  request: PrepareRedeemComboPositionRequest,
+): Promise<RedeemPositionsWorkflow> {
+  const params = parseUserInput(
+    request,
+    PrepareRedeemComboPositionRequestSchema,
+  );
+  const decoded = decodeComboPositionId(params.positionId);
+  const balance = decodeErc1155BalanceOfResult(
+    await client.rpc.ethCall(
+      erc1155BalanceOfCall(
+        client.environment.positionManager,
+        client.account.wallet,
+        decoded.positionId,
+      ),
+    ),
+  );
+
+  if (balance === 0n) {
+    throw new UserInputError('Combo position has no balance to redeem');
+  }
+
+  const call = redeemV2Call(
+    client.environment.protocolV2Router,
+    decoded.conditionId,
+    decoded.outcomeIndex,
+    balance,
+  );
+
+  return async function* (): RedeemPositionsWorkflow {
+    if (client.account.walletType === WalletType.EOA) {
+      return expectTransactionHandle(
+        yield sendRedeemPositionsTransaction(
+          signerTransactionRequest(client.environment.chainId, call),
+        ),
+      );
+    }
+
+    return yield* await prepareGaslessTransaction(client, {
+      calls: [call],
+      metadata: params.metadata ?? `Redeem combo position ${params.positionId}`,
+    });
+  }.call(null);
+}
+
+/**
+ * Starts a redemption workflow for resolved market or combo positions.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
+ * @throws {@link PrepareRedeemPositionsError}
+ * Thrown on failure.
+ */
+export async function prepareRedeemPositions(
+  client: BaseSecureClient,
+  request: PrepareRedeemPositionsRequest,
+): Promise<RedeemPositionsWorkflow> {
+  const params = parseUserInput(request, PrepareRedeemPositionsRequestSchema);
+
+  if (params.positionId !== undefined) {
+    return prepareRedeemComboPosition(client, params);
+  }
+
+  return prepareRedeemMarketPositions(client, params);
+}
+
 export type RedeemPositionsError =
   | PrepareRedeemPositionsError
   | CancelledSigningError
@@ -798,7 +965,7 @@ export const RedeemPositionsError = makeErrorGuard(
 );
 
 /**
- * Redeems resolved market positions.
+ * Redeems resolved market or combo positions.
  *
  * @remarks
  * This is a low-level function. Most SDK consumers should prefer the client instance API.

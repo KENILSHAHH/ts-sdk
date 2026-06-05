@@ -25,6 +25,9 @@ const ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION = AbiFunction.from(
 const ERC1155_IS_APPROVED_FOR_ALL_FUNCTION = AbiFunction.from(
   'function isApprovedForAll(address account, address operator) view returns (bool)',
 );
+const ERC1155_BALANCE_OF_FUNCTION = AbiFunction.from(
+  'function balanceOf(address account, uint256 id) view returns (uint256)',
+);
 const CTF_SPLIT_POSITION_FUNCTION = AbiFunction.from(
   'function splitPosition(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount)',
 );
@@ -133,6 +136,26 @@ export function erc1155IsApprovedForAllCall(
 /** @internal */
 export function decodeErc1155IsApprovedForAllResult(data: HexString): boolean {
   return AbiFunction.decodeResult(ERC1155_IS_APPROVED_FOR_ALL_FUNCTION, data);
+}
+
+/** @internal */
+export function erc1155BalanceOfCall(
+  tokenAddress: EvmAddress,
+  owner: EvmAddress,
+  positionId: bigint,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ERC1155_BALANCE_OF_FUNCTION, [
+      owner,
+      expectUint256(positionId, 'Position ID'),
+    ]),
+    to: tokenAddress,
+  };
+}
+
+/** @internal */
+export function decodeErc1155BalanceOfResult(data: HexString): bigint {
+  return AbiFunction.decodeResult(ERC1155_BALANCE_OF_FUNCTION, data);
 }
 
 export type Erc20TransferCallError = UserInputError;

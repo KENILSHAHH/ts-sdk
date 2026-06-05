@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type CanonicalComboLegs,
   canonicalizeComboLegs,
+  decodeComboPositionId,
   deriveComboConditionId,
 } from './protocol';
 
@@ -40,6 +41,30 @@ describe('Protocol helpers', () => {
       expect(deriveComboConditionId(legs)).toBe(CONDITION_ID);
     });
   });
+
+  describe('decodeComboPositionId', () => {
+    it('decodes a combo position ID into a condition ID and outcome index', () => {
+      const positionId = comboPosition(CONDITION_ID, 1);
+
+      expect(decodeComboPositionId(positionId)).toEqual({
+        conditionId: CONDITION_ID,
+        outcomeIndex: 1,
+        positionId: BigInt(positionId),
+      });
+    });
+
+    it('rejects non-combo position IDs', () => {
+      expect(() => decodeComboPositionId(legPosition(1, 0))).toThrow(
+        /combinatorial module/,
+      );
+    });
+
+    it('rejects combo position IDs with non-binary outcomes', () => {
+      expect(() =>
+        decodeComboPositionId(comboPosition(CONDITION_ID, 2)),
+      ).toThrow(/YES\/NO/);
+    });
+  });
 });
 
 function legPosition(marker: number, outcome: number): PositionId {
@@ -53,4 +78,12 @@ function legPosition(marker: number, outcome: number): PositionId {
       `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`,
     ).toString(),
   );
+}
+
+function comboPosition(conditionId: string, outcome: number): PositionId {
+  return toPositionId(BigInt(`${conditionId}${byteHex(outcome)}`).toString());
+}
+
+function byteHex(value: number): string {
+  return value.toString(16).padStart(2, '0');
 }
