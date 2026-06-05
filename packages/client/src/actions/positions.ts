@@ -120,8 +120,19 @@ export type PrepareRedeemPositionsRequest = z.input<
   typeof PrepareRedeemPositionsRequestSchema
 >;
 
-export type PrepareSplitPositionError = UserInputError;
-export const PrepareSplitPositionError = makeErrorGuard(UserInputError);
+export type PrepareSplitPositionError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const PrepareSplitPositionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
 export type PrepareMergePositionsError =
   | RateLimitError
   | RequestRejectedError
@@ -202,12 +213,20 @@ export async function prepareSplitPosition(
 }
 
 export type SplitPositionError =
-  | PrepareSplitPositionError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const SplitPositionError = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
@@ -288,7 +307,11 @@ export async function prepareMergePositions(
 }
 
 export type MergePositionsError =
-  | PrepareMergePositionsError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const MergePositionsError = makeErrorGuard(
@@ -382,7 +405,11 @@ export async function prepareRedeemPositions(
 }
 
 export type RedeemPositionsError =
-  | PrepareRedeemPositionsError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const RedeemPositionsError = makeErrorGuard(

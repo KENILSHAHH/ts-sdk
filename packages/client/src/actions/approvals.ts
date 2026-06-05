@@ -120,12 +120,20 @@ export async function prepareErc20Approval(
 }
 
 export type ApproveErc20Error =
-  | PrepareErc20ApprovalError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const ApproveErc20Error = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
@@ -229,12 +237,20 @@ export async function prepareErc1155ApprovalForAll(
 }
 
 export type ApproveErc1155ForAllError =
-  | PrepareErc1155ApprovalForAllError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const ApproveErc1155ForAllError = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
