@@ -4,13 +4,13 @@ import {
   ConditionIdSchema,
   DecimalishSchema,
   DecimalStringSchema,
+  EpochLikeToIsoDateTimeStringSchema,
   EpochMillisecondsSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   EvmAddressSchema,
   NotificationIdSchema,
   OptionalEpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
-  toIsoDateTimeString,
 } from '../shared';
 
 function createCursorPageSchema<TItem extends z.ZodTypeAny>(item: TItem) {
@@ -120,30 +120,17 @@ export const MakerOrderSchema = z
     }),
   );
 
-const ClobTradeTimestampSchema = z.union([
-  z
-    .union([z.number().int(), z.string().regex(/^\d+$/).transform(Number)])
-    .transform((value) =>
-      toIsoDateTimeString(
-        new Date(
-          value < 1_000_000_000_000 ? value * 1000 : value,
-        ).toISOString(),
-      ),
-    ),
-  z.string().transform(toIsoDateTimeString),
-]);
-
 export const ClobTradeSchema = z
   .object({
     asset_id: TokenIdSchema,
     bucket_index: z.number(),
     fee_rate_bps: DecimalStringSchema,
     id: z.string(),
-    last_update: ClobTradeTimestampSchema,
+    last_update: EpochLikeToIsoDateTimeStringSchema,
     maker_address: z.string(),
     maker_orders: z.array(MakerOrderSchema),
     market: z.string(),
-    match_time: ClobTradeTimestampSchema,
+    match_time: EpochLikeToIsoDateTimeStringSchema,
     outcome: z.string(),
     owner: z.string(),
     price: DecimalStringSchema,
