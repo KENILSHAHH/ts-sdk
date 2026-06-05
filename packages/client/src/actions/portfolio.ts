@@ -1,8 +1,11 @@
 import { PaginationCursorSchema } from '@polymarket/bindings';
 import {
   type ClosedPosition,
+  type ComboPosition,
+  ComboPositionStatusSchema,
   FetchPortfolioValueResponseSchema,
   ListClosedPositionsResponseSchema,
+  ListComboPositionsResponseSchema,
   ListPositionsResponseSchema,
   type Position,
   type Traded,
@@ -29,7 +32,9 @@ import {
   paginate,
 } from '../pagination';
 import { readBlob, validateWith } from '../response';
-import { toDataSearchParams } from './params';
+import { snakeCase, toDataSearchParams, toSearchParams } from './params';
+
+export { ComboPositionStatus } from '@polymarket/bindings/data';
 
 const PositionSortBySchema = z.enum([
   'CURRENT',
@@ -88,6 +93,15 @@ const ListClosedPositionsRequestSchema = z
     path: ['eventId'],
   });
 
+const ListComboPositionsRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
+  user: z.string(),
+  pageSize: PageSizeSchema.default(20),
+  status: ComboPositionStatusSchema.optional(),
+  conditionId: z.string().optional(),
+  positionId: z.string().optional(),
+});
+
 const FetchPortfolioValueRequestSchema = z.object({
   user: z.string(),
   market: z.array(z.string()).optional(),
@@ -104,6 +118,9 @@ const DownloadAccountingSnapshotRequestSchema = z.object({
 export type ListPositionsRequest = z.input<typeof ListPositionsRequestSchema>;
 export type ListClosedPositionsRequest = z.input<
   typeof ListClosedPositionsRequestSchema
+>;
+export type ListComboPositionsRequest = z.input<
+  typeof ListComboPositionsRequestSchema
 >;
 export type FetchPortfolioValueRequest = z.input<
   typeof FetchPortfolioValueRequestSchema
@@ -219,6 +236,20 @@ export const ListClosedPositionsError = makeErrorGuard(
   UserInputError,
 );
 
+export type ListComboPositionsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const ListComboPositionsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
 /**
  * Lists closed positions for a wallet.
  *
@@ -283,6 +314,84 @@ export function listClosedPositions(
 
         return {
           items: positions.slice(0, decoded.pageSize),
+          hasMore,
+          nextCursor: hasMore
+            ? encodeOffsetCursor({
+                offset: decoded.offset + decoded.pageSize,
+                pageSize: decoded.pageSize,
+              })
+            : undefined,
+        };
+      });
+  }, cursor);
+}
+
+/**
+ * Lists combo positions for a wallet.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
+ * @throws {@link ListComboPositionsError}
+ * Thrown on failure.
+ *
+ * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listComboPositions(client, {
+ *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+ *   pageSize: 10,
+ * });
+ *
+ * const firstPage = await result.firstPage();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: ComboPosition[]
+ * }
+ * ```
+ *
+ * @example
+ * Filter to open combo positions:
+ * ```ts
+ * const result = listComboPositions(client, {
+ *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+ *   status: ComboPositionStatus.Open,
+ * });
+ * ```
+ */
+export function listComboPositions(
+  client: BaseClient,
+  request: ListComboPositionsRequest,
+): Paginated<ComboPosition[]> {
+  const { cursor, pageSize, ...params } = parseUserInput(
+    request,
+    ListComboPositionsRequestSchema,
+  );
+
+  return paginate((cursor) => {
+    const decoded = decodeOffsetCursor(cursor, pageSize);
+
+    return client.data
+      .get('/v1/positions/combos', {
+        params: toSearchParams(
+          {
+            ...params,
+            limit: decoded.pageSize + 1,
+            offset: decoded.offset,
+          },
+          snakeCase({
+            conditionId: 'combo_condition_id',
+            positionId: 'combo_position_id',
+          }),
+        ),
+      })
+      .andThen(validateWith(ListComboPositionsResponseSchema))
+      .map((response) => {
+        const hasMore = response.combos.length > decoded.pageSize;
+
+        return {
+          items: response.combos.slice(0, decoded.pageSize),
           hasMore,
           nextCursor: hasMore
             ? encodeOffsetCursor({

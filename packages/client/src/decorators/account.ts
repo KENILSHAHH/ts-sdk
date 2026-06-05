@@ -5,6 +5,7 @@ import type {
 import type {
   Activity,
   ClosedPosition,
+  ComboPosition,
   MetaMarketPosition,
   Position,
   Traded,
@@ -25,11 +26,13 @@ import {
   type ListAccountTradesRequest,
   type ListActivityRequest,
   type ListClosedPositionsRequest,
+  type ListComboPositionsRequest,
   type ListMarketPositionsRequest,
   type ListPositionsRequest,
   listAccountTrades,
   listActivity,
   listClosedPositions,
+  listComboPositions,
   listMarketPositions,
   listPositions,
 } from '../actions';
@@ -55,6 +58,8 @@ export type SecureListPositionsRequest =
   DefaultAccountWallet<ListPositionsRequest>;
 export type SecureListClosedPositionsRequest =
   DefaultAccountWallet<ListClosedPositionsRequest>;
+export type SecureListComboPositionsRequest =
+  DefaultAccountWallet<ListComboPositionsRequest>;
 export type SecureFetchPortfolioValueRequest =
   DefaultAccountWallet<FetchPortfolioValueRequest>;
 export type SecureFetchTradedMarketCountRequest =
@@ -182,6 +187,26 @@ export type PublicAccountActions = Prettify<
       request: ListClosedPositionsRequest,
     ): Paginated<ClosedPosition[]>;
     /**
+     * Lists combo positions for a wallet.
+     *
+     * @throws {@link ListComboPositionsError}
+     * Thrown on failure.
+     *
+     * @example
+     * Fetch the first page of results:
+     * ```ts
+     * const paginator = client.listComboPositions({
+     *   user: '0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b',
+     *   pageSize: 10,
+     * });
+     *
+     * const firstPage = await paginator.firstPage();
+     * ```
+     */
+    listComboPositions(
+      request: ListComboPositionsRequest,
+    ): Paginated<ComboPosition[]>;
+    /**
      * Fetches the total value for a wallet's positions.
      *
      * @throws {@link FetchPortfolioValueError}
@@ -298,6 +323,17 @@ export type SecureAccountActions = Prettify<
     listClosedPositions(
       request?: SecureListClosedPositionsRequest,
     ): Paginated<ClosedPosition[]>;
+    /**
+     * Lists combo positions for a wallet.
+     *
+     * Defaults to the authenticated account's wallet when `user` is omitted.
+     *
+     * @throws {@link ListComboPositionsError}
+     * Thrown on failure.
+     */
+    listComboPositions(
+      request?: SecureListComboPositionsRequest,
+    ): Paginated<ComboPosition[]>;
     /**
      * Fetches the total value for a wallet's positions.
      *
@@ -421,6 +457,7 @@ function publicAccountActions(client: BaseClient): PublicAccountActions {
   return {
     listPositions: listPositions.bind(null, client),
     listClosedPositions: listClosedPositions.bind(null, client),
+    listComboPositions: listComboPositions.bind(null, client),
     fetchPortfolioValue: fetchPortfolioValue.bind(null, client),
     fetchTradedMarketCount: fetchTradedMarketCount.bind(null, client),
     downloadAccountingSnapshot: downloadAccountingSnapshot.bind(null, client),
@@ -456,6 +493,8 @@ export function accountActions(
       listPositions(client, withAccountWallet(client, request)),
     listClosedPositions: (request?: SecureListClosedPositionsRequest) =>
       listClosedPositions(client, withAccountWallet(client, request)),
+    listComboPositions: (request?: SecureListComboPositionsRequest) =>
+      listComboPositions(client, withAccountWallet(client, request)),
     fetchPortfolioValue: (request?: SecureFetchPortfolioValueRequest) =>
       fetchPortfolioValue(client, withAccountWallet(client, request)),
     fetchTradedMarketCount: (request?: SecureFetchTradedMarketCountRequest) =>
@@ -485,6 +524,8 @@ export {
   ListAccountTradesError,
   ListActivityError,
   ListClosedPositionsError,
+  ListComboPositionsError,
   ListMarketPositionsError,
   ListPositionsError,
 } from '../actions';
+export { ComboPositionStatus } from '../actions/portfolio';

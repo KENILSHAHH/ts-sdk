@@ -118,7 +118,13 @@ export function toCommentId(value: string): CommentId {
 }
 
 export function toConditionId(value: string): ConditionId {
-  return to32ByteHexString(value) as ConditionId;
+  if (!isHexString(value) || (value.length !== 64 && value.length !== 66)) {
+    throw new TypeError(
+      `Expected a 31-byte or 32-byte hex string, received: ${value}`,
+    );
+  }
+
+  return value as ConditionId;
 }
 
 export function toCollectionId(value: string): CollectionId {

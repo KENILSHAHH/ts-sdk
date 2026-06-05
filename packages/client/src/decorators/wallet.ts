@@ -102,12 +102,12 @@ export type SecureWalletActions = {
     request: PrepareErc20TransferRequest,
   ): Promise<TransactionHandle>;
   /**
-   * Splits collateral into market positions.
+   * Splits collateral into market or combo positions.
    *
    * @throws {@link SplitPositionError}
    * Thrown on failure.
    *
-   * @example
+   * @example Split a market by condition ID.
    * ```ts
    * const handle = await client.splitPosition({
    *   amount: 1n,
@@ -119,17 +119,29 @@ export type SecureWalletActions = {
    *
    * // outcome.transactionHash: TxHash
    * ```
+   *
+   * @example Split a combo by legs.
+   * ```ts
+   * const handle = await client.splitPosition({
+   *   amount: 1n,
+   *   legs: ['123', '456'],
+   * });
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
    */
   splitPosition(
     request: PrepareSplitPositionRequest,
   ): Promise<TransactionHandle>;
   /**
-   * Merges complementary market positions back into collateral.
+   * Merges complementary market or combo positions back into collateral.
    *
    * @throws {@link MergePositionsError}
    * Thrown on failure.
    *
-   * @example
+   * @example Merge a market by condition ID.
    * ```ts
    * const handle = await client.mergePositions({
    *   amount: 'max',
@@ -141,25 +153,56 @@ export type SecureWalletActions = {
    *
    * // outcome.transactionHash: TxHash
    * ```
+   *
+   * @example Merge a combo by legs.
+   * ```ts
+   * const handle = await client.mergePositions({
+   *   amount: 'max',
+   *   legs: ['123', '456'],
+   * });
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
    */
   mergePositions(
     request: PrepareMergePositionsRequest,
   ): Promise<TransactionHandle>;
   /**
-   * Redeems resolved market positions.
+   * Redeems resolved market or combo positions.
    *
    * @throws {@link RedeemPositionsError}
    * Thrown on failure.
    *
    * @example
    * ```ts
+   * // Redeem a market by condition ID.
    * const handle = await client.redeemPositions({
    *   conditionId:
    *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
    * });
    *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
+   *
+   * @example Redeem a market by market ID.
+   * ```ts
    * const handle = await client.redeemPositions({
    *   marketId: '12345',
+   * });
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
+   *
+   * @example Redeem a combo by position ID.
+   * ```ts
+   * const handle = await client.redeemPositions({
+   *   positionId: '123',
    * });
    *
    * const outcome = await handle.wait();
