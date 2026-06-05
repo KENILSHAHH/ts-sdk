@@ -102,12 +102,12 @@ export type SecureWalletActions = {
     request: PrepareErc20TransferRequest,
   ): Promise<TransactionHandle>;
   /**
-   * Splits collateral into market positions.
+   * Splits collateral into market or combo positions.
    *
    * @throws {@link SplitPositionError}
    * Thrown on failure.
    *
-   * @example
+   * @example Split a market by condition ID.
    * ```ts
    * const handle = await client.splitPosition({
    *   amount: 1n,
@@ -119,22 +119,46 @@ export type SecureWalletActions = {
    *
    * // outcome.transactionHash: TxHash
    * ```
+   *
+   * @example Split a combo by legs.
+   * ```ts
+   * const handle = await client.splitPosition({
+   *   amount: 1n,
+   *   legs: ['123', '456'],
+   * });
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
    */
   splitPosition(
     request: PrepareSplitPositionRequest,
   ): Promise<TransactionHandle>;
   /**
-   * Merges complementary market positions back into collateral.
+   * Merges complementary market or combo positions back into collateral.
    *
    * @throws {@link MergePositionsError}
    * Thrown on failure.
    *
-   * @example
+   * @example Merge a market by condition ID.
    * ```ts
    * const handle = await client.mergePositions({
    *   amount: 'max',
    *   conditionId:
    *     '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+   * });
+   *
+   * const outcome = await handle.wait();
+   *
+   * // outcome.transactionHash: TxHash
+   * ```
+   *
+   * @example Merge a combo by legs.
+   * ```ts
+   * const handle = await client.mergePositions({
+   *   amount: 1n,
+   *   legs: ['123', '456'],
    * });
    *
    * const outcome = await handle.wait();
