@@ -66,7 +66,6 @@ import {
   GaslessTransactionMetadataSchema,
   type GaslessWorkflowRequest,
   prepareGaslessTransaction,
-  type WaitForGaslessTransactionError,
 } from './gasless';
 import { listMarkets } from './markets';
 
@@ -355,10 +354,15 @@ export async function prepareSplitPosition(
 }
 
 export type SplitPositionError =
-  | PrepareSplitPositionError
   | CancelledSigningError
+  | RateLimitError
+  | RequestRejectedError
   | SigningError
-  | WaitForGaslessTransactionError;
+  | TimeoutError
+  | TransactionFailedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
 export const SplitPositionError = makeErrorGuard(
   CancelledSigningError,
   RateLimitError,
