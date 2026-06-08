@@ -8,8 +8,36 @@
     "@polymarket/examples-react": "0.0.0"
   },
   "changesets": [
+    "blue-badgers-attend",
+    "brave-lobsters-deploy",
+    "calm-pugs-approve",
+    "clever-books-cheer",
+    "combo-redeem-position-id",
+    "combo-split-merge-legs",
     "dark-yaks-rest",
+    "dev-166-builder-fee-404",
+    "dev-168-market-event-url",
+    "dev-169-listevents-open-default",
+    "dev-206-gasless-wallet-errors",
+    "fifty-lands-talk",
+    "fix-gtd-expiration-boundary",
+    "fuzzy-hornets-report",
+    "harden-rfq-invalid-frames",
+    "lazy-trades-fix",
+    "lemon-pumas-cheer",
+    "list-combo-positions",
+    "low-level-action-helpers",
+    "node-24-engines",
+    "protocol-v2-approvals",
     "public-beta-release",
-    "wide-houses-type"
+    "public-runner-integration-tests",
+    "remove-live-approval-revocation-test",
+    "rfq-close-reconnect",
+    "rfq-quoter-ws-url",
+    "rfq-uncorrelated-errors",
+    "ripe-suits-hammer",
+    "sparse-activity-icons",
+    "wide-houses-type",
+    "zero-nonce-auth"
   ]
 }
