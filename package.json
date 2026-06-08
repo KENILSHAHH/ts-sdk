@@ -16,7 +16,6 @@
     "build": "pnpm -r --sort --if-present run build",
     "changeset": "changeset",
     "clean": "rimraf packages/*/dist",
-    "dev:react": "pnpm --filter @polymarket/examples-react dev",
     "release": "pnpm build && changeset publish --no-git-tag",
     "release:canary": "changeset publish --tag canary --no-git-tag",
     "test:bindings": "vitest --project bindings --passWithNoTests",
