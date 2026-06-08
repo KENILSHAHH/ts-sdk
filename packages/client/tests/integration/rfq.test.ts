@@ -901,6 +901,7 @@ describe('RFQ sessions', () => {
             if (frame.type === 'RFQ_QUOTE') {
               quoteAmounts(frame);
               socket.send(malformedQuoteAckMessage());
+              socket.send(quoteRequestMessage());
             }
           });
         }),
@@ -913,18 +914,29 @@ describe('RFQ sessions', () => {
       const session = await secureClientWithDepositWallet.openRfqSession();
 
       try {
-        const iterator = session[Symbol.asyncIterator]();
-        const next = await iterator.next();
+        let quoteError: unknown;
+        let eventsAfterFailure = 0;
 
-        if (next.done === true || next.value.type !== 'quote_request') {
-          throw new Error('Expected RFQ quote request.');
+        for await (const event of session) {
+          if (quoteError !== undefined) {
+            eventsAfterFailure += 1;
+            continue;
+          }
+
+          if (event.type !== 'quote_request') continue;
+
+          try {
+            await event.quote({ price: 0.45 });
+          } catch (error) {
+            quoteError = error;
+          }
         }
 
-        await expect(next.value.quote({ price: 0.45 })).rejects.toMatchObject({
+        expect(quoteError).toMatchObject({
           message: 'Invalid RFQ quoter message.',
           name: 'TransportError',
         });
-        await expect(iterator.next()).resolves.toMatchObject({ done: true });
+        expect(eventsAfterFailure).toBe(0);
       } finally {
         await secureClientWithDepositWallet.closeSubscriptions();
       }
