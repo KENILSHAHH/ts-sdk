@@ -808,235 +808,247 @@ describe('RFQ sessions', () => {
   });
 
   describe('when the server sends uncorrelated RFQ errors', () => {
-    it('fails the session for quote errors missing the RFQ ID', async ({
-      secureClientWithDepositWallet,
-    }) => {
-      server.resetHandlers();
-      server.use(
-        rfq.addEventListener('connection', ({ client: socket }) => {
-          socket.addEventListener('message', (event) => {
-            const frame = recordOutboundFrame(event.data, outboundFrames);
+    describe('when a quote error is missing the RFQ ID', () => {
+      beforeEach(() => {
+        server.resetHandlers();
+        server.use(
+          rfq.addEventListener('connection', ({ client: socket }) => {
+            socket.addEventListener('message', (event) => {
+              const frame = recordOutboundFrame(event.data, outboundFrames);
 
-            if (frame.type === 'auth') {
-              socket.send(authAckMessage());
-              socket.send(quoteRequestMessage());
-              return;
+              if (frame.type === 'auth') {
+                socket.send(authAckMessage());
+                socket.send(quoteRequestMessage());
+                return;
+              }
+
+              if (frame.type === 'RFQ_QUOTE') {
+                quoteAmounts(frame);
+                socket.send(
+                  rfqErrorMessage({
+                    code: 'INVALID_QUOTE',
+                    error: 'missing quote correlation',
+                    requestType: 'RFQ_QUOTE',
+                  }),
+                );
+              }
+            });
+          }),
+        );
+      });
+
+      it('fails the session', async ({ secureClientWithDepositWallet }) => {
+        const session = await secureClientWithDepositWallet.openRfqSession();
+
+        try {
+          let quoteError: unknown;
+
+          for await (const event of session) {
+            if (event.type !== 'quote_request') continue;
+
+            try {
+              await event.quote({ price: 0.45 });
+            } catch (error) {
+              quoteError = error;
             }
+          }
 
-            if (frame.type === 'RFQ_QUOTE') {
-              quoteAmounts(frame);
-              socket.send(
-                rfqErrorMessage({
-                  code: 'INVALID_QUOTE',
-                  error: 'missing quote correlation',
-                  requestType: 'RFQ_QUOTE',
-                }),
-              );
-            }
-          });
-        }),
-      );
-
-      const session = await secureClientWithDepositWallet.openRfqSession();
-
-      try {
-        const iterator = session[Symbol.asyncIterator]();
-        const next = await iterator.next();
-
-        if (next.done === true || next.value.type !== 'quote_request') {
-          throw new Error('Expected RFQ quote request.');
-        }
-
-        await expect(next.value.quote({ price: 0.45 })).rejects.toMatchObject({
-          message: 'Uncorrelated RFQ quoter error.',
-          name: 'TransportError',
-        });
-        await expect(iterator.next()).resolves.toMatchObject({ done: true });
-      } finally {
-        await secureClientWithDepositWallet.closeSubscriptions();
-      }
-    });
-
-    it('fails the session for cancellation errors missing the quote ID', async ({
-      secureClientWithDepositWallet,
-    }) => {
-      server.resetHandlers();
-      server.use(
-        rfq.addEventListener('connection', ({ client: socket }) => {
-          socket.addEventListener('message', (event) => {
-            const frame = recordOutboundFrame(event.data, outboundFrames);
-
-            if (frame.type === 'auth') {
-              socket.send(authAckMessage());
-              socket.send(quoteRequestMessage());
-              return;
-            }
-
-            if (frame.type === 'RFQ_QUOTE') {
-              quoteAmounts(frame);
-              socket.send(quoteAckMessage());
-              return;
-            }
-
-            if (frame.type === 'RFQ_QUOTE_CANCEL') {
-              socket.send(
-                rfqErrorMessage({
-                  code: 'INVALID_RFQ_STATE',
-                  error: 'missing cancellation correlation',
-                  requestType: 'RFQ_QUOTE_CANCEL',
-                  rfqId: RFQ_ID,
-                }),
-              );
-            }
-          });
-        }),
-      );
-
-      const session = await secureClientWithDepositWallet.openRfqSession();
-
-      try {
-        const iterator = session[Symbol.asyncIterator]();
-        const next = await iterator.next();
-
-        if (next.done === true || next.value.type !== 'quote_request') {
-          throw new Error('Expected RFQ quote request.');
-        }
-
-        const quote = await next.value.quote({ price: 0.45 });
-
-        await expect(session.cancelQuote(quote)).rejects.toMatchObject({
-          message: 'Uncorrelated RFQ quoter error.',
-          name: 'TransportError',
-        });
-        await expect(iterator.next()).resolves.toMatchObject({ done: true });
-      } finally {
-        await secureClientWithDepositWallet.closeSubscriptions();
-      }
-    });
-
-    it('fails the session for confirmation errors missing the quote ID', async ({
-      secureClientWithDepositWallet,
-    }) => {
-      server.resetHandlers();
-      server.use(
-        rfq.addEventListener('connection', ({ client: socket }) => {
-          socket.addEventListener('message', (event) => {
-            const frame = recordOutboundFrame(event.data, outboundFrames);
-
-            if (frame.type === 'auth') {
-              socket.send(authAckMessage());
-              socket.send(quoteRequestMessage());
-              return;
-            }
-
-            if (frame.type === 'RFQ_QUOTE') {
-              const quote = quoteAmounts(frame);
-              socket.send(quoteAckMessage());
-              socket.send(
-                confirmationRequestMessage(quote.priceE6, quote.sizeE6),
-              );
-              return;
-            }
-
-            if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
-              confirmationDecision(frame);
-              socket.send(
-                rfqErrorMessage({
-                  code: 'INVALID_CONFIRMATION',
-                  error: 'missing confirmation correlation',
-                  requestType: 'RFQ_CONFIRMATION_RESPONSE',
-                  rfqId: RFQ_ID,
-                }),
-              );
-            }
-          });
-        }),
-      );
-
-      const session = await secureClientWithDepositWallet.openRfqSession();
-
-      try {
-        const iterator = session[Symbol.asyncIterator]();
-        const quoteRequest = await iterator.next();
-
-        if (
-          quoteRequest.done === true ||
-          quoteRequest.value.type !== 'quote_request'
-        ) {
-          throw new Error('Expected RFQ quote request.');
-        }
-
-        await quoteRequest.value.quote({ price: 0.45 });
-
-        const confirmationRequest = await iterator.next();
-
-        if (
-          confirmationRequest.done === true ||
-          confirmationRequest.value.type !== 'confirmation_request'
-        ) {
-          throw new Error('Expected RFQ confirmation request.');
-        }
-
-        await expect(confirmationRequest.value.confirm()).rejects.toMatchObject(
-          {
+          expect(quoteError).toMatchObject({
             message: 'Uncorrelated RFQ quoter error.',
             name: 'TransportError',
-          },
-        );
-        await expect(iterator.next()).resolves.toMatchObject({ done: true });
-      } finally {
-        await secureClientWithDepositWallet.closeSubscriptions();
-      }
+          });
+        } finally {
+          await secureClientWithDepositWallet.closeSubscriptions();
+        }
+      });
     });
 
-    it('ignores unsupported RFQ error request types', async ({
-      secureClientWithDepositWallet,
-    }) => {
-      server.resetHandlers();
-      server.use(
-        rfq.addEventListener('connection', ({ client: socket }) => {
-          socket.addEventListener('message', (event) => {
-            const frame = recordOutboundFrame(event.data, outboundFrames);
+    describe('when a cancellation error is missing the quote ID', () => {
+      beforeEach(() => {
+        server.resetHandlers();
+        server.use(
+          rfq.addEventListener('connection', ({ client: socket }) => {
+            socket.addEventListener('message', (event) => {
+              const frame = recordOutboundFrame(event.data, outboundFrames);
 
-            if (frame.type === 'auth') {
-              socket.send(authAckMessage());
-              socket.send(quoteRequestMessage());
-              return;
-            }
+              if (frame.type === 'auth') {
+                socket.send(authAckMessage());
+                socket.send(quoteRequestMessage());
+                return;
+              }
 
-            if (frame.type === 'RFQ_QUOTE') {
-              quoteAmounts(frame);
-              socket.send(
-                rfqErrorMessage({
-                  code: 'INVALID_QUOTE',
-                  error: 'unsupported request type',
-                  requestType: 'RFQ_FUTURE_REQUEST',
-                }),
-              );
-              socket.send(quoteAckMessage());
+              if (frame.type === 'RFQ_QUOTE') {
+                quoteAmounts(frame);
+                socket.send(quoteAckMessage());
+                return;
+              }
+
+              if (frame.type === 'RFQ_QUOTE_CANCEL') {
+                socket.send(
+                  rfqErrorMessage({
+                    code: 'INVALID_RFQ_STATE',
+                    error: 'missing cancellation correlation',
+                    requestType: 'RFQ_QUOTE_CANCEL',
+                    rfqId: RFQ_ID,
+                  }),
+                );
+              }
+            });
+          }),
+        );
+      });
+
+      it('fails the session', async ({ secureClientWithDepositWallet }) => {
+        const session = await secureClientWithDepositWallet.openRfqSession();
+
+        try {
+          let cancellationError: unknown;
+
+          for await (const event of session) {
+            if (event.type !== 'quote_request') continue;
+
+            try {
+              const quote = await event.quote({ price: 0.45 });
+              await session.cancelQuote(quote);
+            } catch (error) {
+              cancellationError = error;
             }
+          }
+
+          expect(cancellationError).toMatchObject({
+            message: 'Uncorrelated RFQ quoter error.',
+            name: 'TransportError',
           });
-        }),
-      );
-
-      const session = await secureClientWithDepositWallet.openRfqSession();
-
-      try {
-        const iterator = session[Symbol.asyncIterator]();
-        const next = await iterator.next();
-
-        if (next.done === true || next.value.type !== 'quote_request') {
-          throw new Error('Expected RFQ quote request.');
+        } finally {
+          await secureClientWithDepositWallet.closeSubscriptions();
         }
+      });
+    });
 
-        await expect(next.value.quote({ price: 0.45 })).resolves.toEqual({
-          quoteId: QUOTE_ID,
-          rfqId: next.value.rfqId,
-        });
-        await session.close();
-      } finally {
-        await secureClientWithDepositWallet.closeSubscriptions();
-      }
+    describe('when a confirmation error is missing the quote ID', () => {
+      beforeEach(() => {
+        server.resetHandlers();
+        server.use(
+          rfq.addEventListener('connection', ({ client: socket }) => {
+            socket.addEventListener('message', (event) => {
+              const frame = recordOutboundFrame(event.data, outboundFrames);
+
+              if (frame.type === 'auth') {
+                socket.send(authAckMessage());
+                socket.send(quoteRequestMessage());
+                return;
+              }
+
+              if (frame.type === 'RFQ_QUOTE') {
+                const quote = quoteAmounts(frame);
+                socket.send(quoteAckMessage());
+                socket.send(
+                  confirmationRequestMessage(quote.priceE6, quote.sizeE6),
+                );
+                return;
+              }
+
+              if (frame.type === 'RFQ_CONFIRMATION_RESPONSE') {
+                confirmationDecision(frame);
+                socket.send(
+                  rfqErrorMessage({
+                    code: 'INVALID_CONFIRMATION',
+                    error: 'missing confirmation correlation',
+                    requestType: 'RFQ_CONFIRMATION_RESPONSE',
+                    rfqId: RFQ_ID,
+                  }),
+                );
+              }
+            });
+          }),
+        );
+      });
+
+      it('fails the session', async ({ secureClientWithDepositWallet }) => {
+        const session = await secureClientWithDepositWallet.openRfqSession();
+
+        try {
+          let confirmationError: unknown;
+
+          for await (const event of session) {
+            if (event.type === 'quote_request') {
+              await event.quote({ price: 0.45 });
+              continue;
+            }
+
+            if (event.type !== 'confirmation_request') continue;
+
+            try {
+              await event.confirm();
+            } catch (error) {
+              confirmationError = error;
+            }
+          }
+
+          expect(confirmationError).toMatchObject({
+            message: 'Uncorrelated RFQ quoter error.',
+            name: 'TransportError',
+          });
+        } finally {
+          await secureClientWithDepositWallet.closeSubscriptions();
+        }
+      });
+    });
+
+    describe('when an RFQ error has an unsupported request type', () => {
+      beforeEach(() => {
+        server.resetHandlers();
+        server.use(
+          rfq.addEventListener('connection', ({ client: socket }) => {
+            socket.addEventListener('message', (event) => {
+              const frame = recordOutboundFrame(event.data, outboundFrames);
+
+              if (frame.type === 'auth') {
+                socket.send(authAckMessage());
+                socket.send(quoteRequestMessage());
+                return;
+              }
+
+              if (frame.type === 'RFQ_QUOTE') {
+                quoteAmounts(frame);
+                socket.send(
+                  rfqErrorMessage({
+                    code: 'INVALID_QUOTE',
+                    error: 'unsupported request type',
+                    requestType: 'RFQ_FUTURE_REQUEST',
+                  }),
+                );
+                socket.send(quoteAckMessage());
+              }
+            });
+          }),
+        );
+      });
+
+      it('keeps the session open for the matching acknowledgement', async ({
+        secureClientWithDepositWallet,
+      }) => {
+        const session = await secureClientWithDepositWallet.openRfqSession();
+
+        try {
+          let quoteAck: unknown;
+
+          for await (const event of session) {
+            if (event.type !== 'quote_request') continue;
+
+            quoteAck = await event.quote({ price: 0.45 });
+            await session.close();
+            break;
+          }
+
+          expect(quoteAck).toEqual({
+            quoteId: QUOTE_ID,
+            rfqId: RFQ_ID,
+          });
+        } finally {
+          await secureClientWithDepositWallet.closeSubscriptions();
+        }
+      });
     });
   });
 

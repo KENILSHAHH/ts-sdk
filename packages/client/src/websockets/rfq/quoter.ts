@@ -48,7 +48,6 @@ import { createRfqQuote, parseRfqQuoteResponse } from './quote';
 
 const AUTH_TIMEOUT_MS = 30_000;
 const ACK_TIMEOUT_MS = 30_000;
-const UNCORRELATED_RFQ_ERROR_MESSAGE = 'Uncorrelated RFQ quoter error.';
 
 export type RfqQuoterWebSocketManagerOptions = {
   account: AccountIdentity;
@@ -319,7 +318,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   #handleRfqError(message: RfqErrorMessage): void {
     if (message.requestType === 'RFQ_QUOTE') {
       if (message.rfqId === undefined) {
-        void this.#fail(uncorrelatedRfqError());
+        void this.#fail(new TransportError('Uncorrelated RFQ quoter error.'));
         return;
       }
 
@@ -335,7 +334,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
 
     if (message.requestType === 'RFQ_QUOTE_CANCEL') {
       if (message.rfqId === undefined || message.quoteId === undefined) {
-        void this.#fail(uncorrelatedRfqError());
+        void this.#fail(new TransportError('Uncorrelated RFQ quoter error.'));
         return;
       }
 
@@ -352,7 +351,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
 
     if (message.requestType === 'RFQ_CONFIRMATION_RESPONSE') {
       if (message.rfqId === undefined || message.quoteId === undefined) {
-        void this.#fail(uncorrelatedRfqError());
+        void this.#fail(new TransportError('Uncorrelated RFQ quoter error.'));
         return;
       }
 
@@ -446,10 +445,6 @@ function quoteCancelAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
 
 function confirmationAckKey(rfqId: RfqId, quoteId: RfqQuoteId): string {
   return `ACK_RFQ_CONFIRMATION_RESPONSE:${rfqId}:${quoteId}`;
-}
-
-function uncorrelatedRfqError(): TransportError {
-  return new TransportError(UNCORRELATED_RFQ_ERROR_MESSAGE);
 }
 
 type PendingResponse<T> = {
