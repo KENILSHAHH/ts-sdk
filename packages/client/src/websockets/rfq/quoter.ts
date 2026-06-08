@@ -48,7 +48,6 @@ import { createRfqQuote, parseRfqQuoteResponse } from './quote';
 
 const AUTH_TIMEOUT_MS = 30_000;
 const ACK_TIMEOUT_MS = 30_000;
-const RFQ_WEBSOCKET_CLOSED_ERROR = 'RFQ quoter websocket closed.';
 const UNCORRELATED_RFQ_ERROR_MESSAGE = 'Uncorrelated RFQ quoter error.';
 
 export type RfqQuoterWebSocketManagerOptions = {
@@ -226,7 +225,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   async #shutdown(): Promise<void> {
-    const error = new TransportError(RFQ_WEBSOCKET_CLOSED_ERROR);
+    const error = new TransportError('RFQ quoter websocket closed.');
     await this.#shutdownWithError(error);
   }
 
@@ -254,6 +253,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   #handleMessage(rawMessage: unknown): void {
+    if (this.#closing !== undefined) return;
     if (!RfqKnownInboundMessageSchema.safeParse(rawMessage).success) return;
 
     const parsed = RfqQuoterInboundMessageSchema.safeParse(rawMessage);
