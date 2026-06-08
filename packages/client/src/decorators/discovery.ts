@@ -63,6 +63,8 @@ export type DiscoveryActions = {
   /**
    * Lists events.
    *
+   * Defaults to open events. Pass `closed: true` to list settled events.
+   *
    * @throws {@link ListEventsError}
    * Thrown on failure.
    *
@@ -187,7 +189,7 @@ export type DiscoveryActions = {
    * });
    *
    * const marketByUrl = await client.fetchMarket({
-   *   url: 'https://polymarket.com/market/some-market-slug',
+   *   url: 'https://polymarket.com/event/some-market-slug',
    * });
    * ```
    */

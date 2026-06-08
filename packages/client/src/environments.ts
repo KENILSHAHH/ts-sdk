@@ -37,6 +37,8 @@ export type EnvironmentConfig = {
   /** @internal */
   protocolV2Router: EvmAddress;
   /** @internal */
+  combinatorialModule: EvmAddress;
+  /** @internal */
   positionManager: EvmAddress;
   /** @internal */
   autoRedeemOperator: EvmAddress;
@@ -122,6 +124,9 @@ export const production: EnvironmentConfig = {
   protocolV2Router: expectEvmAddress(
     '0x12121212006e4CD160D18e3f00711DA5c3372600',
   ),
+  combinatorialModule: expectEvmAddress(
+    '0x30000034706c7d8e12009dab006be20000c031a8',
+  ),
   positionManager: expectEvmAddress(
     '0x006F54F7f9A22e0000CC2AB60031000000ae9fEF',
   ),
@@ -141,4 +146,14 @@ export const production: EnvironmentConfig = {
   sportsWs: 'wss://sports-api.polymarket.com/ws',
   relayerMaxPolls: 100,
   relayerPollFrequencyMs: 2000,
+};
+
+/** @internal */
+export const preproduction = {
+  ...production,
+  name: 'preproduction',
+  clob: 'https://clob-preprod-int-v2.polymarket.com',
+  data: 'https://data-api-preprod-int.polymarket.com',
+  gamma: 'https://gamma-api-preprod-int.polymarket.com',
+  relayer: 'https://relayer-v2-preprod-int.polymarket.com',
 };
