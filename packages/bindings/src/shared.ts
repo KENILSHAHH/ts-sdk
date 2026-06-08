@@ -47,6 +47,7 @@ export type CategoryId = Tagged<string, 'CategoryId'>;
 export type ChatId = Tagged<string, 'ChatId'>;
 export type ClobRewardId = Tagged<string, 'ClobRewardId'>;
 export type CommentId = Tagged<string, 'CommentId'>;
+export type ComboConditionId = Tagged<HexString, 'ComboConditionId'>;
 export type ConditionId = Tagged<HexString, 'ConditionId'>;
 export type CollectionId = Tagged<string, 'CollectionId'>;
 export type EventCreatorId = Tagged<string, 'EventCreatorId'>;
@@ -125,6 +126,32 @@ export function toConditionId(value: string): ConditionId {
   }
 
   return value as ConditionId;
+}
+
+export function toComboConditionId(value: string): ComboConditionId {
+  if (!isHexString(value)) {
+    throw new TypeError(
+      `Expected a protocol v2 combo condition ID, received: ${value}`,
+    );
+  }
+
+  const normalized = value.toLowerCase();
+
+  if (normalized.length === 64 && normalized.startsWith('0x03')) {
+    return normalized as ComboConditionId;
+  }
+
+  if (
+    normalized.length === 66 &&
+    normalized.startsWith('0x03') &&
+    (normalized.endsWith('00') || normalized.endsWith('01'))
+  ) {
+    return normalized.slice(0, -2) as ComboConditionId;
+  }
+
+  throw new TypeError(
+    `Expected a protocol v2 combo condition ID, received: ${value}`,
+  );
 }
 
 export function toCollectionId(value: string): CollectionId {
@@ -250,6 +277,7 @@ export const ApiKeySchema = z.string().transform(toApiKey);
 export const BuilderCodeSchema = z.string().transform(toBuilderCode);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
 export const CommentIdSchema = z.string().transform(toCommentId);
+export const ComboConditionIdSchema = z.string().transform(toComboConditionId);
 export const ConditionIdSchema = z.string().transform(toConditionId);
 export const OptionalConditionIdSchema = z.preprocess(
   (value) => (value === '' ? undefined : value),

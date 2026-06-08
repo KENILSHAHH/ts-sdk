@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ComboConditionIdSchema,
   ConditionIdSchema,
   DecimalishSchema,
   EpochSecondsToMillisecondsSchema,
@@ -193,7 +194,7 @@ export const ComboPositionLegSchema = z
 
 export const ComboPositionSchema = z
   .object({
-    combo_condition_id: ConditionIdSchema,
+    combo_condition_id: ComboConditionIdSchema,
     combo_position_id: PositionIdSchema,
     module_id: z.number().int(),
     user_address: AddressSchema,

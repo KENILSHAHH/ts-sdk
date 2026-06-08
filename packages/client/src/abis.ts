@@ -1,4 +1,9 @@
-import type { ConditionId, PositionId, TokenId } from '@polymarket/bindings';
+import type {
+  ComboConditionId,
+  ConditionId,
+  PositionId,
+  TokenId,
+} from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
 import { makeErrorGuard, UserInputError } from './errors';
@@ -296,7 +301,7 @@ export const SplitV2CallError = makeErrorGuard(UserInputError);
  */
 export function splitV2Call(
   routerAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: ComboConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -319,7 +324,7 @@ export const MergeV2CallError = makeErrorGuard(UserInputError);
  */
 export function mergeV2Call(
   routerAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: ComboConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -342,7 +347,7 @@ export const RedeemV2CallError = makeErrorGuard(UserInputError);
  */
 export function redeemV2Call(
   routerAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: ComboConditionId,
   outcomeIndex: 0 | 1,
   amount: bigint,
 ): TransactionCall {

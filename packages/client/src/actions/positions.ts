@@ -1,4 +1,5 @@
 import type {
+  ComboConditionId,
   ConditionId,
   MarketId,
   PositionId,
@@ -1135,7 +1136,7 @@ function normalizeMarketClobContext(
 }
 
 function resolveMergeAmount(
-  conditionId: ConditionId,
+  conditionId: ConditionId | ComboConditionId,
   balances: readonly bigint[],
   requestedAmount: bigint | 'max',
 ): bigint {
