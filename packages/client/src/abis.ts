@@ -471,13 +471,13 @@ function normalizeProtocolV2ConditionId(
 
   if (PROTOCOL_V2_CONDITION_ID_BYTES32_PATTERN.test(conditionId)) {
     const normalized = conditionId.toLowerCase();
-    if (normalized.endsWith('00')) {
+    if (normalized.endsWith('00') || normalized.endsWith('01')) {
       return normalized.slice(0, BYTES31_HEX_LENGTH) as HexString;
     }
   }
 
   throw new UserInputError(
-    'Protocol v2 condition ID must be bytes31, or bytes32 with a zero outcome byte',
+    'Protocol v2 condition ID must be bytes31, or bytes32 with a binary outcome byte',
   );
 }
 
