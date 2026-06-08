@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { type SignatureType, SignatureTypeSchema } from './clob/signature-type';
 import type { BaseUnits, DecimalString, EvmAddress, TokenId } from './shared';
 import {
-  ConditionIdSchema,
+  ComboConditionIdSchema,
   EpochMillisecondsSchema,
   EvmAddressSchema,
   type OrderSide,
@@ -199,7 +199,7 @@ export const RfqQuoteRequestSchema = RfqKnownInboundMessageSchema.extend({
   rfq_id: RfqIdSchema,
   requestor_public_id: RfqRequestorPublicIdSchema,
   leg_position_ids: z.array(PositionIdSchema),
-  condition_id: ConditionIdSchema,
+  condition_id: ComboConditionIdSchema,
   yes_position_id: PositionIdSchema,
   no_position_id: PositionIdSchema,
   direction: RfqDirectionSchema,
@@ -271,7 +271,7 @@ export const RfqConfirmationRequestSchema = RfqKnownInboundMessageSchema.extend(
     maker_address: EvmAddressSchema,
     signature_type: SignatureTypeSchema,
     leg_position_ids: z.array(PositionIdSchema),
-    condition_id: ConditionIdSchema,
+    condition_id: ComboConditionIdSchema,
     yes_position_id: PositionIdSchema,
     no_position_id: PositionIdSchema,
     direction: RfqDirectionSchema,

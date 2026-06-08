@@ -1,12 +1,12 @@
 import type {
   ComboConditionId,
-  ConditionId,
+  CtfConditionId,
   MarketId,
   PositionId,
   TokenId,
 } from '@polymarket/bindings';
 import {
-  ConditionIdSchema,
+  CtfConditionIdSchema,
   MarketIdSchema,
   PositionIdSchema,
 } from '@polymarket/bindings';
@@ -77,7 +77,7 @@ export type PrepareSplitMarketPositionRequest = {
   /** Amount of collateral to convert into market positions. */
   amount: bigint;
   /** Existing market condition ID that identifies the positions to mint. */
-  conditionId: string | ConditionId;
+  conditionId: string | CtfConditionId;
   /** Optional transaction metadata for workflows that support metadata. */
   metadata?: string;
 };
@@ -106,7 +106,7 @@ export type PrepareSplitPositionRequest =
 
 const PrepareSplitMarketPositionRequestSchema = z.object({
   amount: z.bigint().min(0n),
-  conditionId: ConditionIdSchema,
+  conditionId: CtfConditionIdSchema,
   metadata: GaslessTransactionMetadataSchema.optional(),
 }) satisfies z.ZodType<PrepareSplitMarketPositionRequest>;
 
@@ -449,7 +449,7 @@ export type PrepareMergeMarketPositionRequest = {
   /** Amount per complementary market position to merge. */
   amount: bigint | 'max';
   /** Existing market condition ID that identifies the positions to merge. */
-  conditionId: string | ConditionId;
+  conditionId: string | CtfConditionId;
   /** Optional transaction metadata for workflows that support metadata. */
   metadata?: string;
 };
@@ -484,7 +484,7 @@ type ParsedMergeComboPositionRequest = {
 
 const PrepareMergeMarketPositionRequestSchema = z.object({
   amount: z.union([z.bigint().positive(), z.literal('max')]),
-  conditionId: ConditionIdSchema,
+  conditionId: CtfConditionIdSchema,
   metadata: GaslessTransactionMetadataSchema.optional(),
 }) satisfies z.ZodType<PrepareMergeMarketPositionRequest>;
 
@@ -755,7 +755,7 @@ export function mergePositions(
  */
 export type PrepareRedeemMarketPositionsByConditionIdRequest = {
   /** Existing market condition ID that identifies the positions to redeem. */
-  conditionId: string | ConditionId;
+  conditionId: string | CtfConditionId;
   marketId?: never;
   amount?: never;
   positionId?: never;
@@ -804,7 +804,7 @@ export type PrepareRedeemMarketPositionsRequest =
   | PrepareRedeemMarketPositionsByMarketIdRequest;
 
 const PrepareRedeemMarketPositionsByConditionIdRequestSchema = z.object({
-  conditionId: ConditionIdSchema,
+  conditionId: CtfConditionIdSchema,
   marketId: z.never().optional(),
   amount: z.never().optional(),
   positionId: z.never().optional(),
@@ -1048,7 +1048,7 @@ function sendRedeemPositionsTransaction(
 
 type MarketClobContext = {
   marketId: MarketId;
-  conditionId: ConditionId;
+  conditionId: CtfConditionId;
   negRisk: boolean;
   adapterAddress: EvmAddress;
   positionErc1155Address: EvmAddress;
@@ -1056,7 +1056,7 @@ type MarketClobContext = {
 };
 
 type ResolveMarketClobContextRequest =
-  | { conditionId: ConditionId; marketId?: never }
+  | { conditionId: CtfConditionId; marketId?: never }
   | { marketId: MarketId; conditionId?: never };
 
 async function resolveMarketClobContext(
@@ -1136,7 +1136,7 @@ function normalizeMarketClobContext(
 }
 
 function resolveMergeAmount(
-  conditionId: ConditionId | ComboConditionId,
+  conditionId: CtfConditionId | ComboConditionId,
   balances: readonly bigint[],
   requestedAmount: bigint | 'max',
 ): bigint {

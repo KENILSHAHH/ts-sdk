@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
-  type ConditionId,
-  ConditionIdSchema,
+  type CtfConditionId,
+  CtfConditionIdSchema,
   type DecimalString,
   DecimalStringSchema,
   type EpochMilliseconds,
@@ -19,7 +19,7 @@ export type OrderBookLevel = {
 export type OrderBookHash = string & { readonly __tag: 'OrderBookHash' };
 
 export type OrderBook = {
-  market: ConditionId;
+  market: CtfConditionId;
   tokenId: TokenId;
   timestamp?: EpochMilliseconds | null;
 
@@ -48,7 +48,7 @@ export const OrderBookHashSchema = z
 
 export const OrderBookSchema = z
   .object({
-    market: ConditionIdSchema,
+    market: CtfConditionIdSchema,
     asset_id: TokenIdSchema,
     timestamp: EpochMillisecondsStringSchema.nullish(),
     bids: z.array(OrderBookLevelSchema),

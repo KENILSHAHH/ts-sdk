@@ -3,4 +3,4 @@
 "@polymarket/client": patch
 ---
 
-Add a distinct combo condition ID type and normalize supported combo condition wire forms.
+Add distinct CTF and combo condition ID brands, keeping the previous condition ID exports as deprecated CTF aliases.

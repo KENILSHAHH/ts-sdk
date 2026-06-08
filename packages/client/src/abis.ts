@@ -1,6 +1,6 @@
 import type {
   ComboConditionId,
-  ConditionId,
+  CtfConditionId,
   PositionId,
   TokenId,
 } from '@polymarket/bindings';
@@ -235,7 +235,7 @@ export const SplitPositionCallError = makeErrorGuard(UserInputError);
 export function splitPositionCall(
   targetAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -260,7 +260,7 @@ export const MergePositionsCallError = makeErrorGuard(UserInputError);
 export function mergePositionsCall(
   targetAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -282,7 +282,7 @@ export function mergePositionsCall(
 export function ctfRedeemPositionsCall(
   conditionalTokensAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
 ): TransactionCall {
   return {
     data: encodeCtfRedeemPositionsCall(collateralTokenAddress, conditionId),
@@ -412,7 +412,7 @@ function encodeErc20TransferCall(
 
 function encodeSplitPositionCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): HexString {
   return AbiFunction.encodeData(CTF_SPLIT_POSITION_FUNCTION, [
@@ -426,7 +426,7 @@ function encodeSplitPositionCall(
 
 function encodeMergePositionsCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): HexString {
   return AbiFunction.encodeData(CTF_MERGE_POSITIONS_FUNCTION, [
@@ -440,7 +440,7 @@ function encodeMergePositionsCall(
 
 function encodeCtfRedeemPositionsCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
 ): HexString {
   return AbiFunction.encodeData(CTF_REDEEM_POSITIONS_FUNCTION, [
     collateralTokenAddress,
