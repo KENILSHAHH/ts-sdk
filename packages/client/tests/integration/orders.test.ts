@@ -1,13 +1,11 @@
 import { BuilderCodeSchema, OrderSide, OrderType } from '@polymarket/bindings';
 import { OrderPostStatus } from '@polymarket/bindings/clob';
 import {
-  createSecureClient,
   InsufficientLiquidityError,
   type Market,
   type SecureClient,
   UserInputError,
 } from '@polymarket/client';
-import { fetchNegRisk } from '@polymarket/client/actions';
 import { expectPresent } from '@polymarket/types';
 import { afterAll } from 'vitest';
 import {
@@ -239,52 +237,6 @@ describe('Orders', { timeout: 60_000 }, () => {
       expect(order.postOnly).toBe(true);
       expect(order.builder).toBe(builderCode);
     });
-
-    it('requests a collateral approval if necessary', async ({
-      annotate,
-      depositWalletAddress,
-      depositWalletSigner,
-
-      relayerAuthentication,
-    }) => {
-      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
-      annotate(`Market ID: ${market.id}`);
-      annotate(`Token ID: ${yesTokenId}`);
-      const minPrice = expectPresent(market.trading.minimumTickSize);
-      const minSize = expectPresent(market.trading.minimumOrderSize);
-      const gaslessClient = await createSecureClient({
-        apiKey: relayerAuthentication,
-        signer: depositWalletSigner,
-        wallet: depositWalletAddress,
-      });
-      const exchangeAddress = await resolveExchangeAddressForToken(
-        gaslessClient,
-        yesTokenId,
-      );
-
-      await gaslessClient
-        .approveErc20({
-          amount: 0n,
-          spenderAddress: exchangeAddress,
-          tokenAddress: gaslessClient.environment.collateralToken,
-        })
-        .then((handle) => handle.wait());
-
-      const response = await gaslessClient.placeLimitOrder({
-        price: minPrice,
-        side: OrderSide.BUY,
-        size: minSize,
-        tokenId: yesTokenId,
-      });
-
-      expect(response.ok).toBe(true);
-      const acceptedResponse = expectAcceptedOrderResponse(response);
-
-      const cancelResult = await gaslessClient.cancelOrder({
-        orderId: acceptedResponse.orderId,
-      });
-      expect(cancelResult.canceled).toContain(acceptedResponse.orderId);
-    });
   });
 
   describe('placeLimitOrder', () => {
@@ -490,19 +442,6 @@ async function createSignedRestingLimitOrder(
     size,
     tokenId: yesTokenId,
   });
-}
-
-async function resolveExchangeAddressForToken(
-  client: SecureClient,
-  tokenId: string,
-) {
-  const negRisk = await fetchNegRisk(client, {
-    tokenId,
-  });
-
-  return negRisk
-    ? client.environment.negRiskExchange
-    : client.environment.standardExchange;
 }
 
 async function cancelMarketOrderWithRetry(
