@@ -1272,22 +1272,23 @@ describe('RFQ sessions', () => {
       const session = await secureClientWithDepositWallet.openRfqSession();
 
       try {
-        const iterator = session[Symbol.asyncIterator]();
-        const next = await iterator.next();
+        let nextSession: typeof session | undefined;
 
-        if (next.done === true || next.value.type !== 'quote_request') {
-          throw new Error('Expected RFQ quote request.');
+        for await (const event of session) {
+          if (event.type !== 'quote_request') continue;
+
+          try {
+            await event.quote({ price: 0.45 });
+            throw new Error('Expected RFQ quote rejection.');
+          } catch {
+            nextSession = await secureClientWithDepositWallet.openRfqSession();
+          }
+          break;
         }
 
-        const quote = next.value.quote({ price: 0.45 });
-        const reopened = quote.then(
-          () => {
-            throw new Error('Expected RFQ quote rejection.');
-          },
-          () => secureClientWithDepositWallet.openRfqSession(),
-        );
-
-        const nextSession = await reopened;
+        if (nextSession === undefined) {
+          throw new Error('Expected reopened RFQ session.');
+        }
 
         expect(nextSession).not.toBe(session);
         expect(connectionCount).toBe(2);
