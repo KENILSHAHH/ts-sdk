@@ -237,6 +237,36 @@ describe('Orders', { timeout: 60_000 }, () => {
       expect(order.postOnly).toBe(true);
       expect(order.builder).toBe(builderCode);
     });
+
+    // Enable once this suite runs against the staging Tenderly vnet with a fake
+    // collateral balance assigned to the fresh Deposit Wallet. The fresh wallet
+    // naturally has zero exchange allowance, so this avoids revoking live
+    // approval state on the shared funded Deposit Wallet.
+    it.skip('requests a collateral approval if necessary', async ({
+      annotate,
+      newDepositWalletClient,
+    }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+      const minPrice = expectPresent(market.trading.minimumTickSize);
+      const minSize = expectPresent(market.trading.minimumOrderSize);
+
+      const response = await newDepositWalletClient.placeLimitOrder({
+        price: minPrice,
+        side: OrderSide.BUY,
+        size: minSize,
+        tokenId: yesTokenId,
+      });
+
+      expect(response.ok).toBe(true);
+      const acceptedResponse = expectAcceptedOrderResponse(response);
+
+      const cancelResult = await newDepositWalletClient.cancelOrder({
+        orderId: acceptedResponse.orderId,
+      });
+      expect(cancelResult.canceled).toContain(acceptedResponse.orderId);
+    });
   });
 
   describe('placeLimitOrder', () => {
