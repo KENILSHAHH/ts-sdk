@@ -1160,26 +1160,25 @@ describe('RFQ sessions', () => {
 
       try {
         let quoteFailed = false;
-        let eventsAfterFailure = 0;
 
-        for await (const event of session) {
-          if (quoteFailed) {
-            eventsAfterFailure += 1;
-            continue;
-          }
+        try {
+          for await (const event of session) {
+            if (event.type !== 'quote_request') continue;
 
-          if (event.type !== 'quote_request') continue;
-
-          try {
             await event.quote({ price: 0.45 });
-            throw new Error('Expected RFQ quote rejection.');
-          } catch (error) {
-            quoteFailed = true;
-            expect(error).toMatchObject({
-              message: 'Invalid RFQ quoter message.',
-              name: 'TransportError',
-            });
+            throw new Error('Expected RFQ session failure.');
           }
+        } catch (error) {
+          quoteFailed = true;
+          expect(error).toMatchObject({
+            message: 'Invalid RFQ quoter message.',
+            name: 'TransportError',
+          });
+        }
+
+        let eventsAfterFailure = 0;
+        for await (const _event of session) {
+          eventsAfterFailure += 1;
         }
 
         expect(quoteFailed).toBe(true);
