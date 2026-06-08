@@ -64,6 +64,7 @@
 
 - Default client tests to integration-style coverage.
 - Do not mock API responses unless explicitly requested or unless mocking is necessary to isolate a boundary under test.
+- For tests involving async iterators, especially integration tests, prefer idiomatic consumer usage such as `for await (...)` so the test reads like final SDK DX. Manual iterator calls like `iterator.next()` are acceptable in unit tests or narrow cases where they make the behavior materially easier to isolate or understand.
 
 
 ## Response contract
