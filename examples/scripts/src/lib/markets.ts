@@ -45,7 +45,9 @@ async function isOrderExampleCandidate(
     candidate.prices.bestBid === null ||
     candidate.prices.bestBid === undefined ||
     Number(candidate.prices.bestBid) <= 0 ||
-    Number(candidate.metrics.liquidityNum ?? 0) <= 0
+    Number(
+      candidate.metrics.liquidityClob ?? candidate.metrics.liquidityNum ?? 0,
+    ) <= 0
   ) {
     return false;
   }

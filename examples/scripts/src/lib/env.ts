@@ -1,8 +1,13 @@
 try {
   process.loadEnvFile?.('../../.env');
+} catch {
+  // Examples can run without a repo-level .env when variables are set elsewhere.
+}
+
+try {
   process.loadEnvFile?.();
 } catch {
-  // Examples can run without a local .env when all required variables are set externally.
+  // Examples can run without a local .env when variables are set elsewhere.
 }
 
 export function requireEnv(name: string): string {
