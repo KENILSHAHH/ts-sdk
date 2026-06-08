@@ -462,7 +462,9 @@ function expectUint256(value: bigint, label: string): bigint {
   return value;
 }
 
-function normalizeProtocolV2ConditionId(conditionId: string): HexString {
+function normalizeProtocolV2ConditionId(
+  conditionId: ComboConditionId,
+): HexString {
   if (PROTOCOL_V2_CONDITION_ID_BYTES31_PATTERN.test(conditionId)) {
     return conditionId.toLowerCase() as HexString;
   }
