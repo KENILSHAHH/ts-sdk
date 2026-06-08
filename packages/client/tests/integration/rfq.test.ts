@@ -1241,6 +1241,65 @@ describe('RFQ sessions', () => {
     });
   });
 
+  describe('when reopening immediately after an unexpected close', () => {
+    beforeEach(() => {
+      server.resetHandlers();
+      server.use(
+        rfq.addEventListener('connection', ({ client: socket }) => {
+          connectionCount += 1;
+
+          socket.addEventListener('message', (event) => {
+            const frame = recordOutboundFrame(event.data, outboundFrames);
+
+            if (frame.type === 'auth') {
+              socket.send(authAckMessage());
+              socket.send(quoteRequestMessage());
+              return;
+            }
+
+            if (frame.type === 'RFQ_QUOTE') {
+              quoteAmounts(frame);
+              socket.close();
+            }
+          });
+        }),
+      );
+    });
+
+    it('opens a fresh session instead of returning the closed session', async ({
+      secureClientWithDepositWallet,
+    }) => {
+      const session = await secureClientWithDepositWallet.openRfqSession();
+
+      try {
+        let nextSession: typeof session | undefined;
+
+        for await (const event of session) {
+          if (event.type !== 'quote_request') continue;
+
+          try {
+            await event.quote({ price: 0.45 });
+            throw new Error('Expected RFQ quote rejection.');
+          } catch {
+            nextSession = await secureClientWithDepositWallet.openRfqSession();
+          }
+          break;
+        }
+
+        if (nextSession === undefined) {
+          throw new Error('Expected reopened RFQ session.');
+        }
+
+        expect(nextSession).not.toBe(session);
+        expect(connectionCount).toBe(2);
+
+        await nextSession.close();
+      } finally {
+        await secureClientWithDepositWallet.closeSubscriptions();
+      }
+    });
+  });
+
   describe('when the connection closes before confirmation acknowledgement', () => {
     beforeEach(() => {
       server.resetHandlers();

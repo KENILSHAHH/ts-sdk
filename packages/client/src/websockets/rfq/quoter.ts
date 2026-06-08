@@ -82,7 +82,10 @@ export class RfqQuoterWebSocketManager {
   }
 
   async connect(): Promise<RfqSession> {
-    if (this.#session !== undefined) return this.#session;
+    if (this.#session !== undefined) {
+      if (!this.#session.closed) return this.#session;
+      this.#session = undefined;
+    }
     if (this.#connecting !== undefined) return this.#connecting;
 
     const session = new RfqWebSocketSession({
@@ -181,6 +184,10 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
     this.#onClose = options.onClose;
     this.#signer = options.signer;
     this.#url = options.url;
+  }
+
+  get closed(): boolean {
+    return this.#closing !== undefined;
   }
 
   async connect(): Promise<void> {
@@ -310,6 +317,7 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   #handleClose(): void {
+    this.#onClose();
     void this.close();
   }
 
