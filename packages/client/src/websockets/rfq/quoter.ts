@@ -313,8 +313,15 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
     void this.close();
   }
 
+  // Unsupported RFQ_ERROR request types are ignored for forward compatibility.
+  // Known outbound request errors without enough IDs are protocol failures.
   #handleRfqError(message: RfqErrorMessage): void {
-    if (message.requestType === 'RFQ_QUOTE' && message.rfqId !== undefined) {
+    if (message.requestType === 'RFQ_QUOTE') {
+      if (message.rfqId === undefined) {
+        void this.#fail(new TransportError('Uncorrelated RFQ quoter error.'));
+        return;
+      }
+
       this.#pending.reject(
         quoteAckKey(message.rfqId),
         new RfqQuoteRejectedError(message.message, {
@@ -325,11 +332,12 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       return;
     }
 
-    if (
-      message.requestType === 'RFQ_QUOTE_CANCEL' &&
-      message.rfqId !== undefined &&
-      message.quoteId !== undefined
-    ) {
+    if (message.requestType === 'RFQ_QUOTE_CANCEL') {
+      if (message.rfqId === undefined || message.quoteId === undefined) {
+        void this.#fail(new TransportError('Uncorrelated RFQ quoter error.'));
+        return;
+      }
+
       this.#pending.reject(
         quoteCancelAckKey(message.rfqId, message.quoteId),
         new RfqCancelQuoteRejectedError(message.message, {
@@ -341,11 +349,12 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
       return;
     }
 
-    if (
-      message.requestType === 'RFQ_CONFIRMATION_RESPONSE' &&
-      message.rfqId !== undefined &&
-      message.quoteId !== undefined
-    ) {
+    if (message.requestType === 'RFQ_CONFIRMATION_RESPONSE') {
+      if (message.rfqId === undefined || message.quoteId === undefined) {
+        void this.#fail(new TransportError('Uncorrelated RFQ quoter error.'));
+        return;
+      }
+
       this.#pending.reject(
         confirmationAckKey(message.rfqId, message.quoteId),
         new RfqConfirmationRejectedError(message.message, {
