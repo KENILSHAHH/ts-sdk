@@ -156,6 +156,20 @@ export function confirmationAckMessage(decision: string) {
   return JSON.stringify(confirmationAckFrame(decision));
 }
 
+export function malformedQuoteAckMessage() {
+  return JSON.stringify({
+    rfq_id: RFQ_ID,
+    type: 'ACK_RFQ_QUOTE',
+  });
+}
+
+export function unknownRfqMessage() {
+  return JSON.stringify({
+    payload: 'ignored',
+    type: 'RFQ_FUTURE_MESSAGE',
+  });
+}
+
 function executionUpdateFrame() {
   return {
     rfq_id: RFQ_ID,

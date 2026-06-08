@@ -3,6 +3,7 @@ import {
   type RfqConfirmationDecision,
   type RfqErrorMessage,
   type RfqId,
+  RfqKnownInboundMessageSchema,
   type RfqQuoteId,
   type RfqQuoteRequest,
   RfqQuoterInboundMessageSchema,
@@ -223,10 +224,27 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   async #shutdown(): Promise<void> {
-    this.#pending.rejectAll(new TransportError('RFQ quoter websocket closed.'));
+    const error = new TransportError('RFQ quoter websocket closed.');
+    await this.#shutdownWithError(error);
+  }
+
+  async #fail(error: Error): Promise<void> {
+    if (this.#closing === undefined) {
+      this.#closing = this.#shutdownWithError(error);
+    }
+    await this.#closing;
+  }
+
+  async #shutdownWithError(error: Error): Promise<void> {
+    this.#failPending(error);
     this.#queue.end();
     await this.#connection.close();
     this.#onClose();
+  }
+
+  #failPending(error: Error): void {
+    this.#auth?.reject(error);
+    this.#pending.rejectAll(error);
   }
 
   #sendAuthMessage(): void {
@@ -234,12 +252,15 @@ class RfqWebSocketSession implements RfqSession, RfqEventController {
   }
 
   #handleMessage(rawMessage: unknown): void {
+    if (this.#closing !== undefined) return;
+    if (!RfqKnownInboundMessageSchema.safeParse(rawMessage).success) return;
+
     const parsed = RfqQuoterInboundMessageSchema.safeParse(rawMessage);
     if (!parsed.success) {
       const error = new TransportError('Invalid RFQ quoter message.', {
         cause: parsed.error,
       });
-      this.#pending.rejectAll(error);
+      void this.#fail(error);
       return;
     }
 

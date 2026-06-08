@@ -165,45 +165,60 @@ export type RfqAuthMessage = {
   };
 };
 
-export const RfqAuthResponseMessageSchema = z.object({
-  type: z.literal('auth'),
-  success: z.boolean(),
-  address: EvmAddressSchema.optional(),
-  role: z.string().optional(),
-  error: z.string().optional(),
+export enum RfqKnownInboundType {
+  Auth = 'auth',
+  QuoteRequest = 'RFQ_REQUEST',
+  QuoteAck = 'ACK_RFQ_QUOTE',
+  QuoteCancelAck = 'ACK_RFQ_QUOTE_CANCEL',
+  ConfirmationRequest = 'RFQ_CONFIRMATION_REQUEST',
+  ConfirmationAck = 'ACK_RFQ_CONFIRMATION_RESPONSE',
+  ExecutionUpdate = 'RFQ_EXECUTION_UPDATE',
+  Error = 'RFQ_ERROR',
+}
+
+export const RfqKnownInboundMessageSchema = z.object({
+  type: z.enum(RfqKnownInboundType),
 });
+
+export const RfqAuthResponseMessageSchema = RfqKnownInboundMessageSchema.extend(
+  {
+    type: z.literal(RfqKnownInboundType.Auth),
+    success: z.boolean(),
+    address: EvmAddressSchema.optional(),
+    role: z.string().optional(),
+    error: z.string().optional(),
+  },
+);
 
 export type RfqAuthResponseMessage = z.infer<
   typeof RfqAuthResponseMessageSchema
 >;
 
-export const RfqQuoteRequestSchema = z
-  .object({
-    type: z.literal('RFQ_REQUEST'),
-    rfq_id: RfqIdSchema,
-    requestor_public_id: RfqRequestorPublicIdSchema,
-    leg_position_ids: z.array(PositionIdSchema),
-    condition_id: ConditionIdSchema,
-    yes_position_id: PositionIdSchema,
-    no_position_id: PositionIdSchema,
-    direction: RfqDirectionSchema,
-    side: RfqSideSchema,
-    requested_size: RfqRequestedSizeSchema,
-    submission_deadline: EpochMillisecondsSchema,
-  })
-  .transform((message) => ({
-    conditionId: message.condition_id,
-    direction: message.direction,
-    legPositionIds: message.leg_position_ids,
-    noPositionId: message.no_position_id,
-    requestorPublicId: message.requestor_public_id,
-    requestedSize: message.requested_size,
-    rfqId: message.rfq_id,
-    side: message.side,
-    submissionDeadline: message.submission_deadline,
-    type: 'quote_request' as const,
-    yesPositionId: message.yes_position_id,
-  }));
+export const RfqQuoteRequestSchema = RfqKnownInboundMessageSchema.extend({
+  type: z.literal(RfqKnownInboundType.QuoteRequest),
+  rfq_id: RfqIdSchema,
+  requestor_public_id: RfqRequestorPublicIdSchema,
+  leg_position_ids: z.array(PositionIdSchema),
+  condition_id: ConditionIdSchema,
+  yes_position_id: PositionIdSchema,
+  no_position_id: PositionIdSchema,
+  direction: RfqDirectionSchema,
+  side: RfqSideSchema,
+  requested_size: RfqRequestedSizeSchema,
+  submission_deadline: EpochMillisecondsSchema,
+}).transform((message) => ({
+  conditionId: message.condition_id,
+  direction: message.direction,
+  legPositionIds: message.leg_position_ids,
+  noPositionId: message.no_position_id,
+  requestorPublicId: message.requestor_public_id,
+  requestedSize: message.requested_size,
+  rfqId: message.rfq_id,
+  side: message.side,
+  submissionDeadline: message.submission_deadline,
+  type: 'quote_request' as const,
+  yesPositionId: message.yes_position_id,
+}));
 
 export type RfqQuoteRequest = z.infer<typeof RfqQuoteRequestSchema>;
 
@@ -223,37 +238,33 @@ export type RfqQuoteCancelMessage = {
   maker_address: EvmAddress;
 };
 
-export const RfqQuoteAckSchema = z
-  .object({
-    type: z.literal('ACK_RFQ_QUOTE'),
-    rfq_id: RfqIdSchema,
-    quote_id: RfqQuoteIdSchema,
-  })
-  .transform((message) => ({
-    quoteId: message.quote_id,
-    rfqId: message.rfq_id,
-    type: 'quote_ack' as const,
-  }));
+export const RfqQuoteAckSchema = RfqKnownInboundMessageSchema.extend({
+  type: z.literal(RfqKnownInboundType.QuoteAck),
+  rfq_id: RfqIdSchema,
+  quote_id: RfqQuoteIdSchema,
+}).transform((message) => ({
+  quoteId: message.quote_id,
+  rfqId: message.rfq_id,
+  type: 'quote_ack' as const,
+}));
 
 export type RfqQuoteAck = z.infer<typeof RfqQuoteAckSchema>;
 
-export const RfqQuoteCancelAckSchema = z
-  .object({
-    type: z.literal('ACK_RFQ_QUOTE_CANCEL'),
-    rfq_id: RfqIdSchema,
-    quote_id: RfqQuoteIdSchema,
-  })
-  .transform((message) => ({
-    quoteId: message.quote_id,
-    rfqId: message.rfq_id,
-    type: 'quote_cancel_ack' as const,
-  }));
+export const RfqQuoteCancelAckSchema = RfqKnownInboundMessageSchema.extend({
+  type: z.literal(RfqKnownInboundType.QuoteCancelAck),
+  rfq_id: RfqIdSchema,
+  quote_id: RfqQuoteIdSchema,
+}).transform((message) => ({
+  quoteId: message.quote_id,
+  rfqId: message.rfq_id,
+  type: 'quote_cancel_ack' as const,
+}));
 
 export type RfqQuoteCancelAck = z.infer<typeof RfqQuoteCancelAckSchema>;
 
-export const RfqConfirmationRequestSchema = z
-  .object({
-    type: z.literal('RFQ_CONFIRMATION_REQUEST'),
+export const RfqConfirmationRequestSchema = RfqKnownInboundMessageSchema.extend(
+  {
+    type: z.literal(RfqKnownInboundType.ConfirmationRequest),
     rfq_id: RfqIdSchema,
     quote_id: RfqQuoteIdSchema,
     signer_address: EvmAddressSchema,
@@ -268,24 +279,24 @@ export const RfqConfirmationRequestSchema = z
     fill_size_e6: BigIntStringToDecimalStringSchema,
     price_e6: BigIntStringToDecimalStringSchema,
     confirm_by: EpochMillisecondsSchema,
-  })
-  .transform((message) => ({
-    conditionId: message.condition_id,
-    confirmBy: message.confirm_by,
-    direction: message.direction,
-    fillSize: message.fill_size_e6,
-    legPositionIds: message.leg_position_ids,
-    makerAddress: message.maker_address,
-    noPositionId: message.no_position_id,
-    price: message.price_e6,
-    quoteId: message.quote_id,
-    rfqId: message.rfq_id,
-    side: message.side,
-    signatureType: message.signature_type,
-    signerAddress: message.signer_address,
-    type: 'confirmation_request' as const,
-    yesPositionId: message.yes_position_id,
-  }));
+  },
+).transform((message) => ({
+  conditionId: message.condition_id,
+  confirmBy: message.confirm_by,
+  direction: message.direction,
+  fillSize: message.fill_size_e6,
+  legPositionIds: message.leg_position_ids,
+  makerAddress: message.maker_address,
+  noPositionId: message.no_position_id,
+  price: message.price_e6,
+  quoteId: message.quote_id,
+  rfqId: message.rfq_id,
+  side: message.side,
+  signatureType: message.signature_type,
+  signerAddress: message.signer_address,
+  type: 'confirmation_request' as const,
+  yesPositionId: message.yes_position_id,
+}));
 
 export type RfqConfirmationRequest = z.infer<
   typeof RfqConfirmationRequestSchema
@@ -298,56 +309,50 @@ export type RfqConfirmationResponseMessage = {
   decision: RfqConfirmationDecision;
 };
 
-export const RfqConfirmationAckSchema = z
-  .object({
-    type: z.literal('ACK_RFQ_CONFIRMATION_RESPONSE'),
-    rfq_id: RfqIdSchema,
-    quote_id: RfqQuoteIdSchema,
-    decision: RfqConfirmationDecisionSchema,
-  })
-  .transform((message) => ({
-    decision: message.decision,
-    quoteId: message.quote_id,
-    rfqId: message.rfq_id,
-    type: 'confirmation_ack' as const,
-  }));
+export const RfqConfirmationAckSchema = RfqKnownInboundMessageSchema.extend({
+  type: z.literal(RfqKnownInboundType.ConfirmationAck),
+  rfq_id: RfqIdSchema,
+  quote_id: RfqQuoteIdSchema,
+  decision: RfqConfirmationDecisionSchema,
+}).transform((message) => ({
+  decision: message.decision,
+  quoteId: message.quote_id,
+  rfqId: message.rfq_id,
+  type: 'confirmation_ack' as const,
+}));
 
 export type RfqConfirmationAck = z.infer<typeof RfqConfirmationAckSchema>;
 
-export const RfqExecutionUpdateSchema = z
-  .object({
-    type: z.literal('RFQ_EXECUTION_UPDATE'),
-    rfq_id: RfqIdSchema,
-    status: RfqExecutionStatusSchema,
-    tx_hash: TxHashSchema.optional(),
-  })
-  .transform((message) => ({
-    rfqId: message.rfq_id,
-    status: message.status,
-    ...(message.tx_hash === undefined ? {} : { txHash: message.tx_hash }),
-    type: 'execution_update' as const,
-  }));
+export const RfqExecutionUpdateSchema = RfqKnownInboundMessageSchema.extend({
+  type: z.literal(RfqKnownInboundType.ExecutionUpdate),
+  rfq_id: RfqIdSchema,
+  status: RfqExecutionStatusSchema,
+  tx_hash: TxHashSchema.optional(),
+}).transform((message) => ({
+  rfqId: message.rfq_id,
+  status: message.status,
+  ...(message.tx_hash === undefined ? {} : { txHash: message.tx_hash }),
+  type: 'execution_update' as const,
+}));
 
 export type RfqExecutionUpdate = z.infer<typeof RfqExecutionUpdateSchema>;
 
-export const RfqErrorMessageSchema = z
-  .object({
-    type: z.literal('RFQ_ERROR'),
-    request_type: z.string().optional(),
-    rfq_id: RfqIdSchema.optional(),
-    quote_id: RfqQuoteIdSchema.optional(),
-    code: RfqErrorCodeSchema,
-    error: z.string(),
-    request: z.unknown().optional(),
-  })
-  .transform((message) => ({
-    code: message.code,
-    message: message.error,
-    quoteId: message.quote_id,
-    requestType: message.request_type,
-    rfqId: message.rfq_id,
-    type: 'rfq_error' as const,
-  }));
+export const RfqErrorMessageSchema = RfqKnownInboundMessageSchema.extend({
+  type: z.literal(RfqKnownInboundType.Error),
+  request_type: z.string().optional(),
+  rfq_id: RfqIdSchema.optional(),
+  quote_id: RfqQuoteIdSchema.optional(),
+  code: RfqErrorCodeSchema,
+  error: z.string(),
+  request: z.unknown().optional(),
+}).transform((message) => ({
+  code: message.code,
+  message: message.error,
+  quoteId: message.quote_id,
+  requestType: message.request_type,
+  rfqId: message.rfq_id,
+  type: 'rfq_error' as const,
+}));
 
 export type RfqErrorMessage = z.infer<typeof RfqErrorMessageSchema>;
 
