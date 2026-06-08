@@ -1,9 +1,13 @@
-import type { ConditionId } from '@polymarket/bindings';
+import type { ConditionId, PositionId, TokenId } from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
 import { makeErrorGuard, UserInputError } from './errors';
+import type { CanonicalComboLegs } from './protocol';
 import type { TransactionCall } from './types';
 
+const BYTES31_HEX_LENGTH = 64;
+const PROTOCOL_V2_CONDITION_ID_BYTES31_PATTERN = /^0x[0-9a-fA-F]{62}$/;
+const PROTOCOL_V2_CONDITION_ID_BYTES32_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 const ZERO_BYTES32 =
   '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ERC20_APPROVE_FUNCTION = AbiFunction.from(
@@ -21,6 +25,12 @@ const ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION = AbiFunction.from(
 const ERC1155_IS_APPROVED_FOR_ALL_FUNCTION = AbiFunction.from(
   'function isApprovedForAll(address account, address operator) view returns (bool)',
 );
+const ERC1155_BALANCE_OF_FUNCTION = AbiFunction.from(
+  'function balanceOf(address account, uint256 id) view returns (uint256)',
+);
+const ERC1155_BALANCE_OF_BATCH_FUNCTION = AbiFunction.from(
+  'function balanceOfBatch(address[] accounts, uint256[] ids) view returns (uint256[])',
+);
 const CTF_SPLIT_POSITION_FUNCTION = AbiFunction.from(
   'function splitPosition(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] partition, uint256 amount)',
 );
@@ -29,6 +39,18 @@ const CTF_MERGE_POSITIONS_FUNCTION = AbiFunction.from(
 );
 const CTF_REDEEM_POSITIONS_FUNCTION = AbiFunction.from(
   'function redeemPositions(address collateralToken, bytes32 parentCollectionId, bytes32 conditionId, uint256[] indexSets)',
+);
+const ROUTER_SPLIT_FUNCTION = AbiFunction.from(
+  'function split(bytes31 conditionId, uint256 amount)',
+);
+const ROUTER_MERGE_FUNCTION = AbiFunction.from(
+  'function merge(bytes31 conditionId, uint256 amount)',
+);
+const ROUTER_REDEEM_FUNCTION = AbiFunction.from(
+  'function redeem(bytes31 conditionId, uint256 outcomeIndex, uint256 amount)',
+);
+const COMBINATORIAL_MODULE_PREPARE_CONDITION_FUNCTION = AbiFunction.from(
+  'function prepareCondition(uint256[] legs) returns (bytes31)',
 );
 const SAFE_MULTISEND_FUNCTION = AbiFunction.from('function multiSend(bytes)');
 const PROXY_FACTORY_FUNCTION = AbiFunction.from(
@@ -117,6 +139,48 @@ export function erc1155IsApprovedForAllCall(
 /** @internal */
 export function decodeErc1155IsApprovedForAllResult(data: HexString): boolean {
   return AbiFunction.decodeResult(ERC1155_IS_APPROVED_FOR_ALL_FUNCTION, data);
+}
+
+/** @internal */
+export function erc1155BalanceOfCall(
+  tokenAddress: EvmAddress,
+  owner: EvmAddress,
+  id: PositionId,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ERC1155_BALANCE_OF_FUNCTION, [
+      owner,
+      expectUint256(BigInt(id), 'Position ID'),
+    ]),
+    to: tokenAddress,
+  };
+}
+
+/** @internal */
+export function decodeErc1155BalanceOfResult(data: HexString): bigint {
+  return AbiFunction.decodeResult(ERC1155_BALANCE_OF_FUNCTION, data);
+}
+
+/** @internal */
+export function erc1155BalanceOfBatchCall(
+  tokenAddress: EvmAddress,
+  owner: EvmAddress,
+  ids: readonly (PositionId | TokenId)[],
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ERC1155_BALANCE_OF_BATCH_FUNCTION, [
+      ids.map(() => owner),
+      ids.map((id) => expectUint256(BigInt(id), 'id')),
+    ]),
+    to: tokenAddress,
+  };
+}
+
+/** @internal */
+export function decodeErc1155BalanceOfBatchResult(
+  data: HexString,
+): readonly bigint[] {
+  return AbiFunction.decodeResult(ERC1155_BALANCE_OF_BATCH_FUNCTION, data);
 }
 
 export type Erc20TransferCallError = UserInputError;
@@ -221,6 +285,100 @@ export function ctfRedeemPositionsCall(
   };
 }
 
+export type SplitV2CallError = UserInputError;
+export const SplitV2CallError = makeErrorGuard(UserInputError);
+
+/**
+ * Creates a transaction call for protocol v2 Router `split(bytes31,uint256)`.
+ *
+ * @throws {@link SplitV2CallError}
+ * Thrown when the condition ID or amount is invalid.
+ */
+export function splitV2Call(
+  routerAddress: EvmAddress,
+  conditionId: ConditionId,
+  amount: bigint,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ROUTER_SPLIT_FUNCTION, [
+      normalizeProtocolV2ConditionId(conditionId),
+      expectUint256(amount, 'Split amount'),
+    ]),
+    to: routerAddress,
+  };
+}
+
+export type MergeV2CallError = UserInputError;
+export const MergeV2CallError = makeErrorGuard(UserInputError);
+
+/**
+ * Creates a transaction call for protocol v2 Router `merge(bytes31,uint256)`.
+ *
+ * @throws {@link MergeV2CallError}
+ * Thrown when the condition ID or amount is invalid.
+ */
+export function mergeV2Call(
+  routerAddress: EvmAddress,
+  conditionId: ConditionId,
+  amount: bigint,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ROUTER_MERGE_FUNCTION, [
+      normalizeProtocolV2ConditionId(conditionId),
+      expectUint256(amount, 'Merge amount'),
+    ]),
+    to: routerAddress,
+  };
+}
+
+export type RedeemV2CallError = UserInputError;
+export const RedeemV2CallError = makeErrorGuard(UserInputError);
+
+/**
+ * Creates a transaction call for protocol v2 Router `redeem(bytes31,uint256,uint256)`.
+ *
+ * @throws {@link RedeemV2CallError}
+ * Thrown when the condition ID, outcome index, or amount is invalid.
+ */
+export function redeemV2Call(
+  routerAddress: EvmAddress,
+  conditionId: ConditionId,
+  outcomeIndex: 0 | 1,
+  amount: bigint,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(ROUTER_REDEEM_FUNCTION, [
+      normalizeProtocolV2ConditionId(conditionId),
+      BigInt(expectProtocolV2OutcomeIndex(outcomeIndex)),
+      expectUint256(amount, 'Redeem amount'),
+    ]),
+    to: routerAddress,
+  };
+}
+
+export type CombinatorialPrepareConditionCallError = UserInputError;
+export const CombinatorialPrepareConditionCallError =
+  makeErrorGuard(UserInputError);
+
+/**
+ * Creates a transaction call for CombinatorialModule `prepareCondition(uint256[])`.
+ *
+ * @throws {@link CombinatorialPrepareConditionCallError}
+ * Thrown when any leg position ID is invalid.
+ */
+export function combinatorialPrepareConditionCall(
+  combinatorialModuleAddress: EvmAddress,
+  legs: CanonicalComboLegs,
+): TransactionCall {
+  return {
+    data: AbiFunction.encodeData(
+      COMBINATORIAL_MODULE_PREPARE_CONDITION_FUNCTION,
+      [legs.map((leg) => expectUint256(leg, 'Leg position ID'))],
+    ),
+    to: combinatorialModuleAddress,
+  };
+}
+
 function encodeErc20ApproveCall(
   spender: EvmAddress,
   amount: bigint,
@@ -297,6 +455,31 @@ function expectUint256(value: bigint, label: string): bigint {
   }
 
   return value;
+}
+
+function normalizeProtocolV2ConditionId(conditionId: string): HexString {
+  if (PROTOCOL_V2_CONDITION_ID_BYTES31_PATTERN.test(conditionId)) {
+    return conditionId.toLowerCase() as HexString;
+  }
+
+  if (PROTOCOL_V2_CONDITION_ID_BYTES32_PATTERN.test(conditionId)) {
+    const normalized = conditionId.toLowerCase();
+    if (normalized.endsWith('00')) {
+      return normalized.slice(0, BYTES31_HEX_LENGTH) as HexString;
+    }
+  }
+
+  throw new UserInputError(
+    'Protocol v2 condition ID must be bytes31, or bytes32 with a zero outcome byte',
+  );
+}
+
+function expectProtocolV2OutcomeIndex(outcomeIndex: 0 | 1): 0 | 1 {
+  if (outcomeIndex !== 0 && outcomeIndex !== 1) {
+    throw new UserInputError('Protocol v2 outcome index must be 0 or 1');
+  }
+
+  return outcomeIndex;
 }
 
 /** @internal */
