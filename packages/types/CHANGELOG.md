@@ -1,5 +1,18 @@
 # @polymarket/types
 
+## 0.1.0-beta.3
+
+### Patch Changes
+
+- 6e0f923: Add repository metadata required for npm trusted publishing provenance validation.
+- 0dc6339: Declare Node.js 24 as the minimum supported runtime for published SDK packages.
+
+## 0.1.0-beta.2
+
+### Patch Changes
+
+- 3a8d59a: chore: configure packages for public beta release.
+
 ## 0.1.0-beta.1
 
 ### Patch Changes

@@ -17,7 +17,7 @@ import {
   SubscriptionRegistry,
   type SubscriptionRegistryEntry,
 } from './registry';
-import type { WebSocketManager } from './types';
+import type { WebSocketSubscriptionManager } from './types';
 
 type SportsSubscriptionEntry = SubscriptionRegistryEntry<
   SportsSubscription,
@@ -36,7 +36,7 @@ export type SportsWebSocketManagerOptions = {
  * with `pong` to keep the socket alive.
  */
 export class SportsWebSocketManager
-  implements WebSocketManager<SportsSubscription, SportsEvent>
+  implements WebSocketSubscriptionManager<SportsSubscription, SportsEvent>
 {
   readonly #url: string;
   #closing: Promise<void> | undefined;

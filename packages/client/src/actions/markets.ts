@@ -2,6 +2,7 @@ import {
   ConditionIdSchema,
   IsoDateTimeStringSchema,
   PaginationCursorSchema,
+  PositionIdSchema,
 } from '@polymarket/bindings';
 import {
   ListMarketHoldersResponseSchema,
@@ -61,6 +62,7 @@ const ListMarketsRequestSchema = z.object({
   locale: z.string().optional(),
   marketMakerAddresses: z.array(z.string()).optional(),
   order: z.string().optional(),
+  positionIds: z.array(PositionIdSchema).optional(),
   questionIds: z.array(z.string()).optional(),
   relatedTags: z.boolean().optional(),
   rfqEnabled: z.boolean().optional(),
@@ -170,6 +172,9 @@ export const ListMarketsError = makeErrorGuard(
 /**
  * Lists markets.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListMarketsError}
  * Thrown on failure.
  *
@@ -244,6 +249,9 @@ export const FetchMarketError = makeErrorGuard(
 /**
  * Fetches a market.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchMarketError}
  * Thrown on failure.
  *
@@ -258,7 +266,7 @@ export const FetchMarketError = makeErrorGuard(
  * });
  *
  * const marketByUrl = await fetchMarket(client, {
- *   url: 'https://polymarket.com/market/some-market-slug',
+ *   url: 'https://polymarket.com/event/some-market-slug',
  * });
  *
  * // market === Market
@@ -302,6 +310,9 @@ export const FetchMarketTagsError = makeErrorGuard(
 /**
  * Fetches a market's tags.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchMarketTagsError}
  * Thrown on failure.
  *
@@ -343,6 +354,9 @@ export const ListMarketHoldersError = makeErrorGuard(
 
 /**
  * Lists the top holders for one or more markets.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListMarketHoldersError}
  * Thrown on failure.
@@ -389,6 +403,9 @@ export const ListOpenInterestError = makeErrorGuard(
 /**
  * Lists open interest for one or more markets.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link ListOpenInterestError}
  * Thrown on failure.
  *
@@ -432,6 +449,9 @@ export const ListMarketPositionsError = makeErrorGuard(
 
 /**
  * Lists positions for a market.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListMarketPositionsError}
  * Thrown on failure.

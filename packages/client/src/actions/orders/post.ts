@@ -58,6 +58,9 @@ export const PostOrdersError = makeErrorGuard(
 /**
  * Posts a signed order for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @example
  * ```ts
  * const order = await client.createMarketOrder({
@@ -91,6 +94,8 @@ export function postOrder(
  * Posts multiple signed orders for the authenticated account.
  *
  * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * Accepts between 1 and 15 orders, matching the current service limit.
  *
  * @example

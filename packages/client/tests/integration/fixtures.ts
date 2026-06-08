@@ -35,6 +35,7 @@ type IntegrationFixtures = {
   depositWalletAddress: EvmAddress;
   depositWalletPrivateKey: PrivateKey;
   depositWalletSigner: Signer;
+  newDepositWalletClient: SecureClient;
   publicClient: PublicClient;
   proxyWalletAddress: EvmAddress;
   proxyWalletSigner: Signer;
@@ -73,6 +74,19 @@ export const it: TestAPI<IntegrationFixtures> =
         apiKey: relayerAuthentication,
         signer: depositWalletSigner,
         wallet: depositWalletAddress,
+      });
+
+      await use(secureClient);
+    },
+
+    newDepositWalletClient: async ({ relayerAuthentication }, use) => {
+      // Intended for vnet-backed tests that give a fresh Deposit Wallet a
+      // synthetic collateral balance. Do not use against live funds without an
+      // explicit cleanup strategy.
+      const signer = createTestSigner(generatePrivateKey());
+      const secureClient = await createSecureClient({
+        apiKey: relayerAuthentication,
+        signer,
       });
 
       await use(secureClient);

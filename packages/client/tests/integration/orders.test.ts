@@ -1,12 +1,11 @@
-import { OrderSide, OrderType } from '@polymarket/bindings';
+import { BuilderCodeSchema, OrderSide, OrderType } from '@polymarket/bindings';
 import { OrderPostStatus } from '@polymarket/bindings/clob';
 import {
-  createSecureClient,
   InsufficientLiquidityError,
   type Market,
   type SecureClient,
+  UserInputError,
 } from '@polymarket/client';
-import { fetchNegRisk } from '@polymarket/client/actions';
 import { expectPresent } from '@polymarket/types';
 import { afterAll } from 'vitest';
 import {
@@ -20,6 +19,9 @@ import { expectAcceptedOrderResponse } from './helpers';
 import { findHighVolumeLowPriceMarket } from './markets';
 
 const market = await findHighVolumeLowPriceMarket(publicClient);
+const UNKNOWN_BUILDER_CODE = BuilderCodeSchema.parse(
+  '0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+);
 let marketOrderCleanup:
   | {
       market: Market;
@@ -30,9 +32,12 @@ let marketOrderCleanup:
 describe('Orders', { timeout: 60_000 }, () => {
   describe('estimateMarketPrice', () => {
     it('calculates the price for a market buy at the minimum size', async ({
+      annotate,
       publicClient,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
 
       const result = await publicClient.estimateMarketPrice({
         amount: expectPresent(market.trading.minimumOrderSize),
@@ -47,9 +52,12 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
 
     it('throws an explicit liquidity error when an FOK amount cannot fully fill', async ({
+      annotate,
       publicClient,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
 
       await expect(
         publicClient.estimateMarketPrice({
@@ -96,6 +104,8 @@ describe('Orders', { timeout: 60_000 }, () => {
       'closes leftover inventory or round-trips a minimum-size market order',
       async ({ annotate, secureClientWithDepositWallet }) => {
         const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+        annotate(`Market ID: ${market.id}`);
+        annotate(`Token ID: ${yesTokenId}`);
 
         const positions = await secureClientWithDepositWallet
           .listPositions({
@@ -143,10 +153,13 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('createMarketOrder', () => {
     it('carries builder attribution onto the prepared market order', async ({
+      annotate,
       builderCode,
       secureClientWithDepositWallet,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
 
       const order = await secureClientWithDepositWallet.createMarketOrder({
         amount: expectPresent(market.trading.minimumOrderSize),
@@ -157,13 +170,36 @@ describe('Orders', { timeout: 60_000 }, () => {
 
       expect(order.builder).toBe(builderCode);
     });
+
+    it('reports unknown builder codes as user input errors when resolving buy amounts against max spend', async ({
+      annotate,
+      secureClientWithDepositWallet,
+    }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      const minimumOrderSize = expectPresent(market.trading.minimumOrderSize);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+
+      await expect(
+        secureClientWithDepositWallet.createMarketOrder({
+          amount: minimumOrderSize,
+          builderCode: UNKNOWN_BUILDER_CODE,
+          maxSpend: minimumOrderSize,
+          side: OrderSide.BUY,
+          tokenId: yesTokenId,
+        }),
+      ).rejects.toThrow(UserInputError);
+    });
   });
 
   describe('placeLimitOrder', () => {
     it('allows to place a limit order for the desired size and price', async ({
+      annotate,
       secureClientWithDepositWallet,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
 
@@ -178,11 +214,14 @@ describe('Orders', { timeout: 60_000 }, () => {
     });
 
     it('carries post-only submission options onto the prepared order', async ({
+      annotate,
       builderCode,
 
       secureClientWithDepositWallet,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
 
@@ -199,34 +238,21 @@ describe('Orders', { timeout: 60_000 }, () => {
       expect(order.builder).toBe(builderCode);
     });
 
-    it('requests a collateral approval if necessary', async ({
-      depositWalletAddress,
-      depositWalletSigner,
-
-      relayerAuthentication,
+    // Enable once this suite runs against the staging Tenderly vnet with a fake
+    // collateral balance assigned to the fresh Deposit Wallet. The fresh wallet
+    // naturally has zero exchange allowance, so this avoids revoking live
+    // approval state on the shared funded Deposit Wallet.
+    it.skip('requests a collateral approval if necessary', async ({
+      annotate,
+      newDepositWalletClient,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
-      const gaslessClient = await createSecureClient({
-        apiKey: relayerAuthentication,
-        signer: depositWalletSigner,
-        wallet: depositWalletAddress,
-      });
-      const exchangeAddress = await resolveExchangeAddressForToken(
-        gaslessClient,
-        yesTokenId,
-      );
 
-      await gaslessClient
-        .approveErc20({
-          amount: 0n,
-          spenderAddress: exchangeAddress,
-          tokenAddress: gaslessClient.environment.collateralToken,
-        })
-        .then((handle) => handle.wait());
-
-      const response = await gaslessClient.placeLimitOrder({
+      const response = await newDepositWalletClient.placeLimitOrder({
         price: minPrice,
         side: OrderSide.BUY,
         size: minSize,
@@ -236,7 +262,7 @@ describe('Orders', { timeout: 60_000 }, () => {
       expect(response.ok).toBe(true);
       const acceptedResponse = expectAcceptedOrderResponse(response);
 
-      const cancelResult = await gaslessClient.cancelOrder({
+      const cancelResult = await newDepositWalletClient.cancelOrder({
         orderId: acceptedResponse.orderId,
       });
       expect(cancelResult.canceled).toContain(acceptedResponse.orderId);
@@ -245,9 +271,12 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('placeLimitOrder', () => {
     it('creates, signs, and posts a limit order in one workflow', async ({
+      annotate,
       secureClientWithDepositWallet,
     }) => {
       const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
       const minPrice = expectPresent(market.trading.minimumTickSize);
       const minSize = expectPresent(market.trading.minimumOrderSize);
 
@@ -268,8 +297,13 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('cancelOrder', () => {
     it('cancels a single open order', async ({
+      annotate,
       secureClientWithDepositWallet,
     }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+
       const { orderId } = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -292,8 +326,13 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('postOrders', () => {
     it('posts multiple resting limit orders', async ({
+      annotate,
       secureClientWithDepositWallet,
     }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+
       const firstOrder = await createSignedRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -323,8 +362,13 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('cancelOrders', () => {
     it('cancels multiple open orders', async ({
+      annotate,
       secureClientWithDepositWallet,
     }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+
       const firstOrder = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -344,7 +388,14 @@ describe('Orders', { timeout: 60_000 }, () => {
   });
 
   describe('cancelAll', () => {
-    it('cancels all open orders', async ({ secureClientWithDepositWallet }) => {
+    it('cancels all open orders', async ({
+      annotate,
+      secureClientWithDepositWallet,
+    }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+
       const order = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -357,8 +408,13 @@ describe('Orders', { timeout: 60_000 }, () => {
 
   describe('cancelMarketOrders', () => {
     it('cancels open orders for a market and asset', async ({
+      annotate,
       secureClientWithDepositWallet,
     }) => {
+      const yesTokenId = expectPresent(market.outcomes.yes.tokenId);
+      annotate(`Market ID: ${market.id}`);
+      annotate(`Token ID: ${yesTokenId}`);
+
       const order = await createRestingLimitOrder(
         secureClientWithDepositWallet,
         market,
@@ -416,19 +472,6 @@ async function createSignedRestingLimitOrder(
     size,
     tokenId: yesTokenId,
   });
-}
-
-async function resolveExchangeAddressForToken(
-  client: SecureClient,
-  tokenId: string,
-) {
-  const negRisk = await fetchNegRisk(client, {
-    tokenId,
-  });
-
-  return negRisk
-    ? client.environment.negRiskExchange
-    : client.environment.standardExchange;
 }
 
 async function cancelMarketOrderWithRetry(

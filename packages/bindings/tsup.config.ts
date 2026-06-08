@@ -9,6 +9,7 @@ export default defineConfig(() => ({
     'src/data/index.ts',
     'src/gamma/index.ts',
     'src/relayer/index.ts',
+    'src/rfq.ts',
     'src/subscriptions/index.ts',
   ],
   outDir: 'dist',

@@ -52,7 +52,7 @@ export const PrepareMarketOrderError = makeErrorGuard(
  * Starts the market-order workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link PrepareMarketOrderError}
  * Thrown on failure.
@@ -108,7 +108,7 @@ export const PrepareLimitOrderError = makeErrorGuard(
  * Starts the limit-order workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link PrepareLimitOrderError}
  * Thrown on failure.
@@ -155,7 +155,7 @@ export const PrepareMarketOrderPostingError = PrepareMarketOrderError;
  * Starts and posts a market-order workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link PrepareMarketOrderPostingError}
  * Thrown on failure.
@@ -186,7 +186,7 @@ export const PrepareLimitOrderPostingError = PrepareLimitOrderError;
  * Starts and posts a limit-order workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link PrepareLimitOrderPostingError}
  * Thrown on failure.

@@ -47,12 +47,14 @@
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
 - When a type is specific to a single function, such as a one-off params object, argument union, or return shape, colocate that `type` directly above the function declaration. Promote it to a shared or domain abstraction only when it is reused, part of the public model, or needed to express a real abstraction boundary.
 - Treat property-access-derived types like `SecureClient['signatureType']` as a code smell in most cases. Prefer a named domain type when the value is part of the public or shared model.
+- Do not use indexed-access-derived types like `SomeType['field']` in implementation code, public APIs, examples, TSDoc, or docs. This is non-negotiable; define and use a named type instead.
 - Prefer simple, local code. Accept small duplication when it keeps logic easier to read.
 - Introduce helpers only when they meaningfully improve reuse, safety, or readability. Helper names should reflect their real behavior; otherwise inline or rename them.
 - Shape implementation abstractions around real supported workflows and current platform behavior, not generic completeness. Add breadth only when a concrete use case requires it.
 - When translating one public error into another at an action boundary, prefer `ResultAsync.mapErr(...)` on the request pipeline over `try`/`catch` around `unwrap(...)` when the remap can stay inside the result chain.
 - When an action starts calling another action, awaiting a workflow step, waiting on a transaction handle, or otherwise adding a new operation that can throw, validate the containing action's public `...Error` union and runtime `makeErrorGuard(...)`. Add any newly propagated public errors unless they are caught, remapped, or intentionally handled before crossing the action boundary.
 - Prefer TypeScript enums with `z.enum(MyEnum)` over `z.union([z.literal(...), ...])` for string-valued sets. This gives consumers dot-notation access, keeps the schema and type in sync, and avoids `z.nativeEnum` which is deprecated in Zod v4.
+- Document abstractions at their own layer. Lower-level types, helpers, and modules should describe their own contract, invariants, and direct behavior, not higher-level consumers that happen to compose them.
 - In TSDoc `@example` blocks, do not include import statements. Keep examples focused on usage only.
 - Public TSDoc must not mention underlying service boundaries such as Gamma, CLOB, Data API, or relayer. Public docs should describe the unified SDK surface, while tests may mention the underlying services when useful.
 - For any public SDK function export, including actions and client methods, document the public thrown-error surface explicitly. Export a flattened `...Error` union of the concrete public error types the function can throw through its public contract, dedupe the union, and do not include internal assertion-style errors such as `InvariantError` in that union.
@@ -62,6 +64,7 @@
 
 - Default client tests to integration-style coverage.
 - Do not mock API responses unless explicitly requested or unless mocking is necessary to isolate a boundary under test.
+- For tests involving async iterators, especially integration tests, prefer idiomatic consumer usage such as `for await (...)` so the test reads like final SDK DX. Manual iterator calls like `iterator.next()` are acceptable in unit tests or narrow cases where they make the behavior materially easier to isolate or understand.
 
 
 ## Response contract

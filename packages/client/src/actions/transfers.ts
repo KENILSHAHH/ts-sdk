@@ -7,7 +7,11 @@ import type { BaseSecureClient } from '../clients';
 import {
   CancelledSigningError,
   makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
@@ -55,7 +59,7 @@ export const PrepareErc20TransferError = makeErrorGuard(UserInputError);
  * Starts an ERC-20 transfer workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -107,17 +111,28 @@ export async function prepareErc20Transfer(
 }
 
 export type TransferErc20Error =
-  | PrepareErc20TransferError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const TransferErc20Error = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
 /**
  * Transfers ERC-20 tokens from the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link TransferErc20Error}
  * Thrown on failure.

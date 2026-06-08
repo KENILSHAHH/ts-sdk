@@ -45,60 +45,6 @@ describe('Gasless', () => {
     server.close();
   });
 
-  describe('isGaslessReady', () => {
-    it('returns true for a deployed Deposit Wallet', async ({
-      depositWalletAddress,
-      depositWalletSigner,
-    }) => {
-      const secureClient = await createSecureClient({
-        signer: depositWalletSigner,
-        wallet: depositWalletAddress,
-      });
-
-      expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
-
-      await expect(secureClient.isGaslessReady()).resolves.toBe(true);
-    });
-
-    it('returns true for a deployed Proxy wallet', async ({
-      proxyWalletAddress,
-      proxyWalletSigner,
-    }) => {
-      const secureClient = await createSecureClient({
-        signer: proxyWalletSigner,
-        wallet: proxyWalletAddress,
-      });
-
-      expect(secureClient.account.walletType).toBe(WalletType.POLY_PROXY);
-
-      await expect(secureClient.isGaslessReady()).resolves.toBe(true);
-    });
-
-    it('returns true for a deployed Safe wallet', async ({
-      safeWalletAddress,
-      safeWalletSigner,
-    }) => {
-      const secureClient = await createSecureClient({
-        signer: safeWalletSigner,
-        wallet: safeWalletAddress,
-      });
-
-      expect(secureClient.account.walletType).toBe(WalletType.GNOSIS_SAFE);
-
-      await expect(secureClient.isGaslessReady()).resolves.toBe(true);
-    });
-
-    it('returns false for an EOA wallet type', async ({ randomEoaSigner }) => {
-      const secureClient = await createSecureClient({
-        signer: randomEoaSigner,
-      });
-
-      expect(secureClient.account.walletType).toBe(WalletType.EOA);
-
-      await expect(secureClient.isGaslessReady()).resolves.toBe(false);
-    });
-  });
-
   describe('prepareGaslessTransaction submit payloads', () => {
     it('submits a Deposit Wallet WALLET payload', async ({
       depositWalletAddress,

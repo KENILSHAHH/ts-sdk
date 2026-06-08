@@ -46,7 +46,13 @@ export type EquityPricesEventType = EquityPricesEvent['type'];
 // Subscription specs.
 export type MarketSubscription = {
   topic: 'market';
+  /** Token IDs whose market events should be delivered. */
   tokenIds: readonly string[];
+
+  /**
+   * When `true`, the server additionally emits `MarketBestBidAskEvent`,
+   * `NewMarketEvent`, and `MarketResolvedEvent`.
+   */
   customFeatureEnabled?: boolean;
 };
 
@@ -148,6 +154,9 @@ export type SubscribeError = TransportError;
 
 /**
  * Starts one or more realtime subscriptions on this client.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link SubscribeError}
  * Thrown when the realtime subscription cannot be established or fails.

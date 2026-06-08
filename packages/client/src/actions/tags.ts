@@ -32,7 +32,6 @@ import { snakeCase, toSearchParams } from './params';
 const ListTagsRequestSchema = z.object({
   ascending: z.boolean().optional(),
   cursor: PaginationCursorSchema.optional(),
-  includeChat: z.boolean().optional(),
   includeTemplate: z.boolean().optional(),
   isCarousel: z.boolean().optional(),
   locale: z.string().optional(),
@@ -43,7 +42,6 @@ const ListTagsRequestSchema = z.object({
 const FetchTagRequestSchema = z.union([
   z.object({
     id: z.string(),
-    includeChat: z.boolean().optional(),
     includeTemplate: z.boolean().optional(),
     locale: z.string().optional(),
   }),
@@ -102,6 +100,9 @@ export const ListTagsError = makeErrorGuard(
 
 /**
  * Lists tags.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ListTagsError}
  * Thrown on failure.
@@ -193,6 +194,9 @@ export const FetchTagError = makeErrorGuard(
 /**
  * Fetches a tag by id or slug.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link FetchTagError}
  * Thrown on failure.
  *
@@ -218,7 +222,6 @@ export async function fetchTag(
         .get(`tags/${params.id}`, {
           params: toSearchParams(
             {
-              includeChat: params.includeChat,
               includeTemplate: params.includeTemplate,
               locale: params.locale,
             },
@@ -259,6 +262,9 @@ export const FetchRelatedTagsError = makeErrorGuard(
 
 /**
  * Fetches related tag relationships by id or slug.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchRelatedTagsError}
  * Thrown on failure.
@@ -321,6 +327,9 @@ export const FetchRelatedTagResourcesError = makeErrorGuard(
 
 /**
  * Fetches resources linked from related tag relationships by id or slug.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link FetchRelatedTagResourcesError}
  * Thrown on failure.

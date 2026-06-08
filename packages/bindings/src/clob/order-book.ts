@@ -1,18 +1,54 @@
 import { z } from 'zod';
 import {
+  type ConditionId,
+  ConditionIdSchema,
+  type DecimalString,
   DecimalStringSchema,
+  type EpochMilliseconds,
   EpochMillisecondsStringSchema,
+  type TokenId,
   TokenIdSchema,
 } from '../shared';
+
+export type OrderBookLevel = {
+  price: DecimalString;
+  size: DecimalString;
+};
+
+/** SHA-1 hash of the serialized order book summary, encoded as bare lowercase hex. */
+export type OrderBookHash = string & { readonly __tag: 'OrderBookHash' };
+
+export type OrderBook = {
+  market: ConditionId;
+  tokenId: TokenId;
+  timestamp?: EpochMilliseconds | null;
+
+  /** Bid levels in ascending price order, lowest bid first. */
+  bids: OrderBookLevel[];
+
+  /** Ask levels in descending price order, highest ask first. */
+  asks: OrderBookLevel[];
+
+  minOrderSize: DecimalString;
+  tickSize: DecimalString;
+  negRisk: boolean;
+  lastTradePrice?: DecimalString | null;
+  hash: OrderBookHash;
+};
 
 export const OrderBookLevelSchema = z.object({
   price: DecimalStringSchema,
   size: DecimalStringSchema,
-});
+}) satisfies z.ZodType<OrderBookLevel>;
+
+export const OrderBookHashSchema = z
+  .string()
+  .regex(/^[a-f0-9]{40}$/)
+  .transform((value) => value as OrderBookHash);
 
 export const OrderBookSchema = z
   .object({
-    market: z.string(),
+    market: ConditionIdSchema,
     asset_id: TokenIdSchema,
     timestamp: EpochMillisecondsStringSchema.nullish(),
     bids: z.array(OrderBookLevelSchema),
@@ -21,7 +57,7 @@ export const OrderBookSchema = z
     tick_size: DecimalStringSchema,
     neg_risk: z.boolean(),
     last_trade_price: DecimalStringSchema.nullish(),
-    hash: z.string(),
+    hash: OrderBookHashSchema,
   })
   .transform(
     ({
@@ -39,14 +75,10 @@ export const OrderBookSchema = z
       negRisk: neg_risk,
       lastTradePrice: last_trade_price,
     }),
-  );
+  ) satisfies z.ZodType<OrderBook>;
 
 export const FetchOrderBookResponseSchema = OrderBookSchema;
 export const OrderBooksSchema = z.array(OrderBookSchema);
 
-export type OrderBookLevel = z.infer<typeof OrderBookLevelSchema>;
-export type OrderBook = z.infer<typeof OrderBookSchema>;
-export type OrderBooks = z.infer<typeof OrderBooksSchema>;
-export type FetchOrderBookResponse = z.infer<
-  typeof FetchOrderBookResponseSchema
->;
+export type OrderBooks = OrderBook[];
+export type FetchOrderBookResponse = OrderBook;

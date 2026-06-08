@@ -1,7 +1,5 @@
 import { z } from 'zod';
-import { CategoryReferenceSchema } from './common';
 import {
-  ChatSchema,
   CollectionReferenceSchema,
   EventSchema,
   SeriesReferenceSchema,
@@ -11,8 +9,6 @@ import { TagSchema } from './tag';
 export const SeriesSchema = SeriesReferenceSchema.extend({
   events: z.array(EventSchema).nullish(),
   collections: z.array(CollectionReferenceSchema).nullish(),
-  categories: z.array(CategoryReferenceSchema).nullish(),
-  chats: z.array(ChatSchema).nullish(),
   tags: z.array(TagSchema).nullish(),
 });
 

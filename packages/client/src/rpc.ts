@@ -73,6 +73,58 @@ export class JsonRpcClient {
     return response.result;
   }
 
+  async ethCallBatch(
+    requests: readonly EthCallRequest[],
+  ): Promise<HexString[]> {
+    if (requests.length === 0) {
+      return [];
+    }
+
+    const responses = await this.#postBatch<HexString>(
+      requests.map((request, index) => ({
+        jsonrpc: '2.0',
+        id: index + 1,
+        method: 'eth_call',
+        params: [{ to: request.to, data: request.data }, 'latest'],
+      })),
+    );
+
+    const responsesById = new Map<number, JsonRpcResponse<HexString>>();
+
+    for (const response of responses) {
+      if ('error' in response && response.id === null) {
+        throw new RequestRejectedError(
+          `JSON-RPC eth_call failed: ${response.error.message}`,
+          { cause: response.error, status: 200 },
+        );
+      }
+
+      if (response.id !== null) {
+        responsesById.set(response.id, response);
+      }
+    }
+
+    return requests.map((_, index) => {
+      const id = index + 1;
+      const response = responsesById.get(id);
+
+      if (response === undefined) {
+        throw new UnexpectedResponseError(
+          'Expected JSON-RPC batch response for every request',
+        );
+      }
+
+      if ('error' in response) {
+        throw new RequestRejectedError(
+          `JSON-RPC eth_call failed: ${response.error.message}`,
+          { cause: response.error, status: 200 },
+        );
+      }
+
+      return expectRpcHexResult(response.result);
+    });
+  }
+
   async #post<TResult>(json: unknown): Promise<JsonRpcResponse<TResult>> {
     let response: Response;
 
@@ -104,6 +156,48 @@ export class JsonRpcClient {
     }
 
     if (!isJsonRpcResponse<TResult>(body)) {
+      throw new UnexpectedResponseError('Unexpected JSON-RPC response shape');
+    }
+
+    return body;
+  }
+
+  async #postBatch<TResult>(
+    json: unknown,
+  ): Promise<JsonRpcResponse<TResult>[]> {
+    let response: Response;
+
+    try {
+      response = await ky.post(this.#url, {
+        json,
+        throwHttpErrors: false,
+      });
+    } catch (error) {
+      throw TransportError.fromError(error);
+    }
+
+    if (!response.ok) {
+      throw new RequestRejectedError(
+        `JSON-RPC request to ${this.#url} failed with status ${response.status}`,
+        { status: response.status },
+      );
+    }
+
+    let body: unknown;
+
+    try {
+      body = await response.json();
+    } catch (error) {
+      throw new UnexpectedResponseError(
+        'Expected JSON-RPC response body to be JSON',
+        { cause: error },
+      );
+    }
+
+    if (
+      !Array.isArray(body) ||
+      !body.every((value) => isJsonRpcResponse<TResult>(value))
+    ) {
       throw new UnexpectedResponseError('Unexpected JSON-RPC response shape');
     }
 
@@ -167,6 +261,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isRpcHexString(value: string): value is HexString {
   return /^0x[a-fA-F0-9]*$/.test(value);
+}
+
+function expectRpcHexResult(value: unknown): HexString {
+  if (typeof value !== 'string' || !isRpcHexString(value)) {
+    throw new UnexpectedResponseError(
+      'Expected JSON-RPC eth_call result to be a hex string',
+    );
+  }
+
+  return value;
 }
 
 function stringifyJsonRpcErrorData(data: unknown): string {

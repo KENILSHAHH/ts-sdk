@@ -51,6 +51,9 @@ export const CreateMarketOrderError = makeErrorGuard(
 /**
  * Creates a signed market order for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link CreateMarketOrderError}
  * Thrown on failure.
  */
@@ -82,6 +85,9 @@ export const PlaceMarketOrderError = makeErrorGuard(
 /**
  * Creates and posts a market order for the authenticated account.
  *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
  * @throws {@link PlaceMarketOrderError}
  * Thrown on failure.
  */
@@ -109,6 +115,13 @@ export const CreateLimitOrderError = makeErrorGuard(
 
 /**
  * Creates a signed limit order for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
+ * GTD expirations must be at least 60 seconds in the future. Add your own
+ * buffer for network latency and clock skew when deriving an expiration from
+ * the current time.
  *
  * @throws {@link CreateLimitOrderError}
  * Thrown on failure.
@@ -139,6 +152,13 @@ export const PlaceLimitOrderError = makeErrorGuard(
 
 /**
  * Creates and posts a limit order for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
+ * GTD expirations must be at least 60 seconds in the future. Add your own
+ * buffer for network latency and clock skew when deriving an expiration from
+ * the current time.
  *
  * @throws {@link PlaceLimitOrderError}
  * Thrown on failure.

@@ -1,8 +1,16 @@
 {
   "name": "@polymarket/bindings",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.3",
   "description": "Internal package. Contains generated bindings for the Polymarket API. Not intended for direct use.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Polymarket/ts-sdk",
+    "directory": "packages/bindings"
+  },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -26,6 +34,10 @@
       "types": "./dist/relayer/index.d.ts",
       "default": "./dist/relayer/index.js"
     },
+    "./rfq": {
+      "types": "./dist/rfq.d.ts",
+      "default": "./dist/rfq.js"
+    },
     "./subscriptions": {
       "types": "./dist/subscriptions/index.d.ts",
       "default": "./dist/subscriptions/index.js"
@@ -44,6 +56,9 @@
       ],
       "relayer": [
         "./dist/relayer/index.d.ts"
+      ],
+      "rfq": [
+        "./dist/rfq.d.ts"
       ],
       "subscriptions": [
         "./dist/subscriptions/index.d.ts"

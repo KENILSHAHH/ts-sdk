@@ -64,7 +64,10 @@ export type PrepareMarketSellOrderRequest = BasePrepareMarketOrderRequest & {
   side: OrderSide.SELL;
 
   /**
-   * Number of conditional-token shares to sell.
+   * Number of outcome tokens to sell.
+   *
+   * This is the human-readable token amount: `1` means one full share, not one
+   * 6-decimal base unit.
    */
   shares: number | string;
 };
@@ -80,7 +83,12 @@ export type PrepareLimitOrderRequest = {
   /** Price used to create the order */
   price: number | string;
 
-  /** Size in terms of the conditional token */
+  /**
+   * Order size in outcome tokens.
+   *
+   * This is the human-readable token amount: `1` means one full share, not one
+   * 6-decimal base unit.
+   */
   size: number | string;
 
   /** Side of the order */
@@ -101,6 +109,10 @@ export type PrepareLimitOrderRequest = {
    *
    * When provided, the SDK prepares a Good-Til-Date (GTD) limit order that
    * expires at the given timestamp.
+   *
+   * The timestamp must be at least 60 seconds in the future. Add your own
+   * buffer for network latency and clock skew when deriving it from the
+   * current time.
    *
    * When omitted, the SDK prepares a Good-Til-Cancelled (GTC) limit order.
    */

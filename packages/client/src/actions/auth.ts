@@ -44,7 +44,7 @@ export const CreateApiKeyError = makeErrorGuard(
  * Creates a new API key from a signed L1 auth payload.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -83,7 +83,7 @@ export const DeriveApiKeyError = makeErrorGuard(
  * Derives an existing API key from a signed L1 auth payload.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -122,7 +122,7 @@ export const CreateOrDeriveApiKeyError = makeErrorGuard(
  * Creates an API key and falls back to derivation when it already exists.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -165,7 +165,7 @@ export const FetchApiKeysError = makeErrorGuard(
  * Fetches all API keys associated with the authenticated client.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -205,7 +205,7 @@ export const DeleteApiKeyError = makeErrorGuard(
  * Deletes the authenticated API key.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -242,7 +242,7 @@ export const CreateBuilderApiKeyError = makeErrorGuard(
  * Creates a new builder API key for the authenticated client.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -281,7 +281,7 @@ export const FetchBuilderApiKeysError = makeErrorGuard(
  * Fetches builder API keys associated with the authenticated client.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -320,7 +320,7 @@ export const RevokeBuilderApiKeyError = makeErrorGuard(
  * Revokes a builder API key.
  *
  * @remarks
- * This is a low-level auth action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts

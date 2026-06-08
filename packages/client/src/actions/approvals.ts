@@ -1,17 +1,27 @@
 import { type EvmAddress, EvmAddressSchema } from '@polymarket/bindings';
 import { WalletType } from '@polymarket/bindings/gamma';
-import type { EvmSignature } from '@polymarket/types';
+import type { EvmSignature, HexString } from '@polymarket/types';
 import { z } from 'zod';
 import {
+  decodeErc20AllowanceResult,
+  decodeErc1155IsApprovedForAllResult,
+  erc20AllowanceCall,
   erc20ApprovalCall,
   erc1155ApprovalForAllCall,
+  erc1155IsApprovedForAllCall,
   MAX_UINT256,
 } from '../abis';
 import type { BaseSecureClient } from '../clients';
 import {
   CancelledSigningError,
   makeErrorGuard,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
@@ -30,6 +40,7 @@ import {
   GaslessTransactionMetadataSchema,
   type GaslessWorkflowRequest,
   prepareGaslessTransaction,
+  type WaitForGaslessTransactionError,
 } from './gasless';
 
 export type Erc20ApprovalWorkflowRequest =
@@ -60,7 +71,7 @@ export const PrepareErc20ApprovalError = makeErrorGuard(UserInputError);
  * Starts an ERC-20 approval workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -109,17 +120,28 @@ export async function prepareErc20Approval(
 }
 
 export type ApproveErc20Error =
-  | PrepareErc20ApprovalError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const ApproveErc20Error = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
 /**
  * Approves ERC-20 token spending for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ApproveErc20Error}
  * Thrown on failure.
@@ -161,7 +183,7 @@ export const PrepareErc1155ApprovalForAllError = makeErrorGuard(UserInputError);
  * Starts an ERC-1155 approval-for-all workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -215,17 +237,28 @@ export async function prepareErc1155ApprovalForAll(
 }
 
 export type ApproveErc1155ForAllError =
-  | PrepareErc1155ApprovalForAllError
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError
   | CancelledSigningError
   | SigningError;
 export const ApproveErc1155ForAllError = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
 /**
  * Approves or revokes ERC-1155 operator access for the authenticated account.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link ApproveErc1155ForAllError}
  * Thrown on failure.
@@ -246,24 +279,43 @@ export type TradingApprovalsWorkflowRequest =
 
 export type TradingApprovalsWorkflow = AsyncGenerator<
   TradingApprovalsWorkflowRequest,
-  TransactionHandle,
+  void,
   EvmAddress | EvmSignature | TransactionHandle
 >;
 
-export type PrepareTradingApprovalsError = UserInputError;
-export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
+export type PrepareTradingApprovalsError =
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const PrepareTradingApprovalsError = makeErrorGuard(
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+type Erc20TradingApproval = {
+  amount: bigint;
+  spenderAddress: EvmAddress;
+  tokenAddress: EvmAddress;
+};
+
+type Erc1155TradingApproval = {
+  operatorAddress: EvmAddress;
+  tokenAddress: EvmAddress;
+};
+
+type TradingApprovalRequirements = {
+  erc20: Erc20TradingApproval[];
+  erc1155: Erc1155TradingApproval[];
+};
 
 /**
  * Starts a trading-setup approval workflow.
  *
  * @remarks
- * This is a low-level action that most SDK consumers will not need.
- *
- * Prepares all approvals required for trading, including collateral and
- * position token approvals for both standard and neg-risk market flows.
- * The collateral adapter approvals cover split, merge, and redemption workflows.
- * Auto-redeem approval is included so accounts are ready for supported position
- * lifecycle workflows.
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @example
  * ```ts
@@ -276,66 +328,27 @@ export const PrepareTradingApprovalsError = makeErrorGuard(UserInputError);
 export async function prepareTradingApprovals(
   client: BaseSecureClient,
 ): Promise<TradingApprovalsWorkflow> {
-  const erc20ApprovalCalls = [
+  const missingApprovals = await resolveMissingTradingApprovals(client);
+  const erc20ApprovalCalls = missingApprovals.erc20.map((approval) =>
     erc20ApprovalCall(
-      client.environment.collateralToken,
-      client.environment.standardExchange,
-      MAX_UINT256,
+      approval.tokenAddress,
+      approval.spenderAddress,
+      approval.amount,
     ),
-    erc20ApprovalCall(
-      client.environment.collateralToken,
-      client.environment.negRiskExchange,
-      MAX_UINT256,
-    ),
-    erc20ApprovalCall(
-      client.environment.collateralToken,
-      client.environment.negRiskAdapter,
-      MAX_UINT256,
-    ),
-    erc20ApprovalCall(
-      client.environment.collateralToken,
-      client.environment.collateralAdapter,
-      MAX_UINT256,
-    ),
-    erc20ApprovalCall(
-      client.environment.collateralToken,
-      client.environment.negRiskCollateralAdapter,
-      MAX_UINT256,
-    ),
-  ] as const;
-  const erc1155ApprovalCalls = [
+  );
+  const erc1155ApprovalCalls = missingApprovals.erc1155.map((approval) =>
     erc1155ApprovalForAllCall(
-      client.environment.conditionalTokens,
-      client.environment.standardExchange,
+      approval.tokenAddress,
+      approval.operatorAddress,
       true,
     ),
-    erc1155ApprovalForAllCall(
-      client.environment.conditionalTokens,
-      client.environment.negRiskExchange,
-      true,
-    ),
-    erc1155ApprovalForAllCall(
-      client.environment.conditionalTokens,
-      client.environment.negRiskAdapter,
-      true,
-    ),
-    erc1155ApprovalForAllCall(
-      client.environment.conditionalTokens,
-      client.environment.collateralAdapter,
-      true,
-    ),
-    erc1155ApprovalForAllCall(
-      client.environment.conditionalTokens,
-      client.environment.negRiskCollateralAdapter,
-      true,
-    ),
-    erc1155ApprovalForAllCall(
-      client.environment.conditionalTokens,
-      client.environment.autoRedeemOperator,
-      true,
-    ),
-  ] as const;
+  );
+
   return async function* (): TradingApprovalsWorkflow {
+    if (erc20ApprovalCalls.length === 0 && erc1155ApprovalCalls.length === 0) {
+      return;
+    }
+
     if (client.account.walletType === WalletType.EOA) {
       for (const call of erc20ApprovalCalls) {
         const handle = expectTransactionHandle(
@@ -347,48 +360,200 @@ export async function prepareTradingApprovals(
         await handle.wait();
       }
 
-      for (const [index, call] of erc1155ApprovalCalls.entries()) {
+      for (const call of erc1155ApprovalCalls) {
         const handle = expectTransactionHandle(
           yield sendErc1155ApprovalForAllTransaction(
             signerTransactionRequest(client.environment.chainId, call),
           ),
         );
 
-        if (index === erc1155ApprovalCalls.length - 1) {
-          return handle;
-        }
-
         await handle.wait();
       }
+
+      return;
     }
 
-    return yield* await prepareGaslessTransaction(client, {
+    const handle = yield* await prepareGaslessTransaction(client, {
       calls: [...erc20ApprovalCalls, ...erc1155ApprovalCalls],
       metadata: 'Trading setup approvals',
     });
+
+    await handle.wait();
   }.call(null);
 }
 
 export type SetupTradingApprovalsError =
   | PrepareTradingApprovalsError
   | CancelledSigningError
-  | SigningError;
+  | SigningError
+  | WaitForGaslessTransactionError;
 export const SetupTradingApprovalsError = makeErrorGuard(
   CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
   SigningError,
+  TimeoutError,
+  TransactionFailedError,
+  TransportError,
+  UnexpectedResponseError,
   UserInputError,
 );
 
+export type DeprecatedTransactionHandle = Omit<TransactionHandle, 'wait'> & {
+  /**
+   * @deprecated `setupTradingApprovals` now waits internally. You do not need
+   * to call this method, and it will be removed in a later version.
+   */
+  wait(): Promise<void>;
+};
+
 /**
  * Sets up the approvals required for trading.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
  * @throws {@link SetupTradingApprovalsError}
  * Thrown on failure.
  */
 export function setupTradingApprovals(
   client: BaseSecureClient,
-): Promise<TransactionHandle> {
-  return prepareTradingApprovals(client).then(completeWith(client.signer));
+): Promise<DeprecatedTransactionHandle> {
+  return prepareTradingApprovals(client)
+    .then(completeWith(client.signer))
+    .then(createDeprecatedTransactionHandle);
+}
+
+function createDeprecatedTransactionHandle(): DeprecatedTransactionHandle {
+  return {
+    transactionHash: null,
+    transactionId: null,
+    wait: async () => {},
+  };
+}
+
+async function resolveMissingTradingApprovals(
+  client: BaseSecureClient,
+): Promise<TradingApprovalRequirements> {
+  const requiredApprovals = getRequiredTradingApprovals(client);
+  const checkCalls = [
+    ...requiredApprovals.erc20.map((approval) =>
+      erc20AllowanceCall(
+        approval.tokenAddress,
+        client.account.wallet,
+        approval.spenderAddress,
+      ),
+    ),
+    ...requiredApprovals.erc1155.map((approval) =>
+      erc1155IsApprovedForAllCall(
+        approval.tokenAddress,
+        client.account.wallet,
+        approval.operatorAddress,
+      ),
+    ),
+  ];
+  const results = await client.rpc.ethCallBatch(checkCalls);
+  const erc20Results = results.slice(0, requiredApprovals.erc20.length);
+  const erc1155Results = results.slice(requiredApprovals.erc20.length);
+
+  return {
+    erc20: requiredApprovals.erc20.filter((approval, index) => {
+      const allowance = decodeErc20AllowanceResult(
+        erc20Results[index] as HexString,
+      );
+
+      return allowance < approval.amount;
+    }),
+    erc1155: requiredApprovals.erc1155.filter((_, index) => {
+      const approved = decodeErc1155IsApprovedForAllResult(
+        erc1155Results[index] as HexString,
+      );
+
+      return !approved;
+    }),
+  };
+}
+
+function getRequiredTradingApprovals(
+  client: BaseSecureClient,
+): TradingApprovalRequirements {
+  return {
+    erc20: [
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.standardExchange,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.negRiskExchange,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.negRiskAdapter,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.collateralAdapter,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.negRiskCollateralAdapter,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.protocolV2Router,
+        tokenAddress: client.environment.collateralToken,
+      },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.exchangeV3,
+        tokenAddress: client.environment.collateralToken,
+      },
+    ],
+    erc1155: [
+      {
+        operatorAddress: client.environment.standardExchange,
+        tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.negRiskExchange,
+        tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.negRiskAdapter,
+        tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.collateralAdapter,
+        tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.negRiskCollateralAdapter,
+        tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.autoRedeemOperator,
+        tokenAddress: client.environment.conditionalTokens,
+      },
+      {
+        operatorAddress: client.environment.protocolV2Router,
+        tokenAddress: client.environment.positionManager,
+      },
+      {
+        operatorAddress: client.environment.exchangeV3,
+        tokenAddress: client.environment.positionManager,
+      },
+      {
+        operatorAddress: client.environment.autoRedeemOperator,
+        tokenAddress: client.environment.positionManager,
+      },
+    ],
+  };
 }
 
 function sendErc20ApprovalTransaction(
