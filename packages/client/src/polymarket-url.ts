@@ -24,6 +24,16 @@ export function parsePolymarketSlugUrl(
   const [actualResource, slug, ...extraSegments] = url.pathname
     .split('/')
     .filter(Boolean);
+  const marketSlug = extraSegments[0];
+
+  if (
+    resource === 'market' &&
+    actualResource === 'event' &&
+    slug !== undefined &&
+    extraSegments.length <= 1
+  ) {
+    return marketSlug ?? slug;
+  }
 
   if (
     actualResource !== resource ||

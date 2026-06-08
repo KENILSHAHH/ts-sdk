@@ -1,5 +1,7 @@
 import { InvariantError } from './errors';
 
+export type { Tagged } from 'type-fest';
+
 /**
  * Flattens an object type for clearer IDE hovers and inferred signatures.
  */
