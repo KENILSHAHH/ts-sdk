@@ -12,8 +12,11 @@ const ROUTER_ADDRESS = expectEvmAddress(
 const CONDITION_ID = toComboConditionId(
   '0x032def24bfb0c5c57fb236fac08b94236a0000000000000000000000000000',
 );
-const YES_POSITION_CONDITION_ID = `${CONDITION_ID}00` as ComboConditionId;
-const NO_POSITION_CONDITION_ID = `${CONDITION_ID}01` as ComboConditionId;
+// Simulates untyped JS callers that bypass the branded parser.
+const YES_POSITION_CONDITION_ID =
+  `${CONDITION_ID}00` as unknown as ComboConditionId;
+const NO_POSITION_CONDITION_ID =
+  `${CONDITION_ID}01` as unknown as ComboConditionId;
 
 describe('Protocol v2 ABI helpers', () => {
   it('normalizes bytes32 combo condition wire forms before encoding', () => {
