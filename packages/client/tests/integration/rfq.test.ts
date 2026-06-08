@@ -1159,11 +1159,11 @@ describe('RFQ sessions', () => {
       const session = await secureClientWithDepositWallet.openRfqSession();
 
       try {
-        let quoteError: unknown;
+        let quoteFailed = false;
         let eventsAfterFailure = 0;
 
         for await (const event of session) {
-          if (quoteError !== undefined) {
+          if (quoteFailed) {
             eventsAfterFailure += 1;
             continue;
           }
@@ -1172,15 +1172,17 @@ describe('RFQ sessions', () => {
 
           try {
             await event.quote({ price: 0.45 });
+            throw new Error('Expected RFQ quote rejection.');
           } catch (error) {
-            quoteError = error;
+            quoteFailed = true;
+            expect(error).toMatchObject({
+              message: 'Invalid RFQ quoter message.',
+              name: 'TransportError',
+            });
           }
         }
 
-        expect(quoteError).toMatchObject({
-          message: 'Invalid RFQ quoter message.',
-          name: 'TransportError',
-        });
+        expect(quoteFailed).toBe(true);
         expect(eventsAfterFailure).toBe(0);
       } finally {
         await secureClientWithDepositWallet.closeSubscriptions();
