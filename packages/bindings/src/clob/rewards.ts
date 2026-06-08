@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  ConditionIdSchema,
+  CtfConditionIdSchema,
   DecimalishSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
@@ -36,7 +36,7 @@ export type CurrentRewardConfig = z.infer<typeof CurrentRewardConfigSchema>;
 
 export const CurrentRewardSchema = z
   .object({
-    condition_id: ConditionIdSchema,
+    condition_id: CtfConditionIdSchema,
     rewards_max_spread: z.number().optional(),
     rewards_min_size: DecimalishSchema.optional(),
     rewards_config: z.array(CurrentRewardConfigSchema).optional(),
@@ -126,7 +126,7 @@ export type RewardConfig = z.infer<typeof RewardConfigSchema>;
 
 export const MarketRewardSchema = z
   .object({
-    condition_id: ConditionIdSchema,
+    condition_id: CtfConditionIdSchema,
     question: z.string(),
     market_slug: z.string().optional(),
     event_slug: z.string().optional(),

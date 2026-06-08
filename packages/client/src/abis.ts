@@ -1,4 +1,9 @@
-import type { ConditionId, PositionId, TokenId } from '@polymarket/bindings';
+import type {
+  ComboConditionId,
+  CtfConditionId,
+  PositionId,
+  TokenId,
+} from '@polymarket/bindings';
 import { type EvmAddress, type HexString, invariant } from '@polymarket/types';
 import { AbiFunction, AbiParameters } from 'ox';
 import { makeErrorGuard, UserInputError } from './errors';
@@ -230,7 +235,7 @@ export const SplitPositionCallError = makeErrorGuard(UserInputError);
 export function splitPositionCall(
   targetAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -255,7 +260,7 @@ export const MergePositionsCallError = makeErrorGuard(UserInputError);
 export function mergePositionsCall(
   targetAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -277,7 +282,7 @@ export function mergePositionsCall(
 export function ctfRedeemPositionsCall(
   conditionalTokensAddress: EvmAddress,
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
 ): TransactionCall {
   return {
     data: encodeCtfRedeemPositionsCall(collateralTokenAddress, conditionId),
@@ -296,7 +301,7 @@ export const SplitV2CallError = makeErrorGuard(UserInputError);
  */
 export function splitV2Call(
   routerAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: ComboConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -319,7 +324,7 @@ export const MergeV2CallError = makeErrorGuard(UserInputError);
  */
 export function mergeV2Call(
   routerAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: ComboConditionId,
   amount: bigint,
 ): TransactionCall {
   return {
@@ -342,7 +347,7 @@ export const RedeemV2CallError = makeErrorGuard(UserInputError);
  */
 export function redeemV2Call(
   routerAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: ComboConditionId,
   outcomeIndex: 0 | 1,
   amount: bigint,
 ): TransactionCall {
@@ -407,7 +412,7 @@ function encodeErc20TransferCall(
 
 function encodeSplitPositionCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): HexString {
   return AbiFunction.encodeData(CTF_SPLIT_POSITION_FUNCTION, [
@@ -421,7 +426,7 @@ function encodeSplitPositionCall(
 
 function encodeMergePositionsCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
   amount: bigint,
 ): HexString {
   return AbiFunction.encodeData(CTF_MERGE_POSITIONS_FUNCTION, [
@@ -435,7 +440,7 @@ function encodeMergePositionsCall(
 
 function encodeCtfRedeemPositionsCall(
   collateralTokenAddress: EvmAddress,
-  conditionId: ConditionId,
+  conditionId: CtfConditionId,
 ): HexString {
   return AbiFunction.encodeData(CTF_REDEEM_POSITIONS_FUNCTION, [
     collateralTokenAddress,
@@ -457,20 +462,22 @@ function expectUint256(value: bigint, label: string): bigint {
   return value;
 }
 
-function normalizeProtocolV2ConditionId(conditionId: string): HexString {
+function normalizeProtocolV2ConditionId(
+  conditionId: ComboConditionId,
+): HexString {
   if (PROTOCOL_V2_CONDITION_ID_BYTES31_PATTERN.test(conditionId)) {
     return conditionId.toLowerCase() as HexString;
   }
 
   if (PROTOCOL_V2_CONDITION_ID_BYTES32_PATTERN.test(conditionId)) {
     const normalized = conditionId.toLowerCase();
-    if (normalized.endsWith('00')) {
+    if (normalized.endsWith('00') || normalized.endsWith('01')) {
       return normalized.slice(0, BYTES31_HEX_LENGTH) as HexString;
     }
   }
 
   throw new UserInputError(
-    'Protocol v2 condition ID must be bytes31, or bytes32 with a zero outcome byte',
+    'Protocol v2 condition ID must be bytes31, or bytes32 with a binary outcome byte',
   );
 }
 

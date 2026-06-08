@@ -47,7 +47,10 @@ export type CategoryId = Tagged<string, 'CategoryId'>;
 export type ChatId = Tagged<string, 'ChatId'>;
 export type ClobRewardId = Tagged<string, 'ClobRewardId'>;
 export type CommentId = Tagged<string, 'CommentId'>;
-export type ConditionId = Tagged<HexString, 'ConditionId'>;
+export type ComboConditionId = Tagged<HexString, 'ComboConditionId'>;
+export type CtfConditionId = Tagged<HexString, 'CtfConditionId'>;
+/** @deprecated Use {@link CtfConditionId}. */
+export type ConditionId = CtfConditionId;
 export type CollectionId = Tagged<string, 'CollectionId'>;
 export type EventCreatorId = Tagged<string, 'EventCreatorId'>;
 export type EventExternalPartnerMappingId = Tagged<
@@ -117,14 +120,43 @@ export function toCommentId(value: string): CommentId {
   return toTaggedString<CommentId>(value);
 }
 
-export function toConditionId(value: string): ConditionId {
+export function toCtfConditionId(value: string): CtfConditionId {
   if (!isHexString(value) || (value.length !== 64 && value.length !== 66)) {
     throw new TypeError(
       `Expected a 31-byte or 32-byte hex string, received: ${value}`,
     );
   }
 
-  return value as ConditionId;
+  return value as CtfConditionId;
+}
+
+/** @deprecated Use {@link toCtfConditionId}. */
+export const toConditionId = toCtfConditionId;
+
+export function toComboConditionId(value: string): ComboConditionId {
+  if (!isHexString(value)) {
+    throw new TypeError(
+      `Expected a protocol v2 combo condition ID, received: ${value}`,
+    );
+  }
+
+  const normalized = value.toLowerCase();
+
+  if (normalized.length === 64 && normalized.startsWith('0x03')) {
+    return normalized as ComboConditionId;
+  }
+
+  if (
+    normalized.length === 66 &&
+    normalized.startsWith('0x03') &&
+    (normalized.endsWith('00') || normalized.endsWith('01'))
+  ) {
+    return normalized.slice(0, -2) as ComboConditionId;
+  }
+
+  throw new TypeError(
+    `Expected a protocol v2 combo condition ID, received: ${value}`,
+  );
 }
 
 export function toCollectionId(value: string): CollectionId {
@@ -250,11 +282,16 @@ export const ApiKeySchema = z.string().transform(toApiKey);
 export const BuilderCodeSchema = z.string().transform(toBuilderCode);
 export const ClobRewardIdSchema = z.string().transform(toClobRewardId);
 export const CommentIdSchema = z.string().transform(toCommentId);
-export const ConditionIdSchema = z.string().transform(toConditionId);
-export const OptionalConditionIdSchema = z.preprocess(
+export const ComboConditionIdSchema = z.string().transform(toComboConditionId);
+export const CtfConditionIdSchema = z.string().transform(toCtfConditionId);
+export const OptionalCtfConditionIdSchema = z.preprocess(
   (value) => (value === '' ? undefined : value),
-  ConditionIdSchema.optional(),
+  CtfConditionIdSchema.optional(),
 );
+/** @deprecated Use {@link CtfConditionIdSchema}. */
+export const ConditionIdSchema = CtfConditionIdSchema;
+/** @deprecated Use {@link OptionalCtfConditionIdSchema}. */
+export const OptionalConditionIdSchema = OptionalCtfConditionIdSchema;
 export const EvmAddressSchema = z.string().transform(toEvmAddress);
 export const EpochMillisecondsSchema = z
   .number()

@@ -1,4 +1,8 @@
-import { PaginationCursorSchema } from '@polymarket/bindings';
+import {
+  ComboConditionIdSchema,
+  PaginationCursorSchema,
+  PositionIdSchema,
+} from '@polymarket/bindings';
 import {
   type ClosedPosition,
   type ComboPosition,
@@ -98,8 +102,8 @@ const ListComboPositionsRequestSchema = z.object({
   user: z.string(),
   pageSize: PageSizeSchema.default(20),
   status: ComboPositionStatusSchema.optional(),
-  conditionId: z.string().optional(),
-  positionId: z.string().optional(),
+  conditionId: ComboConditionIdSchema.optional(),
+  positionId: PositionIdSchema.optional(),
 });
 
 const FetchPortfolioValueRequestSchema = z.object({

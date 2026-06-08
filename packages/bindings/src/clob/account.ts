@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
   BaseUnitsSchema,
-  ConditionIdSchema,
+  CtfConditionIdSchema,
   DecimalishSchema,
   DecimalStringSchema,
   EpochLikeToIsoDateTimeStringSchema,
@@ -227,7 +227,7 @@ export const UserEarningSchema = z
   .object({
     asset_address: z.string(),
     asset_rate: DecimalishSchema,
-    condition_id: ConditionIdSchema,
+    condition_id: CtfConditionIdSchema,
     date: EpochMillisecondsToIsoDateTimeStringSchema,
     earnings: DecimalishSchema,
     maker_address: z.string(),
@@ -271,7 +271,10 @@ export type TotalUserEarningsResponse = z.infer<
   typeof TotalUserEarningsResponseSchema
 >;
 
-export const RewardsPercentagesSchema = z.record(ConditionIdSchema, z.number());
+export const RewardsPercentagesSchema = z.record(
+  CtfConditionIdSchema,
+  z.number(),
+);
 
 export type RewardsPercentages = z.infer<typeof RewardsPercentagesSchema>;
 
@@ -318,7 +321,7 @@ export const EarningSchema = z
 
 export const UserRewardsEarningSchema = z
   .object({
-    condition_id: ConditionIdSchema,
+    condition_id: CtfConditionIdSchema,
     earning_percentage: z.number(),
     earnings: z.array(EarningSchema),
     event_slug: z.string(),

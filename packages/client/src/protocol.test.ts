@@ -1,4 +1,9 @@
-import { type PositionId, toPositionId } from '@polymarket/bindings';
+import {
+  type ComboConditionId,
+  type PositionId,
+  toComboConditionId,
+  toPositionId,
+} from '@polymarket/bindings';
 import { describe, expect, it } from 'vitest';
 import {
   type CanonicalComboLegs,
@@ -7,8 +12,9 @@ import {
   deriveComboPositionContext,
 } from './protocol';
 
-const CONDITION_ID =
-  '0x032def24bfb0c5c57fb236fac08b94236a0000000000000000000000000000';
+const CONDITION_ID = toComboConditionId(
+  '0x032def24bfb0c5c57fb236fac08b94236a0000000000000000000000000000',
+);
 
 describe('Protocol helpers', () => {
   describe('canonicalizeComboLegs', () => {
@@ -45,6 +51,12 @@ describe('Protocol helpers', () => {
           comboPosition(CONDITION_ID, 1),
         ],
       });
+    });
+
+    it('normalizes combo condition ID wire forms', () => {
+      expect(toComboConditionId(CONDITION_ID)).toBe(CONDITION_ID);
+      expect(toComboConditionId(`${CONDITION_ID}00`)).toBe(CONDITION_ID);
+      expect(toComboConditionId(`${CONDITION_ID}01`)).toBe(CONDITION_ID);
     });
   });
 
@@ -85,7 +97,10 @@ function legPosition(marker: number, outcome: number): PositionId {
   );
 }
 
-function comboPosition(conditionId: string, outcome: number): PositionId {
+function comboPosition(
+  conditionId: ComboConditionId,
+  outcome: number,
+): PositionId {
   return toPositionId(BigInt(`${conditionId}${byteHex(outcome)}`).toString());
 }
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
-  type ConditionId,
-  ConditionIdSchema,
+  type CtfConditionId,
+  CtfConditionIdSchema,
   DecimalishSchema,
   type DecimalString,
   DecimalStringSchema,
@@ -166,7 +166,7 @@ export type MarketTag = {
 export type Market = {
   id: MarketId;
   slug?: string | null;
-  conditionId: ConditionId | null;
+  conditionId: CtfConditionId | null;
   question?: string | null;
   description?: string | null;
   category?: string | null;
@@ -189,7 +189,7 @@ export const GammaMarketSchema = z.object({
   id: MarketIdSchema,
   question: z.string().nullish(),
   conditionId: z
-    .preprocess(emptyStringToNull, ConditionIdSchema.nullish())
+    .preprocess(emptyStringToNull, CtfConditionIdSchema.nullish())
     .transform(nullishToNull),
   slug: z.string().nullish(),
   twitterCardImage: z.string().nullish(),

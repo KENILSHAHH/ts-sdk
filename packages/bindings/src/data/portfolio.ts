@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
-  ConditionIdSchema,
+  ComboConditionIdSchema,
+  CtfConditionIdSchema,
   DecimalishSchema,
   EpochSecondsToMillisecondsSchema,
   IsoCalendarDateStringSchema,
@@ -25,7 +26,7 @@ export const PositionSchema = z
   .object({
     proxyWallet: AddressSchema.nullish(),
     asset: TokenIdSchema.nullish(),
-    conditionId: ConditionIdSchema,
+    conditionId: CtfConditionIdSchema,
     size: DecimalishSchema.nullish(),
     avgPrice: DecimalishSchema.nullish(),
     initialValue: DecimalishSchema.nullish(),
@@ -61,7 +62,7 @@ export const ClosedPositionSchema = z
   .object({
     proxyWallet: AddressSchema.nullish(),
     asset: TokenIdSchema.nullish(),
-    conditionId: ConditionIdSchema.nullish(),
+    conditionId: CtfConditionIdSchema.nullish(),
     avgPrice: DecimalishSchema.nullish(),
     totalBought: DecimalishSchema.nullish(),
     realizedPnl: DecimalishSchema.nullish(),
@@ -96,7 +97,7 @@ export const MarketPositionSchema = z
     profileImage: z.string().nullish(),
     verified: z.boolean().nullish(),
     asset: TokenIdSchema.nullish(),
-    conditionId: ConditionIdSchema.nullish(),
+    conditionId: CtfConditionIdSchema.nullish(),
     avgPrice: DecimalishSchema.nullish(),
     size: DecimalishSchema.nullish(),
     currPrice: DecimalishSchema.nullish(),
@@ -159,7 +160,7 @@ export const ComboPositionLegSchema = z
   .object({
     leg_index: z.number().int(),
     leg_position_id: PositionIdSchema,
-    leg_condition_id: ConditionIdSchema,
+    leg_condition_id: CtfConditionIdSchema,
     leg_outcome_index: z.number().int(),
     leg_outcome_label: z.string().nullish(),
     leg_status: ComboPositionStatusSchema,
@@ -193,7 +194,7 @@ export const ComboPositionLegSchema = z
 
 export const ComboPositionSchema = z
   .object({
-    combo_condition_id: ConditionIdSchema,
+    combo_condition_id: ComboConditionIdSchema,
     combo_position_id: PositionIdSchema,
     module_id: z.number().int(),
     user_address: AddressSchema,

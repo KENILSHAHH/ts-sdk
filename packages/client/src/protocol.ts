@@ -1,6 +1,7 @@
 import {
-  type ConditionId,
+  type ComboConditionId,
   type PositionId,
+  toComboConditionId,
   toPositionId,
 } from '@polymarket/bindings';
 import type { Tagged } from '@polymarket/types';
@@ -18,7 +19,7 @@ export type CanonicalComboLegs = Tagged<
 >;
 
 export type ComboPositionContext = {
-  conditionId: ConditionId;
+  conditionId: ComboConditionId;
   positionIds: [yes: PositionId, no: PositionId];
 };
 
@@ -41,8 +42,9 @@ export function deriveComboPositionContext(
       [COMBINATORIAL_MODULE_ID, encodedLegs],
     ),
   );
-  const conditionId =
-    `0x03${baseHash.slice(34)}0000000000000000000000000000` as ConditionId;
+  const conditionId = toComboConditionId(
+    `0x03${baseHash.slice(34)}0000000000000000000000000000`,
+  );
 
   return {
     conditionId,
@@ -117,7 +119,7 @@ export function canonicalizeComboLegs(
 }
 
 export type DecodedComboOutcomePositionId = {
-  conditionId: ConditionId;
+  conditionId: ComboConditionId;
   outcomeIndex: 0 | 1;
 };
 
@@ -146,7 +148,7 @@ export function decodeComboOutcomePositionId(
   }
 
   return {
-    conditionId: `0x${hex.slice(0, -2)}` as ConditionId,
+    conditionId: toComboConditionId(`0x${hex.slice(0, -2)}`),
     outcomeIndex,
   };
 }

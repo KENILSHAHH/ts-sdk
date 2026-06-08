@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   CategoryIdSchema,
   ClobRewardIdSchema,
-  ConditionIdSchema,
+  CtfConditionIdSchema,
   DecimalishSchema,
   DecimalStringSchema,
   EventIdSchema,
@@ -11,7 +11,7 @@ import {
   IsoCalendarDateStringSchema,
   IsoDateTimeStringSchema,
   MarketIdSchema,
-  OptionalConditionIdSchema,
+  OptionalCtfConditionIdSchema,
   TagIdSchema,
 } from '../shared';
 
@@ -67,7 +67,7 @@ export const TagReferenceSchema = z.object({
 
 export const RelatedMarketSchema = z.object({
   id: MarketIdSchema,
-  conditionId: OptionalConditionIdSchema,
+  conditionId: OptionalCtfConditionIdSchema,
   slug: z.string().nullish(),
   image: z.string().nullish(),
   volume: DecimalStringSchema.nullish(),
@@ -80,7 +80,7 @@ export const RelatedMarketSchema = z.object({
 
 export const ClobRewardsSchema = z.object({
   id: ClobRewardIdSchema,
-  conditionId: ConditionIdSchema,
+  conditionId: CtfConditionIdSchema,
   assetAddress: z.string(),
   rewardsAmount: DecimalishSchema,
   rewardsDailyRate: DecimalishSchema,
