@@ -65,6 +65,10 @@
 - Default client tests to integration-style coverage.
 - Do not mock API responses unless explicitly requested or unless mocking is necessary to isolate a boundary under test.
 - For tests involving async iterators, especially integration tests, prefer idiomatic consumer usage such as `for await (...)` so the test reads like final SDK DX. Manual iterator calls like `iterator.next()` are acceptable in unit tests or narrow cases where they make the behavior materially easier to isolate or understand.
+- Add tests when they protect user-facing behavior, public API contracts, integration boundaries, or regressions that are likely to recur.
+- Do not add tests reflexively for every small implementation change. For narrow schema or mechanical changes, prefer existing broader coverage plus `typecheck` or build verification when that gives enough confidence.
+- Prefer extending an existing high-signal test suite over creating a new narrow unit-test file.
+- A good test should catch a plausible future regression, not just prove that the current diff works.
 
 
 ## Response contract
