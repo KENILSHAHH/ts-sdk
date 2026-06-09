@@ -1,5 +1,16 @@
 # @polymarket/client
 
+## 0.1.0-beta.4
+
+### Patch Changes
+
+- 02ad8fa: Add distinct CTF and combo condition ID brands, keeping the previous condition ID exports as deprecated CTF aliases.
+- 9ac8027: Update the production RFQ quoter WebSocket URL.
+- 9a1f0e5: Reject whitespace-only search queries and trim leading or trailing search input.
+- Updated dependencies [02ad8fa]
+- Updated dependencies [0809105]
+  - @polymarket/bindings@0.1.0-beta.4
+
 ## 0.1.0-beta.3
 
 ### Patch Changes

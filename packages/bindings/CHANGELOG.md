@@ -1,5 +1,12 @@
 # @polymarket/bindings
 
+## 0.1.0-beta.4
+
+### Patch Changes
+
+- 02ad8fa: Add distinct CTF and combo condition ID brands, keeping the previous condition ID exports as deprecated CTF aliases.
+- 0809105: Parse RFQ inbound websocket messages by their type discriminator.
+
 ## 0.1.0-beta.3
 
 ### Patch Changes
