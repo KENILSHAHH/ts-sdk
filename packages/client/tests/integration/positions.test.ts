@@ -1,9 +1,5 @@
 import { toComboConditionId } from '@polymarket/bindings';
-import {
-  createSecureClient,
-  preproduction,
-  type SecureClient,
-} from '@polymarket/client';
+import { createSecureClient, type SecureClient } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { vi } from 'vitest';
 import { describe, expect, it, publicClient } from './fixtures';
@@ -102,17 +98,9 @@ describe('Positions', () => {
 
   describe('and a Combo', () => {
     it('splits a combo position by legs', async ({
-      depositWalletAddress,
-      depositWalletSigner,
-      relayerAuthentication,
+      secureClientWithDepositWallet,
     }) => {
-      const secureClient = await createSecureClient({
-        apiKey: relayerAuthentication,
-        signer: depositWalletSigner,
-        wallet: depositWalletAddress,
-        environment: preproduction,
-      });
-
+      const secureClient = secureClientWithDepositWallet;
       const initialShares = await fetchComboShares(secureClient);
 
       await secureClient
@@ -128,23 +116,15 @@ describe('Positions', () => {
             initialShares,
           );
         },
-        { timeout: 15_000 },
+        { timeout: 20_000 },
       );
     });
 
     it('merges a combo position by legs', async ({
-      depositWalletAddress,
-      depositWalletSigner,
-      relayerAuthentication,
+      secureClientWithDepositWallet,
       skip,
     }) => {
-      const secureClient = await createSecureClient({
-        apiKey: relayerAuthentication,
-        signer: depositWalletSigner,
-        wallet: depositWalletAddress,
-        environment: preproduction,
-      });
-
+      const secureClient = secureClientWithDepositWallet;
       const initialShares = await fetchComboShares(secureClient);
 
       if (initialShares === 0) {
@@ -164,7 +144,7 @@ describe('Positions', () => {
             initialShares,
           );
         },
-        { timeout: 15_000 },
+        { timeout: 20_000 },
       );
     });
   });
