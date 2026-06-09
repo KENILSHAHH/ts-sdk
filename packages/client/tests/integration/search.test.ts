@@ -1,3 +1,4 @@
+import { UserInputError } from '@polymarket/client';
 import { describe, expect, it } from './fixtures';
 
 describe('Search', () => {
@@ -33,6 +34,10 @@ describe('Search', () => {
           }),
         );
       }
+    });
+
+    it('rejects whitespace-only queries', ({ publicClient }) => {
+      expect(() => publicClient.search({ q: '   ' })).toThrow(UserInputError);
     });
   });
 });

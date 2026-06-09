@@ -28,7 +28,7 @@ import { validateWith } from '../response';
 import { snakeCase, toSearchParams } from './params';
 
 const SearchRequestSchema = z.object({
-  q: z.string().min(1),
+  q: z.string().trim().min(1),
   ascending: z.boolean().optional(),
   cache: z.boolean().optional(),
   cursor: PaginationCursorSchema.optional(),
