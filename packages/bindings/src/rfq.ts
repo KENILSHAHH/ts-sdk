@@ -356,7 +356,7 @@ export const RfqErrorMessageSchema = RfqKnownInboundMessageSchema.extend({
 
 export type RfqErrorMessage = z.infer<typeof RfqErrorMessageSchema>;
 
-export const RfqQuoterInboundMessageSchema = z.union([
+export const RfqQuoterInboundMessageSchema = z.discriminatedUnion('type', [
   RfqAuthResponseMessageSchema,
   RfqQuoteRequestSchema,
   RfqQuoteAckSchema,
