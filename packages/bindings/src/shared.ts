@@ -420,6 +420,15 @@ export type TickSizeValue = z.output<typeof TickSizeValueSchema>;
 
 export type { EvmAddress, TxHash };
 
+/**
+ * Preprocess helper for upstream fields that serialize missing values as empty
+ * strings. Use as `z.preprocess(emptyStringToNull, Schema.nullable())`, or
+ * with `.nullish()` when the field can also be absent.
+ */
+export function emptyStringToNull(value: unknown): unknown {
+  return value === '' ? null : value;
+}
+
 function toEvmAddress(value: string): EvmAddress {
   return expectEvmAddress(value);
 }

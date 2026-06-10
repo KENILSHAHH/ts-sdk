@@ -8,6 +8,7 @@ import {
   EpochMillisecondsSchema,
   EpochMillisecondsToIsoDateTimeStringSchema,
   EvmAddressSchema,
+  emptyStringToNull,
   NotificationIdSchema,
   OptionalEpochMillisecondsToIsoDateTimeStringSchema,
   TokenIdSchema,
@@ -97,7 +98,7 @@ export const MakerOrderSchema = z
     // Normalize to null so consumers never see '' as a DecimalString. This
     // matches py-sdk, where MakerOrder.fee_rate_bps is nullable.
     fee_rate_bps: z.preprocess(
-      (value) => (value === '' ? null : value),
+      emptyStringToNull,
       DecimalStringSchema.nullable(),
     ),
     maker_address: z.string(),
