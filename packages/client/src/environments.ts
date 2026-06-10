@@ -59,6 +59,8 @@ export type EnvironmentConfig = {
   /** @internal */
   data: string;
   /** @internal */
+  rfq: string;
+  /** @internal */
   rtdsWs: string;
   /** @internal */
   sportsWs: string;
@@ -141,6 +143,7 @@ export const production: EnvironmentConfig = {
   relayer: 'https://relayer-v2.polymarket.com',
   gamma: 'https://gamma-api.polymarket.com',
   data: 'https://data-api.polymarket.com',
+  rfq: 'https://combos-rfq-api.polymarket.sh',
   rtdsWs: 'wss://ws-live-data.polymarket.com',
   rfqQuoterWs: 'wss://combos-rfq-gateway-quoter-preprod.polymarket.sh/ws/rfq',
   sportsWs: 'wss://sports-api.polymarket.com/ws',

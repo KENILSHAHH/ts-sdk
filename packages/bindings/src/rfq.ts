@@ -5,12 +5,23 @@ import type {
 } from '@polymarket/types';
 import { z } from 'zod';
 import { type SignatureType, SignatureTypeSchema } from './clob/signature-type';
-import type { BaseUnits, DecimalString, EvmAddress, TokenId } from './shared';
+import type {
+  BaseUnits,
+  CtfConditionId,
+  DecimalString,
+  EvmAddress,
+  MarketId,
+  TokenId,
+} from './shared';
 import {
   ComboConditionIdSchema,
+  CtfConditionIdSchema,
+  DecimalStringSchema,
   EpochMillisecondsSchema,
   EvmAddressSchema,
+  MarketIdSchema,
   type OrderSide,
+  PaginationCursorSchema,
   type PositionId,
   PositionIdSchema,
   type RfqId,
@@ -90,6 +101,105 @@ export const RfqConfirmationDecisionSchema = z.enum(RfqConfirmationDecision);
 export const RfqExecutionStatusSchema = z.enum(RfqExecutionStatus);
 export const RfqRequestedSizeUnitSchema = z.enum(RfqRequestedSizeUnit);
 export const RfqErrorCodeSchema = z.enum(RfqErrorCode);
+
+export type ComboMarket = {
+  id: MarketId;
+  conditionId: CtfConditionId;
+  slug: string;
+  title: string;
+  outcomes: ComboMarketOutcomes;
+  image: string;
+  volume: number;
+  tags: string[];
+};
+
+export type ComboMarketOutcome = {
+  label: string;
+  positionId: PositionId;
+  price: DecimalString;
+};
+
+export type ComboMarketOutcomes = {
+  yes: ComboMarketOutcome;
+  no: ComboMarketOutcome;
+};
+
+export const ComboMarketSchema = z
+  .object({
+    id: MarketIdSchema,
+    condition_id: CtfConditionIdSchema,
+    position_ids: z.array(PositionIdSchema),
+    slug: z.string(),
+    title: z.string(),
+    outcomes: z.array(z.string()),
+    outcome_prices: z.array(DecimalStringSchema),
+    image: z.string(),
+    volume: z.number(),
+    tags: z.array(z.string()),
+  })
+  .superRefine((market, context) => {
+    if (market.outcomes.length !== 2) {
+      context.addIssue({
+        code: 'custom',
+        message: `Expected binary combo market outcomes, received ${market.outcomes.length}.`,
+        path: ['outcomes'],
+      });
+    }
+
+    if (market.position_ids.length !== market.outcomes.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Expected position_ids and outcomes to have matching lengths.',
+        path: ['position_ids'],
+      });
+    }
+
+    if (market.outcome_prices.length !== market.outcomes.length) {
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Expected outcome_prices and outcomes to have matching lengths.',
+        path: ['outcome_prices'],
+      });
+    }
+  })
+  .transform(
+    (market): ComboMarket => ({
+      conditionId: market.condition_id,
+      id: market.id,
+      image: market.image,
+      outcomes: {
+        yes: {
+          label: market.outcomes[0] as string,
+          positionId: market.position_ids[0] as PositionId,
+          price: market.outcome_prices[0] as DecimalString,
+        },
+        no: {
+          label: market.outcomes[1] as string,
+          positionId: market.position_ids[1] as PositionId,
+          price: market.outcome_prices[1] as DecimalString,
+        },
+      },
+      slug: market.slug,
+      tags: market.tags,
+      title: market.title,
+      volume: market.volume,
+    }),
+  );
+
+export const ListComboMarketsResponseSchema = z
+  .object({
+    markets: z.array(ComboMarketSchema),
+    next_cursor: PaginationCursorSchema.nullish(),
+  })
+  .transform((response) => ({
+    markets: response.markets,
+    nextCursor: response.next_cursor ?? undefined,
+  }));
+
+export type ListComboMarketsResponse = z.infer<
+  typeof ListComboMarketsResponseSchema
+>;
 
 const BigIntStringToDecimalStringSchema = z
   .string()
