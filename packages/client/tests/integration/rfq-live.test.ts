@@ -6,14 +6,14 @@ describe('RFQ live quoting integration', () => {
   it.runIf(runMeteredTests)(
     'quotes live RFQ requests until one executes',
     { timeout: 180_000 },
-    async ({ secureClientWithDepositWallet }) => {
+    async ({ secureClientWithDepositWallet, annotate }) => {
       const session = await secureClientWithDepositWallet.openRfqSession();
 
       try {
         for await (const event of session) {
-          console.log(event);
           if (event.type === 'quote_request') {
-            await event.quote({ price: 0.5, size: 0.001 });
+            await event.quote({ price: 0.5, size: 0.01 });
+            annotate(`Quoted RFQ: ${event.rfqId}`);
             continue;
           }
 
