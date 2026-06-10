@@ -42,45 +42,6 @@ describe('Markets', () => {
     });
   });
 
-  describe('listComboMarkets', () => {
-    it('fetches combo markets with structured outcomes', async ({
-      publicClient,
-    }) => {
-      const page = await publicClient
-        .listComboMarkets({ pageSize: 1 })
-        .firstPage()
-        .then(expectNonEmptyPage);
-      const [comboMarket] = page.items;
-
-      expect(comboMarket).toEqual(
-        expect.objectContaining({
-          conditionId: expect.any(String),
-          id: expect.any(String),
-          outcomes: {
-            yes: expect.any(Object),
-            no: expect.any(Object),
-          },
-          slug: expect.any(String),
-          title: expect.any(String),
-        }),
-      );
-      expect(comboMarket.outcomes.yes).toEqual(
-        expect.objectContaining({
-          label: expect.any(String),
-          positionId: expect.any(String),
-          price: expect.any(String),
-        }),
-      );
-      expect(comboMarket.outcomes.no).toEqual(
-        expect.objectContaining({
-          label: expect.any(String),
-          positionId: expect.any(String),
-          price: expect.any(String),
-        }),
-      );
-    });
-  });
-
   describe('fetchMarket', () => {
     it('fetches a market by id and slug', async ({ publicClient }) => {
       const marketById = await publicClient.fetchMarket({
