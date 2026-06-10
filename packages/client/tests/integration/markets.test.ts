@@ -1,4 +1,8 @@
-import { createPublicClient, UserInputError } from '@polymarket/client';
+import {
+  createPublicClient,
+  UnexpectedResponseError,
+  UserInputError,
+} from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
 import { describe, expect, it } from './fixtures';
 import { expectNonEmptyPage, expectPageWindow } from './helpers';
@@ -39,6 +43,25 @@ describe('Markets', () => {
 
       expect(firstPage.items.length).toBeGreaterThan(0);
       await expectPageWindow(paginator, firstPage, 99);
+    });
+
+    it('lists closed markets, omitting legacy multi-outcome markets', async ({
+      publicClient,
+    }) => {
+      // The oldest closed markets include legacy multi-outcome categoricals,
+      // which previously aborted the whole page with a raw TypeError.
+      const firstPage = await publicClient
+        .listMarkets({
+          closed: true,
+          pageSize: 100,
+        })
+        .firstPage()
+        .then(expectNonEmptyPage);
+
+      for (const closedMarket of firstPage.items) {
+        expect(closedMarket.outcomes.yes.label).toEqual(expect.any(String));
+        expect(closedMarket.outcomes.no.label).toEqual(expect.any(String));
+      }
     });
   });
 
@@ -101,6 +124,16 @@ describe('Markets', () => {
       });
 
       expect(marketByUrl.id).toBe(market.id);
+    });
+
+    it('rejects legacy multi-outcome markets with a typed error', async ({
+      publicClient,
+    }) => {
+      await expect(
+        publicClient.fetchMarket({
+          slug: 'who-will-the-world-s-richest-person-be-on-february-27-2021',
+        }),
+      ).rejects.toThrow(UnexpectedResponseError);
     });
 
     it('rejects invalid and non-market URLs', async ({ publicClient }) => {

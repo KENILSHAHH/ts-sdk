@@ -34,7 +34,12 @@ import {
   InternalUserSchema,
   TagReferenceSchema,
 } from './common';
-import { GammaMarketSchema, type Market, normalizeMarket } from './market';
+import {
+  GammaMarketSchema,
+  hasBinaryOutcomes,
+  type Market,
+  normalizeMarket,
+} from './market';
 
 const BestLineIdSchema = z.string().transform(toBestLineId);
 const ChatIdSchema = z.string().transform(toChatId);
@@ -222,7 +227,7 @@ export const SportsMarketTypesResponseSchema = z.object({
   marketTypes: z.array(z.string()).nullish(),
 });
 const EventMarketSchema = GammaMarketSchema.transform((market) =>
-  market.outcomes.length === 2 ? normalizeMarket(market) : null,
+  hasBinaryOutcomes(market) ? normalizeMarket(market) : null,
 );
 const EventMarketsSchema = z
   .array(EventMarketSchema)
