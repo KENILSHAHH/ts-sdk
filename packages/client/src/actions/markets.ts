@@ -19,6 +19,10 @@ import {
   MarketSchema,
   type TagReference,
 } from '@polymarket/bindings/gamma';
+import {
+  type ComboMarket,
+  ListComboMarketsResponseSchema,
+} from '@polymarket/bindings/rfq';
 import { unwrap } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseClient } from '../clients';
@@ -225,6 +229,88 @@ export function listMarkets(
         .andThen(validateWith(ListMarketsKeysetResponseSchema))
         .map((response) => ({
           items: response.items,
+          hasMore: response.nextCursor !== undefined,
+          nextCursor: response.nextCursor,
+        })),
+    params.cursor,
+  );
+}
+
+const ListComboMarketsRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
+  pageSize: PageSizeSchema.max(100).optional(),
+  exclude: z.array(CtfConditionIdSchema).optional(),
+});
+
+export type ListComboMarketsRequest = z.input<
+  typeof ListComboMarketsRequestSchema
+>;
+
+export type ListComboMarketsError =
+  | RateLimitError
+  | RequestRejectedError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const ListComboMarketsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+/**
+ * Lists markets available for Combos.
+ *
+ * @remarks
+ * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ *
+ * @throws {@link ListComboMarketsError}
+ * Thrown on failure.
+ *
+ * @example
+ * Fetch the first page of results:
+ * ```ts
+ * const result = listComboMarkets(client, {
+ *   pageSize: 10,
+ * });
+ *
+ * const firstPage = await result.firstPage();
+ *
+ * // Optionally, fetch additional pages:
+ * for await (const page of result.from(firstPage.nextCursor)) {
+ *   // page.items: ComboMarket[]
+ * }
+ * ```
+ *
+ * @example
+ * Omit markets the caller has already displayed:
+ * ```ts
+ * const result = listComboMarkets(client, {
+ *   exclude: ['0x4cd77d456c83e7d8c569a8fb8f6396c3f40154f657e6d970733e2b1b6a7110ff'],
+ *   pageSize: 10,
+ * });
+ * ```
+ */
+export function listComboMarkets(
+  client: BaseClient,
+  request: ListComboMarketsRequest = {},
+): Paginated<ComboMarket[]> {
+  const params = parseUserInput(request, ListComboMarketsRequestSchema);
+
+  return paginate(
+    (cursor) =>
+      client.rfq
+        .get('/v1/rfq/combo-markets', {
+          params: toComboMarketsSearchParams({
+            ...params,
+            cursor: cursor ?? params.cursor,
+          }),
+        })
+        .andThen(validateWith(ListComboMarketsResponseSchema))
+        .map((response) => ({
+          items: response.markets,
           hasMore: response.nextCursor !== undefined,
           nextCursor: response.nextCursor,
         })),
@@ -532,6 +618,25 @@ function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {
       marketMakerAddresses: 'market_maker_address',
       pageSize: 'limit',
     }),
+  );
+}
+
+type ListComboMarketsParams = z.output<typeof ListComboMarketsRequestSchema>;
+
+function toComboMarketsSearchParams(
+  params: ListComboMarketsParams,
+): URLSearchParams {
+  return toSearchParams(
+    {
+      cursor: params.cursor,
+      exclude: params.exclude?.join(','),
+      pageSize: params.pageSize,
+    },
+    {
+      cursor: 'cursor',
+      exclude: 'exclude',
+      pageSize: 'limit',
+    },
   );
 }
 
