@@ -1,5 +1,12 @@
 # @polymarket/bindings
 
+## 0.1.0-beta.5
+
+### Patch Changes
+
+- 84335f8: Add `listComboMarkets` for fetching Combo market catalog entries with typed response bindings and SDK-owned pagination.
+- c6e0285: Parse RFQ quote rejections that use the `SUBMISSION_WINDOW_CLOSED` gateway error code.
+
 ## 0.1.0-beta.4
 
 ### Patch Changes
