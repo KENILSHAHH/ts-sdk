@@ -45,7 +45,7 @@
 
 - Prefer `type` over `interface` unless an interface is clearly needed, such as when a class implements it or declaration extensibility is a deliberate requirement.
 - Prefer function declarations over arrow functions unless there is a clear reason to use an arrow function.
-- When a type is specific to a single function, such as a one-off params object, argument union, or return shape, colocate that `type` directly above the function declaration. Promote it to a shared or domain abstraction only when it is reused, part of the public model, or needed to express a real abstraction boundary.
+- When a definition is specific to a single function, such as a one-off params object, argument union, request schema, exported request type, error union, or error guard, colocate it directly above the function declaration. Put internal helper-only aliases immediately above the helper that uses them. Promote definitions upward only when they are reused, part of the public model, form a domain abstraction, or improve the public API surface.
 - Treat property-access-derived types like `SecureClient['signatureType']` as a code smell in most cases. Prefer a named domain type when the value is part of the public or shared model.
 - Do not use indexed-access-derived types like `SomeType['field']` in implementation code, public APIs, examples, TSDoc, or docs. This is non-negotiable; define and use a named type instead.
 - Prefer simple, local code. Accept small duplication when it keeps logic easier to read.

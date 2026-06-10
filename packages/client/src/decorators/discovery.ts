@@ -11,6 +11,7 @@ import type {
   TagReference,
   Team,
 } from '@polymarket/bindings/gamma';
+import type { ComboMarket } from '@polymarket/bindings/rfq';
 import {
   type FetchCommentsByIdRequest,
   type FetchEventRequest,
@@ -33,6 +34,7 @@ import {
   fetchSeries,
   fetchSportsMarketTypes,
   fetchTag,
+  type ListComboMarketsRequest,
   type ListCommentsByUserAddressRequest,
   type ListCommentsRequest,
   type ListEventsRequest,
@@ -40,6 +42,7 @@ import {
   type ListSeriesRequest,
   type ListTagsRequest,
   type ListTeamsRequest,
+  listComboMarkets,
   listComments,
   listCommentsByUserAddress,
   listEvents,
@@ -171,6 +174,50 @@ export type DiscoveryActions = {
    * ```
    */
   listMarkets(request?: ListMarketsRequest): Paginated<Market[]>;
+
+  /**
+   * Lists markets available for Combos.
+   *
+   * @throws {@link ListComboMarketsError}
+   * Thrown on failure.
+   *
+   * @example
+   * Fetch the first page of results:
+   * ```ts
+   * const paginator = client.listComboMarkets({
+   *   pageSize: 10,
+   * });
+   *
+   * const firstPage = await paginator.firstPage();
+   *
+   * // Optionally, fetch additional pages:
+   * for await (const page of paginator.from(firstPage.nextCursor)) {
+   *   // page.items: ComboMarket[]
+   * }
+   * ```
+   *
+   * @example
+   * Loop through all pages with `for await`:
+   * ```ts
+   * const paginator = client.listComboMarkets({
+   *   pageSize: 10,
+   * });
+   *
+   * for await (const page of paginator) {
+   *   // page.items: ComboMarket[]
+   * }
+   * ```
+   *
+   * @example
+   * Omit markets the caller has already displayed:
+   * ```ts
+   * const paginator = client.listComboMarkets({
+   *   exclude: ['0x4cd77d456c83e7d8c569a8fb8f6396c3f40154f657e6d970733e2b1b6a7110ff'],
+   *   pageSize: 10,
+   * });
+   * ```
+   */
+  listComboMarkets(request?: ListComboMarketsRequest): Paginated<ComboMarket[]>;
 
   /**
    * Fetches a market.
@@ -551,6 +598,7 @@ export function discoveryActions(client: BaseClient): DiscoveryActions {
     fetchEvent: fetchEvent.bind(null, client),
     fetchEventTags: fetchEventTags.bind(null, client),
     listMarkets: listMarkets.bind(null, client),
+    listComboMarkets: listComboMarkets.bind(null, client),
     fetchMarket: fetchMarket.bind(null, client),
     fetchMarketTags: fetchMarketTags.bind(null, client),
     listSeries: listSeries.bind(null, client),
@@ -585,6 +633,7 @@ export {
   FetchSeriesError,
   FetchSportsMarketTypesError,
   FetchTagError,
+  ListComboMarketsError,
   ListCommentsByUserAddressError,
   ListCommentsError,
   ListEventsError,
