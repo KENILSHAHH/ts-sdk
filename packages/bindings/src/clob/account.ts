@@ -93,7 +93,13 @@ export type OpenOrdersPage = z.infer<typeof OpenOrdersPageSchema>;
 export const MakerOrderSchema = z
   .object({
     asset_id: TokenIdSchema,
-    fee_rate_bps: DecimalStringSchema,
+    // The API serializes a missing maker fee rate as an empty string.
+    // Normalize to null so consumers never see '' as a DecimalString. This
+    // matches py-sdk, where MakerOrder.fee_rate_bps is nullable.
+    fee_rate_bps: z.preprocess(
+      (value) => (value === '' ? null : value),
+      DecimalStringSchema.nullable(),
+    ),
     maker_address: z.string(),
     matched_amount: DecimalStringSchema,
     order_id: z.string(),

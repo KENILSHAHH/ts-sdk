@@ -6,13 +6,22 @@ import {
   TxHashSchema,
 } from '../shared';
 
+// The API serializes unset decimal fields as empty strings, e.g. the
+// making/taking amounts on an order that rests on the book without matching.
+// Normalize to '0' so consumers never see '' as a DecimalString. This matches
+// py-sdk's RawOrderResponse normalization.
+const EmptyStringToZeroDecimalStringSchema = z.preprocess(
+  (value) => (value === '' ? '0' : value),
+  DecimalStringSchema,
+);
+
 export const RawOrderResponseSchema = z.object({
   errorMsg: z.string(),
-  makingAmount: DecimalStringSchema,
+  makingAmount: EmptyStringToZeroDecimalStringSchema,
   orderID: z.string(),
   status: z.string(),
   success: z.boolean(),
-  takingAmount: DecimalStringSchema,
+  takingAmount: EmptyStringToZeroDecimalStringSchema,
   tradeIDs: z.array(z.string()).default([]),
   transactionsHashes: z.array(z.string()).default([]),
 });

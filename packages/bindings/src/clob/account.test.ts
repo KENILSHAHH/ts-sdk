@@ -44,4 +44,19 @@ describe('ClobTradeSchema', () => {
     expect(trade.matchedAt).toBe('2026-05-05T16:00:29.000Z');
     expect(trade.updatedAt).toBe('2026-05-05T16:00:40.000Z');
   });
+
+  it('normalizes empty maker fee_rate_bps to null', () => {
+    const trade = ClobTradeSchema.parse({
+      ...baseTrade,
+      maker_orders: [
+        { ...baseTrade.maker_orders[0], fee_rate_bps: '' },
+        { ...baseTrade.maker_orders[0], fee_rate_bps: '25' },
+      ],
+      match_time: '1777996829',
+      last_update: '1777996840',
+    });
+
+    expect(trade.makerOrders[0]?.feeRateBps).toBeNull();
+    expect(trade.makerOrders[1]?.feeRateBps).toBe('25');
+  });
 });
