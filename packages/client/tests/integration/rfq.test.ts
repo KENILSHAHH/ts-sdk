@@ -626,8 +626,8 @@ describe('RFQ sessions', () => {
               quoteAmounts(frame);
               socket.send(
                 rfqErrorMessage({
-                  code: 'INVALID_QUOTE',
-                  error: 'invalid quote',
+                  code: 'SUBMISSION_WINDOW_CLOSED',
+                  error: 'submission window closed',
                   requestType: 'RFQ_QUOTE',
                   rfqId: RFQ_ID,
                 }),
@@ -649,8 +649,8 @@ describe('RFQ sessions', () => {
             const quote = event.quote({ price: 0.45 });
 
             await expect(quote).rejects.toMatchObject({
-              code: 'INVALID_QUOTE',
-              message: 'invalid quote',
+              code: 'SUBMISSION_WINDOW_CLOSED',
+              message: 'submission window closed',
               name: 'RfqQuoteRejectedError',
               rfqId: event.rfqId,
             });

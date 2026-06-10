@@ -58,7 +58,6 @@ export enum RfqRequestedSizeUnit {
 
 export enum RfqErrorCode {
   AddressMismatch = 'ADDRESS_MISMATCH',
-  CompetitionWindowClosed = 'COMPETITION_WINDOW_CLOSED',
   ContradictoryLegs = 'CONTRADICTORY_LEGS',
   ExpiredRfq = 'EXPIRED_RFQ',
   InvalidAcceptance = 'INVALID_ACCEPTANCE',
@@ -78,6 +77,7 @@ export enum RfqErrorCode {
   RateLimited = 'RATE_LIMITED',
   RequestFailed = 'REQUEST_FAILED',
   ServiceUnavailable = 'SERVICE_UNAVAILABLE',
+  SubmissionWindowClosed = 'SUBMISSION_WINDOW_CLOSED',
   TradeSubmissionFailed = 'TRADE_SUBMISSION_FAILED',
   Unauthenticated = 'UNAUTHENTICATED',
   UnauthorizedRole = 'UNAUTHORIZED_ROLE',
