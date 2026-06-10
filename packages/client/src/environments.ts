@@ -145,7 +145,7 @@ export const production: EnvironmentConfig = {
   data: 'https://data-api.polymarket.com',
   rfq: 'https://combos-rfq-api.polymarket.sh',
   rtdsWs: 'wss://ws-live-data.polymarket.com',
-  rfqQuoterWs: 'wss://combos-rfq-gateway-quoter-preprod.polymarket.sh/ws/rfq',
+  rfqQuoterWs: 'wss://combos-rfq-gateway-quoter.polymarket.sh/ws/rfq',
   sportsWs: 'wss://sports-api.polymarket.com/ws',
   relayerMaxPolls: 100,
   relayerPollFrequencyMs: 2000,

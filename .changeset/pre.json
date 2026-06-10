@@ -4,7 +4,8 @@
   "initialVersions": {
     "@polymarket/bindings": "0.0.0",
     "@polymarket/client": "0.0.0",
-    "@polymarket/types": "0.0.0"
+    "@polymarket/types": "0.0.0",
+    "@polymarket/examples": "0.0.0"
   },
   "changesets": [
     "blue-badgers-attend",
@@ -13,6 +14,7 @@
     "clever-books-cheer",
     "combo-redeem-position-id",
     "combo-split-merge-legs",
+    "condition-id-brands",
     "dark-yaks-rest",
     "dev-166-builder-fee-404",
     "dev-168-market-event-url",
@@ -26,16 +28,22 @@
     "lemon-pumas-cheer",
     "list-combo-positions",
     "low-level-action-helpers",
+    "nice-pandas-trade",
     "node-24-engines",
+    "production-rfq-quoter-ws",
     "protocol-v2-approvals",
     "public-beta-release",
     "public-runner-integration-tests",
+    "quiet-combo-tests",
     "remove-live-approval-revocation-test",
     "rfq-close-reconnect",
+    "rfq-discriminated-union",
     "rfq-quoter-ws-url",
     "rfq-uncorrelated-errors",
     "ripe-suits-hammer",
+    "search-query-trim",
     "sparse-activity-icons",
+    "upset-words-dress",
     "wide-houses-type",
     "zero-nonce-auth"
   ]
