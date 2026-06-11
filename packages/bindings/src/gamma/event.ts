@@ -371,6 +371,7 @@ export type EventPartner = {
 
 export type Event = {
   id: EventId;
+  parentEventId?: EventId | null;
   ticker?: string | null;
   slug?: string | null;
   title?: string | null;
@@ -440,7 +441,7 @@ export const GammaEventSchema = z.object({
   volume1yr: DecimalishSchema.nullish(),
   featuredImage: z.string().nullish(),
   disqusThread: z.string().nullish(),
-  parentEventId: z.number().int().nullish(),
+  parentEventId: EventIdSchema.nullish(),
   enableOrderBook: z.boolean().nullish(),
   liquidityAmm: DecimalishSchema.nullish(),
   liquidityClob: DecimalishSchema.nullish(),
@@ -562,6 +563,7 @@ export type SportsMetadata = z.infer<typeof SportsMetadataSchema>;
 function normalizeEvent(event: GammaEvent): Event {
   return {
     id: event.id,
+    parentEventId: event.parentEventId,
     ticker: event.ticker,
     slug: event.slug,
     title: event.title,
