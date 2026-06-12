@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  type ComboConditionId,
+  ComboConditionIdSchema,
   type CtfConditionId,
   CtfConditionIdSchema,
   DecimalishSchema,
@@ -7,6 +9,8 @@ import {
   type EpochMilliseconds,
   EpochSecondsToMillisecondsSchema,
   emptyStringToNull,
+  type PositionId,
+  PositionIdSchema,
   type TokenId,
   TokenIdSchema,
   type TxHash,
@@ -40,34 +44,52 @@ export type ActivityBase = {
   profileImageOptimized: string | null;
 };
 
-export type TradeActivity = ActivityBase & {
+type TradeActivityBase = ActivityBase & {
   /** A directional outcome-token trade. */
-  type: 'TRADE';
+  type: ActivityType.TRADE;
+  /** Whether this trade is for a Combo position instead of a binary market token. */
+  isCombo: boolean;
+  /** Direction of the wallet's trade. */
+  side: Side;
+  /** Number of shares traded by the wallet. */
+  shares: DecimalString;
+  /** The notional value of the traded shares in USD. */
+  amount: DecimalString;
+  /** The execution price per share in USD. */
+  price: DecimalString;
+  /** Human-readable title of the traded market or Combo. */
+  title: string;
+  /** Icon URL for the traded market or Combo, when available. */
+  icon: string | null;
+};
+
+export type ClobTradeActivity = TradeActivityBase & {
+  /** CLOB market trades are binary market outcome-token trades. */
+  isCombo: false;
   /** Condition id of the market traded by the wallet. */
   conditionId: CtfConditionId;
   /** Outcome token id bought or sold by the wallet. */
   tokenId: TokenId;
-  /** Direction of the wallet's trade in the outcome token. */
-  side: Side;
-  /** Number of outcome-token shares traded by the wallet. */
-  shares: DecimalString;
-  /** The notional value of the traded shares in USD. */
-  amount: DecimalString;
-  /** The execution price per outcome-token share in USD. */
-  price: DecimalString;
   /** Display label of the outcome token traded by the wallet. */
   outcome: string;
   /** Zero-based index of the outcome token in the market's outcome list. */
   outcomeIndex: number;
-  /** Human-readable title of the market traded by the wallet. */
-  title: string;
   /** URL slug of the market traded by the wallet. */
   slug: string;
-  /** Icon URL for the market traded by the wallet, when available. */
-  icon: string | null;
   /** URL slug of the event containing the traded market. */
   eventSlug: string;
 };
+
+export type ComboTradeActivity = TradeActivityBase & {
+  /** Combo trades are protocol v2 Combo position trades. */
+  isCombo: true;
+  /** Combo condition id traded by the wallet. */
+  conditionId: ComboConditionId;
+  /** Combo position id bought or sold by the wallet. */
+  positionId: PositionId;
+};
+
+export type TradeActivity = ClobTradeActivity | ComboTradeActivity;
 
 export type SplitActivity = ActivityBase & {
   /** Splitting collateral into a complete market set. */
@@ -214,7 +236,7 @@ const RawActivitySchema = z.object({
   timestamp: EpochSecondsToMillisecondsSchema.nullish(),
   conditionId: z.preprocess(
     (value) => (value === '' ? undefined : value),
-    CtfConditionIdSchema.optional(),
+    z.string().optional(),
   ),
   type: ActivityTypeSchema,
   size: DecimalishSchema.nullish(),
@@ -223,12 +245,13 @@ const RawActivitySchema = z.object({
   price: DecimalishSchema.nullish(),
   asset: z.preprocess(
     (value) => (value === '' ? undefined : value),
-    TokenIdSchema.optional(),
+    z.string().optional(),
   ),
   side: z.preprocess(
     (value) => (value === '' ? undefined : value),
     SideSchema.nullish(),
   ),
+  isCombo: z.boolean().optional(),
   outcomeIndex: z.preprocess(
     (value) => (value === 999 ? undefined : value),
     z.number().int().optional(),
@@ -268,22 +291,7 @@ function normalizeActivity(activity: RawActivity): Activity {
 
   switch (activity.type) {
     case ActivityType.TRADE:
-      return {
-        ...base,
-        type: activity.type,
-        conditionId: expectPresent(activity.conditionId, 'conditionId'),
-        tokenId: expectPresent(activity.asset, 'asset'),
-        side: expectPresent(activity.side, 'side'),
-        shares: expectPresent(activity.size, 'size'),
-        amount: inferAmount(activity),
-        price: expectPresent(activity.price, 'price'),
-        outcome: expectPresent(activity.outcome, 'outcome'),
-        outcomeIndex: expectPresent(activity.outcomeIndex, 'outcomeIndex'),
-        title: expectPresent(activity.title, 'title'),
-        slug: expectPresent(activity.slug, 'slug'),
-        icon: activity.icon ?? null,
-        eventSlug: expectPresent(activity.eventSlug, 'eventSlug'),
-      };
+      return normalizeTradeActivity(activity, base);
     case ActivityType.SPLIT:
     case ActivityType.MERGE:
     case ActivityType.REDEEM:
@@ -291,7 +299,9 @@ function normalizeActivity(activity: RawActivity): Activity {
       return {
         ...base,
         type: activity.type,
-        conditionId: expectPresent(activity.conditionId, 'conditionId'),
+        conditionId: CtfConditionIdSchema.parse(
+          expectPresent(activity.conditionId, 'conditionId'),
+        ),
         amount: inferAmount(activity),
         title: expectPresent(activity.title, 'title'),
         slug: expectPresent(activity.slug, 'slug'),
@@ -308,6 +318,48 @@ function normalizeActivity(activity: RawActivity): Activity {
         amount: inferAmount(activity),
       };
   }
+}
+
+function normalizeTradeActivity(
+  activity: RawActivity,
+  base: ActivityBase,
+): TradeActivity {
+  const trade = {
+    ...base,
+    type: ActivityType.TRADE as ActivityType.TRADE,
+    side: expectPresent(activity.side, 'side'),
+    shares: expectPresent(activity.size, 'size'),
+    amount: inferAmount(activity),
+    price: expectPresent(activity.price, 'price'),
+    title: expectPresent(activity.title, 'title'),
+    icon: activity.icon ?? null,
+  };
+
+  if (activity.isCombo === true) {
+    return {
+      ...trade,
+      isCombo: true,
+      conditionId: ComboConditionIdSchema.parse(
+        expectPresent(activity.conditionId, 'conditionId'),
+      ),
+      positionId: PositionIdSchema.parse(
+        expectPresent(activity.asset, 'asset'),
+      ),
+    };
+  }
+
+  return {
+    ...trade,
+    isCombo: false,
+    conditionId: CtfConditionIdSchema.parse(
+      expectPresent(activity.conditionId, 'conditionId'),
+    ),
+    tokenId: TokenIdSchema.parse(expectPresent(activity.asset, 'asset')),
+    outcome: expectPresent(activity.outcome, 'outcome'),
+    outcomeIndex: expectPresent(activity.outcomeIndex, 'outcomeIndex'),
+    slug: expectPresent(activity.slug, 'slug'),
+    eventSlug: expectPresent(activity.eventSlug, 'eventSlug'),
+  };
 }
 
 function normalizeActivityBase(activity: RawActivity): ActivityBase {
