@@ -159,27 +159,25 @@ describe('Positions', () => {
 });
 
 async function fetchComboShares(client: SecureClient): Promise<number> {
-  for await (const page of client.listComboPositions({
-    conditionId: TEST_COMBO_CONDITION_ID,
-    pageSize: 100,
-    user: client.account.wallet,
-  })) {
-    const combo = page.items.find(
-      (position) => position.conditionId === TEST_COMBO_CONDITION_ID,
-    );
+  const page = await client
+    .listComboPositions({
+      conditionId: TEST_COMBO_CONDITION_ID,
+      pageSize: 5,
+    })
+    .firstPage();
+  const combo = page.items.find(
+    (position) => position.conditionId === TEST_COMBO_CONDITION_ID,
+  );
 
-    if (combo === undefined) {
-      continue;
-    }
-
-    const shares = Number(combo.shares);
-
-    expect(Number.isFinite(shares)).toBe(true);
-
-    return shares;
+  if (combo === undefined) {
+    return 0;
   }
 
-  return 0;
+  const shares = Number(combo.shares);
+
+  expect(Number.isFinite(shares)).toBe(true);
+
+  return shares;
 }
 
 function totalPositionShares(
