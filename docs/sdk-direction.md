@@ -36,6 +36,8 @@ The SDK should hide internal service boundaries where possible while staying clo
 
 - Existing EOA, Poly Proxy, and Poly Safe wallets must continue to authenticate and trade.
 - Deposit Wallet is the current wallet setup direction. Existing EOA, Poly Proxy, and Poly Safe wallets must remain supported.
+- A `SecureClient` is architecturally bound to one Polymarket account, identified by the authenticated signer and selected account/funder wallet. The `wallet` option is not a per-action balance lookup address; it is the account wallet used for authentication, balances, order funding, and transaction execution.
+- Per-action APIs should not accept alternate wallet or user overrides that would make reads and execution target different accounts. Relayer API keys must match the same authenticated account binding; relayer submission failures for a signer/wallet pair should be treated as account configuration issues, not worked around with action-level wallet overrides.
 - `SecureClient.setupGaslessWallet` should treat Proxy-bound and Safe-bound clients as already gasless and preserve the existing wallet binding.
 - Do not make wallet migration implicit. Existing wallet-bound clients should remain usable as Deposit Wallet support evolves.
 
