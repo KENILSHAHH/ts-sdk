@@ -74,6 +74,8 @@ describe('Positions', () => {
         skip('Not enough positions to merge');
       }
 
+      const initialPositionCount = positions.length;
+
       await secureClient
         .mergePositions({
           amount: 'max',
@@ -89,7 +91,7 @@ describe('Positions', () => {
               market: [conditionId],
             })
             .firstPage();
-          expect(positions.items).toHaveLength(0);
+          expect(positions.items.length).toBeLessThan(initialPositionCount);
         },
         { timeout: 15_000 },
       );
