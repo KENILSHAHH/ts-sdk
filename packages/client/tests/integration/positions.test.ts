@@ -74,11 +74,7 @@ describe('Positions', () => {
         skip('Not enough positions to merge');
       }
 
-      const initialShares = totalPositionShares(positions);
-
-      if (initialShares <= 0) {
-        skip('No position shares to merge');
-      }
+      const initialPositionCount = positions.length;
 
       await secureClient
         .mergePositions({
@@ -95,9 +91,7 @@ describe('Positions', () => {
               market: [conditionId],
             })
             .firstPage();
-          expect(totalPositionShares(positions.items)).toBeLessThan(
-            initialShares,
-          );
+          expect(positions.items.length).toBeLessThan(initialPositionCount);
         },
         { timeout: 15_000 },
       );
@@ -174,19 +168,6 @@ async function fetchComboShares(client: SecureClient): Promise<number> {
   }
 
   const shares = Number(combo.shares);
-
-  expect(Number.isFinite(shares)).toBe(true);
-
-  return shares;
-}
-
-function totalPositionShares(
-  positions: Array<{ size?: string | number | null }>,
-): number {
-  const shares = positions.reduce(
-    (total, position) => total + Number(position.size ?? 0),
-    0,
-  );
 
   expect(Number.isFinite(shares)).toBe(true);
 
