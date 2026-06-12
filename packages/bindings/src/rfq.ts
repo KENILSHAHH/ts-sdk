@@ -69,6 +69,8 @@ export enum RfqRequestedSizeUnit {
 
 export enum RfqErrorCode {
   AddressMismatch = 'ADDRESS_MISMATCH',
+  AllowanceValidationFailed = 'ALLOWANCE_VALIDATION_FAILED',
+  BalanceValidationFailed = 'BALANCE_VALIDATION_FAILED',
   ContradictoryLegs = 'CONTRADICTORY_LEGS',
   ExpiredRfq = 'EXPIRED_RFQ',
   InvalidAcceptance = 'INVALID_ACCEPTANCE',
@@ -83,6 +85,7 @@ export enum RfqErrorCode {
   LegMetadataUnavailable = 'LEG_METADATA_UNAVAILABLE',
   MakerAlreadyResponded = 'MAKER_ALREADY_RESPONDED',
   MakerNotRequired = 'MAKER_NOT_REQUIRED',
+  PreExecutionBalanceReservationFailed = 'PRE_EXECUTION_BALANCE_RESERVATION_FAILED',
   QuoteMismatch = 'QUOTE_MISMATCH',
   QuoteUnavailable = 'QUOTE_UNAVAILABLE',
   RateLimited = 'RATE_LIMITED',

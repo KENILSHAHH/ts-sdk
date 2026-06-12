@@ -1,5 +1,11 @@
 # @polymarket/client
 
+## 0.1.0-beta.6
+
+### Patch Changes
+
+- ebd7b86: Point Combos RFQ endpoints at the new production domains: `combos-rfq-api.polymarket.com` (REST) and `combos-rfq-gateway-quoter.polymarket.com` (quoter WebSocket).
+
 ## 0.1.0-beta.5
 
 ### Patch Changes

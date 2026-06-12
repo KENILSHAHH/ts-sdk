@@ -9,6 +9,7 @@ import {
   EventIdSchema,
   type EvmAddress,
   EvmAddressSchema,
+  emptyStringToNull,
   IsoCalendarDateStringSchema,
   type IsoDateTimeString,
   IsoDateTimeStringSchema,
@@ -498,10 +499,6 @@ export function normalizeMarket(market: GammaMarket): Market {
       label: tag.label,
     })),
   };
-}
-
-function emptyStringToNull(value: unknown): unknown {
-  return value === '' ? null : value;
 }
 
 function nullishToNull<T>(value: T | null | undefined): T | null {
