@@ -1073,13 +1073,13 @@ async function resolveMarketClobContext(
       ? { conditionIds: [request.conditionId], pageSize: 1 }
       : { ids: [parseMarketId(request.marketId)], pageSize: 1 },
   ).firstPage();
-  const markets = page.items;
+  const [market] = page.items;
 
-  invariant(markets.length === 1, `Expected exactly one ${context}`);
-
-  const market = markets[0];
-
-  invariant(market !== undefined, `No market found for ${context}`);
+  // Legacy multi-outcome markets are omitted from market listings, so they
+  // surface here as not found alongside unknown IDs.
+  if (market === undefined) {
+    throw new UserInputError(`No market found for ${context}`);
+  }
 
   const marketContext = normalizeMarketClobContext(market, context);
 

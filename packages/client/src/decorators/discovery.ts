@@ -141,6 +141,10 @@ export type DiscoveryActions = {
   /**
    * Lists markets.
    *
+   * @remarks
+   * Legacy multi-outcome markets cannot be represented by the binary
+   * {@link Market} model and are omitted from results.
+   *
    * @throws {@link ListMarketsError}
    * Thrown on failure.
    *
@@ -221,6 +225,11 @@ export type DiscoveryActions = {
 
   /**
    * Fetches a market.
+   *
+   * @remarks
+   * Legacy multi-outcome markets cannot be represented by the binary
+   * {@link Market} model, so fetching one fails with an
+   * `UnexpectedResponseError`.
    *
    * @throws {@link FetchMarketError}
    * Thrown on failure.

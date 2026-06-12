@@ -364,18 +364,43 @@ export const GammaMarketSchema = z.object({
   feeSchedule: FeeScheduleSchema.nullish(),
 });
 
+/**
+ * Parses a single market into the normalized binary {@link Market} model.
+ *
+ * Markets without exactly two outcomes cannot be represented by the binary
+ * model and fail validation instead of throwing during normalization.
+ */
 export const MarketSchema = GammaMarketSchema.transform(
-  normalizeMarket,
+  (market, ctx): Market => {
+    if (!hasBinaryOutcomes(market)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Expected binary market outcomes, received ${market.outcomes.length}`,
+      });
+
+      return z.NEVER;
+    }
+
+    return normalizeMarket(market);
+  },
 ) satisfies z.ZodType<Market>;
 
-export const ListMarketsResponseSchema = z.array(MarketSchema);
+// Legacy multi-outcome markets cannot be represented by the binary Market
+// model, so list responses skip them instead of failing the whole page.
+const SkippableMarketSchema = GammaMarketSchema.transform((market) =>
+  hasBinaryOutcomes(market) ? normalizeMarket(market) : null,
+);
+
+export const ListMarketsResponseSchema = z
+  .array(SkippableMarketSchema)
+  .transform((markets) => markets.filter((market) => market !== null));
 export const ListMarketsKeysetResponseSchema = z
   .object({
-    markets: z.array(MarketSchema),
+    markets: z.array(SkippableMarketSchema),
     next_cursor: PaginationCursorSchema.optional(),
   })
   .transform(({ markets, next_cursor }) => ({
-    items: markets,
+    items: markets.filter((market) => market !== null),
     nextCursor: next_cursor,
   }));
 export const FetchMarketTagsResponseSchema = z.array(TagReferenceSchema);
@@ -484,8 +509,16 @@ function parseJsonString(value: unknown): unknown {
   return typeof value === 'string' ? JSON.parse(value) : value;
 }
 
+/**
+ * Whether a raw market has exactly the two outcomes required by the binary
+ * {@link Market} model. Callers must check this before {@link normalizeMarket}.
+ */
+export function hasBinaryOutcomes(market: GammaMarket): boolean {
+  return market.outcomes.length === 2;
+}
+
 function normalizeOutcomes(market: GammaMarket) {
-  if (market.outcomes.length !== 2) {
+  if (!hasBinaryOutcomes(market)) {
     throw new TypeError(
       `Expected binary market outcomes, received ${market.outcomes.length}`,
     );
