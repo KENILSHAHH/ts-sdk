@@ -1,35 +1,22 @@
 import { OrderSide } from '@polymarket/bindings';
 import { OrderPostStatus } from '@polymarket/bindings/clob';
-import type { Market, PublicClient } from '@polymarket/client';
+import type { UserEvent } from '@polymarket/bindings/subscriptions';
 import { expectPresent } from '@polymarket/types';
-import { describe, expect, it } from './fixtures';
+import { describe, expect, it, publicClient } from './fixtures';
 import { expectAcceptedOrderResponse } from './helpers';
 import { findHighVolumeLowPriceMarket } from './markets';
 
-let marketPromise: Promise<Market> | undefined;
+const market = await findHighVolumeLowPriceMarket(publicClient);
+const tokenId = expectPresent(market.outcomes.yes.tokenId);
+const price = expectPresent(market.trading.minimumTickSize);
+const size = expectPresent(market.trading.minimumOrderSize);
 
-type UserOrderEvent = {
-  topic: 'user';
-  type: 'order';
-  payload: {
-    id: string;
-    market: string;
-    orderEventType: string;
-    price: string;
-    side: string;
-    tokenId: string;
-  };
-};
+type UserOrderEvent = Extract<UserEvent, { type: 'order' }>;
 
 describe('User subscriptions', { timeout: 30_000 }, () => {
   it('receives an order placement event after posting a resting limit order', async ({
-    publicClient,
     secureClientWithDepositWallet,
   }) => {
-    const market = await findOrderMarket(publicClient);
-    const tokenId = expectPresent(market.outcomes.yes.tokenId);
-    const price = expectPresent(market.trading.minimumTickSize);
-    const size = expectPresent(market.trading.minimumOrderSize);
     const handle = await secureClientWithDepositWallet.subscribe([
       { topic: 'user' },
     ]);
@@ -74,51 +61,21 @@ describe('User subscriptions', { timeout: 30_000 }, () => {
   });
 });
 
-async function findOrderMarket(publicClient: PublicClient) {
-  marketPromise ??= findHighVolumeLowPriceMarket(publicClient);
-
-  return marketPromise;
-}
-
 async function waitForUserOrderPlacementEvent(
-  handle: AsyncIterable<{ type: string; payload?: { id?: string } }>,
+  handle: AsyncIterable<UserEvent>,
   orderId: string,
-  timeoutMs = 15_000,
 ): Promise<UserOrderEvent> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race([
-      (async () => {
-        for await (const event of handle) {
-          if (event.type !== 'order' || event.payload?.id !== orderId) {
-            continue;
-          }
-
-          const candidate = event as UserOrderEvent;
-
-          if (candidate.payload.orderEventType === 'PLACEMENT') {
-            return candidate;
-          }
-        }
-
-        throw new Error(
-          `User subscription closed before order placement event arrived for ${orderId}.`,
-        );
-      })(),
-      new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(
-            new Error(
-              `Timed out waiting ${timeoutMs}ms for user order placement event ${orderId}.`,
-            ),
-          );
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutId !== undefined) {
-      clearTimeout(timeoutId);
+  for await (const event of handle) {
+    if (
+      event.type === 'order' &&
+      event.payload.id === orderId &&
+      event.payload.orderEventType === 'PLACEMENT'
+    ) {
+      return event;
     }
   }
+
+  throw new Error(
+    `User subscription closed before order placement event arrived for ${orderId}.`,
+  );
 }
