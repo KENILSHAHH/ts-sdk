@@ -62,6 +62,25 @@ describe('ClobUserWebSocketManager', () => {
     });
   });
 
+  it('omits market filters from the initial subscribe frame for all markets', async () => {
+    const frames = collectFrames(server, clobUser);
+
+    await manager.subscribe({ topic: 'user' });
+
+    await vi.waitFor(() => {
+      expect(frames).toEqual([
+        {
+          auth: {
+            apiKey: 'test-key',
+            passphrase: 'test-passphrase',
+            secret: 'test-secret',
+          },
+          type: 'user',
+        },
+      ]);
+    });
+  });
+
   it('keeps the shared socket broad while any subscription includes all markets', async () => {
     const frames = collectFrames(server, clobUser);
 
