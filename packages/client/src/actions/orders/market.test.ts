@@ -1,5 +1,68 @@
+import { OrderSide, OrderType } from '@polymarket/bindings';
 import { describe, expect, it } from 'vitest';
-import { adjustBuyAmountForFees } from './market';
+import {
+  adjustBuyAmountForFees,
+  computeMarketOrderAmounts,
+  PrepareMarketOrderParamsSchema,
+} from './market';
+
+describe('PrepareMarketOrderParamsSchema', () => {
+  it('accepts a max price on buy market orders', () => {
+    expect(
+      PrepareMarketOrderParamsSchema.safeParse({
+        amount: 100,
+        maxPrice: '0.55',
+        orderType: OrderType.FOK,
+        side: OrderSide.BUY,
+        tokenId: '123',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts a min price on sell market orders', () => {
+    expect(
+      PrepareMarketOrderParamsSchema.safeParse({
+        minPrice: '0.54',
+        orderType: OrderType.FAK,
+        shares: 180,
+        side: OrderSide.SELL,
+        tokenId: '123',
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('computeMarketOrderAmounts', () => {
+  it('encodes a buy max price as minimum shares received', () => {
+    expect(
+      computeMarketOrderAmounts({
+        amount: 100,
+        price: 0.55,
+        protectPrice: true,
+        side: OrderSide.BUY,
+        tickSize: 0.01,
+      }),
+    ).toEqual({
+      offeredAmount: 100_000_000n,
+      requestedAmount: 181_818_200n,
+    });
+  });
+
+  it('encodes a sell min price as minimum proceeds received', () => {
+    expect(
+      computeMarketOrderAmounts({
+        amount: 180,
+        price: 0.54,
+        protectPrice: true,
+        side: OrderSide.SELL,
+        tickSize: 0.01,
+      }),
+    ).toEqual({
+      offeredAmount: 180_000_000n,
+      requestedAmount: 97_200_000n,
+    });
+  });
+});
 
 describe('adjustBuyAmountForFees', () => {
   it('keeps the amount unchanged when max spend covers amount plus fees', () => {

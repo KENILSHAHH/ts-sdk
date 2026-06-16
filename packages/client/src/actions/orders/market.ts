@@ -10,6 +10,7 @@ import {
 import type { EvmAddress } from '@polymarket/types';
 import { z } from 'zod';
 import type { BaseSecureClient } from '../../clients';
+import { UserInputError } from '../../errors';
 import {
   fetchBuilderFeeRates,
   fetchMarketInfo,
@@ -35,10 +36,12 @@ export const PrepareMarketOrderParamsSchema = z.discriminatedUnion('side', [
     side: z.literal(OrderSide.BUY),
     amount: PositiveDecimalNumberSchema,
     maxSpend: PositiveDecimalNumberSchema.optional(),
+    maxPrice: PositiveDecimalNumberSchema.optional(),
   }),
   BasePrepareMarketOrderParamsSchema.extend({
     side: z.literal(OrderSide.SELL),
     shares: PositiveDecimalNumberSchema,
+    minPrice: PositiveDecimalNumberSchema.optional(),
   }),
 ]) satisfies z.ZodType<PrepareMarketOrderRequest>;
 
@@ -54,6 +57,7 @@ export async function prepareMarketOrderDraft(
   const amounts = computeMarketOrderAmounts({
     amount: context.resolvedAmount,
     price: context.price,
+    protectPrice: hasProtectedPrice(params),
     side: params.side,
     tickSize: context.tickSize,
   });
@@ -101,13 +105,7 @@ async function resolveMarketOrderContext(
     tokenId: params.tokenId,
   });
   const amount = params.side === OrderSide.BUY ? params.amount : params.shares;
-  const price = await resolveEstimatedMarketPrice(client, {
-    amount,
-    orderType: params.orderType,
-    side: params.side,
-    tickSize,
-    tokenId: params.tokenId,
-  });
+  const price = await resolveMarketOrderPrice(client, params, amount, tickSize);
   const negRisk = await fetchNegRisk(client, {
     tokenId: params.tokenId,
   });
@@ -131,9 +129,62 @@ async function resolveMarketOrderContext(
   };
 }
 
-function computeMarketOrderAmounts(params: {
+async function resolveMarketOrderPrice(
+  client: BaseSecureClient,
+  params: PrepareMarketOrderDraftParams,
+  amount: number,
+  tickSize: TickSizeValue,
+): Promise<number> {
+  if (params.side === OrderSide.BUY && params.maxPrice !== undefined) {
+    return resolveProtectedMarketPrice(params.maxPrice, tickSize, 'maxPrice');
+  }
+
+  if (params.side === OrderSide.SELL && params.minPrice !== undefined) {
+    return resolveProtectedMarketPrice(params.minPrice, tickSize, 'minPrice');
+  }
+
+  return resolveEstimatedMarketPrice(client, {
+    amount,
+    orderType: params.orderType,
+    side: params.side,
+    tickSize,
+    tokenId: params.tokenId,
+  });
+}
+
+function resolveProtectedMarketPrice(
+  price: number,
+  tickSize: TickSizeValue,
+  field: 'maxPrice' | 'minPrice',
+): number {
+  const roundConfig = resolveRoundingConfig(tickSize);
+
+  if (price < tickSize || price > 1 - tickSize) {
+    throw new UserInputError(
+      `${field} must be between ${tickSize} and ${1 - tickSize} for tick size ${tickSize}.`,
+    );
+  }
+
+  if (decimalPlaces(price) > roundConfig.price) {
+    throw new UserInputError(
+      `${field} must conform to tick size ${tickSize} with at most ${roundConfig.price} decimal places.`,
+    );
+  }
+
+  return price;
+}
+
+function hasProtectedPrice(params: PrepareMarketOrderDraftParams): boolean {
+  return (
+    (params.side === OrderSide.BUY && params.maxPrice !== undefined) ||
+    (params.side === OrderSide.SELL && params.minPrice !== undefined)
+  );
+}
+
+export function computeMarketOrderAmounts(params: {
   amount: number;
   price: number;
+  protectPrice?: boolean;
   side: OrderSide;
   tickSize: TickSizeValue;
 }): {
@@ -151,7 +202,9 @@ function computeMarketOrderAmounts(params: {
       rawTakerAmount = roundUp(rawTakerAmount, roundConfig.amount + 4);
 
       if (decimalPlaces(rawTakerAmount) > roundConfig.amount) {
-        rawTakerAmount = roundDown(rawTakerAmount, roundConfig.amount);
+        rawTakerAmount = params.protectPrice
+          ? roundUp(rawTakerAmount, roundConfig.amount)
+          : roundDown(rawTakerAmount, roundConfig.amount);
       }
     }
 
@@ -167,7 +220,9 @@ function computeMarketOrderAmounts(params: {
     rawTakerAmount = roundUp(rawTakerAmount, roundConfig.amount + 4);
 
     if (decimalPlaces(rawTakerAmount) > roundConfig.amount) {
-      rawTakerAmount = roundDown(rawTakerAmount, roundConfig.amount);
+      rawTakerAmount = params.protectPrice
+        ? roundUp(rawTakerAmount, roundConfig.amount)
+        : roundDown(rawTakerAmount, roundConfig.amount);
     }
   }
 

@@ -61,6 +61,7 @@ export const PrepareMarketOrderError = makeErrorGuard(
  * ```ts
  * const workflow = await prepareMarketOrder(client, {
  *   amount: 10,
+ *   maxPrice: '0.55',
  *   side: OrderSide.BUY,
  *   tokenId: '123',
  * });
@@ -163,8 +164,9 @@ export const PrepareMarketOrderPostingError = PrepareMarketOrderError;
  * @example
  * ```ts
  * const workflow = await prepareMarketOrderPosting(client, {
- *   amount: 10,
- *   side: OrderSide.BUY,
+ *   minPrice: '0.54',
+ *   shares: 10,
+ *   side: OrderSide.SELL,
  *   tokenId: '123',
  * });
  * ```

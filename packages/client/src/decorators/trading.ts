@@ -41,6 +41,7 @@ export type SecureTradingActions = {
    * ```ts
    * const order = await client.createMarketOrder({
    *   amount: 10,
+   *   maxPrice: '0.55',
    *   side: OrderSide.BUY,
    *   tokenId: '123',
    * });
@@ -56,8 +57,9 @@ export type SecureTradingActions = {
    * @example
    * ```ts
    * const response = await client.placeMarketOrder({
-   *   amount: 10,
-   *   side: OrderSide.BUY,
+   *   minPrice: '0.54',
+   *   shares: 10,
+   *   side: OrderSide.SELL,
    *   tokenId: '123',
    * });
    *
