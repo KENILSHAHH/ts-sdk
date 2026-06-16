@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { DecimalStringSchema, TxHashSchema } from '../shared';
+import {
+  DecimalStringSchema,
+  EpochMillisecondsSchema,
+  TxHashSchema,
+} from '../shared';
 import {
   PerpsAssetSchema,
   PerpsInstrumentIdSchema,
@@ -7,7 +11,6 @@ import {
   PerpsSideSchema,
   PerpsTimeInForceSchema,
   PerpsTradeIdSchema,
-  TimestampSchema,
 } from './common';
 
 export const PerpsOrderSchema = z.object({
@@ -21,8 +24,8 @@ export const PerpsOrderSchema = z.object({
   status: z.string().min(1),
   restingQuantity: DecimalStringSchema,
   filledQuantity: DecimalStringSchema,
-  createdTimestamp: TimestampSchema,
-  updatedTimestamp: TimestampSchema,
+  createdTimestamp: EpochMillisecondsSchema,
+  updatedTimestamp: EpochMillisecondsSchema,
   clientOrderId: z.string().optional(),
 });
 
@@ -40,8 +43,8 @@ export const RawPerpsOrderSchema = z
     status: z.string().min(1),
     resting_quantity: DecimalStringSchema,
     filled_quantity: DecimalStringSchema,
-    created_timestamp: TimestampSchema,
-    updated_timestamp: TimestampSchema,
+    created_timestamp: EpochMillisecondsSchema,
+    updated_timestamp: EpochMillisecondsSchema,
     client_order_id: z.string().optional(),
   })
   .transform((order) => ({
@@ -72,8 +75,8 @@ export const RawPerpsOrderUpdateSchema = z
     status: z.string().min(1),
     rest: DecimalStringSchema,
     fill: DecimalStringSchema,
-    cts: TimestampSchema,
-    uts: TimestampSchema,
+    cts: EpochMillisecondsSchema,
+    uts: EpochMillisecondsSchema,
     coid: z.string().optional(),
   })
   .transform((order) => ({
@@ -106,7 +109,7 @@ export const PerpsAccountFillSchema = z.object({
   previousEntryPrice: DecimalStringSchema,
   pnl: DecimalStringSchema,
   liquidation: z.boolean(),
-  timestamp: TimestampSchema,
+  timestamp: EpochMillisecondsSchema,
   hash: TxHashSchema.optional(),
   clientOrderId: z.string().optional(),
 });
@@ -128,7 +131,7 @@ export const RawPerpsAccountFillSchema = z
     previous_entry_price: DecimalStringSchema,
     pnl: DecimalStringSchema,
     liquidation: z.boolean(),
-    timestamp: TimestampSchema,
+    timestamp: EpochMillisecondsSchema,
     hash: TxHashSchema.optional(),
   })
   .transform((fill) => ({
@@ -164,7 +167,7 @@ export const RawPerpsAccountFillUpdateSchema = z
     pep: DecimalStringSchema,
     pnl: DecimalStringSchema,
     liq: z.boolean(),
-    ts: TimestampSchema,
+    ts: EpochMillisecondsSchema,
     coid: z.string().optional(),
   })
   .transform((fill) => ({

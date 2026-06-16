@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { DecimalStringSchema, TxHashSchema } from '../shared';
+import {
+  DecimalStringSchema,
+  EpochMillisecondsSchema,
+  TxHashSchema,
+} from '../shared';
 import {
   PerpsAssetSchema,
   PerpsDataResponseSchema,
@@ -8,7 +12,6 @@ import {
   PerpsInstrumentTypeSchema,
   PerpsSideSchema,
   PerpsTradeIdSchema,
-  TimestampSchema,
 } from './common';
 
 export const PerpsRiskTierSchema = z.object({
@@ -103,10 +106,10 @@ export const PerpsTickerSchema = z.object({
   midPrice: DecimalStringSchema,
   openInterest: DecimalStringSchema,
   fundingRate: DecimalStringSchema,
-  nextFunding: TimestampSchema,
+  nextFunding: EpochMillisecondsSchema,
   volume24h: DecimalStringSchema.optional(),
   openPrice: DecimalStringSchema.optional(),
-  timestamp: TimestampSchema.optional(),
+  timestamp: EpochMillisecondsSchema.optional(),
 });
 
 export type PerpsTicker = z.infer<typeof PerpsTickerSchema>;
@@ -121,8 +124,8 @@ export const RawPerpsTickerSchema = z
     mid_price: DecimalStringSchema,
     open_interest: DecimalStringSchema,
     funding_rate: DecimalStringSchema,
-    next_funding: TimestampSchema,
-    timestamp: TimestampSchema.optional(),
+    next_funding: EpochMillisecondsSchema,
+    timestamp: EpochMillisecondsSchema.optional(),
   })
   .transform((ticker) => ({
     instrumentId: ticker.instrument_id,
@@ -148,7 +151,7 @@ export const RawPerpsTickerEntrySchema = z
     mid: DecimalStringSchema,
     oi: DecimalStringSchema,
     fr: DecimalStringSchema,
-    nxf: TimestampSchema,
+    nxf: EpochMillisecondsSchema,
   })
   .transform((ticker) => ({
     instrumentId: ticker.iid,
@@ -163,7 +166,7 @@ export const RawPerpsTickerEntrySchema = z
 
 export const PerpsCandleSchema = z
   .tuple([
-    TimestampSchema,
+    EpochMillisecondsSchema,
     DecimalStringSchema,
     DecimalStringSchema,
     DecimalStringSchema,
@@ -237,7 +240,7 @@ export const PerpsBookSchema = z.object({
   instrumentId: PerpsInstrumentIdSchema,
   bids: z.array(PerpsBookLevelSchema),
   asks: z.array(PerpsBookLevelSchema),
-  timestamp: TimestampSchema,
+  timestamp: EpochMillisecondsSchema,
   sequence: z.number().int().nonnegative(),
 });
 
@@ -248,7 +251,7 @@ export const RawPerpsBookSchema = z
     instrument_id: PerpsInstrumentIdSchema,
     bids: z.array(PerpsBookLevelSchema),
     asks: z.array(PerpsBookLevelSchema),
-    timestamp: TimestampSchema,
+    timestamp: EpochMillisecondsSchema,
     sequence: z.number().int().nonnegative(),
   })
   .transform((book) => ({
@@ -275,7 +278,7 @@ export const PerpsBboSchema = z.object({
   bidQuantity: DecimalStringSchema,
   askPrice: DecimalStringSchema,
   askQuantity: DecimalStringSchema,
-  timestamp: TimestampSchema.optional(),
+  timestamp: EpochMillisecondsSchema.optional(),
 });
 
 export type PerpsBbo = z.infer<typeof PerpsBboSchema>;
@@ -287,7 +290,7 @@ export const RawPerpsBboSchema = z
     bid_quantity: DecimalStringSchema,
     ask_price: DecimalStringSchema,
     ask_quantity: DecimalStringSchema,
-    timestamp: TimestampSchema.optional(),
+    timestamp: EpochMillisecondsSchema.optional(),
   })
   .transform((bbo) => ({
     instrumentId: bbo.instrument_id,
@@ -320,7 +323,7 @@ export const PerpsPublicTradeSchema = z.object({
   side: PerpsSideSchema,
   price: DecimalStringSchema,
   quantity: DecimalStringSchema,
-  timestamp: TimestampSchema,
+  timestamp: EpochMillisecondsSchema,
   hash: TxHashSchema,
 });
 
@@ -333,7 +336,7 @@ export const RawPerpsPublicTradeSchema = z
     side: PerpsSideSchema,
     price: DecimalStringSchema,
     quantity: DecimalStringSchema,
-    timestamp: TimestampSchema,
+    timestamp: EpochMillisecondsSchema,
     hash: TxHashSchema,
   })
   .transform((trade) => ({
@@ -353,7 +356,7 @@ export const RawPerpsPublicTradeResponseSchema = z
     side: PerpsSideSchema,
     p: DecimalStringSchema,
     qty: DecimalStringSchema,
-    ts: TimestampSchema,
+    ts: EpochMillisecondsSchema,
     hash: TxHashSchema,
   })
   .transform((trade) => ({
@@ -372,7 +375,7 @@ export const FetchPerpsTradesResponseSchema = PerpsDataResponseSchema(
 
 export const PerpsFundingRateSchema = z.object({
   fundingRate: DecimalStringSchema,
-  timestamp: TimestampSchema,
+  timestamp: EpochMillisecondsSchema,
 });
 
 export type PerpsFundingRate = z.infer<typeof PerpsFundingRateSchema>;
@@ -380,7 +383,7 @@ export type PerpsFundingRate = z.infer<typeof PerpsFundingRateSchema>;
 export const RawPerpsFundingRateSchema = z
   .object({
     funding_rate: DecimalStringSchema,
-    timestamp: TimestampSchema,
+    timestamp: EpochMillisecondsSchema,
   })
   .transform((funding) => ({
     fundingRate: funding.funding_rate,

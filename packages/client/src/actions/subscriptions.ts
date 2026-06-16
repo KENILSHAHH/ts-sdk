@@ -1,3 +1,4 @@
+import type { PerpsKlineInterval } from '@polymarket/bindings/perps';
 import type {
   CommentsEvent,
   CryptoPricesBinanceEvent,
@@ -8,6 +9,13 @@ import type {
   EquityPricesEvent,
   EquityPricesTopic,
   MarketEvent,
+  PerpsBboEvent,
+  PerpsBookEvent,
+  PerpsCandleEvent,
+  PerpsMarketDataEvent,
+  PerpsStatisticEvent,
+  PerpsTickerEvent,
+  PerpsTradeEvent,
   SportsEvent,
   StandardMarketEvent,
   UserEvent,
@@ -30,6 +38,13 @@ export type {
   CustomMarketEvent,
   EquityPricesEvent,
   MarketEvent,
+  PerpsBboEvent,
+  PerpsBookEvent,
+  PerpsCandleEvent,
+  PerpsMarketDataEvent,
+  PerpsStatisticEvent,
+  PerpsTickerEvent,
+  PerpsTradeEvent,
   SportsEvent,
   StandardMarketEvent,
   UserEvent,
@@ -42,6 +57,14 @@ export type SportsEventType = SportsEvent['type'];
 export type CommentsEventType = CommentsEvent['type'];
 export type CryptoPricesEventType = CryptoPricesEvent['type'];
 export type EquityPricesEventType = EquityPricesEvent['type'];
+export type PerpsMarketDataEventType = PerpsMarketDataEvent['type'];
+
+export type PerpsStreamingCandleInterval = Exclude<
+  PerpsKlineInterval,
+  PerpsKlineInterval.OneSecond
+>;
+
+type PerpsInstrumentIdInput = number;
 
 // Subscription specs.
 export type MarketSubscription = {
@@ -83,12 +106,52 @@ export type EquityPricesSubscription = {
   types?: readonly EquityPricesEventType[];
 };
 
+export type PerpsTradesSubscription = {
+  topic: 'perps.trades';
+  instrumentId: PerpsInstrumentIdInput;
+};
+
+export type PerpsBboSubscription = {
+  topic: 'perps.bbo';
+  instrumentId: PerpsInstrumentIdInput;
+};
+
+export type PerpsBookSubscription = {
+  topic: 'perps.book';
+  instrumentId: PerpsInstrumentIdInput;
+};
+
+export type PerpsCandlesSubscription = {
+  topic: 'perps.candles';
+  instrumentId: PerpsInstrumentIdInput;
+  interval: PerpsStreamingCandleInterval;
+};
+
+export type PerpsTickersSubscription = {
+  topic: 'perps.tickers';
+  instrumentId?: PerpsInstrumentIdInput;
+};
+
+export type PerpsStatisticsSubscription = {
+  topic: 'perps.statistics';
+  instrumentId?: PerpsInstrumentIdInput;
+};
+
+export type PerpsMarketDataSubscription =
+  | PerpsTradesSubscription
+  | PerpsBboSubscription
+  | PerpsBookSubscription
+  | PerpsCandlesSubscription
+  | PerpsTickersSubscription
+  | PerpsStatisticsSubscription;
+
 export type PublicSubscriptionSpec =
   | MarketSubscription
   | SportsSubscription
   | CommentsSubscription
   | CryptoPricesSubscription
-  | EquityPricesSubscription;
+  | EquityPricesSubscription
+  | PerpsMarketDataSubscription;
 
 export type SecureSubscriptionSpec = PublicSubscriptionSpec | UserSubscription;
 
@@ -98,7 +161,8 @@ export type PublicRealtimeEvent =
   | SportsEvent
   | CommentsEvent
   | CryptoPricesEvent
-  | EquityPricesEvent;
+  | EquityPricesEvent
+  | PerpsMarketDataEvent;
 
 export type SecureRealtimeEvent = PublicRealtimeEvent | UserEvent;
 
@@ -121,6 +185,12 @@ type EventByTopic = {
   'prices.crypto.binance': CryptoPricesBinanceEvent;
   'prices.crypto.chainlink': CryptoPricesChainlinkEvent;
   'prices.equity.pyth': EquityPricesEvent;
+  'perps.trades': PerpsTradeEvent;
+  'perps.bbo': PerpsBboEvent;
+  'perps.book': PerpsBookEvent;
+  'perps.candles': PerpsCandleEvent;
+  'perps.tickers': PerpsTickerEvent;
+  'perps.statistics': PerpsStatisticEvent;
 };
 
 type EventForMarketSubscription<TSpec extends MarketSubscription> =
@@ -208,6 +278,13 @@ function subscribeOne(
     case 'prices.crypto.chainlink':
     case 'prices.equity.pyth':
       return client.webSockets.rtds.subscribe(spec);
+    case 'perps.trades':
+    case 'perps.bbo':
+    case 'perps.book':
+    case 'perps.candles':
+    case 'perps.tickers':
+    case 'perps.statistics':
+      return client.webSockets.perpsMarketData.subscribe(spec);
     case 'user':
       invariant(
         client.isSecureClient(),

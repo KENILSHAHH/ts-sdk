@@ -116,8 +116,6 @@ export const PerpsInternalTransferDirectionSchema = z.enum(
 );
 export const PerpsKlineIntervalSchema = z.enum(PerpsKlineInterval);
 
-export const TimestampSchema = z.number().int().nonnegative();
-export const OptionalTimestampSchema = TimestampSchema.optional();
 export const PerpsAssetSchema = z.string().min(1);
 
 export const PerpsDataResponseSchema = <T extends z.ZodType>(itemSchema: T) =>

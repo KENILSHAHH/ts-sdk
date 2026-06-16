@@ -1,10 +1,6 @@
 import { z } from 'zod';
-import { DecimalStringSchema } from '../shared';
-import {
-  PerpsAssetSchema,
-  PerpsInstrumentIdSchema,
-  TimestampSchema,
-} from './common';
+import { DecimalStringSchema, EpochMillisecondsSchema } from '../shared';
+import { PerpsAssetSchema, PerpsInstrumentIdSchema } from './common';
 
 export const PerpsBalanceSchema = z.object({
   asset: PerpsAssetSchema,
@@ -94,7 +90,7 @@ export const PerpsPortfolioSchema = z.object({
   margin: PerpsMarginSummarySchema,
   withdrawable: DecimalStringSchema,
   inLiquidation: z.boolean(),
-  timestamp: TimestampSchema,
+  timestamp: EpochMillisecondsSchema,
 });
 
 export type PerpsPortfolio = z.infer<typeof PerpsPortfolioSchema>;
@@ -105,7 +101,7 @@ export const RawPerpsPortfolioSchema = z
     margin: RawPerpsMarginSummarySchema,
     withdrawable: DecimalStringSchema,
     in_liquidation: z.boolean(),
-    timestamp: TimestampSchema,
+    timestamp: EpochMillisecondsSchema,
   })
   .transform((portfolio) => ({
     positions: portfolio.positions,
@@ -121,7 +117,7 @@ export const PerpsAccountFundingPaymentSchema = z.object({
   fundingRate: DecimalStringSchema,
   fundingAsset: PerpsAssetSchema,
   funding: DecimalStringSchema,
-  timestamp: TimestampSchema,
+  timestamp: EpochMillisecondsSchema,
 });
 
 export type PerpsAccountFundingPayment = z.infer<
@@ -135,7 +131,7 @@ export const RawPerpsAccountFundingPaymentSchema = z
     funding_rate: DecimalStringSchema,
     funding_asset: PerpsAssetSchema,
     funding: DecimalStringSchema,
-    timestamp: TimestampSchema,
+    timestamp: EpochMillisecondsSchema,
   })
   .transform((funding) => ({
     instrumentId: funding.instrument_id,
@@ -153,7 +149,7 @@ export const RawPerpsAccountFundingPaymentEntrySchema = z
     fr: DecimalStringSchema,
     fund: DecimalStringSchema,
     fua: PerpsAssetSchema,
-    ts: TimestampSchema,
+    ts: EpochMillisecondsSchema,
   })
   .transform((funding) => ({
     instrumentId: funding.iid,
@@ -185,13 +181,13 @@ export const RawPerpsAccountConfigSchema = z
   }));
 
 export const PerpsEquityPointSchema = z
-  .tuple([TimestampSchema, DecimalStringSchema])
+  .tuple([EpochMillisecondsSchema, DecimalStringSchema])
   .transform(([timestamp, equity]) => ({ timestamp, equity }));
 
 export type PerpsEquityPoint = z.infer<typeof PerpsEquityPointSchema>;
 
 export const PerpsPnlPointSchema = z
-  .tuple([TimestampSchema, DecimalStringSchema])
+  .tuple([EpochMillisecondsSchema, DecimalStringSchema])
   .transform(([timestamp, pnl]) => ({ timestamp, pnl }));
 
 export type PerpsPnlPoint = z.infer<typeof PerpsPnlPointSchema>;

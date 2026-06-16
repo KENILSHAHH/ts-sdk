@@ -2,18 +2,17 @@ import { z } from 'zod';
 import {
   BaseUnitsSchema,
   DecimalStringSchema,
+  EpochMillisecondsSchema,
   EvmAddressSchema,
   TxHashSchema,
 } from '../shared';
 import {
-  OptionalTimestampSchema,
   PerpsAssetSchema,
   PerpsDepositStatusSchema,
   PerpsInternalTransferDirectionSchema,
   PerpsInternalTransferIdSchema,
   PerpsWithdrawalIdSchema,
   PerpsWithdrawalStatusSchema,
-  TimestampSchema,
 } from './common';
 
 export const PerpsDepositSchema = z.object({
@@ -25,8 +24,8 @@ export const PerpsDepositSchema = z.object({
   to: EvmAddressSchema,
   confirmations: z.number().int().nonnegative(),
   requiredConfirmations: z.number().int().nonnegative(),
-  createdTimestamp: TimestampSchema,
-  confirmedTimestamp: OptionalTimestampSchema,
+  createdTimestamp: EpochMillisecondsSchema,
+  confirmedTimestamp: EpochMillisecondsSchema.optional(),
 });
 
 export type PerpsDeposit = z.infer<typeof PerpsDepositSchema>;
@@ -41,8 +40,8 @@ export const RawPerpsDepositSchema = z
     to: EvmAddressSchema,
     confirmations: z.number().int().nonnegative(),
     required_confirmations: z.number().int().nonnegative(),
-    created_timestamp: TimestampSchema,
-    confirmed_timestamp: OptionalTimestampSchema,
+    created_timestamp: EpochMillisecondsSchema,
+    confirmed_timestamp: EpochMillisecondsSchema.optional(),
   })
   .transform((deposit) => ({
     hash: deposit.hash,
@@ -81,8 +80,8 @@ export const PerpsWithdrawalSchema = z.object({
   hash: TxHashSchema,
   confirmations: z.number().int().nonnegative(),
   requiredConfirmations: z.number().int().nonnegative(),
-  createdTimestamp: TimestampSchema,
-  confirmedTimestamp: OptionalTimestampSchema,
+  createdTimestamp: EpochMillisecondsSchema,
+  confirmedTimestamp: EpochMillisecondsSchema.optional(),
 });
 
 export type PerpsWithdrawal = z.infer<typeof PerpsWithdrawalSchema>;
@@ -98,8 +97,8 @@ export const RawPerpsWithdrawalSchema = z
     hash: TxHashSchema,
     confirmations: z.number().int().nonnegative(),
     required_confirmations: z.number().int().nonnegative(),
-    created_timestamp: TimestampSchema,
-    confirmed_timestamp: OptionalTimestampSchema,
+    created_timestamp: EpochMillisecondsSchema,
+    confirmed_timestamp: EpochMillisecondsSchema.optional(),
   })
   .transform((withdrawal) => ({
     withdrawalId: withdrawal.withdraw_id,
@@ -142,7 +141,7 @@ export const PerpsInternalTransferSchema = z.object({
   direction: PerpsInternalTransferDirectionSchema,
   counterparty: EvmAddressSchema,
   label: z.string().optional(),
-  createdTimestamp: TimestampSchema,
+  createdTimestamp: EpochMillisecondsSchema,
 });
 
 export type PerpsInternalTransfer = z.infer<typeof PerpsInternalTransferSchema>;
@@ -155,7 +154,7 @@ export const RawPerpsInternalTransferSchema = z
     direction: PerpsInternalTransferDirectionSchema,
     counterparty: EvmAddressSchema,
     label: z.string().optional(),
-    created_timestamp: TimestampSchema,
+    created_timestamp: EpochMillisecondsSchema,
   })
   .transform((transfer) => ({
     transferId: transfer.transfer_id,

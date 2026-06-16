@@ -3,6 +3,7 @@ import type {
   CryptoPricesEvent,
   EquityPricesEvent,
   MarketEvent,
+  PerpsMarketDataEvent,
   SportsEvent,
   UserEvent,
 } from '@polymarket/bindings/subscriptions';
@@ -12,6 +13,7 @@ import type {
   CryptoPricesSubscription,
   EquityPricesSubscription,
   MarketSubscription,
+  PerpsMarketDataSubscription,
   SportsSubscription,
   SubscriptionHandle,
   UserSubscription,
@@ -77,6 +79,10 @@ export type PublicWebSocketManagers = {
   readonly rtds: WebSocketSubscriptionManager<
     CommentsSubscription | CryptoPricesSubscription | EquityPricesSubscription,
     CommentsEvent | CryptoPricesEvent | EquityPricesEvent
+  >;
+  readonly perpsMarketData: WebSocketSubscriptionManager<
+    PerpsMarketDataSubscription,
+    PerpsMarketDataEvent
   >;
 };
 
