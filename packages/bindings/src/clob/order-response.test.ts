@@ -20,14 +20,14 @@ describe('OrderResponseSchema', () => {
     }
   });
 
-  it('normalizes populated making/taking e6 amounts to decimal strings', () => {
+  it('passes populated making/taking amounts through unchanged', () => {
     const response = OrderResponseSchema.parse({
       errorMsg: '',
-      makingAmount: '10500000',
+      makingAmount: '10.5',
       orderID: 'order-2',
       status: 'matched',
       success: true,
-      takingAmount: '21000000',
+      takingAmount: '21',
       tradeIDs: ['trade-1'],
     });
 
