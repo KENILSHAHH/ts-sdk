@@ -57,6 +57,16 @@ export type PrepareMarketBuyOrderRequest = BasePrepareMarketOrderRequest & {
    * fees. Leave it unset to pay fees on top of `amount`.
    */
   maxSpend?: number | string;
+
+  /**
+   * Highest acceptable price per share for the BUY.
+   *
+   * The order may only fill at this price or better. For FOK, the full
+   * `amount` must fill within this bound or the order is killed. For FAK, any
+   * immediately available liquidity within this bound fills and the remainder
+   * is canceled.
+   */
+  maxPrice?: number | string;
 };
 
 export type PrepareMarketSellOrderRequest = BasePrepareMarketOrderRequest & {
@@ -70,6 +80,16 @@ export type PrepareMarketSellOrderRequest = BasePrepareMarketOrderRequest & {
    * 6-decimal base unit.
    */
   shares: number | string;
+
+  /**
+   * Lowest acceptable price per share for the SELL.
+   *
+   * The order may only fill at this price or better. For FOK, all `shares`
+   * must fill within this bound or the order is killed. For FAK, any
+   * immediately available liquidity within this bound fills and the remainder
+   * is canceled.
+   */
+  minPrice?: number | string;
 };
 
 export type PrepareMarketOrderRequest =
