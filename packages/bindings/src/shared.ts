@@ -405,6 +405,19 @@ export const TokenIdSchema = z.string().transform(toTokenId);
 export const TransactionIdSchema = z.string().min(1).transform(toTransactionId);
 export const TxHashSchema = z.string().transform(toTxHash);
 export const DecimalStringSchema = z.string().transform(toDecimalString);
+export const E6BigIntStringToDecimalStringSchema = z
+  .string()
+  .regex(/^\d+$/)
+  .transform((value) => {
+    const scaledValue = BigInt(value);
+    const whole = scaledValue / 1_000_000n;
+    const fraction = (scaledValue % 1_000_000n)
+      .toString()
+      .padStart(6, '0')
+      .replace(/0+$/, '');
+
+    return toDecimalString(`${whole}${fraction === '' ? '' : `.${fraction}`}`);
+  });
 export const DecimalishSchema = z.union([
   DecimalStringSchema,
   z.number().transform((value) => toDecimalString(String(value))),

@@ -17,6 +17,7 @@ import {
   ComboConditionIdSchema,
   CtfConditionIdSchema,
   DecimalStringSchema,
+  E6BigIntStringToDecimalStringSchema,
   EpochMillisecondsSchema,
   EvmAddressSchema,
   MarketIdSchema,
@@ -30,7 +31,6 @@ import {
   RfqQuoteIdSchema,
   RfqRequestorPublicIdSchema,
   TxHashSchema,
-  toDecimalString,
 } from './shared';
 
 export type {
@@ -204,20 +204,6 @@ export type ListComboMarketsResponse = z.infer<
   typeof ListComboMarketsResponseSchema
 >;
 
-const BigIntStringToDecimalStringSchema = z
-  .string()
-  .regex(/^\d+$/)
-  .transform((value) => {
-    const scaledValue = BigInt(value);
-    const whole = scaledValue / 1_000_000n;
-    const fraction = (scaledValue % 1_000_000n)
-      .toString()
-      .padStart(6, '0')
-      .replace(/0+$/, '');
-
-    return toDecimalString(`${whole}${fraction === '' ? '' : `.${fraction}`}`);
-  });
-
 export type RfqRequestedSize =
   | {
       unit: RfqRequestedSizeUnit.Notional;
@@ -232,11 +218,11 @@ const RfqRequestedSizeSchema = z
   .discriminatedUnion('unit', [
     z.object({
       unit: z.literal(RfqRequestedSizeUnit.Notional),
-      value_e6: BigIntStringToDecimalStringSchema,
+      value_e6: E6BigIntStringToDecimalStringSchema,
     }),
     z.object({
       unit: z.literal(RfqRequestedSizeUnit.Shares),
-      value_e6: BigIntStringToDecimalStringSchema,
+      value_e6: E6BigIntStringToDecimalStringSchema,
     }),
   ])
   .transform(
@@ -390,8 +376,8 @@ export const RfqConfirmationRequestSchema = RfqKnownInboundMessageSchema.extend(
     no_position_id: PositionIdSchema,
     direction: RfqDirectionSchema,
     side: RfqSideSchema,
-    fill_size_e6: BigIntStringToDecimalStringSchema,
-    price_e6: BigIntStringToDecimalStringSchema,
+    fill_size_e6: E6BigIntStringToDecimalStringSchema,
+    price_e6: E6BigIntStringToDecimalStringSchema,
     confirm_by: EpochMillisecondsSchema,
   },
 ).transform((message) => ({
@@ -459,8 +445,8 @@ export const RfqTradeSchema = RfqKnownInboundMessageSchema.extend({
   leg_position_ids: z.array(PositionIdSchema),
   direction: RfqDirectionSchema,
   side: RfqSideSchema,
-  price_e6: BigIntStringToDecimalStringSchema,
-  size_e6: BigIntStringToDecimalStringSchema,
+  price_e6: E6BigIntStringToDecimalStringSchema,
+  size_e6: E6BigIntStringToDecimalStringSchema,
   tx_hash: TxHashSchema,
   executed_at: EpochMillisecondsSchema,
 }).transform((message) => ({

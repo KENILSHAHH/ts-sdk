@@ -154,15 +154,22 @@ export function buildUserSubscribeMessage(
   subscription: UserServerSubscription,
   credentials: ApiKeyCreds,
 ): unknown {
-  return {
+  const message: {
+    auth: { apiKey: string; passphrase: string; secret: string };
+    markets?: string[];
+    type: 'user';
+  } = {
     auth: {
       apiKey: credentials.key,
       passphrase: credentials.passphrase,
       secret: credentials.secret,
     },
-    markets: subscription.markets,
     type: 'user',
   };
+  if (!subscription.includeAllMarkets) {
+    message.markets = subscription.markets;
+  }
+  return message;
 }
 
 function buildUserSubscribeUpdate(markets: readonly string[]): unknown {
