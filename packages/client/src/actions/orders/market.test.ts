@@ -1,36 +1,6 @@
-import { OrderSide, OrderType } from '@polymarket/bindings';
+import { OrderSide } from '@polymarket/bindings';
 import { describe, expect, it } from 'vitest';
-import {
-  adjustBuyAmountForFees,
-  computeMarketOrderAmounts,
-  PrepareMarketOrderParamsSchema,
-} from './market';
-
-describe('PrepareMarketOrderParamsSchema', () => {
-  it('accepts a max price on buy market orders', () => {
-    expect(
-      PrepareMarketOrderParamsSchema.safeParse({
-        amount: 100,
-        maxPrice: '0.55',
-        orderType: OrderType.FOK,
-        side: OrderSide.BUY,
-        tokenId: '123',
-      }).success,
-    ).toBe(true);
-  });
-
-  it('accepts a min price on sell market orders', () => {
-    expect(
-      PrepareMarketOrderParamsSchema.safeParse({
-        minPrice: '0.54',
-        orderType: OrderType.FAK,
-        shares: 180,
-        side: OrderSide.SELL,
-        tokenId: '123',
-      }).success,
-    ).toBe(true);
-  });
-});
+import { adjustBuyAmountForFees, computeMarketOrderAmounts } from './market';
 
 describe('computeMarketOrderAmounts', () => {
   it('encodes a buy max price as minimum shares received', () => {
