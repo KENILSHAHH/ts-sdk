@@ -34,6 +34,10 @@
       "types": "./dist/relayer/index.d.ts",
       "default": "./dist/relayer/index.js"
     },
+    "./perps": {
+      "types": "./dist/perps/index.d.ts",
+      "default": "./dist/perps/index.js"
+    },
     "./rfq": {
       "types": "./dist/rfq.d.ts",
       "default": "./dist/rfq.js"
@@ -53,6 +57,9 @@
       ],
       "gamma": [
         "./dist/gamma/index.d.ts"
+      ],
+      "perps": [
+        "./dist/perps/index.d.ts"
       ],
       "relayer": [
         "./dist/relayer/index.d.ts"

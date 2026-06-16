@@ -1,0 +1,168 @@
+import { z } from 'zod';
+import {
+  BaseUnitsSchema,
+  DecimalStringSchema,
+  EvmAddressSchema,
+  TxHashSchema,
+} from '../shared';
+import {
+  OptionalTimestampSchema,
+  PerpsAssetSchema,
+  PerpsDepositStatusSchema,
+  PerpsInternalTransferDirectionSchema,
+  PerpsInternalTransferIdSchema,
+  PerpsWithdrawalIdSchema,
+  PerpsWithdrawalStatusSchema,
+  TimestampSchema,
+} from './common';
+
+export const PerpsDepositSchema = z.object({
+  hash: TxHashSchema,
+  asset: PerpsAssetSchema,
+  amount: BaseUnitsSchema,
+  status: PerpsDepositStatusSchema,
+  from: EvmAddressSchema,
+  to: EvmAddressSchema,
+  confirmations: z.number().int().nonnegative(),
+  requiredConfirmations: z.number().int().nonnegative(),
+  createdTimestamp: TimestampSchema,
+  confirmedTimestamp: OptionalTimestampSchema,
+});
+
+export type PerpsDeposit = z.infer<typeof PerpsDepositSchema>;
+
+export const RawPerpsDepositSchema = z
+  .object({
+    hash: TxHashSchema,
+    asset: PerpsAssetSchema,
+    amount: BaseUnitsSchema,
+    status: PerpsDepositStatusSchema,
+    from: EvmAddressSchema,
+    to: EvmAddressSchema,
+    confirmations: z.number().int().nonnegative(),
+    required_confirmations: z.number().int().nonnegative(),
+    created_timestamp: TimestampSchema,
+    confirmed_timestamp: OptionalTimestampSchema,
+  })
+  .transform((deposit) => ({
+    hash: deposit.hash,
+    asset: deposit.asset,
+    amount: deposit.amount,
+    status: deposit.status,
+    from: deposit.from,
+    to: deposit.to,
+    confirmations: deposit.confirmations,
+    requiredConfirmations: deposit.required_confirmations,
+    createdTimestamp: deposit.created_timestamp,
+    confirmedTimestamp: deposit.confirmed_timestamp,
+  }));
+
+export const RawPerpsDepositUpdateSchema = z
+  .object({
+    hash: TxHashSchema,
+    asset: PerpsAssetSchema,
+    amount: BaseUnitsSchema,
+    status: PerpsDepositStatusSchema,
+  })
+  .transform((deposit) => ({
+    hash: deposit.hash,
+    asset: deposit.asset,
+    amount: deposit.amount,
+    status: deposit.status,
+  }));
+
+export const PerpsWithdrawalSchema = z.object({
+  withdrawalId: PerpsWithdrawalIdSchema,
+  asset: PerpsAssetSchema,
+  amount: BaseUnitsSchema,
+  fee: DecimalStringSchema,
+  status: PerpsWithdrawalStatusSchema,
+  to: EvmAddressSchema,
+  hash: TxHashSchema,
+  confirmations: z.number().int().nonnegative(),
+  requiredConfirmations: z.number().int().nonnegative(),
+  createdTimestamp: TimestampSchema,
+  confirmedTimestamp: OptionalTimestampSchema,
+});
+
+export type PerpsWithdrawal = z.infer<typeof PerpsWithdrawalSchema>;
+
+export const RawPerpsWithdrawalSchema = z
+  .object({
+    withdraw_id: PerpsWithdrawalIdSchema,
+    asset: PerpsAssetSchema,
+    amount: BaseUnitsSchema,
+    fee: DecimalStringSchema,
+    status: PerpsWithdrawalStatusSchema,
+    to: EvmAddressSchema,
+    hash: TxHashSchema,
+    confirmations: z.number().int().nonnegative(),
+    required_confirmations: z.number().int().nonnegative(),
+    created_timestamp: TimestampSchema,
+    confirmed_timestamp: OptionalTimestampSchema,
+  })
+  .transform((withdrawal) => ({
+    withdrawalId: withdrawal.withdraw_id,
+    asset: withdrawal.asset,
+    amount: withdrawal.amount,
+    fee: withdrawal.fee,
+    status: withdrawal.status,
+    to: withdrawal.to,
+    hash: withdrawal.hash,
+    confirmations: withdrawal.confirmations,
+    requiredConfirmations: withdrawal.required_confirmations,
+    createdTimestamp: withdrawal.created_timestamp,
+    confirmedTimestamp: withdrawal.confirmed_timestamp,
+  }));
+
+export const RawPerpsWithdrawalUpdateSchema = z
+  .object({
+    withdraw_id: PerpsWithdrawalIdSchema,
+    asset: PerpsAssetSchema,
+    amount: BaseUnitsSchema,
+    fee: DecimalStringSchema,
+    status: PerpsWithdrawalStatusSchema,
+    to: EvmAddressSchema,
+    hash: TxHashSchema,
+  })
+  .transform((withdrawal) => ({
+    withdrawalId: withdrawal.withdraw_id,
+    asset: withdrawal.asset,
+    amount: withdrawal.amount,
+    fee: withdrawal.fee,
+    status: withdrawal.status,
+    to: withdrawal.to,
+    hash: withdrawal.hash,
+  }));
+
+export const PerpsInternalTransferSchema = z.object({
+  transferId: PerpsInternalTransferIdSchema,
+  asset: PerpsAssetSchema,
+  amount: BaseUnitsSchema,
+  direction: PerpsInternalTransferDirectionSchema,
+  counterparty: EvmAddressSchema,
+  label: z.string().optional(),
+  createdTimestamp: TimestampSchema,
+});
+
+export type PerpsInternalTransfer = z.infer<typeof PerpsInternalTransferSchema>;
+
+export const RawPerpsInternalTransferSchema = z
+  .object({
+    transfer_id: PerpsInternalTransferIdSchema,
+    asset: PerpsAssetSchema,
+    amount: BaseUnitsSchema,
+    direction: PerpsInternalTransferDirectionSchema,
+    counterparty: EvmAddressSchema,
+    label: z.string().optional(),
+    created_timestamp: TimestampSchema,
+  })
+  .transform((transfer) => ({
+    transferId: transfer.transfer_id,
+    asset: transfer.asset,
+    amount: transfer.amount,
+    direction: transfer.direction,
+    counterparty: transfer.counterparty,
+    label: transfer.label,
+    createdTimestamp: transfer.created_timestamp,
+  }));
