@@ -445,8 +445,8 @@ export const RfqTradeSchema = RfqKnownInboundMessageSchema.extend({
   leg_position_ids: z.array(PositionIdSchema),
   direction: RfqDirectionSchema,
   side: RfqSideSchema,
-  price_e6: BigIntStringToDecimalStringSchema,
-  size_e6: BigIntStringToDecimalStringSchema,
+  price_e6: E6BigIntStringToDecimalStringSchema,
+  size_e6: E6BigIntStringToDecimalStringSchema,
   tx_hash: TxHashSchema,
   executed_at: EpochMillisecondsSchema,
 }).transform((message) => ({
