@@ -3,25 +3,25 @@ import { z } from 'zod';
 import {
   type DecimalString,
   DecimalStringSchema,
+  E6BigIntStringToDecimalStringSchema,
   TxHashSchema,
 } from '../shared';
 
-// The API serializes unset decimal fields as empty strings, e.g. the
+// The API serializes unset e6 amount fields as empty strings, e.g. the
 // making/taking amounts on an order that rests on the book without matching.
-// Normalize to '0' so consumers never see '' as a DecimalString. This matches
-// py-sdk's RawOrderResponse normalization.
-const EmptyStringToZeroDecimalStringSchema = z.preprocess(
+// Normalize to '0' before converting to a human decimal string.
+const EmptyStringToZeroE6DecimalStringSchema = z.preprocess(
   (value) => (value === '' ? '0' : value),
-  DecimalStringSchema,
+  E6BigIntStringToDecimalStringSchema,
 );
 
 export const RawOrderResponseSchema = z.object({
   errorMsg: z.string(),
-  makingAmount: EmptyStringToZeroDecimalStringSchema,
+  makingAmount: EmptyStringToZeroE6DecimalStringSchema,
   orderID: z.string(),
   status: z.string(),
   success: z.boolean(),
-  takingAmount: EmptyStringToZeroDecimalStringSchema,
+  takingAmount: EmptyStringToZeroE6DecimalStringSchema,
   tradeIDs: z.array(z.string()).default([]),
   transactionsHashes: z.array(z.string()).default([]),
 });
