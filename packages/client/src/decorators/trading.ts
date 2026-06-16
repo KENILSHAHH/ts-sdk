@@ -37,10 +37,20 @@ export type SecureTradingActions = {
    * @throws {@link CreateMarketOrderError}
    * Thrown on failure.
    *
-   * @example
+   * @example Basic market buy
    * ```ts
    * const order = await client.createMarketOrder({
    *   amount: 10,
+   *   side: OrderSide.BUY,
+   *   tokenId: '123',
+   * });
+   * ```
+   *
+   * @example Protected market buy
+   * ```ts
+   * const order = await client.createMarketOrder({
+   *   amount: 10,
+   *   maxPrice: '0.55',
    *   side: OrderSide.BUY,
    *   tokenId: '123',
    * });
@@ -53,11 +63,23 @@ export type SecureTradingActions = {
    * @throws {@link PlaceMarketOrderError}
    * Thrown on failure.
    *
-   * @example
+   * @example Basic market buy
    * ```ts
    * const response = await client.placeMarketOrder({
    *   amount: 10,
    *   side: OrderSide.BUY,
+   *   tokenId: '123',
+   * });
+   *
+   * // response: OrderResponse
+   * ```
+   *
+   * @example Protected market sell
+   * ```ts
+   * const response = await client.placeMarketOrder({
+   *   minPrice: '0.54',
+   *   shares: 10,
+   *   side: OrderSide.SELL,
    *   tokenId: '123',
    * });
    *

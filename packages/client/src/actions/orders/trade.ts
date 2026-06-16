@@ -56,6 +56,16 @@ export const CreateMarketOrderError = makeErrorGuard(
  *
  * @throws {@link CreateMarketOrderError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const order = await createMarketOrder(client, {
+ *   amount: '100',
+ *   maxPrice: '0.55',
+ *   side: OrderSide.BUY,
+ *   tokenId: '123',
+ * });
+ * ```
  */
 export function createMarketOrder(
   client: BaseSecureClient,
@@ -90,6 +100,16 @@ export const PlaceMarketOrderError = makeErrorGuard(
  *
  * @throws {@link PlaceMarketOrderError}
  * Thrown on failure.
+ *
+ * @example
+ * ```ts
+ * const response = await placeMarketOrder(client, {
+ *   minPrice: '0.54',
+ *   shares: '180',
+ *   side: OrderSide.SELL,
+ *   tokenId: '123',
+ * });
+ * ```
  */
 export function placeMarketOrder(
   client: BaseSecureClient,
