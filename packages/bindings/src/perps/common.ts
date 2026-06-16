@@ -120,9 +120,7 @@ export const TimestampSchema = z.number().int().nonnegative();
 export const OptionalTimestampSchema = TimestampSchema.optional();
 export const PerpsAssetSchema = z.string().min(1);
 
-export const PerpsPaginatedResponseSchema = <T extends z.ZodType>(
-  itemSchema: T,
-) =>
+export const PerpsDataResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
   z.object({
     data: z.array(itemSchema),
     more: z.boolean(),

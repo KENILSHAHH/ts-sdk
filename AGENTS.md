@@ -47,6 +47,16 @@
 - `tsconfig.build.json` files drive build and typecheck behavior. When changing build behavior or fixing build issues, update `tsconfig.build.json`, not the root or package `tsconfig.json`.
 - When adding a new entry point to a low-level package in the monorepo, add the corresponding alias to `compilerOptions.paths` in the root `tsconfig.json` so IDE resolution keeps working.
 
+## Pagination and Naming
+
+- Method prefixes must reflect SDK behavior, not upstream route names:
+  - `list*` means the SDK returns normalized pagination via `Paginated<T>` / `Page<T>`.
+  - `fetch*` means the SDK returns a direct item or direct collection, with no SDK pagination abstraction.
+- Do not expose upstream pagination envelopes directly from `packages/client`, such as `{ data, more }`, `{ results, next }`, offsets, page numbers, or service-specific cursor fields.
+- If an upstream endpoint is paginated, decide explicitly whether the SDK can normalize it into `Paginated<T>`. If it cannot, either return a direct collection with a `fetch*` name or design a proper SDK pagination adapter first.
+- `packages/bindings` may model upstream pagination envelopes exactly so responses can be validated, but `packages/client` should translate them into SDK-owned pagination or hide them.
+- Before adding a public collection method, check whether the endpoint supports continuation and document the chosen SDK behavior in the action/decorator types.
+
 ## Code conventions
 
 - Prefer `type` over `interface` unless an interface is clearly needed, such as when a class implements it or declaration extensibility is a deliberate requirement.

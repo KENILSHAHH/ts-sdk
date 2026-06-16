@@ -84,6 +84,8 @@ type PublicContext = {
   /** @internal */
   rfq: ServiceClient;
   /** @internal */
+  perps: ServiceClient;
+  /** @internal */
   webSockets: PublicWebSocketManagers;
 };
 
@@ -161,6 +163,11 @@ abstract class AbstractClient<TContext extends PublicContext> {
   /** @internal */
   get rfq(): ServiceClient {
     return this.context.rfq;
+  }
+
+  /** @internal */
+  get perps(): ServiceClient {
+    return this.context.perps;
   }
 
   /** @internal */
@@ -293,6 +300,7 @@ class BasePublicClient<
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
       rfq: new ServiceClient({ root: config.environment.rfq }),
+      perps: new ServiceClient({ root: config.environment.perpsApi }),
       rpc: new JsonRpcClient({ url: config.environment.rpc }),
       webSockets: {
         clobMarket: new ClobMarketWebSocketManager({
@@ -508,6 +516,7 @@ class BaseSecureClient<
       gamma: new ServiceClient({ root: config.environment.gamma }),
       data: new ServiceClient({ root: config.environment.data }),
       rfq: new ServiceClient({ root: config.environment.rfq }),
+      perps: new ServiceClient({ root: config.environment.perpsApi }),
       secureClob: new ServiceClient({
         resolveHeaders: async (request) => ({
           ...(await this.resolveClobHeaders(request)),

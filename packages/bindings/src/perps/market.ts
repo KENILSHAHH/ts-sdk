@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DecimalStringSchema, TxHashSchema } from '../shared';
 import {
   PerpsAssetSchema,
+  PerpsDataResponseSchema,
   PerpsInstrumentCategorySchema,
   PerpsInstrumentIdSchema,
   PerpsInstrumentTypeSchema,
@@ -89,6 +90,10 @@ export const RawPerpsInstrumentSchema = z
     riskTiers: instrument.risk_tiers,
   }));
 
+export const FetchPerpsInstrumentsResponseSchema = z.array(
+  RawPerpsInstrumentSchema,
+);
+
 export const PerpsTickerSchema = z.object({
   instrumentId: PerpsInstrumentIdSchema,
   symbol: z.string().min(1),
@@ -131,6 +136,8 @@ export const RawPerpsTickerSchema = z
     nextFunding: ticker.next_funding,
     timestamp: ticker.timestamp,
   }));
+
+export const FetchPerpsTickersResponseSchema = z.array(RawPerpsTickerSchema);
 
 export const RawPerpsTickerEntrySchema = z
   .object({
@@ -201,6 +208,10 @@ export const RawPerpsStatisticSchema = z
     openPrice: statistic.open_price,
     klines: statistic.klines,
   }));
+
+export const FetchPerpsStatisticsResponseSchema = z.array(
+  RawPerpsStatisticSchema,
+);
 
 export const RawPerpsStatisticDataSchema = z
   .object({
@@ -355,6 +366,10 @@ export const RawPerpsPublicTradeResponseSchema = z
     hash: trade.hash,
   }));
 
+export const FetchPerpsTradesResponseSchema = PerpsDataResponseSchema(
+  RawPerpsPublicTradeSchema,
+);
+
 export const PerpsFundingRateSchema = z.object({
   fundingRate: DecimalStringSchema,
   timestamp: TimestampSchema,
@@ -371,6 +386,10 @@ export const RawPerpsFundingRateSchema = z
     fundingRate: funding.funding_rate,
     timestamp: funding.timestamp,
   }));
+
+export const FetchPerpsFundingHistoryResponseSchema = PerpsDataResponseSchema(
+  RawPerpsFundingRateSchema,
+);
 
 export const PerpsFeeScheduleEntrySchema = z.object({
   instrumentType: PerpsInstrumentTypeSchema,
@@ -394,3 +413,20 @@ export const RawPerpsFeeScheduleEntrySchema = z
     takerFeeRate: fee.taker_fee_rate,
     makerFeeRate: fee.maker_fee_rate,
   }));
+
+export const PerpsFeesInfoSchema = z.object({
+  feeSchedule: z.array(PerpsFeeScheduleEntrySchema),
+});
+
+export type PerpsFeesInfo = z.infer<typeof PerpsFeesInfoSchema>;
+
+export const FetchPerpsFeesResponseSchema = z
+  .object({
+    fee_schedule: z.array(RawPerpsFeeScheduleEntrySchema),
+  })
+  .transform((fees) => ({
+    feeSchedule: fees.fee_schedule,
+  }));
+
+export const FetchPerpsCandlesResponseSchema =
+  PerpsDataResponseSchema(PerpsCandleSchema);

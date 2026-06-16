@@ -10,6 +10,7 @@ export * from './gasless';
 export * from './leaderboards';
 export * from './markets';
 export * from './orders';
+export * from './perps';
 export * from './portfolio';
 export * from './positions';
 export * from './profiles';
