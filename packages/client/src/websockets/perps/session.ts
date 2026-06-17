@@ -1,17 +1,47 @@
-import { toDecimalString } from '@polymarket/bindings';
 import {
+  type PaginationCursor,
+  PaginationCursorSchema,
+  TxHashSchema,
+  toDecimalString,
+  toPaginationCursor,
+} from '@polymarket/bindings';
+import {
+  FetchPerpsAccountConfigResponseSchema,
+  FetchPerpsBalancesResponseSchema,
+  FetchPerpsOpenOrdersResponseSchema,
+  FetchPerpsOrdersResponseSchema,
+  FetchPerpsPortfolioResponseSchema,
+  ListPerpsDepositsResponseSchema,
+  ListPerpsEquityHistoryResponseSchema,
+  ListPerpsFillsResponseSchema,
+  ListPerpsFundingPaymentsResponseSchema,
+  ListPerpsPnlHistoryResponseSchema,
+  ListPerpsWithdrawalsResponseSchema,
+  type PerpsAccountConfig,
+  type PerpsAccountFill,
+  type PerpsAccountFundingPayment,
+  type PerpsBalance,
   PerpsClientOrderIdSchema,
   type PerpsCommandAck,
   PerpsCommandAckSchema,
   type PerpsCredentials,
   PerpsDecimalInputSchema,
+  type PerpsDeposit,
+  PerpsDepositStatusSchema,
+  type PerpsEquityPoint,
   type PerpsInstrumentId,
   PerpsInstrumentIdSchema,
+  type PerpsOrder,
   type PerpsOrderCommandAck,
   type PerpsOrderId,
   PerpsOrderIdSchema,
+  PerpsPnlIntervalSchema,
+  type PerpsPnlPoint,
+  type PerpsPortfolio,
   type PerpsTimeInForce,
   PerpsTimeInForceSchema,
+  type PerpsWithdrawal,
+  PerpsWithdrawalStatusSchema,
   RawPerpsOrderCommandAckSchema,
 } from '@polymarket/bindings/perps';
 import {
@@ -26,16 +56,20 @@ import {
 } from '@polymarket/types';
 import { type Pushable, pushable } from 'it-pushable';
 import { z } from 'zod';
+import { snakeCase, toSearchParams } from '../../actions/params';
 import { SigningError, TransportError } from '../../errors';
 import { parseUserInput } from '../../input';
+import { type Page, type Paginated, paginate } from '../../pagination';
 import { validateWith } from '../../response';
-import type { ServiceClient } from '../../ServiceClient';
+import { ServiceClient } from '../../ServiceClient';
 import { PerpsWebSocketHeartbeat } from '../heartbeat';
 import { ReconnectScheduler, WebSocketConnection } from '../lifecycle';
 import { type PerpsSignedOp, signPerpsOp } from './signing';
 
 const AUTH_TIMEOUT_MS = 30_000;
 const ACK_TIMEOUT_MS = 30_000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const NINETY_DAYS_MS = 90 * ONE_DAY_MS;
 const PERPS_SESSION_CHANNELS = [
   'balances',
   'portfolio',
@@ -59,6 +93,8 @@ const PerpsSessionAckSchema = z
       : response,
   );
 
+const TimestampInputSchema = z.number().int().nonnegative();
+
 type PendingResponse = {
   reject(error: Error): void;
   resolve(value: unknown): void;
@@ -75,14 +111,64 @@ type RawPerpsOrderInput = readonly [
   string | undefined,
 ];
 
+type PerpsHistoryParams = {
+  startTimestamp: number;
+  endTimestamp: number;
+  instrumentId?: PerpsInstrumentId;
+  depositStatus?: z.output<typeof PerpsDepositStatusSchema>;
+  withdrawalStatus?: z.output<typeof PerpsWithdrawalStatusSchema>;
+  hash?: z.output<typeof TxHashSchema>;
+};
+
+type PerpsIntervalHistoryParams = PerpsHistoryParams & {
+  interval: z.output<typeof PerpsPnlIntervalSchema>;
+};
+
+const PerpsDescendingAccountHistoryKindSchema = z.enum([
+  'perpsFills',
+  'perpsFundingPayments',
+  'perpsDeposits',
+  'perpsWithdrawals',
+]);
+
+const PerpsAscendingAccountHistoryKindSchema = z.enum([
+  'perpsEquityHistory',
+  'perpsPnlHistory',
+]);
+
+const PerpsDescendingAccountCursorStateSchema = z.object({
+  kind: PerpsDescendingAccountHistoryKindSchema,
+  startTimestamp: TimestampInputSchema,
+  endTimestamp: TimestampInputSchema,
+  instrumentId: PerpsInstrumentIdSchema.optional(),
+  depositStatus: PerpsDepositStatusSchema.optional(),
+  withdrawalStatus: PerpsWithdrawalStatusSchema.optional(),
+  hash: TxHashSchema.optional(),
+  seenKeys: z.array(z.string()),
+});
+
+const PerpsAscendingAccountCursorStateSchema = z.object({
+  kind: PerpsAscendingAccountHistoryKindSchema,
+  startTimestamp: TimestampInputSchema,
+  endTimestamp: TimestampInputSchema,
+  interval: PerpsPnlIntervalSchema,
+});
+
+type PerpsDescendingAccountCursorState = z.infer<
+  typeof PerpsDescendingAccountCursorStateSchema
+>;
+type PerpsAscendingAccountCursorState = z.infer<
+  typeof PerpsAscendingAccountCursorStateSchema
+>;
+
 export type { PerpsSessionEvent } from '@polymarket/bindings/subscriptions';
 
 export type PerpsSessionOptions = {
-  api: ServiceClient;
   chainId: number;
   credentials: PerpsCredentials;
   onClose: (session: PerpsSession) => void;
-  url: string;
+  restUrl: string;
+  wsUrl: string;
 };
 
 const PerpsOrderInputSchema = z.object({
@@ -157,6 +243,127 @@ const UpdatePerpsMarginRequestSchema = z.object({
   amount: PerpsDecimalInputSchema,
 });
 
+const FetchPerpsAccountConfigRequestSchema = z
+  .object({
+    instrumentId: PerpsInstrumentIdSchema.optional(),
+  })
+  .default({});
+
+const FetchPerpsOpenOrdersRequestSchema = z
+  .object({
+    instrumentId: PerpsInstrumentIdSchema.optional(),
+  })
+  .default({});
+
+const FetchPerpsOrdersRequestSchema = z
+  .object({
+    orderId: PerpsOrderIdSchema.optional(),
+    clientOrderId: PerpsClientOrderIdSchema.optional(),
+    instrumentId: PerpsInstrumentIdSchema.optional(),
+    start: TimestampInputSchema.optional(),
+    end: TimestampInputSchema.optional(),
+  })
+  .default({})
+  .transform(({ end, start, ...request }) => ({
+    ...request,
+    endTimestamp: end,
+    startTimestamp: start,
+  }));
+
+const PerpsHistoryRequestBaseSchema = z.object({
+  start: TimestampInputSchema.optional(),
+  end: TimestampInputSchema.optional(),
+});
+
+const ListPerpsFillsRequestSchema = z.union([
+  PerpsHistoryRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsHistoryParams(request, ONE_DAY_MS),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+const ListPerpsFundingPaymentsRequestSchema = z.union([
+  PerpsHistoryRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+    instrumentId: PerpsInstrumentIdSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsHistoryParams(request, ONE_DAY_MS),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+const ListPerpsDepositsRequestSchema = z.union([
+  PerpsHistoryRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+    depositStatus: PerpsDepositStatusSchema.optional(),
+    hash: TxHashSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsHistoryParams(request, NINETY_DAYS_MS),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+const ListPerpsWithdrawalsRequestSchema = z.union([
+  PerpsHistoryRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+    withdrawalStatus: PerpsWithdrawalStatusSchema.optional(),
+    hash: TxHashSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsHistoryParams(request, NINETY_DAYS_MS),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+const PerpsIntervalHistoryRequestBaseSchema = z.object({
+  interval: PerpsPnlIntervalSchema,
+  start: TimestampInputSchema,
+  end: TimestampInputSchema.optional(),
+});
+
+const ListPerpsEquityHistoryRequestSchema = z.union([
+  PerpsIntervalHistoryRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsIntervalHistoryParams(request),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+const ListPerpsPnlHistoryRequestSchema = z.union([
+  PerpsIntervalHistoryRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsIntervalHistoryParams(request),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
 export type PlacePerpsOrderRequest = z.input<
   typeof PlacePerpsOrderRequestSchema
 >;
@@ -181,13 +388,38 @@ export type UpdatePerpsLeverageRequest = z.input<
 export type UpdatePerpsMarginRequest = z.input<
   typeof UpdatePerpsMarginRequestSchema
 >;
+export type FetchPerpsAccountConfigRequest = z.input<
+  typeof FetchPerpsAccountConfigRequestSchema
+>;
+export type FetchPerpsOpenOrdersRequest = z.input<
+  typeof FetchPerpsOpenOrdersRequestSchema
+>;
+export type FetchPerpsOrdersRequest = z.input<
+  typeof FetchPerpsOrdersRequestSchema
+>;
+export type ListPerpsFillsRequest = z.input<typeof ListPerpsFillsRequestSchema>;
+export type ListPerpsFundingPaymentsRequest = z.input<
+  typeof ListPerpsFundingPaymentsRequestSchema
+>;
+export type ListPerpsDepositsRequest = z.input<
+  typeof ListPerpsDepositsRequestSchema
+>;
+export type ListPerpsWithdrawalsRequest = z.input<
+  typeof ListPerpsWithdrawalsRequestSchema
+>;
+export type ListPerpsEquityHistoryRequest = z.input<
+  typeof ListPerpsEquityHistoryRequestSchema
+>;
+export type ListPerpsPnlHistoryRequest = z.input<
+  typeof ListPerpsPnlHistoryRequestSchema
+>;
 
 export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
   readonly credentials: PerpsCredentials;
   readonly #api: ServiceClient;
   readonly #chainId: number;
   readonly #onClose: (session: PerpsSession) => void;
-  readonly #url: string;
+  readonly #wsUrl: string;
   readonly #connection = new WebSocketConnection({
     heartbeat: new PerpsWebSocketHeartbeat(),
   });
@@ -200,11 +432,14 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
   #closing: Promise<void> | undefined;
 
   constructor(options: PerpsSessionOptions) {
-    this.#api = options.api;
+    this.#api = new ServiceClient({
+      resolveHeaders: async () => this.#authenticatedHeaders(),
+      root: options.restUrl,
+    });
     this.#chainId = options.chainId;
     this.credentials = options.credentials;
     this.#onClose = options.onClose;
-    this.#url = options.url;
+    this.#wsUrl = options.wsUrl;
   }
 
   get closed(): boolean {
@@ -224,6 +459,423 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
 
   [Symbol.asyncIterator](): AsyncIterator<PerpsSessionEvent> {
     return this.#queue[Symbol.asyncIterator]();
+  }
+
+  async fetchBalances(): Promise<PerpsBalance[]> {
+    return await unwrap(
+      this.#api
+        .get('/v1/account/balances')
+        .andThen(validateWith(FetchPerpsBalancesResponseSchema)),
+    );
+  }
+
+  async fetchPortfolio(): Promise<PerpsPortfolio> {
+    return await unwrap(
+      this.#api
+        .get('/v1/account/portfolio')
+        .andThen(validateWith(FetchPerpsPortfolioResponseSchema)),
+    );
+  }
+
+  async fetchAccountConfig(
+    request?: FetchPerpsAccountConfigRequest,
+  ): Promise<PerpsAccountConfig[]> {
+    const params = parseUserInput(
+      request,
+      FetchPerpsAccountConfigRequestSchema,
+    );
+    return await unwrap(
+      this.#api
+        .get('/v1/account/config', {
+          params: toPerpsSearchParams(params),
+        })
+        .andThen(validateWith(FetchPerpsAccountConfigResponseSchema)),
+    );
+  }
+
+  async fetchOpenOrders(
+    request?: FetchPerpsOpenOrdersRequest,
+  ): Promise<PerpsOrder[]> {
+    const params = parseUserInput(request, FetchPerpsOpenOrdersRequestSchema);
+    return await unwrap(
+      this.#api
+        .get('/v1/account/open-orders', {
+          params: toPerpsSearchParams(params),
+        })
+        .andThen(validateWith(FetchPerpsOpenOrdersResponseSchema)),
+    );
+  }
+
+  async fetchOrders(request?: FetchPerpsOrdersRequest): Promise<PerpsOrder[]> {
+    const params = parseUserInput(request, FetchPerpsOrdersRequestSchema);
+    return await unwrap(
+      this.#api
+        .get('/v1/account/orders', {
+          params: toPerpsSearchParams(params),
+        })
+        .andThen(validateWith(FetchPerpsOrdersResponseSchema)),
+    );
+  }
+
+  listFills(
+    request: ListPerpsFillsRequest = {},
+  ): Paginated<PerpsAccountFill[]> {
+    const { cursor, params } = parseUserInput(
+      request,
+      ListPerpsFillsRequestSchema,
+    );
+    return paginate((pageCursor) => {
+      let state: PerpsDescendingAccountCursorState;
+      if (pageCursor === undefined) {
+        invariant(params !== undefined, 'Expected initial Perps fills params.');
+        state = { kind: 'perpsFills', seenKeys: [], ...params };
+      } else {
+        state = decodePerpsAccountCursor(
+          pageCursor,
+          PerpsDescendingAccountCursorStateSchema,
+        );
+      }
+      const { kind: _kind, seenKeys: _seenKeys, ...searchParams } = state;
+      const seenKeys = new Set(state.seenKeys);
+
+      return this.#api
+        .get('/v1/account/fills', {
+          params: toPerpsSearchParams(searchParams),
+        })
+        .andThen(validateWith(ListPerpsFillsResponseSchema))
+        .map((response): Page<PerpsAccountFill[]> => {
+          const items = response.data.filter(
+            (fill) => !seenKeys.has(String(fill.tradeId)),
+          );
+          const last = items.at(-1);
+          const hasMore =
+            response.more &&
+            last !== undefined &&
+            last.timestamp > state.startTimestamp;
+
+          if (!hasMore) return { items, hasMore };
+
+          const seen = new Set(
+            state.endTimestamp === last.timestamp ? state.seenKeys : [],
+          );
+          for (const fill of items) {
+            if (fill.timestamp === last.timestamp)
+              seen.add(String(fill.tradeId));
+          }
+
+          return {
+            items,
+            hasMore,
+            nextCursor: encodePerpsAccountCursor({
+              ...state,
+              endTimestamp: last.timestamp,
+              seenKeys: Array.from(seen),
+            }),
+          };
+        });
+    }, cursor);
+  }
+
+  listFundingPayments(
+    request: ListPerpsFundingPaymentsRequest = {},
+  ): Paginated<PerpsAccountFundingPayment[]> {
+    const { cursor, params } = parseUserInput(
+      request,
+      ListPerpsFundingPaymentsRequestSchema,
+    );
+    return paginate((pageCursor) => {
+      let state: PerpsDescendingAccountCursorState;
+      if (pageCursor === undefined) {
+        invariant(
+          params !== undefined,
+          'Expected initial Perps funding payment params.',
+        );
+        state = { kind: 'perpsFundingPayments', seenKeys: [], ...params };
+      } else {
+        state = decodePerpsAccountCursor(
+          pageCursor,
+          PerpsDescendingAccountCursorStateSchema,
+        );
+      }
+      const { kind: _kind, seenKeys: _seenKeys, ...searchParams } = state;
+      const seenKeys = new Set(state.seenKeys);
+
+      return this.#api
+        .get('/v1/account/funding', {
+          params: toPerpsSearchParams(searchParams),
+        })
+        .andThen(validateWith(ListPerpsFundingPaymentsResponseSchema))
+        .map((response): Page<PerpsAccountFundingPayment[]> => {
+          const items = response.data.filter(
+            (payment) =>
+              !seenKeys.has(
+                `${payment.instrumentId}:${payment.timestamp}:${payment.funding}`,
+              ),
+          );
+          const last = items.at(-1);
+          const hasMore =
+            response.more &&
+            last !== undefined &&
+            last.timestamp > state.startTimestamp;
+
+          if (!hasMore) return { items, hasMore };
+
+          const seen = new Set(
+            state.endTimestamp === last.timestamp ? state.seenKeys : [],
+          );
+          for (const payment of items) {
+            if (payment.timestamp === last.timestamp) {
+              seen.add(
+                `${payment.instrumentId}:${payment.timestamp}:${payment.funding}`,
+              );
+            }
+          }
+
+          return {
+            items,
+            hasMore,
+            nextCursor: encodePerpsAccountCursor({
+              ...state,
+              endTimestamp: last.timestamp,
+              seenKeys: Array.from(seen),
+            }),
+          };
+        });
+    }, cursor);
+  }
+
+  listDeposits(
+    request: ListPerpsDepositsRequest = {},
+  ): Paginated<PerpsDeposit[]> {
+    const { cursor, params } = parseUserInput(
+      request,
+      ListPerpsDepositsRequestSchema,
+    );
+    return paginate((pageCursor) => {
+      let state: PerpsDescendingAccountCursorState;
+      if (pageCursor === undefined) {
+        invariant(
+          params !== undefined,
+          'Expected initial Perps deposit params.',
+        );
+        state = { kind: 'perpsDeposits', seenKeys: [], ...params };
+      } else {
+        state = decodePerpsAccountCursor(
+          pageCursor,
+          PerpsDescendingAccountCursorStateSchema,
+        );
+      }
+      const { kind: _kind, seenKeys: _seenKeys, ...searchParams } = state;
+      const seenKeys = new Set(state.seenKeys);
+
+      return this.#api
+        .get('/v1/account/deposits', {
+          params: toPerpsSearchParams(searchParams),
+        })
+        .andThen(validateWith(ListPerpsDepositsResponseSchema))
+        .map((response): Page<PerpsDeposit[]> => {
+          const items = response.data.filter(
+            (deposit) => !seenKeys.has(deposit.hash),
+          );
+          const last = items.at(-1);
+          const lastTimestamp =
+            last === undefined ? undefined : latestPerpsDepositTimestamp(last);
+          const hasMore =
+            response.more &&
+            lastTimestamp !== undefined &&
+            lastTimestamp > state.startTimestamp;
+
+          if (!hasMore) return { items, hasMore };
+
+          const seen = new Set(
+            state.endTimestamp === lastTimestamp ? state.seenKeys : [],
+          );
+          for (const deposit of items) {
+            if (latestPerpsDepositTimestamp(deposit) === lastTimestamp) {
+              seen.add(deposit.hash);
+            }
+          }
+
+          return {
+            items,
+            hasMore,
+            nextCursor: encodePerpsAccountCursor({
+              ...state,
+              endTimestamp: lastTimestamp,
+              seenKeys: Array.from(seen),
+            }),
+          };
+        });
+    }, cursor);
+  }
+
+  listWithdrawals(
+    request: ListPerpsWithdrawalsRequest = {},
+  ): Paginated<PerpsWithdrawal[]> {
+    const { cursor, params } = parseUserInput(
+      request,
+      ListPerpsWithdrawalsRequestSchema,
+    );
+    return paginate((pageCursor) => {
+      let state: PerpsDescendingAccountCursorState;
+      if (pageCursor === undefined) {
+        invariant(
+          params !== undefined,
+          'Expected initial Perps withdrawal params.',
+        );
+        state = { kind: 'perpsWithdrawals', seenKeys: [], ...params };
+      } else {
+        state = decodePerpsAccountCursor(
+          pageCursor,
+          PerpsDescendingAccountCursorStateSchema,
+        );
+      }
+      const { kind: _kind, seenKeys: _seenKeys, ...searchParams } = state;
+      const seenKeys = new Set(state.seenKeys);
+
+      return this.#api
+        .get('/v1/account/withdrawals', {
+          params: toPerpsSearchParams(searchParams),
+        })
+        .andThen(validateWith(ListPerpsWithdrawalsResponseSchema))
+        .map((response): Page<PerpsWithdrawal[]> => {
+          const items = response.data.filter(
+            (withdrawal) => !seenKeys.has(String(withdrawal.withdrawalId)),
+          );
+          const last = items.at(-1);
+          const lastTimestamp =
+            last === undefined
+              ? undefined
+              : latestPerpsWithdrawalTimestamp(last);
+          const hasMore =
+            response.more &&
+            lastTimestamp !== undefined &&
+            lastTimestamp > state.startTimestamp;
+
+          if (!hasMore) return { items, hasMore };
+
+          const seen = new Set(
+            state.endTimestamp === lastTimestamp ? state.seenKeys : [],
+          );
+          for (const withdrawal of items) {
+            if (latestPerpsWithdrawalTimestamp(withdrawal) === lastTimestamp) {
+              seen.add(String(withdrawal.withdrawalId));
+            }
+          }
+
+          return {
+            items,
+            hasMore,
+            nextCursor: encodePerpsAccountCursor({
+              ...state,
+              endTimestamp: lastTimestamp,
+              seenKeys: Array.from(seen),
+            }),
+          };
+        });
+    }, cursor);
+  }
+
+  listEquityHistory(
+    request: ListPerpsEquityHistoryRequest,
+  ): Paginated<PerpsEquityPoint[]> {
+    const { cursor, params } = parseUserInput(
+      request,
+      ListPerpsEquityHistoryRequestSchema,
+    );
+    return paginate((pageCursor) => {
+      let state: PerpsAscendingAccountCursorState;
+      if (pageCursor === undefined) {
+        invariant(
+          params !== undefined,
+          'Expected initial Perps equity history params.',
+        );
+        state = { kind: 'perpsEquityHistory', ...params };
+      } else {
+        state = decodePerpsAccountCursor(
+          pageCursor,
+          PerpsAscendingAccountCursorStateSchema,
+        );
+      }
+      const { kind: _kind, ...searchParams } = state;
+
+      return this.#api
+        .get('/v1/account/equity', {
+          params: toPerpsSearchParams(searchParams),
+        })
+        .andThen(validateWith(ListPerpsEquityHistoryResponseSchema))
+        .map((response): Page<PerpsEquityPoint[]> => {
+          const last = response.data.at(-1);
+          const hasMore =
+            response.more &&
+            last !== undefined &&
+            last.timestamp < state.endTimestamp;
+
+          return {
+            items: response.data,
+            hasMore,
+            nextCursor: hasMore
+              ? encodePerpsAccountCursor({
+                  ...state,
+                  startTimestamp:
+                    last.timestamp +
+                    perpsHistoryIntervalMilliseconds(state.interval),
+                })
+              : undefined,
+          };
+        });
+    }, cursor);
+  }
+
+  listPnlHistory(
+    request: ListPerpsPnlHistoryRequest,
+  ): Paginated<PerpsPnlPoint[]> {
+    const { cursor, params } = parseUserInput(
+      request,
+      ListPerpsPnlHistoryRequestSchema,
+    );
+    return paginate((pageCursor) => {
+      let state: PerpsAscendingAccountCursorState;
+      if (pageCursor === undefined) {
+        invariant(
+          params !== undefined,
+          'Expected initial Perps PnL history params.',
+        );
+        state = { kind: 'perpsPnlHistory', ...params };
+      } else {
+        state = decodePerpsAccountCursor(
+          pageCursor,
+          PerpsAscendingAccountCursorStateSchema,
+        );
+      }
+      const { kind: _kind, ...searchParams } = state;
+
+      return this.#api
+        .get('/v1/account/pnl', {
+          params: toPerpsSearchParams(searchParams),
+        })
+        .andThen(validateWith(ListPerpsPnlHistoryResponseSchema))
+        .map((response): Page<PerpsPnlPoint[]> => {
+          const last = response.data.at(-1);
+          const hasMore =
+            response.more &&
+            last !== undefined &&
+            last.timestamp < state.endTimestamp;
+
+          return {
+            items: response.data,
+            hasMore,
+            nextCursor: hasMore
+              ? encodePerpsAccountCursor({
+                  ...state,
+                  startTimestamp:
+                    last.timestamp +
+                    perpsHistoryIntervalMilliseconds(state.interval),
+                })
+              : undefined,
+          };
+        });
+    }, cursor);
   }
 
   async placeOrder(
@@ -348,7 +1000,7 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
       onError: () => undefined,
       onMessage: (message) => this.#handleMessage(message),
       onOpen: () => undefined,
-      url: this.#url,
+      url: this.#wsUrl,
     });
     await this.#authenticate();
     await this.#subscribe();
@@ -394,6 +1046,13 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
       ACK_TIMEOUT_MS,
       'Perps session subscription timed out.',
     );
+  }
+
+  #authenticatedHeaders(): HeadersInit {
+    return {
+      'POLYMARKET-PROXY': this.credentials.proxy,
+      'POLYMARKET-SECRET': this.credentials.secret,
+    };
   }
 
   async #sendSignedWsCommand<T>(request: {
@@ -582,6 +1241,82 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
       type: 'resync',
     });
   }
+}
+
+function toPerpsHistoryParams<T extends Record<string, unknown>>(
+  request: T & { end?: number; start?: number },
+  defaultWindowMs: number,
+): Omit<T, 'end' | 'start'> & PerpsHistoryParams {
+  const now = Date.now();
+  const { end, start, ...rest } = request;
+  return {
+    ...rest,
+    endTimestamp: end ?? now,
+    startTimestamp: start ?? now - defaultWindowMs,
+  };
+}
+
+function toPerpsIntervalHistoryParams(
+  request: z.output<typeof PerpsIntervalHistoryRequestBaseSchema>,
+): PerpsIntervalHistoryParams {
+  return {
+    endTimestamp: request.end ?? Date.now(),
+    interval: request.interval,
+    startTimestamp: request.start,
+  };
+}
+
+function decodePerpsAccountCursor<T>(
+  cursor: PaginationCursor,
+  schema: z.ZodType<T>,
+): T {
+  try {
+    return schema.parse(JSON.parse(atob(cursor)));
+  } catch (error) {
+    throw new TransportError('Invalid Perps account pagination cursor', {
+      cause: error,
+    });
+  }
+}
+
+function encodePerpsAccountCursor(
+  state: PerpsAscendingAccountCursorState | PerpsDescendingAccountCursorState,
+): PaginationCursor {
+  return toPaginationCursor(btoa(JSON.stringify(state)));
+}
+
+function toPerpsSearchParams(params: object): URLSearchParams {
+  return toSearchParams(
+    params as Record<string, string | number | boolean | undefined>,
+    snakeCase(),
+  );
+}
+
+function latestPerpsDepositTimestamp(deposit: PerpsDeposit): number {
+  return deposit.confirmedTimestamp ?? deposit.createdTimestamp;
+}
+
+function latestPerpsWithdrawalTimestamp(withdrawal: PerpsWithdrawal): number {
+  return withdrawal.confirmedTimestamp ?? withdrawal.createdTimestamp;
+}
+
+function perpsHistoryIntervalMilliseconds(
+  interval: z.output<typeof PerpsPnlIntervalSchema>,
+): number {
+  switch (interval) {
+    case '1h':
+      return 60 * 60 * 1000;
+    case '4h':
+      return 4 * 60 * 60 * 1000;
+    case '1d':
+      return ONE_DAY_MS;
+    case '1w':
+      return 7 * ONE_DAY_MS;
+  }
+  invariant(
+    false,
+    `Unsupported Perps account history interval: ${String(interval)}`,
+  );
 }
 
 function createPendingResponse<T>(

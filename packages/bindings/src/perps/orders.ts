@@ -7,6 +7,7 @@ import {
 import {
   PerpsAssetSchema,
   PerpsClientOrderIdSchema,
+  PerpsDataResponseSchema,
   PerpsInstrumentIdSchema,
   PerpsOrderIdSchema,
   PerpsSideSchema,
@@ -96,6 +97,10 @@ export const RawPerpsOrderSchema = z
     clientOrderId: order.client_order_id,
   }));
 
+export const FetchPerpsOrdersResponseSchema = z.array(RawPerpsOrderSchema);
+
+export const FetchPerpsOpenOrdersResponseSchema = z.array(RawPerpsOrderSchema);
+
 export const RawPerpsOrderUpdateSchema = z
   .object({
     oid: PerpsOrderIdSchema,
@@ -184,6 +189,10 @@ export const RawPerpsAccountFillSchema = z
     timestamp: fill.timestamp,
     hash: fill.hash,
   }));
+
+export const ListPerpsFillsResponseSchema = PerpsDataResponseSchema(
+  RawPerpsAccountFillSchema,
+);
 
 export const RawPerpsAccountFillUpdateSchema = z
   .object({

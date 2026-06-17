@@ -8,6 +8,7 @@ import {
 } from '../shared';
 import {
   PerpsAssetSchema,
+  PerpsDataResponseSchema,
   PerpsDepositStatusSchema,
   PerpsInternalTransferDirectionSchema,
   PerpsInternalTransferIdSchema,
@@ -55,6 +56,10 @@ export const RawPerpsDepositSchema = z
     createdTimestamp: deposit.created_timestamp,
     confirmedTimestamp: deposit.confirmed_timestamp,
   }));
+
+export const ListPerpsDepositsResponseSchema = PerpsDataResponseSchema(
+  RawPerpsDepositSchema,
+);
 
 export const RawPerpsDepositUpdateSchema = z
   .object({
@@ -113,6 +118,10 @@ export const RawPerpsWithdrawalSchema = z
     createdTimestamp: withdrawal.created_timestamp,
     confirmedTimestamp: withdrawal.confirmed_timestamp,
   }));
+
+export const ListPerpsWithdrawalsResponseSchema = PerpsDataResponseSchema(
+  RawPerpsWithdrawalSchema,
+);
 
 export const RawPerpsWithdrawalUpdateSchema = z
   .object({

@@ -111,6 +111,13 @@ export enum PerpsKlineInterval {
   OneWeek = '1w',
 }
 
+export enum PerpsPnlInterval {
+  OneHour = '1h',
+  FourHours = '4h',
+  OneDay = '1d',
+  OneWeek = '1w',
+}
+
 export const PerpsInstrumentTypeSchema = z.enum(PerpsInstrumentType);
 export const PerpsInstrumentCategorySchema = z.enum(PerpsInstrumentCategory);
 export const PerpsSideSchema = z.enum(PerpsSide);
@@ -121,6 +128,7 @@ export const PerpsInternalTransferDirectionSchema = z.enum(
   PerpsInternalTransferDirection,
 );
 export const PerpsKlineIntervalSchema = z.enum(PerpsKlineInterval);
+export const PerpsPnlIntervalSchema = z.enum(PerpsPnlInterval);
 
 export const PerpsAssetSchema = z.string().min(1);
 

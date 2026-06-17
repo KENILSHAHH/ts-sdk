@@ -4,12 +4,10 @@ import { ws } from 'msw';
 import { setupServer } from 'msw/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { production } from '../../environments';
-import { ServiceClient } from '../../ServiceClient';
 import { PerpsSessionManager } from './manager';
 
 const perps = ws.link(production.perpsWs);
 const server = setupServer();
-const api = new ServiceClient({ root: production.perpsApi });
 
 const credentials = {
   expiresAt: Date.now() + 30 * 60_000,
@@ -32,9 +30,9 @@ describe('PerpsSessionManager', () => {
 
   it('connects sessions through the manager lifecycle', async () => {
     const manager = new PerpsSessionManager({
-      api,
       chainId: production.chainId,
-      url: production.perpsWs,
+      restUrl: production.perpsApi,
+      wsUrl: production.perpsWs,
     });
     const session = await manager.connect(credentials);
 

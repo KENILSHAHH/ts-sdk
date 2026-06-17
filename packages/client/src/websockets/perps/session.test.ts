@@ -1,9 +1,10 @@
 import {
   type PerpsCredentials,
+  PerpsPnlInterval,
   PerpsTimeInForce,
 } from '@polymarket/bindings/perps';
 import { expectEvmAddress, expectPrivateKey } from '@polymarket/types';
-import { ws } from 'msw';
+import { HttpResponse, http, ws } from 'msw';
 import { setupServer } from 'msw/node';
 import {
   afterAll,
@@ -16,13 +17,11 @@ import {
   vi,
 } from 'vitest';
 import { production } from '../../environments';
-import { ServiceClient } from '../../ServiceClient';
 import { captureConnection, waitForNextEvent } from '../testing';
 import { PerpsSession } from './session';
 
 const perps = ws.link(production.perpsWs);
 const server = setupServer();
-const api = new ServiceClient({ root: production.perpsApi });
 
 const credentials = {
   expiresAt: Date.now() + 30 * 60_000,
@@ -310,15 +309,118 @@ describe('PerpsSession', () => {
       await session.close();
     });
   });
+
+  describe('account reads', () => {
+    it('sends session credentials as REST auth headers', async () => {
+      server.use(
+        http.get(
+          `${production.perpsApi}/v1/account/balances`,
+          ({ request }) => {
+            expect(request.headers.get('polymarket-proxy')).toBe(
+              credentials.proxy,
+            );
+            expect(request.headers.get('polymarket-secret')).toBe(
+              credentials.secret,
+            );
+            return HttpResponse.json([
+              { asset: 'USDC', balance: '12.34', value: '12.34' },
+            ]);
+          },
+        ),
+      );
+      const session = createSession();
+
+      await expect(session.fetchBalances()).resolves.toEqual([
+        { asset: 'USDC', balance: '12.34', value: '12.34' },
+      ]);
+    });
+
+    it('overlaps and dedupes descending account history pages', async () => {
+      const requests: URLSearchParams[] = [];
+      server.use(
+        http.get(`${production.perpsApi}/v1/account/fills`, ({ request }) => {
+          const params = new URL(request.url).searchParams;
+          requests.push(params);
+
+          if (params.get('end_timestamp') === '3000') {
+            return HttpResponse.json({
+              data: [accountFill(1, 3000), accountFill(2, 2000)],
+              more: true,
+            });
+          }
+
+          return HttpResponse.json({
+            data: [accountFill(2, 2000), accountFill(3, 1000)],
+            more: false,
+          });
+        }),
+      );
+      const session = createSession();
+      const pages = session.listFills({ end: 3000, start: 0 });
+
+      const first = await pages.firstPage();
+      const second = await pages.from(first.nextCursor).firstPage();
+
+      expect(first.items.map((fill) => fill.tradeId)).toEqual([1, 2]);
+      expect(second.items.map((fill) => fill.tradeId)).toEqual([3]);
+      expect(requests.map((params) => params.get('end_timestamp'))).toEqual([
+        '3000',
+        '2000',
+      ]);
+    });
+
+    it('continues ascending interval account history pages', async () => {
+      const requests: URLSearchParams[] = [];
+      server.use(
+        http.get(`${production.perpsApi}/v1/account/equity`, ({ request }) => {
+          const params = new URL(request.url).searchParams;
+          requests.push(params);
+
+          if (params.get('start_timestamp') === '0') {
+            return HttpResponse.json({
+              data: [
+                [0, '10'],
+                [3_600_000, '11'],
+              ],
+              more: true,
+            });
+          }
+
+          return HttpResponse.json({
+            data: [[7_200_000, '12']],
+            more: false,
+          });
+        }),
+      );
+      const session = createSession();
+      const pages = session.listEquityHistory({
+        end: 10_800_000,
+        interval: PerpsPnlInterval.OneHour,
+        start: 0,
+      });
+
+      const first = await pages.firstPage();
+      const second = await pages.from(first.nextCursor).firstPage();
+
+      expect(first.items.map((point) => point.timestamp)).toEqual([
+        0, 3_600_000,
+      ]);
+      expect(second.items.map((point) => point.timestamp)).toEqual([7_200_000]);
+      expect(requests.map((params) => params.get('start_timestamp'))).toEqual([
+        '0',
+        '7200000',
+      ]);
+    });
+  });
 });
 
 function createSession(): PerpsSession {
   return new PerpsSession({
-    api,
     chainId: production.chainId,
     credentials,
     onClose: () => undefined,
-    url: production.perpsWs,
+    restUrl: production.perpsApi,
+    wsUrl: production.perpsWs,
   });
 }
 
@@ -427,5 +529,25 @@ function balanceUpdate(request: { balance: string; sequence: number }) {
     },
     sq: request.sequence,
     ts: 1_700_000_000_000,
+  };
+}
+
+function accountFill(tradeId: number, timestamp: number) {
+  return {
+    fee: '0.01',
+    fee_asset: 'USDC',
+    hash: `0x${'1'.repeat(64)}`,
+    instrument_id: 1,
+    liquidation: false,
+    order_id: 100 + tradeId,
+    pnl: '0',
+    previous_entry_price: '0',
+    previous_size: '0',
+    price: '100',
+    quantity: '1',
+    side: 'long',
+    taker: true,
+    timestamp,
+    trade_id: tradeId,
   };
 }

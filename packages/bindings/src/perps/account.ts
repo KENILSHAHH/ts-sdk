@@ -4,7 +4,11 @@ import {
   EpochMillisecondsSchema,
   EvmAddressSchema,
 } from '../shared';
-import { PerpsAssetSchema, PerpsInstrumentIdSchema } from './common';
+import {
+  PerpsAssetSchema,
+  PerpsDataResponseSchema,
+  PerpsInstrumentIdSchema,
+} from './common';
 
 export const PerpsBalanceSchema = z.object({
   asset: PerpsAssetSchema,
@@ -13,6 +17,8 @@ export const PerpsBalanceSchema = z.object({
 });
 
 export type PerpsBalance = z.infer<typeof PerpsBalanceSchema>;
+
+export const FetchPerpsBalancesResponseSchema = z.array(PerpsBalanceSchema);
 
 export const PerpsPortfolioPositionSchema = z.object({
   instrumentId: PerpsInstrumentIdSchema,
@@ -115,6 +121,8 @@ export const RawPerpsPortfolioSchema = z
     timestamp: portfolio.timestamp,
   }));
 
+export const FetchPerpsPortfolioResponseSchema = RawPerpsPortfolioSchema;
+
 export const PerpsAccountFundingPaymentSchema = z.object({
   instrumentId: PerpsInstrumentIdSchema,
   size: DecimalStringSchema,
@@ -145,6 +153,10 @@ export const RawPerpsAccountFundingPaymentSchema = z
     funding: funding.funding,
     timestamp: funding.timestamp,
   }));
+
+export const ListPerpsFundingPaymentsResponseSchema = PerpsDataResponseSchema(
+  RawPerpsAccountFundingPaymentSchema,
+);
 
 export const RawPerpsAccountFundingPaymentEntrySchema = z
   .object({
@@ -184,17 +196,28 @@ export const RawPerpsAccountConfigSchema = z
     cross: config.cross,
   }));
 
+export const FetchPerpsAccountConfigResponseSchema = z.array(
+  RawPerpsAccountConfigSchema,
+);
+
 export const PerpsEquityPointSchema = z
   .tuple([EpochMillisecondsSchema, DecimalStringSchema])
   .transform(([timestamp, equity]) => ({ timestamp, equity }));
 
 export type PerpsEquityPoint = z.infer<typeof PerpsEquityPointSchema>;
 
+export const ListPerpsEquityHistoryResponseSchema = PerpsDataResponseSchema(
+  PerpsEquityPointSchema,
+);
+
 export const PerpsPnlPointSchema = z
   .tuple([EpochMillisecondsSchema, DecimalStringSchema])
   .transform(([timestamp, pnl]) => ({ timestamp, pnl }));
 
 export type PerpsPnlPoint = z.infer<typeof PerpsPnlPointSchema>;
+
+export const ListPerpsPnlHistoryResponseSchema =
+  PerpsDataResponseSchema(PerpsPnlPointSchema);
 
 const RawPerpsProxyExpirySchema = z
   .number()
