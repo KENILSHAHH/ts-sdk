@@ -20,8 +20,6 @@ export type {
   RfqRequestedSize,
   RfqRequestorPublicId,
   RfqSession,
-  RfqTrade,
-  RfqTradeEvent,
 } from '../actions/rfq';
 export {
   OpenRfqSessionError,

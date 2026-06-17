@@ -8,7 +8,6 @@ import {
   type RfqId,
   type RfqQuoteId,
   type RfqQuoteRequest,
-  type RfqTrade,
 } from '@polymarket/bindings/rfq';
 import type {
   RfqCancelQuoteAck,
@@ -18,7 +17,6 @@ import type {
   RfqQuoteReference,
   RfqQuoteRequestEvent,
   RfqQuoteResponse,
-  RfqTradeEvent,
 } from '../../actions/rfq';
 
 export interface RfqEventController {
@@ -69,10 +67,6 @@ export function toConfirmationRequestEvent(
 export function toExecutionUpdateEvent(
   message: RfqExecutionUpdate,
 ): RfqExecutionUpdateEvent {
-  return message;
-}
-
-export function toTradeEvent(message: RfqTrade): RfqTradeEvent {
   return message;
 }
 
