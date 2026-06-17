@@ -504,6 +504,8 @@ class BaseSecureClient<
   }
 
   constructor(config: SecureClientConfig) {
+    const perps = new ServiceClient({ root: config.environment.perpsApi });
+
     super({
       account: config.account,
       credentials: config.credentials,
@@ -522,7 +524,7 @@ class BaseSecureClient<
       gamma: new ServiceClient({ root: config.environment.gamma }),
       data: new ServiceClient({ root: config.environment.data }),
       rfq: new ServiceClient({ root: config.environment.rfq }),
-      perps: new ServiceClient({ root: config.environment.perpsApi }),
+      perps,
       secureClob: new ServiceClient({
         resolveHeaders: async (request) => ({
           ...(await this.resolveClobHeaders(request)),
@@ -554,7 +556,11 @@ class BaseSecureClient<
         perpsSubscriptions: new PerpsSubscriptionManager(
           config.environment.perpsWs,
         ),
-        perpsSession: new PerpsSessionManager(config.environment.perpsWs),
+        perpsSession: new PerpsSessionManager({
+          api: perps,
+          chainId: config.environment.chainId,
+          url: config.environment.perpsWs,
+        }),
       },
     });
   }

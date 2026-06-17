@@ -14,6 +14,7 @@ type Tagged<T, Tag extends string> = T & { readonly __tag: Tag };
 
 export type PerpsInstrumentId = Tagged<number, 'PerpsInstrumentId'>;
 export type PerpsOrderId = Tagged<number, 'PerpsOrderId'>;
+export type PerpsClientOrderId = Tagged<string, 'PerpsClientOrderId'>;
 export type PerpsTradeId = Tagged<number, 'PerpsTradeId'>;
 export type PerpsWithdrawalId = Tagged<number, 'PerpsWithdrawalId'>;
 export type PerpsInternalTransferId = Tagged<number, 'PerpsInternalTransferId'>;
@@ -33,6 +34,11 @@ export const PerpsOrderIdSchema = z
   .int()
   .nonnegative()
   .transform(taggedInteger<PerpsOrderId>);
+
+export const PerpsClientOrderIdSchema = z
+  .string()
+  .regex(/^[0-9a-f]{32}$/)
+  .transform((value) => value as PerpsClientOrderId);
 
 export const PerpsTradeIdSchema = z
   .number()

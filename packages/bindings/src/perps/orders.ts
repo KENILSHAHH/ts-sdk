@@ -6,6 +6,7 @@ import {
 } from '../shared';
 import {
   PerpsAssetSchema,
+  PerpsClientOrderIdSchema,
   PerpsInstrumentIdSchema,
   PerpsOrderIdSchema,
   PerpsSideSchema,
@@ -30,6 +31,38 @@ export const PerpsOrderSchema = z.object({
 });
 
 export type PerpsOrder = z.infer<typeof PerpsOrderSchema>;
+
+export const PerpsCommandStatusSchema = z.enum(['ok', 'err']);
+
+export const PerpsOrderCommandAckSchema = z.object({
+  status: PerpsCommandStatusSchema,
+  orderId: PerpsOrderIdSchema.optional(),
+  clientOrderId: PerpsClientOrderIdSchema.optional(),
+  error: z.string().optional(),
+});
+
+export type PerpsOrderCommandAck = z.infer<typeof PerpsOrderCommandAckSchema>;
+
+export const RawPerpsOrderCommandAckSchema = z
+  .object({
+    status: PerpsCommandStatusSchema,
+    oid: PerpsOrderIdSchema.optional(),
+    coid: PerpsClientOrderIdSchema.optional(),
+    error: z.string().optional(),
+  })
+  .transform((ack) => ({
+    status: ack.status,
+    orderId: ack.oid,
+    clientOrderId: ack.coid,
+    error: ack.error,
+  }));
+
+export const PerpsCommandAckSchema = z.object({
+  status: PerpsCommandStatusSchema,
+  error: z.string().optional(),
+});
+
+export type PerpsCommandAck = z.infer<typeof PerpsCommandAckSchema>;
 
 export const RawPerpsOrderSchema = z
   .object({

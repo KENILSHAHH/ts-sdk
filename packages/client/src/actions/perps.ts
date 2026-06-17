@@ -50,8 +50,16 @@ import type { TypedDataPayload } from '../types';
 import type { PerpsSession } from '../websockets/perps/session';
 
 export type {
+  CancelPerpsOrderRequest,
+  CancelPerpsOrdersRequest,
+  ModifyPerpsOrderRequest,
+  ModifyPerpsOrdersRequest,
   PerpsSession,
   PerpsSessionEvent,
+  PlacePerpsOrderRequest,
+  PlacePerpsOrdersRequest,
+  UpdatePerpsLeverageRequest,
+  UpdatePerpsMarginRequest,
 } from '../websockets/perps/session';
 
 import { snakeCase, toSearchParams } from './params';

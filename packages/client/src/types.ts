@@ -55,7 +55,7 @@ export type SignerTransactionRequest = {
 
 /** @internal */
 export type ApiKeyAuthorizationRequest = {
-  method: 'DELETE' | 'GET' | 'POST';
+  method: 'DELETE' | 'GET' | 'PATCH' | 'POST';
   path: string;
   body?: string;
 };

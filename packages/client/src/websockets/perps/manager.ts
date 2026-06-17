@@ -1,18 +1,31 @@
 import type { PerpsCredentials } from '@polymarket/bindings/perps';
+import type { ServiceClient } from '../../ServiceClient';
 import { PerpsSession } from './session';
 
+export type PerpsSessionManagerOptions = {
+  api: ServiceClient;
+  chainId: number;
+  url: string;
+};
+
 export class PerpsSessionManager {
+  readonly #api: ServiceClient;
+  readonly #chainId: number;
   readonly #url: string;
   readonly #sessions = new Set<PerpsSession>();
   readonly #connectingSessions = new Set<PerpsSession>();
   readonly #connecting = new Set<Promise<PerpsSession>>();
 
-  constructor(url: string) {
-    this.#url = url;
+  constructor(options: PerpsSessionManagerOptions) {
+    this.#api = options.api;
+    this.#chainId = options.chainId;
+    this.#url = options.url;
   }
 
   connect(credentials: PerpsCredentials): Promise<PerpsSession> {
     const session = new PerpsSession({
+      api: this.#api,
+      chainId: this.#chainId,
       credentials,
       onClose: (closedSession) => this.#clearSession(closedSession),
       url: this.#url,
