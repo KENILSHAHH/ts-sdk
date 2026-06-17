@@ -12,7 +12,11 @@ import {
 import { type AnalyticsActions, analyticsActions } from './analytics';
 import { type DataActions, dataActions } from './data';
 import { type DiscoveryActions, discoveryActions } from './discovery';
-import { type PerpsActions, perpsActions } from './perps';
+import {
+  type PublicPerpsActions,
+  perpsActions,
+  type SecurePerpsActions,
+} from './perps';
 import {
   type PublicRewardsActions,
   rewardsActions,
@@ -31,7 +35,7 @@ export type PublicActions = Prettify<
   DiscoveryActions &
     DataActions &
     AnalyticsActions &
-    PerpsActions &
+    PublicPerpsActions &
     PublicAccountActions &
     PublicRewardsActions &
     PublicSubscriptionsActions
@@ -41,7 +45,7 @@ export type SecureActions = Prettify<
   DiscoveryActions &
     DataActions &
     AnalyticsActions &
-    PerpsActions &
+    SecurePerpsActions &
     SecureAccountActions &
     SecureRewardsActions &
     SecureRfqActions &

@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { DecimalStringSchema, EpochMillisecondsSchema } from '../shared';
+import {
+  DecimalStringSchema,
+  EpochMillisecondsSchema,
+  EvmAddressSchema,
+} from '../shared';
 import { PerpsAssetSchema, PerpsInstrumentIdSchema } from './common';
 
 export const PerpsBalanceSchema = z.object({
@@ -191,3 +195,48 @@ export const PerpsPnlPointSchema = z
   .transform(([timestamp, pnl]) => ({ timestamp, pnl }));
 
 export type PerpsPnlPoint = z.infer<typeof PerpsPnlPointSchema>;
+
+const RawPerpsProxyExpirySchema = z
+  .number()
+  .finite()
+  .positive()
+  .refine((value) => Number.isInteger(value), 'Expected integer')
+  // The credentials endpoint currently returns proxy expiries in nanoseconds.
+  .transform((value) =>
+    value > Number.MAX_SAFE_INTEGER ? Math.floor(value / 1_000_000) : value,
+  )
+  .pipe(EpochMillisecondsSchema);
+
+export const PerpsProxyKeySchema = z.object({
+  proxy: EvmAddressSchema,
+  label: z.string().optional(),
+  expiresAt: EpochMillisecondsSchema,
+});
+
+export type PerpsProxyKey = z.infer<typeof PerpsProxyKeySchema>;
+
+export const RawPerpsProxyKeySchema = z
+  .object({
+    proxy: EvmAddressSchema,
+    label: z.string().optional(),
+    expiry: RawPerpsProxyExpirySchema,
+  })
+  .transform((key) => ({
+    proxy: key.proxy,
+    label: key.label,
+    expiresAt: key.expiry,
+  }));
+
+export const RawPerpsCredentialsResponseSchema = z
+  .object({
+    address: EvmAddressSchema,
+    keys: z.array(RawPerpsProxyKeySchema),
+  })
+  .transform((credentials) => ({
+    address: credentials.address,
+    keys: credentials.keys,
+  }));
+
+export const RawPerpsCreateProxyResponseSchema = z.object({
+  secret: z.string().min(1),
+});

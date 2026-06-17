@@ -23,10 +23,17 @@ import {
   fetchPerpsTicker,
   fetchPerpsTickers,
   fetchPerpsTrades,
+  type OpenPerpsSessionRequest,
+  openPerpsSession,
+  type PerpsSession,
 } from '../actions';
-import type { BaseClient } from '../clients';
+import type {
+  BaseClient,
+  BasePublicClient,
+  BaseSecureClient,
+} from '../clients';
 
-export type PerpsActions = {
+export type PublicPerpsActions = {
   /**
    * Fetches Perps instruments.
    *
@@ -98,8 +105,28 @@ export type PerpsActions = {
   fetchPerpsFees(): Promise<PerpsFeeScheduleEntry[]>;
 };
 
-export function perpsActions(client: BaseClient): PerpsActions {
-  return {
+export type SecurePerpsActions = PublicPerpsActions & {
+  /**
+   * Opens a Perps account session.
+   *
+   * @remarks
+   * Pass `expiresIn` to create new delegated Perps credentials, or pass existing
+   * credentials to validate and resume a previous session.
+   *
+   * @throws {@link OpenPerpsSessionError}
+   * Thrown on failure.
+   */
+  openPerpsSession(request: OpenPerpsSessionRequest): Promise<PerpsSession>;
+};
+
+export type PerpsActions = PublicPerpsActions;
+
+export function perpsActions(client: BasePublicClient): PublicPerpsActions;
+export function perpsActions(client: BaseSecureClient): SecurePerpsActions;
+export function perpsActions(
+  client: BaseClient,
+): PublicPerpsActions | SecurePerpsActions {
+  const actions: PublicPerpsActions = {
     fetchPerpsBook: (request) => fetchPerpsBook(client, request),
     fetchPerpsCandles: (request) => fetchPerpsCandles(client, request),
     fetchPerpsFees: () => fetchPerpsFees(client),
@@ -109,5 +136,12 @@ export function perpsActions(client: BaseClient): PerpsActions {
     fetchPerpsTicker: (request) => fetchPerpsTicker(client, request),
     fetchPerpsTickers: (request) => fetchPerpsTickers(client, request),
     fetchPerpsTrades: (request) => fetchPerpsTrades(client, request),
+  };
+
+  if (!client.isSecureClient()) return actions;
+
+  return {
+    ...actions,
+    openPerpsSession: (request) => openPerpsSession(client, request),
   };
 }

@@ -8,6 +8,7 @@ import {
   FetchPerpsTradesResponseSchema,
   type PerpsBook,
   type PerpsCandle,
+  type PerpsCredentials,
   type PerpsFeeScheduleEntry,
   type PerpsFundingRate,
   type PerpsInstrument,
@@ -18,20 +19,32 @@ import {
   type PerpsPublicTrade,
   type PerpsTicker,
   RawPerpsBookSchema,
+  RawPerpsCreateProxyResponseSchema,
+  RawPerpsCredentialsResponseSchema,
 } from '@polymarket/bindings/perps';
-import { unwrap } from '@polymarket/types';
+import {
+  expectEvmAddress,
+  invariant,
+  isPrivateKey,
+  isSameEvmAddress,
+  type PrivateKey,
+  unwrap,
+} from '@polymarket/types';
+import { Address, Secp256k1 } from 'ox';
 import { z } from 'zod';
-import type { BaseClient } from '../clients';
+import type { BaseClient, BaseSecureClient } from '../clients';
 import {
   makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
+  SigningError,
   TransportError,
   UnexpectedResponseError,
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
+import type { TypedDataPayload } from '../types';
 import { snakeCase, toSearchParams } from './params';
 
 type PerpsPublicReadError =
@@ -372,4 +385,282 @@ export async function fetchPerpsFees(
   );
 
   return response.feeSchedule;
+}
+
+const PrivateKeySchema = z.custom<PrivateKey>(
+  (value) => isPrivateKey(value),
+  'Expected a hex-encoded 32-byte private key.',
+);
+
+const PerpsCredentialsSchema = z.object({
+  proxy: z.string().transform((value) => expectEvmAddress(value)),
+  privateKey: PrivateKeySchema,
+  secret: z.string().min(1),
+  expiresAt: z.number().int().positive(),
+});
+
+const CreatePerpsSessionRequestSchema = z.object({
+  expiresIn: z.number().int().positive(),
+  label: z.string().min(1).optional(),
+});
+
+const ResumePerpsSessionRequestSchema = z.object({
+  credentials: PerpsCredentialsSchema,
+});
+
+const OpenPerpsSessionRequestSchema = z.union([
+  CreatePerpsSessionRequestSchema,
+  ResumePerpsSessionRequestSchema,
+]);
+
+export type CreatePerpsSessionRequest = z.input<
+  typeof CreatePerpsSessionRequestSchema
+>;
+
+export type ResumePerpsSessionRequest = z.input<
+  typeof ResumePerpsSessionRequestSchema
+>;
+
+export type OpenPerpsSessionRequest =
+  | CreatePerpsSessionRequest
+  | ResumePerpsSessionRequest;
+
+export type PerpsSession = {
+  /** Credentials for resuming this Perps session later. */
+  readonly credentials: PerpsCredentials;
+
+  /** Closes the session. Private streams are added in a later Perps session action. */
+  close(): Promise<void>;
+};
+
+export type OpenPerpsSessionError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const OpenPerpsSessionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+/**
+ * Opens a Perps account session.
+ *
+ * @remarks
+ * Pass `expiresIn` to create new delegated Perps credentials, or pass existing
+ * credentials to validate and resume a previous session.
+ *
+ * @throws {@link OpenPerpsSessionError}
+ * Thrown on failure.
+ */
+export async function openPerpsSession(
+  client: BaseSecureClient,
+  request: OpenPerpsSessionRequest,
+): Promise<PerpsSession> {
+  const params = parseUserInput(request, OpenPerpsSessionRequestSchema);
+  const credentials =
+    'credentials' in params
+      ? await resumePerpsCredentials(client, params.credentials)
+      : await createPerpsCredentials(client, params);
+
+  return {
+    credentials,
+    close: () => Promise.resolve(),
+  };
+}
+
+async function createPerpsCredentials(
+  client: BaseSecureClient,
+  request: CreatePerpsSessionRequest,
+): Promise<PerpsCredentials> {
+  const privateKey = createPerpsProxyPrivateKey();
+  const proxy = addressFromPrivateKey(privateKey);
+  const owner = client.account.signer;
+  const expiresAt = Date.now() + request.expiresIn;
+  const timestamp = Date.now();
+  const salt = randomUint32();
+  const op = {
+    args: {
+      expiry: expiresAt,
+      owner,
+      proxy,
+    },
+    type: 'createProxy' as const,
+  };
+  const signature = await signPerpsCreateProxy(client, {
+    expiresAt,
+    proxy,
+    salt,
+    timestamp,
+  });
+  const body: Record<string, unknown> = {
+    op,
+    salt,
+    sig: signature,
+    ts: timestamp,
+  };
+  if (request.label !== undefined) body.label = request.label;
+
+  const response = await unwrap(
+    client.perps
+      .post('/v1/account/proxy', { json: body })
+      .andThen(validateWith(RawPerpsCreateProxyResponseSchema)),
+  );
+  const credentials = {
+    expiresAt,
+    privateKey,
+    proxy,
+    secret: response.secret,
+  };
+
+  return validatePerpsCredentials(client, credentials);
+}
+
+async function resumePerpsCredentials(
+  client: BaseSecureClient,
+  credentials: PerpsCredentials,
+): Promise<PerpsCredentials> {
+  assertPerpsCredentialsKeyMatchesProxy(credentials);
+  return validatePerpsCredentials(client, credentials);
+}
+
+async function validatePerpsCredentials(
+  client: BaseSecureClient,
+  credentials: PerpsCredentials,
+): Promise<PerpsCredentials> {
+  const response = await unwrap(
+    client.perps
+      .get('/v1/account/credentials', {
+        headers: perpsCredentialHeaders(credentials),
+      })
+      .andThen(validateWith(RawPerpsCredentialsResponseSchema)),
+  );
+
+  if (!isSameEvmAddress(response.address, client.account.signer)) {
+    throw new UnexpectedResponseError(
+      'Perps credentials belong to a different signer account.',
+    );
+  }
+
+  const proxyKey = response.keys.find((key) =>
+    isSameEvmAddress(key.proxy, credentials.proxy),
+  );
+  if (proxyKey === undefined) {
+    throw new UnexpectedResponseError(
+      'Perps credentials were not returned by the API.',
+    );
+  }
+  if (proxyKey.expiresAt <= Date.now()) {
+    throw new UnexpectedResponseError('Perps credentials are expired.');
+  }
+
+  return {
+    ...credentials,
+    expiresAt: proxyKey.expiresAt,
+  };
+}
+
+type PerpsCreateProxySignatureRequest = {
+  expiresAt: number;
+  proxy: PerpsCredentials['proxy'];
+  salt: number;
+  timestamp: number;
+};
+
+async function signPerpsCreateProxy(
+  client: BaseSecureClient,
+  request: PerpsCreateProxySignatureRequest,
+) {
+  try {
+    return await client.signer.signTypedData(
+      createPerpsCreateProxyTypedDataPayload({
+        chainId: client.environment.chainId,
+        ...request,
+      }),
+    );
+  } catch (error) {
+    throw SigningError.fromError(
+      error,
+      'Could not sign the Perps proxy credentials request',
+    );
+  }
+}
+
+type CreatePerpsCreateProxyTypedDataPayloadRequest =
+  PerpsCreateProxySignatureRequest & {
+    chainId: number;
+  };
+
+function createPerpsCreateProxyTypedDataPayload(
+  request: CreatePerpsCreateProxyTypedDataPayloadRequest,
+): TypedDataPayload {
+  return {
+    domain: {
+      chainId: request.chainId,
+      name: 'Polymarket',
+      version: '1',
+    },
+    message: {
+      addr: request.proxy,
+      exp: request.expiresAt,
+      salt: request.salt,
+      ts: request.timestamp,
+    },
+    primaryType: 'CreateProxy',
+    types: {
+      CreateProxy: [
+        { name: 'addr', type: 'address' },
+        { name: 'exp', type: 'uint64' },
+        { name: 'salt', type: 'uint64' },
+        { name: 'ts', type: 'uint64' },
+      ],
+    },
+  };
+}
+
+function createPerpsProxyPrivateKey(): PrivateKey {
+  const privateKey = Secp256k1.randomPrivateKey();
+  invariant(isPrivateKey(privateKey), 'Generated invalid Perps proxy key.');
+  return privateKey;
+}
+
+function addressFromPrivateKey(privateKey: PrivateKey) {
+  return expectEvmAddress(
+    Address.fromPublicKey(Secp256k1.getPublicKey({ privateKey })),
+  );
+}
+
+function assertPerpsCredentialsKeyMatchesProxy(
+  credentials: PerpsCredentials,
+): void {
+  const privateKeyAddress = addressFromPrivateKey(credentials.privateKey);
+  if (!isSameEvmAddress(privateKeyAddress, credentials.proxy)) {
+    throw new UserInputError(
+      'Perps credentials private key does not match the proxy address.',
+    );
+  }
+}
+
+function perpsCredentialHeaders(
+  credentials: Pick<PerpsCredentials, 'proxy' | 'secret'>,
+): HeadersInit {
+  return {
+    'POLYMARKET-PROXY': credentials.proxy,
+    'POLYMARKET-SECRET': credentials.secret,
+  };
+}
+
+function randomUint32(): number {
+  const [value] = crypto.getRandomValues(new Uint32Array(1));
+  invariant(
+    value !== undefined,
+    'Expected crypto.getRandomValues to return a salt.',
+  );
+  return value;
 }
