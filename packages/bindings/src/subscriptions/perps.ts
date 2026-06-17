@@ -1,8 +1,17 @@
 import { z } from 'zod';
 import {
+  PerpsBalanceSchema,
+  RawPerpsAccountFundingPaymentEntrySchema,
+  RawPerpsPortfolioSchema,
+} from '../perps/account';
+import {
   PerpsInstrumentIdSchema,
   type PerpsKlineInterval,
 } from '../perps/common';
+import {
+  RawPerpsDepositUpdateSchema,
+  RawPerpsWithdrawalUpdateSchema,
+} from '../perps/funds';
 import {
   PerpsCandleSchema,
   RawPerpsBboDataSchema,
@@ -11,6 +20,10 @@ import {
   RawPerpsStatisticDataSchema,
   RawPerpsTickerEntrySchema,
 } from '../perps/market';
+import {
+  RawPerpsAccountFillUpdateSchema,
+  RawPerpsOrderUpdateSchema,
+} from '../perps/orders';
 import { EpochMillisecondsSchema } from '../shared';
 
 const SequenceSchema = z.number().int().nonnegative();
@@ -23,6 +36,15 @@ const StatisticsChannelSchema = z.string().regex(/^statistics::(all|\d+)$/);
 const CandlesChannelSchema = z
   .string()
   .regex(/^klines::\d+::(1m|5m|15m|1h|4h|1d|1w)$/);
+const PerpsSessionChannelSchema = z.enum([
+  'balances',
+  'portfolio',
+  'orders',
+  'fills',
+  'funding',
+  'deposits',
+  'withdrawals',
+]);
 
 const PerpsUpdateEnvelopeSchema = z.object({
   ts: EpochMillisecondsSchema,
@@ -130,6 +152,119 @@ export const PerpsMarketDataEventSchema = z.union([
 ]);
 
 export type PerpsMarketDataEvent = z.infer<typeof PerpsMarketDataEventSchema>;
+
+const PerpsSessionUpdateEnvelopeSchema = PerpsUpdateEnvelopeSchema.extend({
+  ch: PerpsSessionChannelSchema,
+});
+
+function perpsSessionEventSchema<
+  TType extends string,
+  TChannel extends z.infer<typeof PerpsSessionChannelSchema>,
+  TPayload extends z.ZodType,
+>(type: TType, channel: TChannel, payload: TPayload) {
+  return PerpsSessionUpdateEnvelopeSchema.extend({
+    ch: z.literal(channel),
+    data: payload,
+  }).transform((message) => {
+    const event = message as {
+      ch: TChannel;
+      data: z.output<TPayload>;
+      sq: number;
+      ts: number;
+    };
+
+    return {
+      type,
+      channel: event.ch,
+      timestamp: event.ts,
+      sequence: event.sq,
+      payload: event.data,
+    };
+  });
+}
+
+export const PerpsBalanceUpdateEventSchema = perpsSessionEventSchema(
+  'balance',
+  'balances',
+  PerpsBalanceSchema,
+);
+export type PerpsBalanceUpdateEvent = z.infer<
+  typeof PerpsBalanceUpdateEventSchema
+>;
+
+export const PerpsPortfolioUpdateEventSchema = perpsSessionEventSchema(
+  'portfolio',
+  'portfolio',
+  RawPerpsPortfolioSchema,
+);
+export type PerpsPortfolioUpdateEvent = z.infer<
+  typeof PerpsPortfolioUpdateEventSchema
+>;
+
+export const PerpsOrderUpdateEventSchema = perpsSessionEventSchema(
+  'order',
+  'orders',
+  RawPerpsOrderUpdateSchema,
+);
+export type PerpsOrderUpdateEvent = z.infer<typeof PerpsOrderUpdateEventSchema>;
+
+export const PerpsFillUpdateEventSchema = perpsSessionEventSchema(
+  'fill',
+  'fills',
+  RawPerpsAccountFillUpdateSchema,
+);
+export type PerpsFillUpdateEvent = z.infer<typeof PerpsFillUpdateEventSchema>;
+
+export const PerpsFundingUpdateEventSchema = perpsSessionEventSchema(
+  'funding',
+  'funding',
+  RawPerpsAccountFundingPaymentEntrySchema,
+);
+export type PerpsFundingUpdateEvent = z.infer<
+  typeof PerpsFundingUpdateEventSchema
+>;
+
+export const PerpsDepositUpdateEventSchema = perpsSessionEventSchema(
+  'deposit',
+  'deposits',
+  RawPerpsDepositUpdateSchema,
+);
+export type PerpsDepositUpdateEvent = z.infer<
+  typeof PerpsDepositUpdateEventSchema
+>;
+
+export const PerpsWithdrawalUpdateEventSchema = perpsSessionEventSchema(
+  'withdrawal',
+  'withdrawals',
+  RawPerpsWithdrawalUpdateSchema,
+);
+export type PerpsWithdrawalUpdateEvent = z.infer<
+  typeof PerpsWithdrawalUpdateEventSchema
+>;
+
+export const PerpsSessionUpdateEventSchema = z.union([
+  PerpsBalanceUpdateEventSchema,
+  PerpsPortfolioUpdateEventSchema,
+  PerpsOrderUpdateEventSchema,
+  PerpsFillUpdateEventSchema,
+  PerpsFundingUpdateEventSchema,
+  PerpsDepositUpdateEventSchema,
+  PerpsWithdrawalUpdateEventSchema,
+]);
+
+export type PerpsSessionUpdateEvent = z.infer<
+  typeof PerpsSessionUpdateEventSchema
+>;
+
+export type PerpsResyncEvent = {
+  type: 'resync';
+  reason: 'reconnect' | 'sequence_gap';
+  channel?: string;
+  previousSequence?: number;
+  sequence?: number;
+};
+
+export type PerpsSessionEvent = PerpsSessionUpdateEvent | PerpsResyncEvent;
 
 function instrumentIdFromChannel(channel: string) {
   const [, rawInstrumentId] = channel.split('::');

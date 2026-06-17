@@ -10,15 +10,15 @@ import {
   it,
   vi,
 } from 'vitest';
-import { production } from '../environments';
-import { PerpsMarketDataWebSocketManager } from './perps';
-import { captureConnection, collectFrames, waitForNextEvent } from './testing';
+import { production } from '../../environments';
+import { captureConnection, collectFrames, waitForNextEvent } from '../testing';
+import { PerpsSubscriptionManager } from './subscription';
 
-const perpsMarketData = ws.link(production.perpsWs);
+const perpsSubscriptions = ws.link(production.perpsWs);
 const server = setupServer();
-const manager = new PerpsMarketDataWebSocketManager(production.perpsWs);
+const manager = new PerpsSubscriptionManager(production.perpsWs);
 
-describe('PerpsMarketDataWebSocketManager', () => {
+describe('PerpsSubscriptionManager', () => {
   beforeAll(() => {
     server.listen({ onUnhandledRequest: 'bypass' });
   });
@@ -35,7 +35,7 @@ describe('PerpsMarketDataWebSocketManager', () => {
   });
 
   it('adds and removes upstream channels on the shared socket', async () => {
-    const frames = collectFrames(server, perpsMarketData);
+    const frames = collectFrames(server, perpsSubscriptions);
 
     const tradesHandle = await manager.subscribe({
       instrumentId: 1,
@@ -62,7 +62,7 @@ describe('PerpsMarketDataWebSocketManager', () => {
   });
 
   it('replaces broad ticker channels with specific channels when needed', async () => {
-    const frames = collectFrames(server, perpsMarketData);
+    const frames = collectFrames(server, perpsSubscriptions);
 
     await manager.subscribe({ instrumentId: 1, topic: 'perps.tickers' });
     const allTickersHandle = await manager.subscribe({
@@ -86,7 +86,7 @@ describe('PerpsMarketDataWebSocketManager', () => {
   });
 
   it('normalizes and fans out matching book updates', async () => {
-    const connection = captureConnection(server, perpsMarketData);
+    const connection = captureConnection(server, perpsSubscriptions);
 
     const handle = await manager.subscribe({
       instrumentId: 1,
@@ -127,7 +127,7 @@ describe('PerpsMarketDataWebSocketManager', () => {
     let firstClient: { close: () => void } | undefined;
 
     server.use(
-      perpsMarketData.addEventListener('connection', ({ client }) => {
+      perpsSubscriptions.addEventListener('connection', ({ client }) => {
         const frames: unknown[] = [];
         connectionFrames.push(frames);
         if (connectionFrames.length === 1) firstClient = client;

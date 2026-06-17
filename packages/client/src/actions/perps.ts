@@ -23,7 +23,9 @@ import {
   RawPerpsCredentialsResponseSchema,
 } from '@polymarket/bindings/perps';
 import {
+  type EvmAddress,
   expectEvmAddress,
+  expectPrivateKey,
   invariant,
   isPrivateKey,
   isSameEvmAddress,
@@ -45,6 +47,13 @@ import {
 import { parseUserInput } from '../input';
 import { validateWith } from '../response';
 import type { TypedDataPayload } from '../types';
+import type { PerpsSession } from '../websockets/perps/session';
+
+export type {
+  PerpsSession,
+  PerpsSessionEvent,
+} from '../websockets/perps/session';
+
 import { snakeCase, toSearchParams } from './params';
 
 type PerpsPublicReadError =
@@ -425,14 +434,6 @@ export type OpenPerpsSessionRequest =
   | CreatePerpsSessionRequest
   | ResumePerpsSessionRequest;
 
-export type PerpsSession = {
-  /** Credentials for resuming this Perps session later. */
-  readonly credentials: PerpsCredentials;
-
-  /** Closes the session. Private streams are added in a later Perps session action. */
-  close(): Promise<void>;
-};
-
 export type OpenPerpsSessionError =
   | RateLimitError
   | RequestRejectedError
@@ -468,11 +469,7 @@ export async function openPerpsSession(
     'credentials' in params
       ? await resumePerpsCredentials(client, params.credentials)
       : await createPerpsCredentials(client, params);
-
-  return {
-    credentials,
-    close: () => Promise.resolve(),
-  };
+  return client.webSockets.perpsSession.connect(credentials);
 }
 
 async function createPerpsCredentials(
@@ -568,7 +565,7 @@ async function validatePerpsCredentials(
 
 type PerpsCreateProxySignatureRequest = {
   expiresAt: number;
-  proxy: PerpsCredentials['proxy'];
+  proxy: EvmAddress;
   salt: number;
   timestamp: number;
 };
@@ -625,9 +622,10 @@ function createPerpsCreateProxyTypedDataPayload(
 }
 
 function createPerpsProxyPrivateKey(): PrivateKey {
-  const privateKey = Secp256k1.randomPrivateKey();
-  invariant(isPrivateKey(privateKey), 'Generated invalid Perps proxy key.');
-  return privateKey;
+  return expectPrivateKey(
+    Secp256k1.randomPrivateKey(),
+    'Generated invalid Perps proxy key.',
+  );
 }
 
 function addressFromPrivateKey(privateKey: PrivateKey) {

@@ -6,36 +6,36 @@ import { invariant } from '@polymarket/types';
 import type {
   PerpsMarketDataSubscription,
   SubscriptionHandle,
-} from '../actions/subscriptions';
-import { createSubscriptionHandle } from './handle';
-import { PerpsWebSocketHeartbeat } from './heartbeat';
+} from '../../actions/subscriptions';
+import { createSubscriptionHandle } from '../handle';
+import { PerpsWebSocketHeartbeat } from '../heartbeat';
 import {
   ReconnectScheduler,
   WebSocketConnection,
   type WebSocketConnectionResult,
-} from './lifecycle';
+} from '../lifecycle';
 import {
   SubscriptionRegistry,
   type SubscriptionRegistryChange,
   type SubscriptionRegistryEntry,
-} from './registry';
-import type { WebSocketSubscriptionManager } from './types';
+} from '../registry';
+import type { WebSocketSubscriptionManager } from '../types';
 
-type PerpsMarketDataSubscriptionEntry = SubscriptionRegistryEntry<
+type PerpsSubscriptionEntry = SubscriptionRegistryEntry<
   PerpsMarketDataSubscription,
   PerpsMarketDataEvent
 >;
 
-type PerpsMarketDataServerState = Set<string>;
+type PerpsSubscriptionServerState = Set<string>;
 
 /**
- * Perps public market-data WebSocket manager.
+ * Perps public subscription WebSocket manager.
  *
  * The Perps server tracks subscriptions by channel string. This manager keeps
  * SDK-level topic specs separate from upstream channel names and resubscribes
  * active channels after reconnects.
  */
-export class PerpsMarketDataWebSocketManager
+export class PerpsSubscriptionManager
   implements
     WebSocketSubscriptionManager<
       PerpsMarketDataSubscription,
@@ -52,8 +52,8 @@ export class PerpsMarketDataWebSocketManager
   readonly #subscriptions = new SubscriptionRegistry<
     PerpsMarketDataSubscription,
     PerpsMarketDataEvent,
-    PerpsMarketDataServerState
-  >({ deriveServerState: derivePerpsMarketDataServerState });
+    PerpsSubscriptionServerState
+  >({ deriveServerState: derivePerpsSubscriptionServerState });
 
   constructor(url: string) {
     this.#url = url;
@@ -72,8 +72,8 @@ export class PerpsMarketDataWebSocketManager
   }
 
   async #registerSubscriber(
-    entry: PerpsMarketDataSubscriptionEntry,
-    change: SubscriptionRegistryChange<PerpsMarketDataServerState>,
+    entry: PerpsSubscriptionEntry,
+    change: SubscriptionRegistryChange<PerpsSubscriptionServerState>,
   ): Promise<void> {
     try {
       const connection = await this.#connect();
@@ -89,9 +89,7 @@ export class PerpsMarketDataWebSocketManager
     }
   }
 
-  async #closeSubscriber(
-    entry: PerpsMarketDataSubscriptionEntry,
-  ): Promise<void> {
+  async #closeSubscriber(entry: PerpsSubscriptionEntry): Promise<void> {
     const { before, after } = this.#subscriptions.remove(entry);
     this.#sendSubscribeFrame(channelsAdded(before, after));
     this.#sendUnsubscribeFrame(channelsRemoved(before, after));
@@ -174,9 +172,9 @@ export class PerpsMarketDataWebSocketManager
   }
 }
 
-function derivePerpsMarketDataServerState(
-  entries: Iterable<PerpsMarketDataSubscriptionEntry>,
-): PerpsMarketDataServerState {
+function derivePerpsSubscriptionServerState(
+  entries: Iterable<PerpsSubscriptionEntry>,
+): PerpsSubscriptionServerState {
   const channels = new Set<string>();
   const tickerInstrumentIds = new Set<number>();
   const statisticInstrumentIds = new Set<number>();

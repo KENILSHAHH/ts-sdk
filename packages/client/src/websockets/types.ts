@@ -7,7 +7,6 @@ import type {
   SportsEvent,
   UserEvent,
 } from '@polymarket/bindings/subscriptions';
-import type { RfqSession } from '../actions/rfq';
 import type {
   CommentsSubscription,
   CryptoPricesSubscription,
@@ -18,6 +17,8 @@ import type {
   SubscriptionHandle,
   UserSubscription,
 } from '../actions/subscriptions';
+import type { PerpsSessionManager } from './perps/manager';
+import type { RfqQuoterWebSocketManager } from './rfq';
 
 /**
  * An authenticated bidirectional WebSocket session.
@@ -60,12 +61,6 @@ export interface WebSocketSubscriptionManager<TSpec, TEvent> {
   close(): Promise<void>;
 }
 
-export interface WebSocketSessionManager<TSession> {
-  connect(): Promise<TSession>;
-
-  close(): Promise<void>;
-}
-
 // Surfaces available on the public client.
 export type PublicWebSocketManagers = {
   readonly clobMarket: WebSocketSubscriptionManager<
@@ -80,7 +75,7 @@ export type PublicWebSocketManagers = {
     CommentsSubscription | CryptoPricesSubscription | EquityPricesSubscription,
     CommentsEvent | CryptoPricesEvent | EquityPricesEvent
   >;
-  readonly perpsMarketData: WebSocketSubscriptionManager<
+  readonly perpsSubscriptions: WebSocketSubscriptionManager<
     PerpsMarketDataSubscription,
     PerpsMarketDataEvent
   >;
@@ -89,5 +84,6 @@ export type PublicWebSocketManagers = {
 // Secure client additionally exposes the user surface.
 export type SecureWebSocketManagers = PublicWebSocketManagers & {
   readonly clobUser: WebSocketSubscriptionManager<UserSubscription, UserEvent>;
-  readonly rfqQuoter: WebSocketSessionManager<RfqSession>;
+  readonly perpsSession: PerpsSessionManager;
+  readonly rfqQuoter: RfqQuoterWebSocketManager;
 };

@@ -6,6 +6,8 @@ import {
   type EvmSignature,
   type HexString,
   isHexString,
+  isPrivateKey,
+  type PrivateKey,
   type TxHash,
 } from './hex';
 
@@ -40,6 +42,17 @@ export function expectHexString(
   message = 'Expected a hex string',
 ): HexString {
   invariant(isHexString(value), message);
+  return value;
+}
+
+/**
+ * Refines a string to a private key or throws when the value is invalid.
+ */
+export function expectPrivateKey(
+  value: unknown,
+  message = 'Expected a private key',
+): PrivateKey {
+  invariant(isPrivateKey(value), message);
   return value;
 }
 

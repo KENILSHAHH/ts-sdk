@@ -284,7 +284,7 @@ function subscribeOne(
     case 'perps.candles':
     case 'perps.tickers':
     case 'perps.statistics':
-      return client.webSockets.perpsMarketData.subscribe(spec);
+      return client.webSockets.perpsSubscriptions.subscribe(spec);
     case 'user':
       invariant(
         client.isSecureClient(),

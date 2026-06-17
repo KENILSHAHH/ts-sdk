@@ -33,6 +33,8 @@ import type {
   BaseSecureClient,
 } from '../clients';
 
+export type { PerpsSession, PerpsSessionEvent } from '../actions';
+
 export type PublicPerpsActions = {
   /**
    * Fetches Perps instruments.

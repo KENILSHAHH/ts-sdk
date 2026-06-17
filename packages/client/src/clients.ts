@@ -54,7 +54,8 @@ import {
 import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
-  PerpsMarketDataWebSocketManager,
+  PerpsSessionManager,
+  PerpsSubscriptionManager,
   type PublicWebSocketManagers,
   RfqQuoterWebSocketManager,
   RtdsWebSocketManager,
@@ -311,7 +312,7 @@ class BasePublicClient<
           url: config.environment.sportsWs,
         }),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
-        perpsMarketData: new PerpsMarketDataWebSocketManager(
+        perpsSubscriptions: new PerpsSubscriptionManager(
           config.environment.perpsWs,
         ),
       },
@@ -363,7 +364,7 @@ class BasePublicClient<
       this.webSockets.clobMarket.close(),
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
-      this.webSockets.perpsMarketData.close(),
+      this.webSockets.perpsSubscriptions.close(),
     ]).then(() => undefined);
   }
 
@@ -550,9 +551,10 @@ class BaseSecureClient<
           url: config.environment.sportsWs,
         }),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
-        perpsMarketData: new PerpsMarketDataWebSocketManager(
+        perpsSubscriptions: new PerpsSubscriptionManager(
           config.environment.perpsWs,
         ),
+        perpsSession: new PerpsSessionManager(config.environment.perpsWs),
       },
     });
   }
@@ -620,7 +622,8 @@ class BaseSecureClient<
       this.webSockets.clobMarket.close(),
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
-      this.webSockets.perpsMarketData.close(),
+      this.webSockets.perpsSubscriptions.close(),
+      this.webSockets.perpsSession.close(),
       this.webSockets.clobUser.close(),
       this.webSockets.rfqQuoter.close(),
     ]).then(() => undefined);
