@@ -11,7 +11,6 @@ import type {
   RfqRequestedSize,
   RfqRequestorPublicId,
   RfqSide,
-  RfqTrade,
 } from '@polymarket/bindings/rfq';
 import { PolymarketError } from '@polymarket/types';
 import type { BaseSecureClient } from '../clients';
@@ -39,7 +38,6 @@ export type {
   RfqQuoteRequest,
   RfqRequestedSize,
   RfqRequestorPublicId,
-  RfqTrade,
 };
 
 /**
@@ -286,18 +284,12 @@ export interface RfqConfirmationRequestEvent extends RfqConfirmationRequest {
 export interface RfqExecutionUpdateEvent extends RfqExecutionUpdate {}
 
 /**
- * Confirmed combo trade broadcast visible to all authenticated quoters.
- */
-export interface RfqTradeEvent extends RfqTrade {}
-
-/**
  * Event emitted by an RFQ session.
  */
 export type RfqEvent =
   | RfqQuoteRequestEvent
   | RfqConfirmationRequestEvent
-  | RfqExecutionUpdateEvent
-  | RfqTradeEvent;
+  | RfqExecutionUpdateEvent;
 
 export interface RfqSession extends AsyncIterable<RfqEvent> {
   /**
