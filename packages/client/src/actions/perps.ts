@@ -1,4 +1,9 @@
 import {
+  type PaginationCursor,
+  PaginationCursorSchema,
+  toPaginationCursor,
+} from '@polymarket/bindings';
+import {
   FetchPerpsCandlesResponseSchema,
   FetchPerpsFeesResponseSchema,
   FetchPerpsFundingHistoryResponseSchema,
@@ -15,9 +20,11 @@ import {
   PerpsInstrumentCategorySchema,
   PerpsInstrumentIdSchema,
   PerpsInstrumentTypeSchema,
+  type PerpsKlineInterval,
   PerpsKlineIntervalSchema,
   type PerpsPublicTrade,
   type PerpsTicker,
+  PerpsTradeIdSchema,
   RawPerpsBookSchema,
   RawPerpsCreateProxyResponseSchema,
   RawPerpsCredentialsResponseSchema,
@@ -45,6 +52,7 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
+import { type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
 import type { TypedDataPayload } from '../types';
 import type { PerpsSession } from '../websockets/perps/session';
@@ -80,6 +88,20 @@ const PerpsPublicReadError = makeErrorGuard(
 );
 
 const TimestampInputSchema = z.number().int().nonnegative();
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+type PerpsCandlesParams = {
+  instrumentId: z.output<typeof PerpsInstrumentIdSchema>;
+  interval: PerpsKlineInterval;
+  startTimestamp: number;
+  endTimestamp: number;
+};
+
+type PerpsTimeRangeParams = {
+  instrumentId: z.output<typeof PerpsInstrumentIdSchema>;
+  startTimestamp: number;
+  endTimestamp: number;
+};
 
 const FetchPerpsInstrumentsRequestSchema = z
   .object({
@@ -247,128 +269,253 @@ export async function fetchPerpsBook(
   );
 }
 
-const FetchPerpsCandlesRequestSchema = z
-  .object({
-    instrumentId: PerpsInstrumentIdSchema,
-    interval: PerpsKlineIntervalSchema,
-    start: TimestampInputSchema.optional(),
-    end: TimestampInputSchema.optional(),
-  })
-  .transform(({ end, start, ...request }) => ({
-    ...request,
-    endTimestamp: end,
-    startTimestamp: start ?? Date.now() - 24 * 60 * 60 * 1000,
-  }));
+const PerpsCandlesRequestBaseSchema = z.object({
+  instrumentId: PerpsInstrumentIdSchema,
+  interval: PerpsKlineIntervalSchema,
+  start: TimestampInputSchema.optional(),
+  end: TimestampInputSchema.optional(),
+});
 
-export type FetchPerpsCandlesRequest = z.input<
-  typeof FetchPerpsCandlesRequestSchema
+const ListPerpsCandlesRequestSchema = z.union([
+  PerpsCandlesRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsCandlesParams(request),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+export type ListPerpsCandlesRequest = z.input<
+  typeof ListPerpsCandlesRequestSchema
 >;
 
-export type FetchPerpsCandlesError = PerpsPublicReadError;
-export const FetchPerpsCandlesError = PerpsPublicReadError;
+export type ListPerpsCandlesError = PerpsPublicReadError;
+export const ListPerpsCandlesError = PerpsPublicReadError;
 
 /**
- * Fetches Perps candles for an instrument.
+ * Lists Perps candles for an instrument with SDK-owned pagination.
  *
  * @remarks
  * Defaults to the past 24 hours when `start` is omitted.
  *
- * @throws {@link FetchPerpsCandlesError}
+ * @throws {@link ListPerpsCandlesError}
  * Thrown on failure.
  */
-export async function fetchPerpsCandles(
+export function listPerpsCandles(
   client: BaseClient,
-  request: FetchPerpsCandlesRequest,
-): Promise<PerpsCandle[]> {
-  const params = parseUserInput(request, FetchPerpsCandlesRequestSchema);
+  request: ListPerpsCandlesRequest,
+): Paginated<PerpsCandle[]> {
+  const { cursor: initialCursor, params } = parseUserInput(
+    request,
+    ListPerpsCandlesRequestSchema,
+  );
 
-  const response = await unwrap(
-    client.perps
+  return paginate((cursor) => {
+    const state =
+      cursor === undefined
+        ? createInitialPerpsCandlesCursor(params)
+        : decodePerpsCandlesCursor(cursor);
+
+    return client.perps
       .get('/v1/info/klines', {
-        params: toSearchParams(params, snakeCase()),
+        params: toSearchParams(
+          {
+            endTimestamp: state.endTimestamp,
+            instrumentId: state.instrumentId,
+            interval: state.interval,
+            startTimestamp: state.startTimestamp,
+          },
+          snakeCase(),
+        ),
       })
-      .andThen(validateWith(FetchPerpsCandlesResponseSchema)),
-  );
+      .andThen(validateWith(FetchPerpsCandlesResponseSchema))
+      .map((response) => {
+        const last = response.data.at(-1);
+        const hasMore = response.more && last !== undefined;
 
-  return response.data;
+        return {
+          items: response.data,
+          hasMore,
+          nextCursor: hasMore
+            ? encodePerpsCursor({
+                ...state,
+                startTimestamp:
+                  last.timestamp +
+                  perpsKlineIntervalMilliseconds(state.interval),
+              })
+            : undefined,
+        };
+      });
+  }, initialCursor);
 }
 
-const TimeRangePerpsRequestSchema = z
-  .object({
-    instrumentId: PerpsInstrumentIdSchema,
-    start: TimestampInputSchema.optional(),
-    end: TimestampInputSchema.optional(),
-  })
-  .transform(({ end, start, ...request }) => ({
-    ...request,
-    endTimestamp: end,
-    startTimestamp: start,
-  }));
+const TimeRangePerpsRequestBaseSchema = z.object({
+  instrumentId: PerpsInstrumentIdSchema,
+  start: TimestampInputSchema.optional(),
+  end: TimestampInputSchema.optional(),
+});
 
-export type FetchPerpsFundingHistoryRequest = z.input<
-  typeof TimeRangePerpsRequestSchema
+const ListPerpsFundingHistoryRequestSchema = z.union([
+  TimeRangePerpsRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsTimeRangeParams(request),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+export type ListPerpsFundingHistoryRequest = z.input<
+  typeof ListPerpsFundingHistoryRequestSchema
 >;
 
-export type FetchPerpsFundingHistoryError = PerpsPublicReadError;
-export const FetchPerpsFundingHistoryError = PerpsPublicReadError;
+export type ListPerpsFundingHistoryError = PerpsPublicReadError;
+export const ListPerpsFundingHistoryError = PerpsPublicReadError;
 
 /**
- * Fetches Perps funding-rate history for an instrument.
+ * Lists Perps funding-rate history for an instrument with SDK-owned pagination.
  *
  * @remarks
- * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ * Defaults to the past 24 hours when `start` is omitted.
  *
- * @throws {@link FetchPerpsFundingHistoryError}
+ * @throws {@link ListPerpsFundingHistoryError}
  * Thrown on failure.
  */
-export async function fetchPerpsFundingHistory(
+export function listPerpsFundingHistory(
   client: BaseClient,
-  request: FetchPerpsFundingHistoryRequest,
-): Promise<PerpsFundingRate[]> {
-  const params = parseUserInput(request, TimeRangePerpsRequestSchema);
+  request: ListPerpsFundingHistoryRequest,
+): Paginated<PerpsFundingRate[]> {
+  const { cursor: initialCursor, params } = parseUserInput(
+    request,
+    ListPerpsFundingHistoryRequestSchema,
+  );
 
-  const response = await unwrap(
-    client.perps
+  return paginate((cursor) => {
+    const state =
+      cursor === undefined
+        ? createInitialPerpsFundingCursor(params)
+        : decodePerpsFundingCursor(cursor);
+
+    return client.perps
       .get('/v1/info/funding', {
-        params: toSearchParams(params, snakeCase()),
+        params: toSearchParams(
+          {
+            endTimestamp: state.endTimestamp,
+            instrumentId: state.instrumentId,
+            startTimestamp: state.startTimestamp,
+          },
+          snakeCase(),
+        ),
       })
-      .andThen(validateWith(FetchPerpsFundingHistoryResponseSchema)),
-  );
+      .andThen(validateWith(FetchPerpsFundingHistoryResponseSchema))
+      .map((response) => {
+        const last = response.data.at(-1);
+        const hasMore =
+          response.more &&
+          last !== undefined &&
+          last.timestamp > state.startTimestamp;
 
-  return response.data;
+        return {
+          items: response.data,
+          hasMore,
+          nextCursor: hasMore
+            ? encodePerpsCursor({
+                ...state,
+                endTimestamp: last.timestamp - 1,
+              })
+            : undefined,
+        };
+      });
+  }, initialCursor);
 }
 
-export type FetchPerpsTradesRequest = z.input<
-  typeof TimeRangePerpsRequestSchema
+const ListPerpsTradesRequestSchema = z.union([
+  TimeRangePerpsRequestBaseSchema.extend({
+    cursor: PaginationCursorSchema.optional(),
+  }).transform(({ cursor, ...request }) => ({
+    cursor,
+    params: toPerpsTimeRangeParams(request),
+  })),
+  z.object({ cursor: PaginationCursorSchema }).transform(({ cursor }) => ({
+    cursor,
+    params: undefined,
+  })),
+]);
+
+export type ListPerpsTradesRequest = z.input<
+  typeof ListPerpsTradesRequestSchema
 >;
 
-export type FetchPerpsTradesError = PerpsPublicReadError;
-export const FetchPerpsTradesError = PerpsPublicReadError;
+export type ListPerpsTradesError = PerpsPublicReadError;
+export const ListPerpsTradesError = PerpsPublicReadError;
 
 /**
- * Fetches recent Perps trades for an instrument.
+ * Lists recent Perps trades for an instrument with SDK-owned pagination.
  *
  * @remarks
- * This is a low-level function. Most SDK consumers should prefer the client instance API.
+ * Defaults to the past 24 hours when `start` is omitted.
  *
- * @throws {@link FetchPerpsTradesError}
+ * @throws {@link ListPerpsTradesError}
  * Thrown on failure.
  */
-export async function fetchPerpsTrades(
+export function listPerpsTrades(
   client: BaseClient,
-  request: FetchPerpsTradesRequest,
-): Promise<PerpsPublicTrade[]> {
-  const params = parseUserInput(request, TimeRangePerpsRequestSchema);
-
-  const response = await unwrap(
-    client.perps
-      .get('/v1/info/trades', {
-        params: toSearchParams(params, snakeCase()),
-      })
-      .andThen(validateWith(FetchPerpsTradesResponseSchema)),
+  request: ListPerpsTradesRequest,
+): Paginated<PerpsPublicTrade[]> {
+  const { cursor: initialCursor, params } = parseUserInput(
+    request,
+    ListPerpsTradesRequestSchema,
   );
 
-  return response.data;
+  return paginate((cursor) => {
+    const state =
+      cursor === undefined
+        ? createInitialPerpsTradesCursor(params)
+        : decodePerpsTradesCursor(cursor);
+    const seenTradeIds = new Set(state.seenTradeIds);
+
+    return client.perps
+      .get('/v1/info/trades', {
+        params: toSearchParams(
+          {
+            endTimestamp: state.endTimestamp,
+            instrumentId: state.instrumentId,
+            startTimestamp: state.startTimestamp,
+          },
+          snakeCase(),
+        ),
+      })
+      .andThen(validateWith(FetchPerpsTradesResponseSchema))
+      .map((response) => {
+        const items = response.data.filter(
+          (trade) => !seenTradeIds.has(trade.tradeId),
+        );
+        const last = items.at(-1);
+        const hasMore =
+          response.more &&
+          last !== undefined &&
+          last.timestamp > state.startTimestamp;
+
+        return {
+          items,
+          hasMore,
+          nextCursor: hasMore
+            ? encodePerpsCursor({
+                ...state,
+                endTimestamp: last.timestamp,
+                seenTradeIds: nextPerpsTradeCursorSeenIds(state, items, last),
+              })
+            : undefined,
+        };
+      });
+  }, initialCursor);
 }
 
 export type FetchPerpsFeesError =
@@ -402,6 +549,153 @@ export async function fetchPerpsFees(
   );
 
   return response.feeSchedule;
+}
+
+const PerpsCandlesCursorStateSchema = z.object({
+  kind: z.literal('perpsCandles'),
+  instrumentId: PerpsInstrumentIdSchema,
+  interval: PerpsKlineIntervalSchema,
+  startTimestamp: TimestampInputSchema,
+  endTimestamp: TimestampInputSchema,
+});
+
+const PerpsFundingCursorStateSchema = z.object({
+  kind: z.literal('perpsFundingHistory'),
+  instrumentId: PerpsInstrumentIdSchema,
+  startTimestamp: TimestampInputSchema,
+  endTimestamp: TimestampInputSchema,
+});
+
+const PerpsTradesCursorStateSchema = z.object({
+  kind: z.literal('perpsTrades'),
+  instrumentId: PerpsInstrumentIdSchema,
+  startTimestamp: TimestampInputSchema,
+  endTimestamp: TimestampInputSchema,
+  seenTradeIds: z.array(PerpsTradeIdSchema),
+});
+
+type PerpsCandlesCursorState = z.infer<typeof PerpsCandlesCursorStateSchema>;
+type PerpsFundingCursorState = z.infer<typeof PerpsFundingCursorStateSchema>;
+type PerpsTradesCursorState = z.infer<typeof PerpsTradesCursorStateSchema>;
+
+function toPerpsCandlesParams(
+  request: z.output<typeof PerpsCandlesRequestBaseSchema>,
+): PerpsCandlesParams {
+  const now = Date.now();
+  return {
+    endTimestamp: request.end ?? now,
+    instrumentId: request.instrumentId,
+    interval: request.interval,
+    startTimestamp: request.start ?? now - ONE_DAY_MS,
+  };
+}
+
+function toPerpsTimeRangeParams(
+  request: z.output<typeof TimeRangePerpsRequestBaseSchema>,
+): PerpsTimeRangeParams {
+  const now = Date.now();
+  return {
+    endTimestamp: request.end ?? now,
+    instrumentId: request.instrumentId,
+    startTimestamp: request.start ?? now - ONE_DAY_MS,
+  };
+}
+
+function createInitialPerpsCandlesCursor(
+  params: PerpsCandlesParams | undefined,
+): PerpsCandlesCursorState {
+  invariant(params !== undefined, 'Expected initial Perps candles params.');
+  return { kind: 'perpsCandles', ...params };
+}
+
+function createInitialPerpsFundingCursor(
+  params: PerpsTimeRangeParams | undefined,
+): PerpsFundingCursorState {
+  invariant(params !== undefined, 'Expected initial Perps funding params.');
+  return { kind: 'perpsFundingHistory', ...params };
+}
+
+function createInitialPerpsTradesCursor(
+  params: PerpsTimeRangeParams | undefined,
+): PerpsTradesCursorState {
+  invariant(params !== undefined, 'Expected initial Perps trades params.');
+  return { kind: 'perpsTrades', seenTradeIds: [], ...params };
+}
+
+function decodePerpsCandlesCursor(
+  cursor: PaginationCursor,
+): PerpsCandlesCursorState {
+  return decodePerpsCursor(cursor, PerpsCandlesCursorStateSchema);
+}
+
+function decodePerpsFundingCursor(
+  cursor: PaginationCursor,
+): PerpsFundingCursorState {
+  return decodePerpsCursor(cursor, PerpsFundingCursorStateSchema);
+}
+
+function decodePerpsTradesCursor(
+  cursor: PaginationCursor,
+): PerpsTradesCursorState {
+  return decodePerpsCursor(cursor, PerpsTradesCursorStateSchema);
+}
+
+function decodePerpsCursor<T>(
+  cursor: PaginationCursor,
+  schema: z.ZodType<T>,
+): T {
+  try {
+    return schema.parse(JSON.parse(atob(cursor)));
+  } catch (error) {
+    throw new UserInputError('Invalid Perps pagination cursor', {
+      cause: error,
+    });
+  }
+}
+
+function encodePerpsCursor(
+  state:
+    | PerpsCandlesCursorState
+    | PerpsFundingCursorState
+    | PerpsTradesCursorState,
+): PaginationCursor {
+  return toPaginationCursor(btoa(JSON.stringify(state)));
+}
+
+function perpsKlineIntervalMilliseconds(interval: PerpsKlineInterval): number {
+  switch (interval) {
+    case '1s':
+      return 1000;
+    case '1m':
+      return 60 * 1000;
+    case '5m':
+      return 5 * 60 * 1000;
+    case '15m':
+      return 15 * 60 * 1000;
+    case '1h':
+      return 60 * 60 * 1000;
+    case '4h':
+      return 4 * 60 * 60 * 1000;
+    case '1d':
+      return 24 * 60 * 60 * 1000;
+    case '1w':
+      return 7 * 24 * 60 * 60 * 1000;
+  }
+  invariant(false, `Unsupported Perps kline interval: ${String(interval)}`);
+}
+
+function nextPerpsTradeCursorSeenIds(
+  state: PerpsTradesCursorState,
+  items: PerpsPublicTrade[],
+  last: PerpsPublicTrade,
+) {
+  const seen = new Set(
+    state.endTimestamp === last.timestamp ? state.seenTradeIds : [],
+  );
+  for (const item of items) {
+    if (item.timestamp === last.timestamp) seen.add(item.tradeId);
+  }
+  return Array.from(seen);
 }
 
 const PrivateKeySchema = z.custom<PrivateKey>(

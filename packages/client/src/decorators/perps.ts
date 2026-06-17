@@ -9,20 +9,20 @@ import type {
 } from '@polymarket/bindings/perps';
 import {
   type FetchPerpsBookRequest,
-  type FetchPerpsCandlesRequest,
-  type FetchPerpsFundingHistoryRequest,
   type FetchPerpsInstrumentsRequest,
   type FetchPerpsTickerRequest,
   type FetchPerpsTickersRequest,
-  type FetchPerpsTradesRequest,
   fetchPerpsBook,
-  fetchPerpsCandles,
   fetchPerpsFees,
-  fetchPerpsFundingHistory,
   fetchPerpsInstruments,
   fetchPerpsTicker,
   fetchPerpsTickers,
-  fetchPerpsTrades,
+  type ListPerpsCandlesRequest,
+  type ListPerpsFundingHistoryRequest,
+  type ListPerpsTradesRequest,
+  listPerpsCandles,
+  listPerpsFundingHistory,
+  listPerpsTrades,
   type OpenPerpsSessionRequest,
   openPerpsSession,
   type PerpsSession,
@@ -32,6 +32,7 @@ import type {
   BasePublicClient,
   BaseSecureClient,
 } from '../clients';
+import type { Paginated } from '../pagination';
 
 export type { PerpsSession, PerpsSessionEvent } from '../actions';
 
@@ -71,32 +72,32 @@ export type PublicPerpsActions = {
   fetchPerpsBook(request: FetchPerpsBookRequest): Promise<PerpsBook>;
 
   /**
-   * Fetches Perps candles for an instrument.
+   * Lists Perps candles for an instrument with SDK-owned pagination.
    *
-   * @throws {@link FetchPerpsCandlesError}
+   * @throws {@link ListPerpsCandlesError}
    * Thrown on failure.
    */
-  fetchPerpsCandles(request: FetchPerpsCandlesRequest): Promise<PerpsCandle[]>;
+  listPerpsCandles(request: ListPerpsCandlesRequest): Paginated<PerpsCandle[]>;
 
   /**
-   * Fetches Perps funding-rate history for an instrument.
+   * Lists Perps funding-rate history for an instrument with SDK-owned pagination.
    *
-   * @throws {@link FetchPerpsFundingHistoryError}
+   * @throws {@link ListPerpsFundingHistoryError}
    * Thrown on failure.
    */
-  fetchPerpsFundingHistory(
-    request: FetchPerpsFundingHistoryRequest,
-  ): Promise<PerpsFundingRate[]>;
+  listPerpsFundingHistory(
+    request: ListPerpsFundingHistoryRequest,
+  ): Paginated<PerpsFundingRate[]>;
 
   /**
-   * Fetches recent Perps trades for an instrument.
+   * Lists recent Perps trades for an instrument with SDK-owned pagination.
    *
-   * @throws {@link FetchPerpsTradesError}
+   * @throws {@link ListPerpsTradesError}
    * Thrown on failure.
    */
-  fetchPerpsTrades(
-    request: FetchPerpsTradesRequest,
-  ): Promise<PerpsPublicTrade[]>;
+  listPerpsTrades(
+    request: ListPerpsTradesRequest,
+  ): Paginated<PerpsPublicTrade[]>;
 
   /**
    * Fetches the Perps fee schedule.
@@ -130,14 +131,14 @@ export function perpsActions(
 ): PublicPerpsActions | SecurePerpsActions {
   const actions: PublicPerpsActions = {
     fetchPerpsBook: (request) => fetchPerpsBook(client, request),
-    fetchPerpsCandles: (request) => fetchPerpsCandles(client, request),
     fetchPerpsFees: () => fetchPerpsFees(client),
-    fetchPerpsFundingHistory: (request) =>
-      fetchPerpsFundingHistory(client, request),
     fetchPerpsInstruments: (request) => fetchPerpsInstruments(client, request),
     fetchPerpsTicker: (request) => fetchPerpsTicker(client, request),
     fetchPerpsTickers: (request) => fetchPerpsTickers(client, request),
-    fetchPerpsTrades: (request) => fetchPerpsTrades(client, request),
+    listPerpsCandles: (request) => listPerpsCandles(client, request),
+    listPerpsFundingHistory: (request) =>
+      listPerpsFundingHistory(client, request),
+    listPerpsTrades: (request) => listPerpsTrades(client, request),
   };
 
   if (!client.isSecureClient()) return actions;
