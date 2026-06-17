@@ -1,5 +1,29 @@
 # @polymarket/client
 
+## 0.1.0-beta.7
+
+### Minor Changes
+
+- 1903b61: Expose `parentEventId` on `Event` so child events such as sports "more markets" events link back to their parent event. The value is normalized to the same `EventId` type as `Event.id`.
+
+### Patch Changes
+
+- 3b9ef1d: Handle legacy multi-outcome markets in market responses. `listMarkets` now omits markets that cannot be represented by the binary `Market` model instead of aborting the whole page, and `fetchMarket` fails with a typed `UnexpectedResponseError` instead of a raw `TypeError`.
+- 72dbe7b: Normalize empty-string decimal fields from order and trade responses: order `makingAmount`/`takingAmount` map `""` to `"0"`, and maker order `feeRateBps` maps `""` to `null`, matching py-sdk behavior.
+- ba70f93: Surface missing trade and position market icons as null instead of an empty string.
+- a2688db: Add `maxPrice` and `minPrice` protection fields to market order requests.
+- 90e76a4: Support new Combos RFQ websocket error codes for balance, allowance, and pre-execution reservation failures.
+- e41ec20: Retry rejected JSON-RPC `eth_call` batches by recursively splitting them into smaller batches.
+- 11818ef: Omit market filters from broad user websocket subscriptions so all-market streams receive trade events.
+- feead94: Model activity trades as an `isCombo`-discriminated union so Combo trade activity rows parse without binary market metadata.
+- Updated dependencies [3b9ef1d]
+- Updated dependencies [72dbe7b]
+- Updated dependencies [ba70f93]
+- Updated dependencies [1903b61]
+- Updated dependencies [90e76a4]
+- Updated dependencies [feead94]
+  - @polymarket/bindings@0.1.0-beta.6
+
 ## 0.1.0-beta.6
 
 ### Patch Changes
