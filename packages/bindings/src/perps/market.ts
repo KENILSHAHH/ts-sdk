@@ -12,6 +12,7 @@ import {
   PerpsInstrumentTypeSchema,
   PerpsSideSchema,
   PerpsTradeIdSchema,
+  RawPerpsTxHashSchema,
 } from './common';
 
 export const PerpsRiskTierSchema = z.object({
@@ -324,7 +325,7 @@ export const PerpsPublicTradeSchema = z.object({
   price: DecimalStringSchema,
   quantity: DecimalStringSchema,
   timestamp: EpochMillisecondsSchema,
-  hash: TxHashSchema,
+  hash: TxHashSchema.optional(),
 });
 
 export type PerpsPublicTrade = z.infer<typeof PerpsPublicTradeSchema>;
@@ -337,7 +338,7 @@ export const RawPerpsPublicTradeSchema = z
     price: DecimalStringSchema,
     quantity: DecimalStringSchema,
     timestamp: EpochMillisecondsSchema,
-    hash: TxHashSchema,
+    hash: RawPerpsTxHashSchema,
   })
   .transform((trade) => ({
     tradeId: trade.trade_id,
@@ -357,7 +358,7 @@ export const RawPerpsPublicTradeResponseSchema = z
     p: DecimalStringSchema,
     qty: DecimalStringSchema,
     ts: EpochMillisecondsSchema,
-    hash: TxHashSchema,
+    hash: RawPerpsTxHashSchema,
   })
   .transform((trade) => ({
     tradeId: trade.tid,

@@ -13,6 +13,7 @@ import {
   PerpsSideSchema,
   PerpsTimeInForceSchema,
   PerpsTradeIdSchema,
+  RawPerpsTxHashSchema,
 } from './common';
 
 export const PerpsOrderSchema = z.object({
@@ -170,7 +171,7 @@ export const RawPerpsAccountFillSchema = z
     pnl: DecimalStringSchema,
     liquidation: z.boolean(),
     timestamp: EpochMillisecondsSchema,
-    hash: TxHashSchema.optional(),
+    hash: RawPerpsTxHashSchema,
   })
   .transform((fill) => ({
     tradeId: fill.trade_id,

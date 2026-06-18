@@ -7,6 +7,7 @@ import {
   type DecimalString,
   type EvmAddress,
   type TxHash,
+  TxHashSchema,
   toDecimalString,
 } from '../shared';
 
@@ -131,6 +132,11 @@ export const PerpsKlineIntervalSchema = z.enum(PerpsKlineInterval);
 export const PerpsPnlIntervalSchema = z.enum(PerpsPnlInterval);
 
 export const PerpsAssetSchema = z.string().min(1);
+
+export const RawPerpsTxHashSchema = z.preprocess(
+  (hash) => (hash === '0x' || hash === '' ? undefined : hash),
+  TxHashSchema.optional(),
+);
 
 export const PerpsDataResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
   z.object({
