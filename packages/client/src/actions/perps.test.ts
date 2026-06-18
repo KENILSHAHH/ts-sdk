@@ -142,6 +142,54 @@ describe('Perps actions', () => {
       '2000',
     ]);
   });
+
+  it('continues trade pagination after a fully deduped boundary page', async () => {
+    const requests: URLSearchParams[] = [];
+    server.use(
+      http.get(`${root}/v1/info/trades`, ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        requests.push(params);
+
+        if (params.get('end_timestamp') === '3000') {
+          return HttpResponse.json({
+            data: [trade(1, 3000), trade(2, 2000)],
+            more: true,
+          });
+        }
+
+        if (params.get('end_timestamp') === '2000') {
+          return HttpResponse.json({
+            data: [trade(2, 2000)],
+            more: true,
+          });
+        }
+
+        return HttpResponse.json({
+          data: [trade(3, 1000)],
+          more: false,
+        });
+      }),
+    );
+    const pages = listPerpsTrades(createClient(), {
+      end: 3000,
+      instrumentId: 1,
+      start: 0,
+    });
+
+    const first = await pages.firstPage();
+    const second = await pages.from(first.nextCursor).firstPage();
+    const third = await pages.from(second.nextCursor).firstPage();
+
+    expect(first.items.map((item) => item.tradeId)).toEqual([1, 2]);
+    expect(second.items).toEqual([]);
+    expect(second.hasMore).toBe(true);
+    expect(third.items.map((item) => item.tradeId)).toEqual([3]);
+    expect(requests.map((params) => params.get('end_timestamp'))).toEqual([
+      '3000',
+      '2000',
+      '1999',
+    ]);
+  });
 });
 
 function createClient(): BaseClient {

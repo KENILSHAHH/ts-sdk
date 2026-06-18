@@ -403,6 +403,51 @@ describe('PerpsSession', () => {
       ]);
     });
 
+    it('continues descending account history after a fully deduped boundary page', async () => {
+      const requests: URLSearchParams[] = [];
+      server.use(
+        http.get(`${production.perpsApi}/v1/account/fills`, ({ request }) => {
+          const params = new URL(request.url).searchParams;
+          requests.push(params);
+
+          if (params.get('end_timestamp') === '3000') {
+            return HttpResponse.json({
+              data: [accountFill(1, 3000), accountFill(2, 2000)],
+              more: true,
+            });
+          }
+
+          if (params.get('end_timestamp') === '2000') {
+            return HttpResponse.json({
+              data: [accountFill(2, 2000)],
+              more: true,
+            });
+          }
+
+          return HttpResponse.json({
+            data: [accountFill(3, 1000)],
+            more: false,
+          });
+        }),
+      );
+      const session = createSession();
+      const pages = session.listFills({ end: 3000, start: 0 });
+
+      const first = await pages.firstPage();
+      const second = await pages.from(first.nextCursor).firstPage();
+      const third = await pages.from(second.nextCursor).firstPage();
+
+      expect(first.items.map((fill) => fill.tradeId)).toEqual([1, 2]);
+      expect(second.items).toEqual([]);
+      expect(second.hasMore).toBe(true);
+      expect(third.items.map((fill) => fill.tradeId)).toEqual([3]);
+      expect(requests.map((params) => params.get('end_timestamp'))).toEqual([
+        '3000',
+        '2000',
+        '1999',
+      ]);
+    });
+
     it('continues ascending interval account history pages', async () => {
       const requests: URLSearchParams[] = [];
       server.use(

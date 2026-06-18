@@ -532,11 +532,13 @@ export function listPerpsTrades(
         const items = response.data.filter(
           (trade) => !seenTradeIds.has(trade.tradeId),
         );
+        const rawLast = response.data.at(-1);
         const last = items.at(-1);
+        const cursorTimestamp = last?.timestamp ?? rawLast?.timestamp;
         const hasMore =
           response.more &&
-          last !== undefined &&
-          last.timestamp > state.startTimestamp;
+          cursorTimestamp !== undefined &&
+          cursorTimestamp > state.startTimestamp;
 
         return {
           items,
@@ -544,8 +546,12 @@ export function listPerpsTrades(
           nextCursor: hasMore
             ? encodePerpsCursor({
                 ...state,
-                endTimestamp: last.timestamp,
-                seenTradeIds: nextPerpsTradeCursorSeenIds(state, items, last),
+                endTimestamp:
+                  last === undefined ? cursorTimestamp - 1 : cursorTimestamp,
+                seenTradeIds:
+                  last === undefined
+                    ? []
+                    : nextPerpsTradeCursorSeenIds(state, items, last),
               })
             : undefined,
         };

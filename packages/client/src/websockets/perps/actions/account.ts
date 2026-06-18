@@ -256,30 +256,14 @@ export function listPerpsFills(
         const items = response.data.filter(
           (fill) => !seenKeys.has(String(fill.tradeId)),
         );
-        const last = items.at(-1);
-        const hasMore =
-          response.more &&
-          last !== undefined &&
-          last.timestamp > state.startTimestamp;
-
-        if (!hasMore) return { items, hasMore };
-
-        const seen = new Set(
-          state.endTimestamp === last.timestamp ? state.seenKeys : [],
-        );
-        for (const fill of items) {
-          if (fill.timestamp === last.timestamp) seen.add(String(fill.tradeId));
-        }
-
-        return {
+        return toPerpsDescendingAccountPage({
+          getKey: (fill) => String(fill.tradeId),
+          getTimestamp: (fill) => fill.timestamp,
           items,
-          hasMore,
-          nextCursor: encodePerpsAccountCursor({
-            ...state,
-            endTimestamp: last.timestamp,
-            seenKeys: Array.from(seen),
-          }),
-        };
+          responseData: response.data,
+          responseMore: response.more,
+          state,
+        });
       });
   }, cursor);
 }
@@ -339,34 +323,15 @@ export function listPerpsFundingPayments(
               `${payment.instrumentId}:${payment.timestamp}:${payment.funding}`,
             ),
         );
-        const last = items.at(-1);
-        const hasMore =
-          response.more &&
-          last !== undefined &&
-          last.timestamp > state.startTimestamp;
-
-        if (!hasMore) return { items, hasMore };
-
-        const seen = new Set(
-          state.endTimestamp === last.timestamp ? state.seenKeys : [],
-        );
-        for (const payment of items) {
-          if (payment.timestamp === last.timestamp) {
-            seen.add(
-              `${payment.instrumentId}:${payment.timestamp}:${payment.funding}`,
-            );
-          }
-        }
-
-        return {
+        return toPerpsDescendingAccountPage({
+          getKey: (payment) =>
+            `${payment.instrumentId}:${payment.timestamp}:${payment.funding}`,
+          getTimestamp: (payment) => payment.timestamp,
           items,
-          hasMore,
-          nextCursor: encodePerpsAccountCursor({
-            ...state,
-            endTimestamp: last.timestamp,
-            seenKeys: Array.from(seen),
-          }),
-        };
+          responseData: response.data,
+          responseMore: response.more,
+          state,
+        });
       });
   }, cursor);
 }
@@ -421,34 +386,14 @@ export function listPerpsDeposits(
         const items = response.data.filter(
           (deposit) => !seenKeys.has(deposit.hash),
         );
-        const last = items.at(-1);
-        const lastTimestamp =
-          last === undefined ? undefined : latestPerpsDepositTimestamp(last);
-        const hasMore =
-          response.more &&
-          lastTimestamp !== undefined &&
-          lastTimestamp > state.startTimestamp;
-
-        if (!hasMore) return { items, hasMore };
-
-        const seen = new Set(
-          state.endTimestamp === lastTimestamp ? state.seenKeys : [],
-        );
-        for (const deposit of items) {
-          if (latestPerpsDepositTimestamp(deposit) === lastTimestamp) {
-            seen.add(deposit.hash);
-          }
-        }
-
-        return {
+        return toPerpsDescendingAccountPage({
+          getKey: (deposit) => deposit.hash,
+          getTimestamp: latestPerpsDepositTimestamp,
           items,
-          hasMore,
-          nextCursor: encodePerpsAccountCursor({
-            ...state,
-            endTimestamp: lastTimestamp,
-            seenKeys: Array.from(seen),
-          }),
-        };
+          responseData: response.data,
+          responseMore: response.more,
+          state,
+        });
       });
   }, cursor);
 }
@@ -506,34 +451,14 @@ export function listPerpsWithdrawals(
         const items = response.data.filter(
           (withdrawal) => !seenKeys.has(String(withdrawal.withdrawalId)),
         );
-        const last = items.at(-1);
-        const lastTimestamp =
-          last === undefined ? undefined : latestPerpsWithdrawalTimestamp(last);
-        const hasMore =
-          response.more &&
-          lastTimestamp !== undefined &&
-          lastTimestamp > state.startTimestamp;
-
-        if (!hasMore) return { items, hasMore };
-
-        const seen = new Set(
-          state.endTimestamp === lastTimestamp ? state.seenKeys : [],
-        );
-        for (const withdrawal of items) {
-          if (latestPerpsWithdrawalTimestamp(withdrawal) === lastTimestamp) {
-            seen.add(String(withdrawal.withdrawalId));
-          }
-        }
-
-        return {
+        return toPerpsDescendingAccountPage({
+          getKey: (withdrawal) => String(withdrawal.withdrawalId),
+          getTimestamp: latestPerpsWithdrawalTimestamp,
           items,
-          hasMore,
-          nextCursor: encodePerpsAccountCursor({
-            ...state,
-            endTimestamp: lastTimestamp,
-            seenKeys: Array.from(seen),
-          }),
-        };
+          responseData: response.data,
+          responseMore: response.more,
+          state,
+        });
       });
   }, cursor);
 }
@@ -731,6 +656,48 @@ function latestPerpsDepositTimestamp(deposit: PerpsDeposit): number {
 
 function latestPerpsWithdrawalTimestamp(withdrawal: PerpsWithdrawal): number {
   return withdrawal.confirmedTimestamp ?? withdrawal.createdTimestamp;
+}
+
+function toPerpsDescendingAccountPage<T>(request: {
+  getKey: (item: T) => string;
+  getTimestamp: (item: T) => number;
+  items: T[];
+  responseData: T[];
+  responseMore: boolean;
+  state: PerpsDescendingAccountCursorState;
+}): Page<T[]> {
+  const rawLast = request.responseData.at(-1);
+  const last = request.items.at(-1);
+  const cursorTimestamp =
+    (last === undefined ? undefined : request.getTimestamp(last)) ??
+    (rawLast === undefined ? undefined : request.getTimestamp(rawLast));
+  const hasMore =
+    request.responseMore &&
+    cursorTimestamp !== undefined &&
+    cursorTimestamp > request.state.startTimestamp;
+
+  if (!hasMore) return { items: request.items, hasMore };
+
+  const endTimestamp =
+    last === undefined ? cursorTimestamp - 1 : cursorTimestamp;
+  const seen = new Set(
+    request.state.endTimestamp === endTimestamp ? request.state.seenKeys : [],
+  );
+  for (const item of request.items) {
+    if (request.getTimestamp(item) === endTimestamp) {
+      seen.add(request.getKey(item));
+    }
+  }
+
+  return {
+    items: request.items,
+    hasMore,
+    nextCursor: encodePerpsAccountCursor({
+      ...request.state,
+      endTimestamp,
+      seenKeys: Array.from(seen),
+    }),
+  };
 }
 
 function perpsHistoryIntervalMilliseconds(
