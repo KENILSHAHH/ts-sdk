@@ -12,7 +12,7 @@ import type { BuilderApiKeyCreds } from '@polymarket/client/node';
 import { builderApiKey } from '@polymarket/client/node';
 import { signerFrom } from '@polymarket/client/viem';
 import type { EvmAddress, PrivateKey } from '@polymarket/types';
-import { expectEvmAddress, isPrivateKey } from '@polymarket/types';
+import { expectEvmAddress, expectPrivateKey } from '@polymarket/types';
 import { createWalletClient, http } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
@@ -165,11 +165,11 @@ function loadWalletAddress(name: string, skip: Skip): EvmAddress {
 function loadPrivateKey(name: string, skip: Skip): PrivateKey {
   const value = loadRequiredEnv(name, skip);
 
-  if (!isPrivateKey(value)) {
+  try {
+    return expectPrivateKey(value);
+  } catch {
     skip(`${name} must be a valid private key`);
   }
-
-  return value;
 }
 
 function createTestSigner(privateKey: PrivateKey | `0x${string}`): Signer {

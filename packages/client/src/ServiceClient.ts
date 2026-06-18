@@ -3,7 +3,7 @@ import ky, { type KyInstance } from 'ky';
 import { RateLimitError, RequestRejectedError, TransportError } from './errors';
 
 export type ServiceRequest = {
-  method: 'DELETE' | 'GET' | 'POST';
+  method: 'DELETE' | 'GET' | 'PATCH' | 'POST';
   path: string;
   body?: string;
   headers?: HeadersInit;
@@ -26,6 +26,11 @@ export type ServiceClientGetOptions = {
 };
 
 export type ServiceClientPostOptions = {
+  headers?: HeadersInit;
+  json?: unknown;
+};
+
+export type ServiceClientPatchOptions = {
   headers?: HeadersInit;
   json?: unknown;
 };
@@ -68,6 +73,16 @@ export class ServiceClient {
     return this.#request('POST', path, options);
   }
 
+  patch(
+    path: string,
+    options: ServiceClientPatchOptions = {},
+  ): ResultAsync<
+    Response,
+    RateLimitError | RequestRejectedError | TransportError
+  > {
+    return this.#request('PATCH', path, options);
+  }
+
   del(
     path: string,
     options: ServiceClientDeleteOptions = {},
@@ -88,6 +103,7 @@ export class ServiceClient {
     options:
       | ServiceClientDeleteOptions
       | ServiceClientGetOptions
+      | ServiceClientPatchOptions
       | ServiceClientPostOptions,
   ): ResultAsync<
     Response,
@@ -102,6 +118,7 @@ export class ServiceClient {
     options:
       | ServiceClientDeleteOptions
       | ServiceClientGetOptions
+      | ServiceClientPatchOptions
       | ServiceClientPostOptions,
   ): Promise<Response> {
     const request = this.#createRequest(method, path, options);
@@ -126,6 +143,7 @@ export class ServiceClient {
     options:
       | ServiceClientDeleteOptions
       | ServiceClientGetOptions
+      | ServiceClientPatchOptions
       | ServiceClientPostOptions,
   ): ServiceRequest {
     return {

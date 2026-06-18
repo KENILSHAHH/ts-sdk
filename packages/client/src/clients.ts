@@ -54,6 +54,8 @@ import {
 import {
   ClobMarketWebSocketManager,
   ClobUserWebSocketManager,
+  PerpsSessionManager,
+  PerpsSubscriptionManager,
   type PublicWebSocketManagers,
   RfqQuoterWebSocketManager,
   RtdsWebSocketManager,
@@ -83,6 +85,8 @@ type PublicContext = {
   data: ServiceClient;
   /** @internal */
   rfq: ServiceClient;
+  /** @internal */
+  perps: ServiceClient;
   /** @internal */
   webSockets: PublicWebSocketManagers;
 };
@@ -161,6 +165,11 @@ abstract class AbstractClient<TContext extends PublicContext> {
   /** @internal */
   get rfq(): ServiceClient {
     return this.context.rfq;
+  }
+
+  /** @internal */
+  get perps(): ServiceClient {
+    return this.context.perps;
   }
 
   /** @internal */
@@ -293,6 +302,7 @@ class BasePublicClient<
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
       rfq: new ServiceClient({ root: config.environment.rfq }),
+      perps: new ServiceClient({ root: config.environment.perpsApi }),
       rpc: new JsonRpcClient({ url: config.environment.rpc }),
       webSockets: {
         clobMarket: new ClobMarketWebSocketManager({
@@ -302,6 +312,9 @@ class BasePublicClient<
           url: config.environment.sportsWs,
         }),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
+        perpsSubscriptions: new PerpsSubscriptionManager(
+          config.environment.perpsWs,
+        ),
       },
     });
   }
@@ -351,6 +364,7 @@ class BasePublicClient<
       this.webSockets.clobMarket.close(),
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
+      this.webSockets.perpsSubscriptions.close(),
     ]).then(() => undefined);
   }
 
@@ -508,6 +522,7 @@ class BaseSecureClient<
       gamma: new ServiceClient({ root: config.environment.gamma }),
       data: new ServiceClient({ root: config.environment.data }),
       rfq: new ServiceClient({ root: config.environment.rfq }),
+      perps: new ServiceClient({ root: config.environment.perpsApi }),
       secureClob: new ServiceClient({
         resolveHeaders: async (request) => ({
           ...(await this.resolveClobHeaders(request)),
@@ -536,6 +551,14 @@ class BaseSecureClient<
           url: config.environment.sportsWs,
         }),
         rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
+        perpsSubscriptions: new PerpsSubscriptionManager(
+          config.environment.perpsWs,
+        ),
+        perpsSession: new PerpsSessionManager({
+          restUrl: config.environment.perpsApi,
+          chainId: config.environment.chainId,
+          wsUrl: config.environment.perpsWs,
+        }),
       },
     });
   }
@@ -603,8 +626,8 @@ class BaseSecureClient<
       this.webSockets.clobMarket.close(),
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
+      this.webSockets.perpsSubscriptions.close(),
       this.webSockets.clobUser.close(),
-      this.webSockets.rfqQuoter.close(),
     ]).then(() => undefined);
   }
 
@@ -671,13 +694,19 @@ class BaseSecureClient<
   > {
     // Server-side revocation must not depend on local WebSocket cleanup.
     const closingSubscriptions = this.closeSubscriptions();
+    const shuttingDownPerpsSessions = this.webSockets.perpsSession.shutdown();
+    const shuttingDownRfqQuoter = this.webSockets.rfqQuoter.shutdown();
     const { apiKey, environment } = this.context;
 
     try {
       await deleteApiKey(this);
     } finally {
       this.endAuthenticationLifecycle();
-      await closingSubscriptions;
+      await Promise.allSettled([
+        closingSubscriptions,
+        shuttingDownPerpsSessions,
+        shuttingDownRfqQuoter,
+      ]).then(() => undefined);
     }
 
     const client = new BasePublicClient({

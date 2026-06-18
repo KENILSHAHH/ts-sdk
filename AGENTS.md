@@ -24,6 +24,11 @@
 - This repo is the home for Polymarket's TypeScript SDKs. The first shipping target is `@polymarket/client`.
 - `@polymarket/client` unifies Polymarket's 4 current API surfaces: CLOB, Gamma, data, and relayer.
 - The SDK should present one cohesive consumer interface, follow developer workflows, and hide service boundaries where possible. Do not cargo-cult the shape of underlying APIs, older SDKs, migration notes, or ticket wording when a better public SDK shape exists.
+- API boundary schemas, raw response schemas, websocket payload schemas, field normalization, branded IDs, and generated-contract-adjacent types belong in `packages/bindings`, not `packages/client`.
+- `packages/client` may compose bindings into workflows, actions, decorators, clients, auth, pagination, transactions, and higher-level SDK ergonomics.
+- If a schema parses an upstream HTTP response, websocket frame, or compact/raw API field shape, put it in `packages/bindings`.
+- For large API surfaces, add a folder under `packages/bindings/src/<surface>/` with a barrel export and package subpath export, matching `clob`, `data`, `gamma`, and `subscriptions`.
+- Only put schemas in `packages/client` when they validate SDK user input or client-owned options that do not mirror an upstream API payload.
 - When changing exported SDK APIs, first identify the user intent the API should express. Prefer intent-based options over implementation-detail options. Legacy behavior may need to be preserved, but the legacy API shape should not be preserved automatically.
 - Before deciding a public API shape for a likely common SDK pattern, look at comparable SDK/API interfaces or ask a short question. Examples include fee handling, slippage, pagination, signing workflows, balance/allowance handling, idempotency, and retries.
 - For order construction APIs, distinguish between order intent, execution constraints, and account/backend state. Prefer exposing order intent and execution constraints. Avoid asking callers for account state or cached backend data only so the SDK can infer intent.
@@ -41,6 +46,16 @@
 - Root `tsconfig.json` and package-level `tsconfig.json` files are for editor tooling and source navigation only.
 - `tsconfig.build.json` files drive build and typecheck behavior. When changing build behavior or fixing build issues, update `tsconfig.build.json`, not the root or package `tsconfig.json`.
 - When adding a new entry point to a low-level package in the monorepo, add the corresponding alias to `compilerOptions.paths` in the root `tsconfig.json` so IDE resolution keeps working.
+
+## Pagination and Naming
+
+- Method prefixes must reflect SDK behavior, not upstream route names:
+  - `list*` means the SDK returns normalized pagination via `Paginated<T>` / `Page<T>`.
+  - `fetch*` means the SDK returns a direct item or direct collection, with no SDK pagination abstraction.
+- Do not expose upstream pagination envelopes directly from `packages/client`, such as `{ data, more }`, `{ results, next }`, offsets, page numbers, or service-specific cursor fields.
+- If an upstream endpoint is paginated, decide explicitly whether the SDK can normalize it into `Paginated<T>`. If it cannot, either return a direct collection with a `fetch*` name or design a proper SDK pagination adapter first.
+- `packages/bindings` may model upstream pagination envelopes exactly so responses can be validated, but `packages/client` should translate them into SDK-owned pagination or hide them.
+- Before adding a public collection method, check whether the endpoint supports continuation and document the chosen SDK behavior in the action/decorator types.
 
 ## Code conventions
 

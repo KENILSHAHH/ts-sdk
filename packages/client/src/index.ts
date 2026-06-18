@@ -6,6 +6,17 @@ export type * from '@polymarket/bindings/data';
 export { ActivityType } from '@polymarket/bindings/data';
 export type * from '@polymarket/bindings/gamma';
 export { WalletType } from '@polymarket/bindings/gamma';
+export type * from '@polymarket/bindings/perps';
+export {
+  PerpsDepositStatus,
+  PerpsInstrumentCategory,
+  PerpsInstrumentType,
+  PerpsInternalTransferDirection,
+  PerpsKlineInterval,
+  PerpsSide,
+  PerpsTimeInForce,
+  PerpsWithdrawalStatus,
+} from '@polymarket/bindings/perps';
 export type * from '@polymarket/bindings/relayer';
 export * from './abis';
 export type {

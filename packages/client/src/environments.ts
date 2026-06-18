@@ -47,11 +47,17 @@ export type EnvironmentConfig = {
   /** @internal */
   relayHub: EvmAddress;
   /** @internal */
+  perpsDepositContract: EvmAddress;
+  /** @internal */
   clob: string;
+  /** @internal */
+  perpsApi: string;
   /** @internal */
   clobMarketWs: string;
   /** @internal */
   clobUserWs: string;
+  /** @internal */
+  perpsWs: string;
   /** @internal */
   relayer: string;
   /** @internal */
@@ -137,9 +143,14 @@ export const production: EnvironmentConfig = {
   ),
   safeMultisend: expectEvmAddress('0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761'),
   relayHub: expectEvmAddress('0xD216153c06E857cD7f72665E0aF1d7D82172F494'),
+  perpsDepositContract: expectEvmAddress(
+    '0xDCa4af75705dbB50f62437045afF9921947917d2',
+  ),
   clob: 'https://clob.polymarket.com',
+  perpsApi: 'https://api.perpetuals.polymarket.com',
   clobMarketWs: 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
   clobUserWs: 'wss://ws-subscriptions-clob.polymarket.com/ws/user',
+  perpsWs: 'wss://ws.perpetuals.polymarket.com/v1/ws',
   relayer: 'https://relayer-v2.polymarket.com',
   gamma: 'https://gamma-api.polymarket.com',
   data: 'https://data-api.polymarket.com',

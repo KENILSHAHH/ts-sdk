@@ -24,6 +24,9 @@ const ERC20_ALLOWANCE_FUNCTION = AbiFunction.from(
 const ERC20_TRANSFER_FUNCTION = AbiFunction.from(
   'function transfer(address recipient, uint256 amount)',
 );
+const PERPS_DEPOSIT_FUNCTION = AbiFunction.from(
+  'function deposit(address token, uint256 amount, address to)',
+);
 const ERC1155_SET_APPROVAL_FOR_ALL_FUNCTION = AbiFunction.from(
   'function setApprovalForAll(address operator, bool approved)',
 );
@@ -213,6 +216,35 @@ export function erc20TransferCall(
   return {
     data: encodeErc20TransferCall(recipient, amount),
     to: tokenAddress,
+  };
+}
+
+export type PerpsDepositCallError = UserInputError;
+export const PerpsDepositCallError = makeErrorGuard(UserInputError);
+
+/**
+ * Creates a transaction call for Perps `deposit(address,uint256,address)`.
+ *
+ * @throws {@link PerpsDepositCallError}
+ * Thrown when the deposit amount is invalid.
+ */
+export function perpsDepositCall(
+  depositContractAddress: EvmAddress,
+  tokenAddress: EvmAddress,
+  amount: bigint,
+  to: EvmAddress,
+): TransactionCall {
+  if (amount <= 0n) {
+    throw new UserInputError('Perps deposit amount must be positive');
+  }
+
+  return {
+    data: AbiFunction.encodeData(PERPS_DEPOSIT_FUNCTION, [
+      tokenAddress,
+      expectUint256(amount, 'Perps deposit amount'),
+      to,
+    ]),
+    to: depositContractAddress,
   };
 }
 

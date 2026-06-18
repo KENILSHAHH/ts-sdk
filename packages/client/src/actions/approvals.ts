@@ -514,6 +514,11 @@ function getRequiredTradingApprovals(
         spenderAddress: client.environment.exchangeV3,
         tokenAddress: client.environment.collateralToken,
       },
+      {
+        amount: MAX_UINT256,
+        spenderAddress: client.environment.perpsDepositContract,
+        tokenAddress: client.environment.collateralToken,
+      },
     ],
     erc1155: [
       {

@@ -1,0 +1,44 @@
+import { describe, expect, it } from 'vitest';
+import {
+  RawPerpsWithdrawalSchema,
+  RawPerpsWithdrawalUpdateSchema,
+} from './funds';
+
+const baseWithdrawal = {
+  withdraw_id: 1,
+  asset: 'USDC',
+  amount: '1000000',
+  fee: '0',
+  status: 'pending',
+  to: '0x0000000000000000000000000000000000000001',
+  confirmations: 0,
+  required_confirmations: 10,
+  created_timestamp: 1_700_000_000_000,
+};
+
+describe('RawPerpsWithdrawalSchema', () => {
+  it('normalizes empty pending hashes to undefined', () => {
+    const withdrawal = RawPerpsWithdrawalSchema.parse({
+      ...baseWithdrawal,
+      hash: '',
+    });
+
+    expect(withdrawal.hash).toBeUndefined();
+  });
+});
+
+describe('RawPerpsWithdrawalUpdateSchema', () => {
+  it('normalizes placeholder pending hashes to undefined', () => {
+    const withdrawal = RawPerpsWithdrawalUpdateSchema.parse({
+      withdraw_id: baseWithdrawal.withdraw_id,
+      asset: baseWithdrawal.asset,
+      amount: baseWithdrawal.amount,
+      fee: baseWithdrawal.fee,
+      status: baseWithdrawal.status,
+      to: baseWithdrawal.to,
+      hash: '0x',
+    });
+
+    expect(withdrawal.hash).toBeUndefined();
+  });
+});
