@@ -263,3 +263,8 @@ export const RawPerpsCredentialsResponseSchema = z
 export const RawPerpsCreateProxyResponseSchema = z.object({
   secret: z.string().min(1),
 });
+
+export const RawPerpsDeleteProxyResponseSchema = z.object({
+  status: z.enum(['ok', 'err']),
+  error: z.string().optional(),
+});

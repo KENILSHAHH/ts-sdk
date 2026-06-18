@@ -42,6 +42,26 @@ describe('Perps integration', () => {
   );
 
   it.runIf(runMeteredTests)(
+    'revokes delegated Perps credentials',
+    async ({ secureClientWithDepositWallet }) => {
+      const session = await secureClientWithDepositWallet.openPerpsSession({
+        expiresIn: 30 * 60_000,
+      });
+      const credentials = session.credentials;
+
+      await session.close();
+
+      await secureClientWithDepositWallet.revokePerpsCredentials({
+        proxy: credentials.proxy,
+      });
+
+      await expect(
+        secureClientWithDepositWallet.openPerpsSession({ credentials }),
+      ).rejects.toBeInstanceOf(RequestRejectedError);
+    },
+  );
+
+  it.runIf(runMeteredTests)(
     'rejects delegated Perps credentials with an invalid secret',
     async ({ secureClientWithDepositWallet }) => {
       const session = await secureClientWithDepositWallet.openPerpsSession({

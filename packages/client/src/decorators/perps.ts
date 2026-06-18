@@ -26,6 +26,8 @@ import {
   type OpenPerpsSessionRequest,
   openPerpsSession,
   type PerpsSession,
+  type RevokePerpsCredentialsRequest,
+  revokePerpsCredentials,
 } from '../actions';
 import type {
   BaseClient,
@@ -120,6 +122,17 @@ export type SecurePerpsActions = PublicPerpsActions & {
    * Thrown on failure.
    */
   openPerpsSession(request: OpenPerpsSessionRequest): Promise<PerpsSession>;
+
+  /**
+   * Revokes delegated Perps credentials by proxy address.
+   *
+   * @remarks
+   * This can revoke credentials outside the currently open Perps session.
+   *
+   * @throws {@link RevokePerpsCredentialsError}
+   * Thrown on failure.
+   */
+  revokePerpsCredentials(request: RevokePerpsCredentialsRequest): Promise<void>;
 };
 
 export type PerpsActions = PublicPerpsActions;
@@ -146,5 +159,7 @@ export function perpsActions(
   return {
     ...actions,
     openPerpsSession: (request) => openPerpsSession(client, request),
+    revokePerpsCredentials: (request) =>
+      revokePerpsCredentials(client, request),
   };
 }

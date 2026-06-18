@@ -1,3 +1,4 @@
+import { encode } from '@msgpack/msgpack';
 import {
   type PaginationCursor,
   PaginationCursorSchema,
@@ -28,6 +29,7 @@ import {
   RawPerpsBookSchema,
   RawPerpsCreateProxyResponseSchema,
   RawPerpsCredentialsResponseSchema,
+  RawPerpsDeleteProxyResponseSchema,
 } from '@polymarket/bindings/perps';
 import {
   type EvmAddress,
@@ -39,7 +41,7 @@ import {
   type PrivateKey,
   unwrap,
 } from '@polymarket/types';
-import { Address, Secp256k1 } from 'ox';
+import { Address, Hash, Secp256k1 } from 'ox';
 import { z } from 'zod';
 import type { BaseClient, BaseSecureClient } from '../clients';
 import {
@@ -733,6 +735,10 @@ const OpenPerpsSessionRequestSchema = z.union([
   ResumePerpsSessionRequestSchema,
 ]);
 
+const RevokePerpsCredentialsRequestSchema = z.object({
+  proxy: z.string().transform((value) => expectEvmAddress(value)),
+});
+
 export type CreatePerpsSessionRequest = z.input<
   typeof CreatePerpsSessionRequestSchema
 >;
@@ -745,6 +751,10 @@ export type OpenPerpsSessionRequest =
   | CreatePerpsSessionRequest
   | ResumePerpsSessionRequest;
 
+export type RevokePerpsCredentialsRequest = z.input<
+  typeof RevokePerpsCredentialsRequestSchema
+>;
+
 export type OpenPerpsSessionError =
   | RateLimitError
   | RequestRejectedError
@@ -753,6 +763,22 @@ export type OpenPerpsSessionError =
   | UnexpectedResponseError
   | UserInputError;
 export const OpenPerpsSessionError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+export type RevokePerpsCredentialsError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const RevokePerpsCredentialsError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -781,6 +807,56 @@ export async function openPerpsSession(
       ? await resumePerpsCredentials(client, params.credentials)
       : await createPerpsCredentials(client, params);
   return client.webSockets.perpsSession.connect(credentials);
+}
+
+/**
+ * Revokes delegated Perps credentials by proxy address.
+ *
+ * @remarks
+ * This signs the revocation with the owner account. It can revoke credentials
+ * outside the currently open Perps session.
+ *
+ * @throws {@link RevokePerpsCredentialsError}
+ * Thrown on failure.
+ */
+export async function revokePerpsCredentials(
+  client: BaseSecureClient,
+  request: RevokePerpsCredentialsRequest,
+): Promise<void> {
+  const params = parseUserInput(request, RevokePerpsCredentialsRequestSchema);
+  const op = {
+    type: 'deleteProxy' as const,
+    args: {
+      proxy: params.proxy,
+    },
+  };
+  const salt = randomUint32();
+  const timestamp = Date.now();
+  const signature = await signPerpsOp(client, {
+    op,
+    salt,
+    timestamp,
+  });
+
+  const response = await unwrap(
+    client.perps
+      .del('/v1/account/proxy', {
+        json: {
+          op,
+          salt,
+          sig: signature,
+          ts: timestamp,
+        },
+      })
+      .andThen(validateWith(RawPerpsDeleteProxyResponseSchema)),
+  );
+
+  if (response.status === 'err') {
+    throw new RequestRejectedError(
+      response.error ?? 'Perps credentials revocation was rejected.',
+      { status: 200 },
+    );
+  }
 }
 
 async function createPerpsCredentials(
@@ -898,6 +974,67 @@ async function signPerpsCreateProxy(
       'Could not sign the Perps proxy credentials request',
     );
   }
+}
+
+type PerpsOwnerSignedOp = {
+  type: 'deleteProxy';
+  args: {
+    proxy: EvmAddress;
+  };
+};
+
+type PerpsOpSignatureRequest = {
+  op: PerpsOwnerSignedOp;
+  salt: number;
+  timestamp: number;
+};
+
+async function signPerpsOp(
+  client: BaseSecureClient,
+  request: PerpsOpSignatureRequest,
+) {
+  try {
+    return await client.signer.signTypedData(
+      createPerpsOpTypedDataPayload({
+        chainId: client.environment.chainId,
+        ...request,
+      }),
+    );
+  } catch (error) {
+    throw SigningError.fromError(
+      error,
+      'Could not sign the Perps operation request',
+    );
+  }
+}
+
+type CreatePerpsOpTypedDataPayloadRequest = PerpsOpSignatureRequest & {
+  chainId: number;
+};
+
+function createPerpsOpTypedDataPayload(
+  request: CreatePerpsOpTypedDataPayloadRequest,
+): TypedDataPayload {
+  return {
+    domain: {
+      chainId: request.chainId,
+      name: 'Polymarket',
+      version: '1',
+    },
+    message: {
+      data: Hash.keccak256(encode(request.op), { as: 'Hex' }),
+      salt: request.salt,
+      ts: request.timestamp,
+    },
+    primaryType: 'Op',
+    types: {
+      Op: [
+        { name: 'data', type: 'bytes32' },
+        { name: 'salt', type: 'uint64' },
+        { name: 'ts', type: 'uint64' },
+      ],
+    },
+  };
 }
 
 type CreatePerpsCreateProxyTypedDataPayloadRequest =
