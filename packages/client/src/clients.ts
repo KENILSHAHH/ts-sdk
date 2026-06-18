@@ -598,9 +598,8 @@ class BaseSecureClient<
         }),
         perpsSession: new PerpsSessionManager({
           chainId: config.environment.chainId,
-          restHeaders: config.environment.perps.headers,
+          headers: config.environment.perps.headers,
           restUrl: config.environment.perps.rest,
-          wsHeaders: config.environment.perps.headers,
           wsUrl: config.environment.perps.ws,
         }),
       },
