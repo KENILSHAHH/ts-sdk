@@ -197,22 +197,8 @@ export const production: EnvironmentConfig = {
 /**
  * Forks an environment config from production unless a different base is passed.
  *
- * @example
- * ```ts
- * const staging = forkEnvironmentConfig({
- *   name: 'staging',
- *   perps: {
- *     rest: 'https://api-perpetuals-preprod.polymarket.com',
- *     headers: {
- *       'CF-Access-Client-Id': 'example-client-id',
- *       'CF-Access-Client-Secret': 'example-client-secret',
- *     },
- *   },
- *   rfq: {
- *     ws: 'wss://combos-rfq-gateway-quoter-preprod.polymarket.com/ws/rfq',
- *   },
- * });
- * ```
+ * @experimental This helper is intended for advanced custom environment use,
+ * not general SDK usage. Its signature may change without notice.
  */
 export function forkEnvironmentConfig(
   fork: EnvironmentConfigFork,
