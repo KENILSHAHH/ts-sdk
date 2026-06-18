@@ -70,6 +70,7 @@ export class RfqQuoterWebSocketManager {
   #session: RfqWebSocketSession | undefined;
   #connectingSession: RfqWebSocketSession | undefined;
   #connecting: Promise<RfqSession> | undefined;
+  #closed = false;
 
   constructor(options: RfqQuoterWebSocketManagerOptions) {
     this.#account = options.account;
@@ -82,6 +83,10 @@ export class RfqQuoterWebSocketManager {
   }
 
   async connect(): Promise<RfqSession> {
+    if (this.#closed) {
+      throw new TransportError('RFQ quoter manager is closed.');
+    }
+
     if (this.#session !== undefined) {
       if (!this.#session.closed) return this.#session;
       this.#session = undefined;
@@ -104,6 +109,10 @@ export class RfqQuoterWebSocketManager {
     connecting = (async () => {
       try {
         await session.connect();
+        if (this.#closed) {
+          await session.close();
+          throw new TransportError('RFQ quoter manager is closed.');
+        }
         this.#session = session;
         return session;
       } catch (error) {
@@ -123,7 +132,8 @@ export class RfqQuoterWebSocketManager {
     return connecting;
   }
 
-  async close(): Promise<void> {
+  async shutdown(): Promise<void> {
+    this.#closed = true;
     const session = this.#session;
     const connectingSession = this.#connectingSession;
     const connecting = this.#connecting;

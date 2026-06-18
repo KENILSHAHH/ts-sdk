@@ -627,9 +627,7 @@ class BaseSecureClient<
       this.webSockets.rtds.close(),
       this.webSockets.sports.close(),
       this.webSockets.perpsSubscriptions.close(),
-      this.webSockets.perpsSession.close(),
       this.webSockets.clobUser.close(),
-      this.webSockets.rfqQuoter.close(),
     ]).then(() => undefined);
   }
 
@@ -696,13 +694,19 @@ class BaseSecureClient<
   > {
     // Server-side revocation must not depend on local WebSocket cleanup.
     const closingSubscriptions = this.closeSubscriptions();
+    const shuttingDownPerpsSessions = this.webSockets.perpsSession.shutdown();
+    const shuttingDownRfqQuoter = this.webSockets.rfqQuoter.shutdown();
     const { apiKey, environment } = this.context;
 
     try {
       await deleteApiKey(this);
     } finally {
       this.endAuthenticationLifecycle();
-      await closingSubscriptions;
+      await Promise.allSettled([
+        closingSubscriptions,
+        shuttingDownPerpsSessions,
+        shuttingDownRfqQuoter,
+      ]).then(() => undefined);
     }
 
     const client = new BasePublicClient({

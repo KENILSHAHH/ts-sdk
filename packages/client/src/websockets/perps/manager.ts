@@ -1,4 +1,5 @@
 import type { PerpsCredentials } from '@polymarket/bindings/perps';
+import { TransportError } from '../../errors';
 import { PerpsSession } from './session';
 
 export type PerpsSessionManagerOptions = {
@@ -14,6 +15,7 @@ export class PerpsSessionManager {
   readonly #sessions = new Set<PerpsSession>();
   readonly #connectingSessions = new Set<PerpsSession>();
   readonly #connecting = new Set<Promise<PerpsSession>>();
+  #closed = false;
 
   constructor(options: PerpsSessionManagerOptions) {
     this.#chainId = options.chainId;
@@ -22,6 +24,12 @@ export class PerpsSessionManager {
   }
 
   connect(credentials: PerpsCredentials): Promise<PerpsSession> {
+    if (this.#closed) {
+      return Promise.reject(
+        new TransportError('Perps session manager is closed.'),
+      );
+    }
+
     const session = new PerpsSession({
       chainId: this.#chainId,
       credentials,
@@ -35,6 +43,10 @@ export class PerpsSessionManager {
     connecting = (async () => {
       try {
         await session.connect();
+        if (this.#closed) {
+          await session.close();
+          throw new TransportError('Perps session manager is closed.');
+        }
         this.#sessions.add(session);
         return session;
       } catch (error) {
@@ -50,7 +62,8 @@ export class PerpsSessionManager {
     return connecting;
   }
 
-  async close(): Promise<void> {
+  async shutdown(): Promise<void> {
+    this.#closed = true;
     const sessions = Array.from(this.#sessions);
     const connectingSessions = Array.from(this.#connectingSessions);
     const connecting = Array.from(this.#connecting);

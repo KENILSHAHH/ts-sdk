@@ -8,7 +8,15 @@ import {
 } from '@polymarket/types';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { createSecureClient } from './clients';
 import { production } from './environments';
 import type { ApiKeyAuthorization, Signer } from './types';
@@ -314,6 +322,49 @@ describe('secure client gasless wallet setup', () => {
       message: 'JSON-RPC eth_call failed: upstream unavailable',
       name: 'RequestRejectedError',
     });
+  });
+
+  it('does not shut down terminal managers when closing subscriptions', async () => {
+    mockApiKeys();
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+      wallet: signerAddress,
+    });
+    const perpsShutdown = vi.fn(() => Promise.resolve());
+    const rfqShutdown = vi.fn(() => Promise.resolve());
+    client.webSockets.perpsSession.shutdown = perpsShutdown;
+    client.webSockets.rfqQuoter.shutdown = rfqShutdown;
+
+    await client.closeSubscriptions();
+
+    expect(perpsShutdown).not.toHaveBeenCalled();
+    expect(rfqShutdown).not.toHaveBeenCalled();
+  });
+
+  it('shuts down terminal managers when ending authentication', async () => {
+    mockApiKeys();
+    server.use(
+      http.delete(`${clobRoot}/auth/api-key`, () => HttpResponse.json('OK')),
+    );
+    const client = await createSecureClient({
+      apiKey,
+      credentials,
+      environment,
+      signer,
+      wallet: signerAddress,
+    });
+    const perpsShutdown = vi.fn(() => Promise.resolve());
+    const rfqShutdown = vi.fn(() => Promise.resolve());
+    client.webSockets.perpsSession.shutdown = perpsShutdown;
+    client.webSockets.rfqQuoter.shutdown = rfqShutdown;
+
+    await client.endAuthentication();
+
+    expect(perpsShutdown).toHaveBeenCalledTimes(1);
+    expect(rfqShutdown).toHaveBeenCalledTimes(1);
   });
 });
 
