@@ -123,6 +123,18 @@ export const ListPerpsWithdrawalsResponseSchema = PerpsDataResponseSchema(
   RawPerpsWithdrawalSchema,
 );
 
+export const RawPerpsWithdrawResponseSchema = z
+  .object({
+    status: z.enum(['ok', 'err']),
+    withdraw_id: PerpsWithdrawalIdSchema.optional(),
+    error: z.string().optional(),
+  })
+  .transform((response) => ({
+    status: response.status,
+    withdrawalId: response.withdraw_id,
+    error: response.error,
+  }));
+
 export const RawPerpsWithdrawalUpdateSchema = z
   .object({
     withdraw_id: PerpsWithdrawalIdSchema,

@@ -4,6 +4,7 @@ import {
   PaginationCursorSchema,
   toPaginationCursor,
 } from '@polymarket/bindings';
+import { WalletType } from '@polymarket/bindings/gamma';
 import {
   FetchPerpsCandlesResponseSchema,
   FetchPerpsFeesResponseSchema,
@@ -26,13 +27,16 @@ import {
   type PerpsPublicTrade,
   type PerpsTicker,
   PerpsTradeIdSchema,
+  type PerpsWithdrawalId,
   RawPerpsBookSchema,
   RawPerpsCreateProxyResponseSchema,
   RawPerpsCredentialsResponseSchema,
   RawPerpsDeleteProxyResponseSchema,
+  RawPerpsWithdrawResponseSchema,
 } from '@polymarket/bindings/perps';
 import {
   type EvmAddress,
+  type EvmSignature,
   expectEvmAddress,
   expectPrivateKey,
   invariant,
@@ -43,8 +47,10 @@ import {
 } from '@polymarket/types';
 import { Address, Hash, Secp256k1 } from 'ox';
 import { z } from 'zod';
+import { MAX_UINT256, perpsDepositCall } from '../abis';
 import type { BaseClient, BaseSecureClient } from '../clients';
 import {
+  CancelledSigningError,
   makeErrorGuard,
   RateLimitError,
   RequestRejectedError,
@@ -56,8 +62,23 @@ import {
 import { parseUserInput } from '../input';
 import { type Paginated, paginate } from '../pagination';
 import { validateWith } from '../response';
-import type { TypedDataPayload } from '../types';
+import {
+  expectTransactionHandle,
+  type SignerTransactionRequest,
+  type TransactionHandle,
+  type TypedDataPayload,
+} from '../types';
 import type { PerpsSession } from '../websockets/perps/session';
+import {
+  completeWith,
+  type SendPerpsDepositTransactionRequest,
+  signerTransactionRequest,
+} from '../workflow';
+import {
+  GaslessTransactionMetadataSchema,
+  type GaslessWorkflowRequest,
+  prepareGaslessTransaction,
+} from './gasless';
 
 export type {
   CancelPerpsOrderRequest,
@@ -755,6 +776,33 @@ export type RevokePerpsCredentialsRequest = z.input<
   typeof RevokePerpsCredentialsRequestSchema
 >;
 
+const PerpsBaseUnitAmountSchema = z.bigint().positive().max(MAX_UINT256);
+
+export type PerpsDepositWorkflowRequest =
+  | GaslessWorkflowRequest
+  | SendPerpsDepositTransactionRequest;
+
+export type PerpsDepositWorkflow = AsyncGenerator<
+  PerpsDepositWorkflowRequest,
+  TransactionHandle,
+  EvmAddress | EvmSignature | TransactionHandle
+>;
+
+const DepositToPerpsRequestSchema = z.object({
+  amount: PerpsBaseUnitAmountSchema,
+  metadata: GaslessTransactionMetadataSchema.optional(),
+});
+
+const WithdrawFromPerpsRequestSchema = z.object({
+  amount: PerpsBaseUnitAmountSchema,
+});
+
+export type DepositToPerpsRequest = z.input<typeof DepositToPerpsRequestSchema>;
+
+export type WithdrawFromPerpsRequest = z.input<
+  typeof WithdrawFromPerpsRequestSchema
+>;
+
 export type OpenPerpsSessionError =
   | RateLimitError
   | RequestRejectedError
@@ -779,6 +827,43 @@ export type RevokePerpsCredentialsError =
   | UnexpectedResponseError
   | UserInputError;
 export const RevokePerpsCredentialsError = makeErrorGuard(
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+export type PreparePerpsDepositError = UserInputError;
+export const PreparePerpsDepositError = makeErrorGuard(UserInputError);
+
+export type DepositToPerpsError =
+  | RateLimitError
+  | RequestRejectedError
+  | CancelledSigningError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const DepositToPerpsError = makeErrorGuard(
+  CancelledSigningError,
+  RateLimitError,
+  RequestRejectedError,
+  SigningError,
+  TransportError,
+  UnexpectedResponseError,
+  UserInputError,
+);
+
+export type WithdrawFromPerpsError =
+  | RateLimitError
+  | RequestRejectedError
+  | SigningError
+  | TransportError
+  | UnexpectedResponseError
+  | UserInputError;
+export const WithdrawFromPerpsError = makeErrorGuard(
   RateLimitError,
   RequestRejectedError,
   SigningError,
@@ -857,6 +942,121 @@ export async function revokePerpsCredentials(
       { status: 200 },
     );
   }
+}
+
+/**
+ * Starts a Perps deposit workflow.
+ *
+ * @remarks
+ * The deposit sends approved collateral into the Perps deposit contract and
+ * credits the authenticated signer account. It does not approve collateral
+ * spending; call `setupTradingApprovals` first when allowance is missing.
+ *
+ * @throws {@link PreparePerpsDepositError}
+ * Thrown on failure.
+ */
+export async function preparePerpsDeposit(
+  client: BaseSecureClient,
+  request: DepositToPerpsRequest,
+): Promise<PerpsDepositWorkflow> {
+  const params = parseUserInput(request, DepositToPerpsRequestSchema);
+  const call = perpsDepositCall(
+    client.environment.perpsDepositContract,
+    client.environment.collateralToken,
+    params.amount,
+    client.account.signer,
+  );
+
+  return async function* (): PerpsDepositWorkflow {
+    if (client.account.walletType === WalletType.EOA) {
+      return expectTransactionHandle(
+        yield sendPerpsDepositTransaction(
+          signerTransactionRequest(client.environment.chainId, call),
+        ),
+      );
+    }
+
+    return yield* await prepareGaslessTransaction(client, {
+      calls: [call],
+      metadata:
+        params.metadata ??
+        `Deposit ${params.amount} of ${client.environment.collateralToken} to Perps`,
+    });
+  }.call(null);
+}
+
+/**
+ * Deposits collateral into Perps for the authenticated signer account.
+ *
+ * @throws {@link DepositToPerpsError}
+ * Thrown on failure.
+ */
+export function depositToPerps(
+  client: BaseSecureClient,
+  request: DepositToPerpsRequest,
+): Promise<TransactionHandle> {
+  return preparePerpsDeposit(client, request).then(completeWith(client.signer));
+}
+
+/**
+ * Requests a Perps withdrawal to the authenticated wallet.
+ *
+ * @remarks
+ * The withdrawal is signed by the owner account and sends funds to the SDK
+ * wallet address associated with the authenticated account.
+ *
+ * @throws {@link WithdrawFromPerpsError}
+ * Thrown on failure.
+ */
+export async function withdrawFromPerps(
+  client: BaseSecureClient,
+  request: WithdrawFromPerpsRequest,
+): Promise<PerpsWithdrawalId> {
+  const params = parseUserInput(request, WithdrawFromPerpsRequestSchema);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const salt = randomUint32();
+  const op = {
+    type: 'withdraw' as const,
+    args: {
+      account: client.account.signer,
+      token: client.environment.collateralToken,
+      amount: params.amount.toString(),
+      to: client.account.wallet,
+    },
+  };
+  const signature = await signPerpsWithdraw(client, {
+    amount: params.amount,
+    salt,
+    timestamp,
+  });
+
+  const response = await unwrap(
+    client.perps
+      .post('/v1/account/withdraw', {
+        json: {
+          op,
+          salt,
+          sig: signature,
+          ts: timestamp,
+        },
+      })
+      .andThen(validateWith(RawPerpsWithdrawResponseSchema)),
+  );
+
+  if (response.status === 'err') {
+    throw new RequestRejectedError(
+      response.error ?? 'Perps withdrawal was rejected.',
+      { status: 200 },
+    );
+  }
+
+  if (response.withdrawalId === undefined) {
+    throw new UnexpectedResponseError(
+      'Perps withdrawal response did not include a withdrawal ID.',
+    );
+  }
+
+  return response.withdrawalId;
 }
 
 async function createPerpsCredentials(
@@ -1008,6 +1208,78 @@ async function signPerpsOp(
   }
 }
 
+type PerpsWithdrawSignatureRequest = {
+  amount: bigint;
+  salt: number;
+  timestamp: number;
+};
+
+async function signPerpsWithdraw(
+  client: BaseSecureClient,
+  request: PerpsWithdrawSignatureRequest,
+) {
+  try {
+    return await client.signer.signTypedData(
+      createPerpsWithdrawTypedDataPayload({
+        account: client.account.signer,
+        chainId: client.environment.chainId,
+        contract: client.environment.perpsDepositContract,
+        token: client.environment.collateralToken,
+        to: client.account.wallet,
+        ...request,
+      }),
+    );
+  } catch (error) {
+    throw SigningError.fromError(
+      error,
+      'Could not sign the Perps withdrawal request',
+    );
+  }
+}
+
+type CreatePerpsWithdrawTypedDataPayloadRequest =
+  PerpsWithdrawSignatureRequest & {
+    account: EvmAddress;
+    chainId: number;
+    contract: EvmAddress;
+    token: EvmAddress;
+    to: EvmAddress;
+  };
+
+function createPerpsWithdrawTypedDataPayload(
+  request: CreatePerpsWithdrawTypedDataPayloadRequest,
+): TypedDataPayload {
+  return {
+    domain: {
+      chainId: request.chainId,
+      name: 'Polymarket',
+      verifyingContract: request.contract,
+      version: '1',
+    },
+    message: {
+      account: request.account,
+      amount: request.amount,
+      fee: 0n,
+      salt: request.salt,
+      token: request.token,
+      to: request.to,
+      ts: request.timestamp,
+    },
+    primaryType: 'Withdraw',
+    types: {
+      Withdraw: [
+        { name: 'account', type: 'address' },
+        { name: 'token', type: 'address' },
+        { name: 'amount', type: 'uint256' },
+        { name: 'fee', type: 'uint256' },
+        { name: 'to', type: 'address' },
+        { name: 'salt', type: 'uint64' },
+        { name: 'ts', type: 'uint64' },
+      ],
+    },
+  };
+}
+
 type CreatePerpsOpTypedDataPayloadRequest = PerpsOpSignatureRequest & {
   chainId: number;
 };
@@ -1099,6 +1371,15 @@ function perpsCredentialHeaders(
   return {
     'POLYMARKET-PROXY': credentials.proxy,
     'POLYMARKET-SECRET': credentials.secret,
+  };
+}
+
+function sendPerpsDepositTransaction(
+  request: SignerTransactionRequest,
+): SendPerpsDepositTransactionRequest {
+  return {
+    kind: 'sendPerpsDepositTransaction',
+    request,
   };
 }
 

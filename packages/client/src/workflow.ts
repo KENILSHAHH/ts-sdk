@@ -32,6 +32,11 @@ export type SendErc20TransferTransactionRequest = {
   request: SignerTransactionRequest;
 };
 
+export type SendPerpsDepositTransactionRequest = {
+  kind: 'sendPerpsDepositTransaction';
+  request: SignerTransactionRequest;
+};
+
 export type SignGaslessTypedDataRequest = {
   kind: 'signGaslessTypedData';
   payload: TypedDataPayload;
@@ -92,6 +97,7 @@ export type CompleteWorkflowRequest =
   | SendErc20ApprovalTransactionRequest
   | SendErc1155ApprovalForAllTransactionRequest
   | SendErc20TransferTransactionRequest
+  | SendPerpsDepositTransactionRequest
   | SignGaslessTypedDataRequest
   | SignGaslessMessageRequest
   | SendSplitPositionTransactionRequest
@@ -162,6 +168,7 @@ export function completeWith(signer: Signer): CompleteWith {
           case 'sendErc20ApprovalTransaction':
           case 'sendErc1155ApprovalForAllTransaction':
           case 'sendErc20TransferTransaction':
+          case 'sendPerpsDepositTransaction':
           case 'sendMergePositionsTransaction':
           case 'sendRedeemPositionsTransaction':
           case 'sendSplitPositionTransaction':

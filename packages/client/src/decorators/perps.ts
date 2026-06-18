@@ -6,8 +6,11 @@ import type {
   PerpsInstrument,
   PerpsPublicTrade,
   PerpsTicker,
+  PerpsWithdrawalId,
 } from '@polymarket/bindings/perps';
 import {
+  type DepositToPerpsRequest,
+  depositToPerps,
   type FetchPerpsBookRequest,
   type FetchPerpsInstrumentsRequest,
   type FetchPerpsTickerRequest,
@@ -28,6 +31,8 @@ import {
   type PerpsSession,
   type RevokePerpsCredentialsRequest,
   revokePerpsCredentials,
+  type WithdrawFromPerpsRequest,
+  withdrawFromPerps,
 } from '../actions';
 import type {
   BaseClient,
@@ -35,6 +40,7 @@ import type {
   BaseSecureClient,
 } from '../clients';
 import type { Paginated } from '../pagination';
+import type { TransactionHandle } from '../types';
 
 export type { PerpsSession, PerpsSessionEvent } from '../actions';
 
@@ -112,6 +118,14 @@ export type PublicPerpsActions = {
 
 export type SecurePerpsActions = PublicPerpsActions & {
   /**
+   * Deposits collateral into Perps for the authenticated signer account.
+   *
+   * @throws {@link DepositToPerpsError}
+   * Thrown on failure.
+   */
+  depositToPerps(request: DepositToPerpsRequest): Promise<TransactionHandle>;
+
+  /**
    * Opens a Perps account session.
    *
    * @remarks
@@ -133,6 +147,16 @@ export type SecurePerpsActions = PublicPerpsActions & {
    * Thrown on failure.
    */
   revokePerpsCredentials(request: RevokePerpsCredentialsRequest): Promise<void>;
+
+  /**
+   * Requests a Perps withdrawal to the authenticated wallet.
+   *
+   * @throws {@link WithdrawFromPerpsError}
+   * Thrown on failure.
+   */
+  withdrawFromPerps(
+    request: WithdrawFromPerpsRequest,
+  ): Promise<PerpsWithdrawalId>;
 };
 
 export type PerpsActions = PublicPerpsActions;
@@ -158,8 +182,10 @@ export function perpsActions(
 
   return {
     ...actions,
+    depositToPerps: (request) => depositToPerps(client, request),
     openPerpsSession: (request) => openPerpsSession(client, request),
     revokePerpsCredentials: (request) =>
       revokePerpsCredentials(client, request),
+    withdrawFromPerps: (request) => withdrawFromPerps(client, request),
   };
 }
