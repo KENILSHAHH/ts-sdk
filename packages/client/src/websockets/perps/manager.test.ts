@@ -71,7 +71,7 @@ describe('PerpsSessionManager', () => {
     const shutdown = manager.shutdown();
 
     await expect(manager.connect(credentials)).rejects.toThrow(
-      'Perps session manager is closed.',
+      'Perps session manager has been shut down.',
     );
     connection.resolveAuth();
 
@@ -90,7 +90,7 @@ describe('PerpsSessionManager', () => {
     await manager.shutdown();
 
     await expect(manager.connect(credentials)).rejects.toThrow(
-      'Perps session manager is closed.',
+      'Perps session manager has been shut down.',
     );
   });
 });

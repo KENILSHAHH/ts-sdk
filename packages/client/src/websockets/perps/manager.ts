@@ -15,7 +15,7 @@ export class PerpsSessionManager {
   readonly #sessions = new Set<PerpsSession>();
   readonly #connectingSessions = new Set<PerpsSession>();
   readonly #connecting = new Set<Promise<PerpsSession>>();
-  #closed = false;
+  #hasShutdown = false;
 
   constructor(options: PerpsSessionManagerOptions) {
     this.#chainId = options.chainId;
@@ -24,9 +24,9 @@ export class PerpsSessionManager {
   }
 
   connect(credentials: PerpsCredentials): Promise<PerpsSession> {
-    if (this.#closed) {
+    if (this.#hasShutdown) {
       return Promise.reject(
-        new TransportError('Perps session manager is closed.'),
+        new TransportError('Perps session manager has been shut down.'),
       );
     }
 
@@ -43,9 +43,9 @@ export class PerpsSessionManager {
     connecting = (async () => {
       try {
         await session.connect();
-        if (this.#closed) {
+        if (this.#hasShutdown) {
           await session.close();
-          throw new TransportError('Perps session manager is closed.');
+          throw new TransportError('Perps session manager has been shut down.');
         }
         this.#sessions.add(session);
         return session;
@@ -63,7 +63,7 @@ export class PerpsSessionManager {
   }
 
   async shutdown(): Promise<void> {
-    this.#closed = true;
+    this.#hasShutdown = true;
     const sessions = Array.from(this.#sessions);
     const connectingSessions = Array.from(this.#connectingSessions);
     const connecting = Array.from(this.#connecting);
