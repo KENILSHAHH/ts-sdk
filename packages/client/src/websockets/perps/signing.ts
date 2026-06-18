@@ -2,6 +2,7 @@ import { encode } from '@msgpack/msgpack';
 import type { EvmSignature, PrivateKey } from '@polymarket/types';
 import { expectEvmSignature } from '@polymarket/types';
 import { Hash, Secp256k1, Signature, TypedData } from 'ox';
+import type { TypedDataPayload } from '../../types';
 
 type MsgpackValue =
   | boolean
@@ -20,16 +21,33 @@ export type SignPerpsOpRequest = {
   timestamp: number;
 };
 
+export type CreatePerpsOpTypedDataPayloadRequest = Omit<
+  SignPerpsOpRequest,
+  'privateKey'
+>;
+
 export function signPerpsOp(request: SignPerpsOpRequest): EvmSignature {
-  const data = Hash.keccak256(encode(request.op), { as: 'Hex' });
-  const payload = TypedData.getSignPayload({
+  const payload = TypedData.getSignPayload(
+    createPerpsOpTypedDataPayload(request),
+  );
+  return expectEvmSignature(
+    Signature.toHex(
+      Secp256k1.sign({ payload, privateKey: request.privateKey }),
+    ),
+  );
+}
+
+export function createPerpsOpTypedDataPayload(
+  request: CreatePerpsOpTypedDataPayloadRequest,
+): TypedDataPayload {
+  return {
     domain: {
       chainId: request.chainId,
       name: 'Polymarket',
       version: '1',
     },
     message: {
-      data,
+      data: Hash.keccak256(encode(request.op), { as: 'Hex' }),
       salt: BigInt(request.salt),
       ts: BigInt(request.timestamp),
     },
@@ -41,10 +59,5 @@ export function signPerpsOp(request: SignPerpsOpRequest): EvmSignature {
         { name: 'ts', type: 'uint64' },
       ],
     },
-  });
-  return expectEvmSignature(
-    Signature.toHex(
-      Secp256k1.sign({ payload, privateKey: request.privateKey }),
-    ),
-  );
+  };
 }

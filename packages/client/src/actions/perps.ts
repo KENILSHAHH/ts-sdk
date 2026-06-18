@@ -1,4 +1,3 @@
-import { encode } from '@msgpack/msgpack';
 import {
   type PaginationCursor,
   PaginationCursorSchema,
@@ -45,7 +44,7 @@ import {
   type PrivateKey,
   unwrap,
 } from '@polymarket/types';
-import { Address, Hash, Secp256k1 } from 'ox';
+import { Address, Secp256k1 } from 'ox';
 import { z } from 'zod';
 import { MAX_UINT256, perpsDepositCall } from '../abis';
 import type { BaseClient, BaseSecureClient } from '../clients';
@@ -69,6 +68,10 @@ import {
   type TypedDataPayload,
 } from '../types';
 import type { PerpsSession } from '../websockets/perps/session';
+import {
+  createPerpsOpTypedDataPayload,
+  type PerpsSignedOp,
+} from '../websockets/perps/signing';
 import {
   completeWith,
   type SendPerpsDepositTransactionRequest,
@@ -915,11 +918,15 @@ export async function revokePerpsCredentials(
       proxy: params.proxy,
     },
   };
+  const signedOp = [
+    'deleteProxy',
+    [params.proxy],
+  ] as const satisfies PerpsSignedOp;
   const salt = randomUint32();
   const timestamp = Date.now();
-  const signature = await signPerpsOp(client, {
-    op,
+  const signature = await signPerpsOwnerOp(client, {
     salt,
+    signedOp,
     timestamp,
   });
 
@@ -1176,20 +1183,13 @@ async function signPerpsCreateProxy(
   }
 }
 
-type PerpsOwnerSignedOp = {
-  type: 'deleteProxy';
-  args: {
-    proxy: EvmAddress;
-  };
-};
-
 type PerpsOpSignatureRequest = {
-  op: PerpsOwnerSignedOp;
   salt: number;
+  signedOp: PerpsSignedOp;
   timestamp: number;
 };
 
-async function signPerpsOp(
+async function signPerpsOwnerOp(
   client: BaseSecureClient,
   request: PerpsOpSignatureRequest,
 ) {
@@ -1197,7 +1197,9 @@ async function signPerpsOp(
     return await client.signer.signTypedData(
       createPerpsOpTypedDataPayload({
         chainId: client.environment.chainId,
-        ...request,
+        op: request.signedOp,
+        salt: request.salt,
+        timestamp: request.timestamp,
       }),
     );
   } catch (error) {
@@ -1273,35 +1275,6 @@ function createPerpsWithdrawTypedDataPayload(
         { name: 'amount', type: 'uint256' },
         { name: 'fee', type: 'uint256' },
         { name: 'to', type: 'address' },
-        { name: 'salt', type: 'uint64' },
-        { name: 'ts', type: 'uint64' },
-      ],
-    },
-  };
-}
-
-type CreatePerpsOpTypedDataPayloadRequest = PerpsOpSignatureRequest & {
-  chainId: number;
-};
-
-function createPerpsOpTypedDataPayload(
-  request: CreatePerpsOpTypedDataPayloadRequest,
-): TypedDataPayload {
-  return {
-    domain: {
-      chainId: request.chainId,
-      name: 'Polymarket',
-      version: '1',
-    },
-    message: {
-      data: Hash.keccak256(encode(request.op), { as: 'Hex' }),
-      salt: request.salt,
-      ts: request.timestamp,
-    },
-    primaryType: 'Op',
-    types: {
-      Op: [
-        { name: 'data', type: 'bytes32' },
         { name: 'salt', type: 'uint64' },
         { name: 'ts', type: 'uint64' },
       ],
