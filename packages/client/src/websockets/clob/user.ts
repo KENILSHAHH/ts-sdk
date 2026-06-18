@@ -30,14 +30,16 @@ import {
 
 export type ClobUserWebSocketManagerOptions = {
   credentials: ApiKeyCreds;
+  headers?: Record<string, string>;
   url: string;
 };
 
 export class ClobUserWebSocketManager
   implements WebSocketSubscriptionManager<UserSubscription, UserEvent>
 {
-  readonly #url: string;
   readonly #credentials: ApiKeyCreds;
+  readonly #headers: Record<string, string> | undefined;
+  readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection({
     heartbeat: new ClobWebSocketHeartbeat(),
@@ -50,8 +52,9 @@ export class ClobUserWebSocketManager
   >({ deriveServerState: deriveUserServerSubscription });
 
   constructor(options: ClobUserWebSocketManagerOptions) {
-    this.#url = options.url;
     this.#credentials = options.credentials;
+    this.#headers = options.headers;
+    this.#url = options.url;
   }
 
   async subscribe(
@@ -126,6 +129,7 @@ export class ClobUserWebSocketManager
       onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: (credentials) => this.#onConnectionOpen(credentials),
       prepare: () => this.#credentials,
+      headers: this.#headers,
       url: this.#url,
     });
   }

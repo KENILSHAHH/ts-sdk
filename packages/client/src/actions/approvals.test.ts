@@ -83,8 +83,8 @@ describe('prepareTradingApprovals', () => {
         request: {
           chainId: production.chainId,
           ...erc20ApprovalCall(
-            production.collateralToken,
-            production.perpsDepositContract,
+            production.contracts.collateralToken,
+            production.contracts.perpsDepositContract,
             MAX_UINT256,
           ),
         },
@@ -100,8 +100,8 @@ describe('prepareTradingApprovals', () => {
         request: {
           chainId: production.chainId,
           ...erc1155ApprovalForAllCall(
-            production.conditionalTokens,
-            production.standardExchange,
+            production.contracts.conditionalTokens,
+            production.contracts.standardExchange,
             true,
           ),
         },

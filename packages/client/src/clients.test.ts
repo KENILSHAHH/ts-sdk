@@ -18,7 +18,7 @@ import {
   vi,
 } from 'vitest';
 import { createSecureClient } from './clients';
-import { production } from './environments';
+import { forkEnvironmentConfig } from './environments';
 import type { ApiKeyAuthorization, Signer } from './types';
 import {
   deriveBeaconDepositWalletAddress,
@@ -35,12 +35,12 @@ const signerAddress = expectEvmAddress(
   '0x0000000000000000000000000000000000000001',
 );
 
-const environment = {
-  ...production,
-  clob: clobRoot,
-  relayer: relayerRoot,
+const environment = forkEnvironmentConfig({
+  name: 'test',
+  clob: { rest: clobRoot },
+  relayer: { rest: relayerRoot },
   rpc: rpcRoot,
-};
+});
 
 const credentials: ApiKeyCreds = {
   key: ApiKeySchema.parse('key'),

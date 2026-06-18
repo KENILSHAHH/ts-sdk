@@ -4,12 +4,14 @@ import { PerpsSession } from './session';
 
 export type PerpsSessionManagerOptions = {
   chainId: number;
+  headers?: Record<string, string>;
   restUrl: string;
   wsUrl: string;
 };
 
 export class PerpsSessionManager {
   readonly #chainId: number;
+  readonly #headers: Record<string, string> | undefined;
   readonly #restUrl: string;
   readonly #wsUrl: string;
   readonly #sessions = new Set<PerpsSession>();
@@ -19,6 +21,7 @@ export class PerpsSessionManager {
 
   constructor(options: PerpsSessionManagerOptions) {
     this.#chainId = options.chainId;
+    this.#headers = options.headers;
     this.#restUrl = options.restUrl;
     this.#wsUrl = options.wsUrl;
   }
@@ -33,6 +36,7 @@ export class PerpsSessionManager {
     const session = new PerpsSession({
       chainId: this.#chainId,
       credentials,
+      headers: this.#headers,
       onClose: (closedSession) => this.#clearSession(closedSession),
       restUrl: this.#restUrl,
       wsUrl: this.#wsUrl,

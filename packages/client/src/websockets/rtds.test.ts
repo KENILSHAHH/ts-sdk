@@ -13,9 +13,9 @@ import { production } from '../environments';
 import { RtdsWebSocketManager } from './rtds';
 import { captureConnection, collectFrames, waitForNextEvent } from './testing';
 
-const rtds = ws.link(production.rtdsWs);
+const rtds = ws.link(production.rtds.ws);
 const server = setupServer();
-const manager = new RtdsWebSocketManager(production.rtdsWs);
+const manager = new RtdsWebSocketManager({ url: production.rtds.ws });
 
 describe('RtdsWebSocketManager', () => {
   beforeAll(() => {

@@ -20,7 +20,7 @@ import { production } from '../../environments';
 import { captureConnection, waitForNextEvent } from '../testing';
 import { PerpsSession } from './session';
 
-const perps = ws.link(production.perpsWs);
+const perps = ws.link(production.perps.ws);
 const server = setupServer();
 
 const credentials = {
@@ -348,7 +348,7 @@ describe('PerpsSession', () => {
     it('sends session credentials as REST auth headers', async () => {
       server.use(
         http.get(
-          `${production.perpsApi}/v1/account/balances`,
+          `${production.perps.rest}/v1/account/balances`,
           ({ request }) => {
             expect(request.headers.get('polymarket-proxy')).toBe(
               credentials.proxy,
@@ -372,7 +372,7 @@ describe('PerpsSession', () => {
     it('overlaps and dedupes descending account history pages', async () => {
       const requests: URLSearchParams[] = [];
       server.use(
-        http.get(`${production.perpsApi}/v1/account/fills`, ({ request }) => {
+        http.get(`${production.perps.rest}/v1/account/fills`, ({ request }) => {
           const params = new URL(request.url).searchParams;
           requests.push(params);
 
@@ -406,7 +406,7 @@ describe('PerpsSession', () => {
     it('continues descending account history after a fully deduped boundary page', async () => {
       const requests: URLSearchParams[] = [];
       server.use(
-        http.get(`${production.perpsApi}/v1/account/fills`, ({ request }) => {
+        http.get(`${production.perps.rest}/v1/account/fills`, ({ request }) => {
           const params = new URL(request.url).searchParams;
           requests.push(params);
 
@@ -451,25 +451,28 @@ describe('PerpsSession', () => {
     it('continues ascending interval account history pages', async () => {
       const requests: URLSearchParams[] = [];
       server.use(
-        http.get(`${production.perpsApi}/v1/account/equity`, ({ request }) => {
-          const params = new URL(request.url).searchParams;
-          requests.push(params);
+        http.get(
+          `${production.perps.rest}/v1/account/equity`,
+          ({ request }) => {
+            const params = new URL(request.url).searchParams;
+            requests.push(params);
 
-          if (params.get('start_timestamp') === '0') {
+            if (params.get('start_timestamp') === '0') {
+              return HttpResponse.json({
+                data: [
+                  [0, '10'],
+                  [3_600_000, '11'],
+                ],
+                more: true,
+              });
+            }
+
             return HttpResponse.json({
-              data: [
-                [0, '10'],
-                [3_600_000, '11'],
-              ],
-              more: true,
+              data: [[7_200_000, '12']],
+              more: false,
             });
-          }
-
-          return HttpResponse.json({
-            data: [[7_200_000, '12']],
-            more: false,
-          });
-        }),
+          },
+        ),
       );
       const session = createSession();
       const pages = session.listEquityHistory({
@@ -498,8 +501,8 @@ function createSession(): PerpsSession {
     chainId: production.chainId,
     credentials,
     onClose: () => undefined,
-    restUrl: production.perpsApi,
-    wsUrl: production.perpsWs,
+    restUrl: production.perps.rest,
+    wsUrl: production.perps.ws,
   });
 }
 

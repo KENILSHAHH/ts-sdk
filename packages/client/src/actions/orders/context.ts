@@ -29,6 +29,6 @@ export function resolveExchangeAddress(
   negRisk: boolean,
 ): EvmAddress {
   return negRisk
-    ? client.environment.negRiskExchange
-    : client.environment.standardExchange;
+    ? client.environment.contracts.negRiskExchange
+    : client.environment.contracts.standardExchange;
 }

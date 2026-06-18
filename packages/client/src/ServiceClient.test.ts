@@ -120,6 +120,30 @@ describe('ServiceClient', () => {
     });
   });
 
+  it('sends configured headers with requests', async () => {
+    server.use(
+      http.get(`${root}/headers`, ({ request }) => {
+        expect(request.headers.get('CF-Access-Client-Id')).toBe('client-id');
+        expect(request.headers.get('CF-Access-Client-Secret')).toBe(
+          'client-secret',
+        );
+
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    const client = new ServiceClient({
+      headers: {
+        'CF-Access-Client-Id': 'client-id',
+        'CF-Access-Client-Secret': 'client-secret',
+      },
+      root,
+    });
+
+    await expect(unwrap(client.get('/headers'))).resolves.toBeInstanceOf(
+      Response,
+    );
+  });
+
   it('identifies unreadable HTML errors when the server is unknown', async () => {
     server.use(
       http.get(

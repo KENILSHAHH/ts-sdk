@@ -259,7 +259,7 @@ export async function prepareSplitMarketPosition(
   });
   const call = splitPositionCall(
     context.adapterAddress,
-    client.environment.collateralToken,
+    client.environment.contracts.collateralToken,
     context.conditionId,
     params.amount,
   );
@@ -308,12 +308,12 @@ export async function prepareSplitComboPosition(
     PrepareSplitComboPositionRequestSchema,
   );
   const prepareConditionCall = combinatorialPrepareConditionCall(
-    client.environment.combinatorialModule,
+    client.environment.contracts.combinatorialModule,
     params.legs,
   );
   const combo = deriveComboPositionContext(params.legs);
   const splitCall = splitV2Call(
-    client.environment.protocolV2Router,
+    client.environment.contracts.protocolV2Router,
     combo.conditionId,
     params.amount,
   );
@@ -557,7 +557,7 @@ export async function prepareMergeMarketPosition(
   );
   const call = mergePositionsCall(
     context.adapterAddress,
-    client.environment.collateralToken,
+    client.environment.contracts.collateralToken,
     context.conditionId,
     amount,
   );
@@ -606,14 +606,14 @@ export async function prepareMergeComboPosition(
     PrepareMergeComboPositionRequestSchema,
   );
   const prepareConditionCall = combinatorialPrepareConditionCall(
-    client.environment.combinatorialModule,
+    client.environment.contracts.combinatorialModule,
     params.legs,
   );
   const combo = deriveComboPositionContext(params.legs);
   const balances = decodeErc1155BalanceOfBatchResult(
     await client.rpc.ethCall(
       erc1155BalanceOfBatchCall(
-        client.environment.positionManager,
+        client.environment.contracts.positionManager,
         client.account.wallet,
         combo.positionIds,
       ),
@@ -621,7 +621,7 @@ export async function prepareMergeComboPosition(
   );
   const amount = resolveMergeAmount(combo.conditionId, balances, params.amount);
   const mergeCall = mergeV2Call(
-    client.environment.protocolV2Router,
+    client.environment.contracts.protocolV2Router,
     combo.conditionId,
     amount,
   );
@@ -877,7 +877,7 @@ export async function prepareRedeemMarketPositions(
   );
   const call = ctfRedeemPositionsCall(
     context.adapterAddress,
-    client.environment.collateralToken,
+    client.environment.contracts.collateralToken,
     context.conditionId,
   );
 
@@ -927,7 +927,7 @@ export async function prepareRedeemComboPosition(
   const balance = decodeErc1155BalanceOfResult(
     await client.rpc.ethCall(
       erc1155BalanceOfCall(
-        client.environment.positionManager,
+        client.environment.contracts.positionManager,
         client.account.wallet,
         params.positionId,
       ),
@@ -939,7 +939,7 @@ export async function prepareRedeemComboPosition(
   }
 
   const call = redeemV2Call(
-    client.environment.protocolV2Router,
+    client.environment.contracts.protocolV2Router,
     decoded.conditionId,
     decoded.outcomeIndex,
     balance,
@@ -1086,11 +1086,11 @@ async function resolveMarketClobContext(
   return {
     ...marketContext,
     adapterAddress: marketContext.negRisk
-      ? client.environment.negRiskCollateralAdapter
-      : client.environment.collateralAdapter,
+      ? client.environment.contracts.negRiskCollateralAdapter
+      : client.environment.contracts.collateralAdapter,
     positionErc1155Address: marketContext.negRisk
-      ? client.environment.negRiskAdapter
-      : client.environment.conditionalTokens,
+      ? client.environment.contracts.negRiskAdapter
+      : client.environment.contracts.conditionalTokens,
   };
 }
 

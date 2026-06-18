@@ -291,30 +291,50 @@ class BasePublicClient<
     super({
       apiKey: config.apiKey,
       environment: config.environment,
-      data: new ServiceClient({ root: config.environment.data }),
-      gamma: new ServiceClient({ root: config.environment.gamma }),
+      data: new ServiceClient({
+        headers: config.environment.data.headers,
+        root: config.environment.data.rest,
+      }),
+      gamma: new ServiceClient({
+        headers: config.environment.gamma.headers,
+        root: config.environment.gamma.rest,
+      }),
       clob: new ServiceClient({
-        root: config.environment.clob,
+        headers: config.environment.clob.headers,
+        root: config.environment.clob.rest,
         resolveHeaders: (request) => this.resolveClobHeaders(request),
       }),
       relayer: new ServiceClient({
-        root: config.environment.relayer,
+        headers: config.environment.relayer.headers,
+        root: config.environment.relayer.rest,
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
-      rfq: new ServiceClient({ root: config.environment.rfq }),
-      perps: new ServiceClient({ root: config.environment.perpsApi }),
+      rfq: new ServiceClient({
+        headers: config.environment.rfq.headers,
+        root: config.environment.rfq.rest,
+      }),
+      perps: new ServiceClient({
+        headers: config.environment.perps.headers,
+        root: config.environment.perps.rest,
+      }),
       rpc: new JsonRpcClient({ url: config.environment.rpc }),
       webSockets: {
         clobMarket: new ClobMarketWebSocketManager({
-          url: config.environment.clobMarketWs,
+          headers: config.environment.clob.market.headers,
+          url: config.environment.clob.market.ws,
         }),
         sports: new SportsWebSocketManager({
-          url: config.environment.sportsWs,
+          headers: config.environment.sports.headers,
+          url: config.environment.sports.ws,
         }),
-        rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
-        perpsSubscriptions: new PerpsSubscriptionManager(
-          config.environment.perpsWs,
-        ),
+        rtds: new RtdsWebSocketManager({
+          headers: config.environment.rtds.headers,
+          url: config.environment.rtds.ws,
+        }),
+        perpsSubscriptions: new PerpsSubscriptionManager({
+          headers: config.environment.perps.headers,
+          url: config.environment.perps.ws,
+        }),
       },
     });
   }
@@ -511,53 +531,76 @@ class BaseSecureClient<
       environment: config.environment,
       signer: config.signer,
       clob: new ServiceClient({
-        root: config.environment.clob,
+        headers: config.environment.clob.headers,
+        root: config.environment.clob.rest,
         resolveHeaders: (request) => this.resolveClobHeaders(request),
       }),
       relayer: new ServiceClient({
-        root: config.environment.relayer,
+        headers: config.environment.relayer.headers,
+        root: config.environment.relayer.rest,
         resolveHeaders: (request) => this.resolveRelayerHeaders(request),
       }),
       rpc: new JsonRpcClient({ url: config.environment.rpc }),
-      gamma: new ServiceClient({ root: config.environment.gamma }),
-      data: new ServiceClient({ root: config.environment.data }),
-      rfq: new ServiceClient({ root: config.environment.rfq }),
-      perps: new ServiceClient({ root: config.environment.perpsApi }),
+      gamma: new ServiceClient({
+        headers: config.environment.gamma.headers,
+        root: config.environment.gamma.rest,
+      }),
+      data: new ServiceClient({
+        headers: config.environment.data.headers,
+        root: config.environment.data.rest,
+      }),
+      rfq: new ServiceClient({
+        headers: config.environment.rfq.headers,
+        root: config.environment.rfq.rest,
+      }),
+      perps: new ServiceClient({
+        headers: config.environment.perps.headers,
+        root: config.environment.perps.rest,
+      }),
       secureClob: new ServiceClient({
+        headers: config.environment.clob.headers,
         resolveHeaders: async (request) => ({
           ...(await this.resolveClobHeaders(request)),
           ...(await this.#createL2Headers(request)),
         }),
-        root: config.environment.clob,
+        root: config.environment.clob.rest,
       }),
       webSockets: {
         clobMarket: new ClobMarketWebSocketManager({
-          url: config.environment.clobMarketWs,
+          headers: config.environment.clob.market.headers,
+          url: config.environment.clob.market.ws,
         }),
         clobUser: new ClobUserWebSocketManager({
           credentials: config.credentials,
-          url: config.environment.clobUserWs,
+          headers: config.environment.clob.user.headers,
+          url: config.environment.clob.user.ws,
         }),
         rfqQuoter: new RfqQuoterWebSocketManager({
           account: config.account,
           chainId: config.environment.chainId,
           credentials: config.credentials,
-          exchange: config.environment.exchangeV3,
-          headers: config.environment.rfqQuoterWsHeaders,
+          exchange: config.environment.contracts.exchangeV3,
+          headers: config.environment.rfq.headers,
           signer: config.signer,
-          url: config.environment.rfqQuoterWs,
+          url: config.environment.rfq.ws,
         }),
         sports: new SportsWebSocketManager({
-          url: config.environment.sportsWs,
+          headers: config.environment.sports.headers,
+          url: config.environment.sports.ws,
         }),
-        rtds: new RtdsWebSocketManager(config.environment.rtdsWs),
-        perpsSubscriptions: new PerpsSubscriptionManager(
-          config.environment.perpsWs,
-        ),
+        rtds: new RtdsWebSocketManager({
+          headers: config.environment.rtds.headers,
+          url: config.environment.rtds.ws,
+        }),
+        perpsSubscriptions: new PerpsSubscriptionManager({
+          headers: config.environment.perps.headers,
+          url: config.environment.perps.ws,
+        }),
         perpsSession: new PerpsSessionManager({
-          restUrl: config.environment.perpsApi,
           chainId: config.environment.chainId,
-          wsUrl: config.environment.perpsWs,
+          headers: config.environment.perps.headers,
+          restUrl: config.environment.perps.rest,
+          wsUrl: config.environment.perps.ws,
         }),
       },
     });

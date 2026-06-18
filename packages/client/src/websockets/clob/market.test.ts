@@ -13,10 +13,10 @@ import { production } from '../../environments';
 import { captureConnection, collectFrames, waitForNextEvent } from '../testing';
 import { ClobMarketWebSocketManager } from './market';
 
-const clobMarket = ws.link(production.clobMarketWs);
+const clobMarket = ws.link(production.clob.market.ws);
 const server = setupServer();
 const manager = new ClobMarketWebSocketManager({
-  url: production.clobMarketWs,
+  url: production.clob.market.ws,
 });
 
 describe('ClobMarketWebSocketManager', () => {

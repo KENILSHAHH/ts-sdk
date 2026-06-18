@@ -90,7 +90,7 @@ export type SecureWalletActions = {
    * const handle = await client.transferErc20({
    *   amount: 1n,
    *   recipientAddress: client.account.signer,
-   *   tokenAddress: client.environment.collateralToken,
+   *   tokenAddress: client.environment.contracts.collateralToken,
    * });
    *
    * const outcome = await handle.wait();

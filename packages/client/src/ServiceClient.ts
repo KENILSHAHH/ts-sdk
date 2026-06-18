@@ -17,6 +17,7 @@ export type RequestHeadersResolver = (
 
 export type ServiceClientConfig = {
   root: string;
+  headers?: HeadersInit;
   resolveHeaders?: RequestHeadersResolver;
 };
 
@@ -46,10 +47,12 @@ export type ServiceClientDeleteOptions = {
  */
 export class ServiceClient {
   readonly #client: KyInstance;
+  readonly #headers?: HeadersInit;
   readonly #resolveHeaders?: RequestHeadersResolver;
 
-  constructor({ root, resolveHeaders }: ServiceClientConfig) {
+  constructor({ root, headers, resolveHeaders }: ServiceClientConfig) {
     this.#client = ky.create({ prefixUrl: root, throwHttpErrors: false });
+    this.#headers = headers;
     this.#resolveHeaders = resolveHeaders;
   }
 
@@ -123,7 +126,11 @@ export class ServiceClient {
   ): Promise<Response> {
     const request = this.#createRequest(method, path, options);
     const resolvedHeaders = await this.#resolveHeaders?.(request);
-    const headers = this.#mergeHeaders(request.headers, resolvedHeaders);
+    const headers = this.#mergeHeaders(
+      this.#headers,
+      request.headers,
+      resolvedHeaders,
+    );
 
     if (request.body !== undefined && !headers.has('content-type')) {
       headers.set('content-type', 'application/json');

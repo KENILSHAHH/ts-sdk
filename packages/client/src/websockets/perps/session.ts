@@ -130,6 +130,7 @@ export type {
 export type PerpsSessionOptions = {
   chainId: number;
   credentials: PerpsCredentials;
+  headers?: Record<string, string>;
   onClose: (session: PerpsSession) => void;
   restUrl: string;
   wsUrl: string;
@@ -139,6 +140,7 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
   readonly credentials: PerpsCredentials;
   readonly #api: ServiceClient;
   readonly #chainId: number;
+  readonly #headers: Record<string, string> | undefined;
   readonly #onClose: (session: PerpsSession) => void;
   readonly #wsUrl: string;
   readonly #connection = new WebSocketConnection({
@@ -154,11 +156,13 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
 
   constructor(options: PerpsSessionOptions) {
     this.#api = new ServiceClient({
+      headers: options.headers,
       resolveHeaders: async () => this.#authenticatedHeaders(),
       root: options.restUrl,
     });
     this.#chainId = options.chainId;
     this.credentials = options.credentials;
+    this.#headers = options.headers;
     this.#onClose = options.onClose;
     this.#wsUrl = options.wsUrl;
   }
@@ -296,6 +300,7 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
       onError: () => undefined,
       onMessage: (message) => this.#handleMessage(message),
       onOpen: () => undefined,
+      headers: this.#headers,
       url: this.#wsUrl,
     });
     await this.#authenticate();

@@ -477,85 +477,87 @@ async function resolveMissingTradingApprovals(
 function getRequiredTradingApprovals(
   client: BaseSecureClient,
 ): TradingApprovalRequirements {
+  const { contracts } = client.environment;
+
   return {
     erc20: [
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.standardExchange,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.standardExchange,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.negRiskExchange,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.negRiskExchange,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.negRiskAdapter,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.negRiskAdapter,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.collateralAdapter,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.collateralAdapter,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.negRiskCollateralAdapter,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.negRiskCollateralAdapter,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.protocolV2Router,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.protocolV2Router,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.exchangeV3,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.exchangeV3,
+        tokenAddress: contracts.collateralToken,
       },
       {
         amount: MAX_UINT256,
-        spenderAddress: client.environment.perpsDepositContract,
-        tokenAddress: client.environment.collateralToken,
+        spenderAddress: contracts.perpsDepositContract,
+        tokenAddress: contracts.collateralToken,
       },
     ],
     erc1155: [
       {
-        operatorAddress: client.environment.standardExchange,
-        tokenAddress: client.environment.conditionalTokens,
+        operatorAddress: contracts.standardExchange,
+        tokenAddress: contracts.conditionalTokens,
       },
       {
-        operatorAddress: client.environment.negRiskExchange,
-        tokenAddress: client.environment.conditionalTokens,
+        operatorAddress: contracts.negRiskExchange,
+        tokenAddress: contracts.conditionalTokens,
       },
       {
-        operatorAddress: client.environment.negRiskAdapter,
-        tokenAddress: client.environment.conditionalTokens,
+        operatorAddress: contracts.negRiskAdapter,
+        tokenAddress: contracts.conditionalTokens,
       },
       {
-        operatorAddress: client.environment.collateralAdapter,
-        tokenAddress: client.environment.conditionalTokens,
+        operatorAddress: contracts.collateralAdapter,
+        tokenAddress: contracts.conditionalTokens,
       },
       {
-        operatorAddress: client.environment.negRiskCollateralAdapter,
-        tokenAddress: client.environment.conditionalTokens,
+        operatorAddress: contracts.negRiskCollateralAdapter,
+        tokenAddress: contracts.conditionalTokens,
       },
       {
-        operatorAddress: client.environment.autoRedeemOperator,
-        tokenAddress: client.environment.conditionalTokens,
+        operatorAddress: contracts.autoRedeemOperator,
+        tokenAddress: contracts.conditionalTokens,
       },
       {
-        operatorAddress: client.environment.protocolV2Router,
-        tokenAddress: client.environment.positionManager,
+        operatorAddress: contracts.protocolV2Router,
+        tokenAddress: contracts.positionManager,
       },
       {
-        operatorAddress: client.environment.exchangeV3,
-        tokenAddress: client.environment.positionManager,
+        operatorAddress: contracts.exchangeV3,
+        tokenAddress: contracts.positionManager,
       },
       {
-        operatorAddress: client.environment.autoRedeemOperator,
-        tokenAddress: client.environment.positionManager,
+        operatorAddress: contracts.autoRedeemOperator,
+        tokenAddress: contracts.positionManager,
       },
     ],
   };

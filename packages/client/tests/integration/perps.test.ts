@@ -9,8 +9,10 @@ describe('Perps integration', () => {
       const approval = await secureClientWithDepositWallet.approveErc20({
         amount: 'max',
         spenderAddress:
-          secureClientWithDepositWallet.environment.perpsDepositContract,
-        tokenAddress: secureClientWithDepositWallet.environment.collateralToken,
+          secureClientWithDepositWallet.environment.contracts
+            .perpsDepositContract,
+        tokenAddress:
+          secureClientWithDepositWallet.environment.contracts.collateralToken,
       });
       await approval.wait();
 

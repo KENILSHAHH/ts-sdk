@@ -456,7 +456,7 @@ async function* prepareProxyWalletGaslessTransaction(
   // relayer when executing the transaction — the relayer applies its own
   // gas estimation at submission time. The validator only checks non-empty.
   const gasLimit = '10000000';
-  const relayHub = client.environment.relayHub;
+  const relayHub = client.environment.contracts.relayHub;
   const relay = ZERO_ADDRESS;
 
   const hash = buildProxyTransactionHash(
@@ -542,7 +542,7 @@ async function* prepareSafeWalletGaslessTransaction(
   });
   const transaction = aggregateSafeTransactionCalls(
     params.calls,
-    client.environment.safeMultisend,
+    client.environment.contracts.safeMultisend,
   );
 
   const safePayload = createSafeTypedDataPayload({

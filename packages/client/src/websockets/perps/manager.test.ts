@@ -14,7 +14,7 @@ import {
 import { production } from '../../environments';
 import { PerpsSessionManager } from './manager';
 
-const perps = ws.link(production.perpsWs);
+const perps = ws.link(production.perps.ws);
 const server = setupServer();
 
 const credentials = {
@@ -46,8 +46,8 @@ describe('PerpsSessionManager', () => {
   it('connects sessions through the manager lifecycle', async () => {
     const manager = new PerpsSessionManager({
       chainId: production.chainId,
-      restUrl: production.perpsApi,
-      wsUrl: production.perpsWs,
+      restUrl: production.perps.rest,
+      wsUrl: production.perps.ws,
     });
     const session = await manager.connect(credentials);
 
@@ -62,8 +62,8 @@ describe('PerpsSessionManager', () => {
     const connection = mockDelayedAuthSession();
     const manager = new PerpsSessionManager({
       chainId: production.chainId,
-      restUrl: production.perpsApi,
-      wsUrl: production.perpsWs,
+      restUrl: production.perps.rest,
+      wsUrl: production.perps.ws,
     });
 
     const connect = manager.connect(credentials);
@@ -83,8 +83,8 @@ describe('PerpsSessionManager', () => {
   it('rejects new sessions after manager close finishes', async () => {
     const manager = new PerpsSessionManager({
       chainId: production.chainId,
-      restUrl: production.perpsApi,
-      wsUrl: production.perpsWs,
+      restUrl: production.perps.rest,
+      wsUrl: production.perps.ws,
     });
 
     await manager.shutdown();
