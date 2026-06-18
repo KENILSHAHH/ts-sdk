@@ -14,6 +14,7 @@ import {
   PerpsInternalTransferIdSchema,
   PerpsWithdrawalIdSchema,
   PerpsWithdrawalStatusSchema,
+  RawPerpsTxHashSchema,
 } from './common';
 
 export const PerpsDepositSchema = z.object({
@@ -82,7 +83,7 @@ export const PerpsWithdrawalSchema = z.object({
   fee: DecimalStringSchema,
   status: PerpsWithdrawalStatusSchema,
   to: EvmAddressSchema,
-  hash: TxHashSchema,
+  hash: TxHashSchema.optional(),
   confirmations: z.number().int().nonnegative(),
   requiredConfirmations: z.number().int().nonnegative(),
   createdTimestamp: EpochMillisecondsSchema,
@@ -99,7 +100,7 @@ export const RawPerpsWithdrawalSchema = z
     fee: DecimalStringSchema,
     status: PerpsWithdrawalStatusSchema,
     to: EvmAddressSchema,
-    hash: TxHashSchema,
+    hash: RawPerpsTxHashSchema,
     confirmations: z.number().int().nonnegative(),
     required_confirmations: z.number().int().nonnegative(),
     created_timestamp: EpochMillisecondsSchema,
@@ -143,7 +144,7 @@ export const RawPerpsWithdrawalUpdateSchema = z
     fee: DecimalStringSchema,
     status: PerpsWithdrawalStatusSchema,
     to: EvmAddressSchema,
-    hash: TxHashSchema,
+    hash: RawPerpsTxHashSchema,
   })
   .transform((withdrawal) => ({
     withdrawalId: withdrawal.withdraw_id,

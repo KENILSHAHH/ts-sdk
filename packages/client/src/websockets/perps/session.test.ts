@@ -114,7 +114,7 @@ describe('PerpsSession', () => {
         done: false,
         value: {
           channel: 'balances',
-          previousSequence: 1,
+          previousSequence: 2,
           reason: 'sequence_gap',
           sequence: 4,
           type: 'resync',
@@ -126,6 +126,40 @@ describe('PerpsSession', () => {
           channel: 'balances',
           payload: { asset: 'USDC', balance: '2', value: '2' },
           sequence: 4,
+          type: 'balance',
+        },
+      });
+
+      await session.close();
+    });
+
+    it('advances sequence tracking when skipping deduped balance ticks', async () => {
+      const connection = captureConnection(server, perps);
+      const session = createSession();
+
+      await session.connect();
+
+      const firstEvent = waitForNextEvent(session);
+      await connection.send(balanceUpdate({ balance: '1', sequence: 1 }));
+      await expect(firstEvent).resolves.toMatchObject({
+        done: false,
+        value: {
+          channel: 'balances',
+          sequence: 1,
+          type: 'balance',
+        },
+      });
+
+      const nextEvent = waitForNextEvent(session);
+      await connection.send(balanceUpdate({ balance: '1', sequence: 2 }));
+      await connection.send(balanceUpdate({ balance: '2', sequence: 3 }));
+
+      await expect(nextEvent).resolves.toMatchObject({
+        done: false,
+        value: {
+          channel: 'balances',
+          payload: { asset: 'USDC', balance: '2', value: '2' },
+          sequence: 3,
           type: 'balance',
         },
       });

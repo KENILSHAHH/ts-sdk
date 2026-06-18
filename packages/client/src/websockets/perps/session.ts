@@ -459,8 +459,9 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
     if (!parsed.success) return;
 
     const event = parsed.data;
-    if (this.#shouldSkipDedupedTick(event)) return;
+    const shouldSkipDedupedTick = this.#shouldSkipDedupedTick(event);
     this.#pushSequenceGapIfNeeded(event);
+    if (shouldSkipDedupedTick) return;
     this.#queue.push(event);
   }
 
