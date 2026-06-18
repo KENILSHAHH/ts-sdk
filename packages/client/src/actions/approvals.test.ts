@@ -24,11 +24,11 @@ const wallet = expectEvmAddress('0x0000000000000000000000000000000000000001');
 describe('prepareTradingApprovals', () => {
   it('submits every missing approval and waits after each EOA transaction', async () => {
     const { client } = createClient([
-      ...Array<HexString>(7).fill(FALSE_RESULT),
+      ...Array<HexString>(8).fill(FALSE_RESULT),
       ...Array<HexString>(9).fill(FALSE_RESULT),
     ]);
     const workflow = await prepareTradingApprovals(client);
-    const handles = Array.from({ length: 16 }, createTransactionHandle);
+    const handles = Array.from({ length: 17 }, createTransactionHandle);
     let result = await workflow.next();
 
     for (const handle of handles) {
@@ -47,7 +47,7 @@ describe('prepareTradingApprovals', () => {
 
   it('completes without transactions when approvals are already set', async () => {
     const { client, ethCallBatch } = createClient([
-      ...Array<HexString>(7).fill(MAX_UINT256_RESULT),
+      ...Array<HexString>(8).fill(MAX_UINT256_RESULT),
       ...Array<HexString>(9).fill(TRUE_RESULT),
     ]);
 
@@ -60,13 +60,13 @@ describe('prepareTradingApprovals', () => {
       value: undefined,
     });
     expect(ethCallBatch).toHaveBeenCalledTimes(1);
-    expect(ethCallBatch.mock.calls[0]?.[0]).toHaveLength(16);
+    expect(ethCallBatch.mock.calls[0]?.[0]).toHaveLength(17);
   });
 
   it('submits only missing approvals', async () => {
     const { client } = createClient([
+      ...Array<HexString>(7).fill(MAX_UINT256_RESULT),
       FALSE_RESULT,
-      ...Array<HexString>(6).fill(MAX_UINT256_RESULT),
       FALSE_RESULT,
       ...Array<HexString>(8).fill(TRUE_RESULT),
     ]);
@@ -84,7 +84,7 @@ describe('prepareTradingApprovals', () => {
           chainId: production.chainId,
           ...erc20ApprovalCall(
             production.collateralToken,
-            production.standardExchange,
+            production.perpsDepositContract,
             MAX_UINT256,
           ),
         },
