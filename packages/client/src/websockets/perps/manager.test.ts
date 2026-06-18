@@ -62,8 +62,8 @@ describe('PerpsSessionManager', () => {
     const connection = mockDelayedAuthSession();
     const manager = new PerpsSessionManager({
       chainId: production.chainId,
-      restUrl: production.perpsApi,
-      wsUrl: production.perpsWs,
+      restUrl: production.perps.rest,
+      wsUrl: production.perps.ws,
     });
 
     const connect = manager.connect(credentials);
@@ -83,8 +83,8 @@ describe('PerpsSessionManager', () => {
   it('rejects new sessions after manager close finishes', async () => {
     const manager = new PerpsSessionManager({
       chainId: production.chainId,
-      restUrl: production.perpsApi,
-      wsUrl: production.perpsWs,
+      restUrl: production.perps.rest,
+      wsUrl: production.perps.ws,
     });
 
     await manager.shutdown();

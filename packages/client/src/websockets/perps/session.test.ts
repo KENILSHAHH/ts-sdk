@@ -406,7 +406,7 @@ describe('PerpsSession', () => {
     it('continues descending account history after a fully deduped boundary page', async () => {
       const requests: URLSearchParams[] = [];
       server.use(
-        http.get(`${production.perpsApi}/v1/account/fills`, ({ request }) => {
+        http.get(`${production.perps.rest}/v1/account/fills`, ({ request }) => {
           const params = new URL(request.url).searchParams;
           requests.push(params);
 
