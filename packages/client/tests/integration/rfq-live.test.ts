@@ -5,8 +5,6 @@ import {
 } from '@polymarket/client';
 import { describe, expect, it, runMeteredTests } from './fixtures';
 
-const MIN_RFQ_SUBMISSION_WINDOW_MS = 500;
-
 describe('RFQ live quoting integration', () => {
   // Metered: an accepted quote can execute a live trade with real funds.
   it.runIf(runMeteredTests)(
@@ -18,14 +16,6 @@ describe('RFQ live quoting integration', () => {
       try {
         for await (const event of session) {
           if (event.type === 'quote_request') {
-            if (
-              event.submissionDeadline - Date.now() <=
-              MIN_RFQ_SUBMISSION_WINDOW_MS
-            ) {
-              annotate(`Skipped RFQ near submission deadline: ${event.rfqId}`);
-              continue;
-            }
-
             try {
               await event.quote({ price: 0.5, size: 0.01 });
               annotate(`Quoted RFQ: ${event.rfqId}`);
