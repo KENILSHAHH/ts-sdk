@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  RawPerpsDepositUpdateSchema,
   RawPerpsWithdrawalSchema,
   RawPerpsWithdrawalUpdateSchema,
 } from './funds';
@@ -15,6 +16,19 @@ const baseWithdrawal = {
   required_confirmations: 10,
   created_timestamp: 1_700_000_000_000,
 };
+
+describe('RawPerpsDepositUpdateSchema', () => {
+  it.each(['', '0x'])('normalizes %s pending hashes to undefined', (hash) => {
+    const deposit = RawPerpsDepositUpdateSchema.parse({
+      hash,
+      asset: 'USDC',
+      amount: '1000000',
+      status: 'pending',
+    });
+
+    expect(deposit.hash).toBeUndefined();
+  });
+});
 
 describe('RawPerpsWithdrawalSchema', () => {
   it('normalizes empty pending hashes to undefined', () => {

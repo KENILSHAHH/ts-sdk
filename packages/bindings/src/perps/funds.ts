@@ -64,7 +64,7 @@ export const ListPerpsDepositsResponseSchema = PerpsDataResponseSchema(
 
 export const RawPerpsDepositUpdateSchema = z
   .object({
-    hash: TxHashSchema,
+    hash: RawPerpsTxHashSchema,
     asset: PerpsAssetSchema,
     amount: BaseUnitsSchema,
     status: PerpsDepositStatusSchema,
