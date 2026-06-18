@@ -14,9 +14,9 @@ import { production } from '../../environments';
 import { captureConnection, collectFrames, waitForNextEvent } from '../testing';
 import { PerpsSubscriptionManager } from './subscription';
 
-const perpsSubscriptions = ws.link(production.perpsWs);
+const perpsSubscriptions = ws.link(production.perps.ws);
 const server = setupServer();
-const manager = new PerpsSubscriptionManager(production.perpsWs);
+const manager = new PerpsSubscriptionManager({ url: production.perps.ws });
 
 describe('PerpsSubscriptionManager', () => {
   beforeAll(() => {

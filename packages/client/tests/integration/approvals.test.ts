@@ -22,8 +22,8 @@ describe('Approvals', () => {
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const handle = await secureClient.approveErc20({
-        spenderAddress: secureClient.environment.standardExchange,
-        tokenAddress: secureClient.environment.collateralToken,
+        spenderAddress: secureClient.environment.contracts.standardExchange,
+        tokenAddress: secureClient.environment.contracts.collateralToken,
         amount: 'max',
       });
 
@@ -47,7 +47,7 @@ describe('Approvals', () => {
         secureClient.approveErc20({
           amount: 'max',
           spenderAddress: ZERO_ADDRESS,
-          tokenAddress: secureClient.environment.collateralToken,
+          tokenAddress: secureClient.environment.contracts.collateralToken,
         }),
       ).rejects.toBeInstanceOf(SigningError);
     });
@@ -68,8 +68,8 @@ describe('Approvals', () => {
       expect(secureClient.account.walletType).toBe(WalletType.DEPOSIT_WALLET);
 
       const handle = await secureClient.approveErc1155ForAll({
-        operatorAddress: secureClient.environment.standardExchange,
-        tokenAddress: secureClient.environment.conditionalTokens,
+        operatorAddress: secureClient.environment.contracts.standardExchange,
+        tokenAddress: secureClient.environment.contracts.conditionalTokens,
       });
 
       await expect(handle.wait()).resolves.toBeTruthy();

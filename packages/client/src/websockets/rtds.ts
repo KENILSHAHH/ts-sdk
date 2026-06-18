@@ -42,6 +42,11 @@ type RtdsServerSubscription = {
 
 type RtdsServerState = Map<string, RtdsServerSubscription>;
 
+export type RtdsWebSocketManagerOptions = {
+  headers?: Record<string, string>;
+  url: string;
+};
+
 /**
  * Realtime Data Service (RTDS) WebSocket manager.
  *
@@ -52,6 +57,7 @@ type RtdsServerState = Map<string, RtdsServerSubscription>;
 export class RtdsWebSocketManager
   implements WebSocketSubscriptionManager<RtdsSpec, RtdsEvent>
 {
+  readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection({
@@ -64,8 +70,9 @@ export class RtdsWebSocketManager
     RtdsServerState
   >({ deriveServerState: deriveRtdsServerState });
 
-  constructor(url: string) {
-    this.#url = url;
+  constructor(options: RtdsWebSocketManagerOptions) {
+    this.#headers = options.headers;
+    this.#url = options.url;
   }
 
   async subscribe(
@@ -132,6 +139,7 @@ export class RtdsWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
+      headers: this.#headers,
       url: this.#url,
     });
   }

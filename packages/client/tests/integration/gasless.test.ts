@@ -163,8 +163,8 @@ describe('Gasless', () => {
 
 async function prepareAndSubmit(client: SecureClient, signer: Signer) {
   const call = erc20ApprovalCall(
-    client.environment.collateralToken,
-    client.environment.standardExchange,
+    client.environment.contracts.collateralToken,
+    client.environment.contracts.standardExchange,
     1n,
   );
   const workflow = await prepareGaslessTransaction(client, {

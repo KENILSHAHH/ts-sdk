@@ -14,7 +14,7 @@ import { production } from '../../environments';
 import { captureConnection, collectFrames, waitForNextEvent } from '../testing';
 import { ClobUserWebSocketManager } from './user';
 
-const clobUser = ws.link(production.clobUserWs);
+const clobUser = ws.link(production.clob.user.ws);
 const server = setupServer();
 const credentials = ApiKeyCredsSchema.parse({
   apiKey: 'test-key',
@@ -23,7 +23,7 @@ const credentials = ApiKeyCredsSchema.parse({
 });
 const manager = new ClobUserWebSocketManager({
   credentials,
-  url: production.clobUserWs,
+  url: production.clob.user.ws,
 });
 
 describe('ClobUserWebSocketManager', () => {

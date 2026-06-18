@@ -66,7 +66,7 @@ export const PrepareErc20TransferError = makeErrorGuard(UserInputError);
  * const workflow = await prepareErc20Transfer(client, {
  *   amount: 1n,
  *   recipientAddress: client.account.signer,
- *   tokenAddress: client.environment.collateralToken,
+ *   tokenAddress: client.environment.contracts.collateralToken,
  * });
  * ```
  *

@@ -973,9 +973,10 @@ export async function preparePerpsDeposit(
   request: DepositToPerpsRequest,
 ): Promise<PerpsDepositWorkflow> {
   const params = parseUserInput(request, DepositToPerpsRequestSchema);
+  const { contracts } = client.environment;
   const call = perpsDepositCall(
-    client.environment.perpsDepositContract,
-    client.environment.collateralToken,
+    contracts.perpsDepositContract,
+    contracts.collateralToken,
     params.amount,
     client.account.signer,
   );
@@ -993,7 +994,7 @@ export async function preparePerpsDeposit(
       calls: [call],
       metadata:
         params.metadata ??
-        `Deposit ${params.amount} of ${client.environment.collateralToken} to Perps`,
+        `Deposit ${params.amount} of ${contracts.collateralToken} to Perps`,
     });
   }.call(null);
 }
@@ -1032,7 +1033,7 @@ export async function withdrawFromPerps(
     type: 'withdraw' as const,
     args: {
       account: client.account.signer,
-      token: client.environment.collateralToken,
+      token: client.environment.contracts.collateralToken,
       amount: params.amount.toString(),
       to: client.account.wallet,
     },
@@ -1231,8 +1232,8 @@ async function signPerpsWithdraw(
       createPerpsWithdrawTypedDataPayload({
         account: client.account.signer,
         chainId: client.environment.chainId,
-        contract: client.environment.perpsDepositContract,
-        token: client.environment.collateralToken,
+        contract: client.environment.contracts.perpsDepositContract,
+        token: client.environment.contracts.collateralToken,
         to: client.account.wallet,
         ...request,
       }),

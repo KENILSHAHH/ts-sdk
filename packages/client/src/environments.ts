@@ -11,6 +11,43 @@ export type WalletDerivationConfig = {
   safeInitCodeHash: Hex.Hex;
 };
 
+export type RestEndpoint = {
+  rest: string;
+  headers?: Record<string, string>;
+};
+
+export type WebSocketEndpoint = {
+  ws: string;
+  headers?: Record<string, string>;
+};
+
+export type ClobEndpoints = RestEndpoint & {
+  market: WebSocketEndpoint;
+  user: WebSocketEndpoint;
+};
+
+export type RfqEndpoints = RestEndpoint & WebSocketEndpoint;
+
+export type PerpsEndpoints = RestEndpoint & WebSocketEndpoint;
+
+export type EnvironmentContracts = {
+  collateralToken: EvmAddress;
+  conditionalTokens: EvmAddress;
+  negRiskAdapter: EvmAddress;
+  collateralAdapter: EvmAddress;
+  negRiskCollateralAdapter: EvmAddress;
+  standardExchange: EvmAddress;
+  negRiskExchange: EvmAddress;
+  exchangeV3: EvmAddress;
+  protocolV2Router: EvmAddress;
+  combinatorialModule: EvmAddress;
+  positionManager: EvmAddress;
+  autoRedeemOperator: EvmAddress;
+  safeMultisend: EvmAddress;
+  relayHub: EvmAddress;
+  perpsDepositContract: EvmAddress;
+};
+
 export type EnvironmentConfig = {
   name: string;
   chainId: number;
@@ -19,65 +56,50 @@ export type EnvironmentConfig = {
   /** @internal */
   walletDerivation: WalletDerivationConfig;
   /** @internal */
-  collateralToken: EvmAddress;
+  contracts: EnvironmentContracts;
   /** @internal */
-  conditionalTokens: EvmAddress;
+  clob: ClobEndpoints;
   /** @internal */
-  negRiskAdapter: EvmAddress;
+  relayer: RestEndpoint;
   /** @internal */
-  collateralAdapter: EvmAddress;
+  gamma: RestEndpoint;
   /** @internal */
-  negRiskCollateralAdapter: EvmAddress;
+  data: RestEndpoint;
   /** @internal */
-  standardExchange: EvmAddress;
+  rfq: RfqEndpoints;
   /** @internal */
-  negRiskExchange: EvmAddress;
+  perps: PerpsEndpoints;
   /** @internal */
-  exchangeV3: EvmAddress;
+  rtds: WebSocketEndpoint;
   /** @internal */
-  protocolV2Router: EvmAddress;
-  /** @internal */
-  combinatorialModule: EvmAddress;
-  /** @internal */
-  positionManager: EvmAddress;
-  /** @internal */
-  autoRedeemOperator: EvmAddress;
-  /** @internal */
-  safeMultisend: EvmAddress;
-  /** @internal */
-  relayHub: EvmAddress;
-  /** @internal */
-  perpsDepositContract: EvmAddress;
-  /** @internal */
-  clob: string;
-  /** @internal */
-  perpsApi: string;
-  /** @internal */
-  clobMarketWs: string;
-  /** @internal */
-  clobUserWs: string;
-  /** @internal */
-  perpsWs: string;
-  /** @internal */
-  relayer: string;
-  /** @internal */
-  gamma: string;
-  /** @internal */
-  data: string;
-  /** @internal */
-  rfq: string;
-  /** @internal */
-  rtdsWs: string;
-  /** @internal */
-  sportsWs: string;
-  /** @internal */
-  rfqQuoterWs: string;
-  /** @internal */
-  rfqQuoterWsHeaders?: Record<string, string>;
+  sports: WebSocketEndpoint;
   /** @internal */
   relayerMaxPolls: number;
   /** @internal */
   relayerPollFrequencyMs: number;
+};
+
+type EnvironmentConfigForkEndpoint = Partial<RestEndpoint & WebSocketEndpoint>;
+
+export type EnvironmentConfigFork = {
+  name: string;
+  chainId?: number;
+  rpc?: string;
+  walletDerivation?: Partial<WalletDerivationConfig>;
+  contracts?: Partial<EnvironmentContracts>;
+  clob?: Partial<RestEndpoint> & {
+    market?: Partial<WebSocketEndpoint>;
+    user?: Partial<WebSocketEndpoint>;
+  };
+  relayer?: Partial<RestEndpoint>;
+  gamma?: Partial<RestEndpoint>;
+  data?: Partial<RestEndpoint>;
+  rfq?: EnvironmentConfigForkEndpoint;
+  perps?: EnvironmentConfigForkEndpoint;
+  rtds?: Partial<WebSocketEndpoint>;
+  sports?: Partial<WebSocketEndpoint>;
+  relayerMaxPolls?: number;
+  relayerPollFrequencyMs?: number;
 };
 
 /**
@@ -107,67 +129,166 @@ export const production: EnvironmentConfig = {
     safeInitCodeHash:
       '0x2bce2127ff07fb632d16c8347c4ebf501f4841168bed00d9e6ef715ddb6fcecf',
   },
-  collateralToken: expectEvmAddress(
-    '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB',
-  ),
-  conditionalTokens: expectEvmAddress(
-    '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045',
-  ),
-  negRiskAdapter: expectEvmAddress(
-    '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296',
-  ),
-  collateralAdapter: expectEvmAddress(
-    '0xAdA100Db00Ca00073811820692005400218FcE1f',
-  ),
-  negRiskCollateralAdapter: expectEvmAddress(
-    '0xadA2005600Dec949baf300f4C6120000bDB6eAab',
-  ),
-  standardExchange: expectEvmAddress(
-    '0xE111180000d2663C0091e4f400237545B87B996B',
-  ),
-  negRiskExchange: expectEvmAddress(
-    '0xe2222d279d744050d28e00520010520000310F59',
-  ),
-  exchangeV3: expectEvmAddress('0xe3333700cA9d93003F00f0F71f8515005F6c00Aa'),
-  protocolV2Router: expectEvmAddress(
-    '0x12121212006e4CD160D18e3f00711DA5c3372600',
-  ),
-  combinatorialModule: expectEvmAddress(
-    '0x30000034706c7d8e12009dab006be20000c031a8',
-  ),
-  positionManager: expectEvmAddress(
-    '0x006F54F7f9A22e0000CC2AB60031000000ae9fEF',
-  ),
-  autoRedeemOperator: expectEvmAddress(
-    '0xa1200000d0002264C9a1698e001292D00E1b00af',
-  ),
-  safeMultisend: expectEvmAddress('0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761'),
-  relayHub: expectEvmAddress('0xD216153c06E857cD7f72665E0aF1d7D82172F494'),
-  perpsDepositContract: expectEvmAddress(
-    '0xDCa4af75705dbB50f62437045afF9921947917d2',
-  ),
-  clob: 'https://clob.polymarket.com',
-  perpsApi: 'https://api.perpetuals.polymarket.com',
-  clobMarketWs: 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
-  clobUserWs: 'wss://ws-subscriptions-clob.polymarket.com/ws/user',
-  perpsWs: 'wss://ws.perpetuals.polymarket.com/v1/ws',
-  relayer: 'https://relayer-v2.polymarket.com',
-  gamma: 'https://gamma-api.polymarket.com',
-  data: 'https://data-api.polymarket.com',
-  rfq: 'https://combos-rfq-api.polymarket.com',
-  rtdsWs: 'wss://ws-live-data.polymarket.com',
-  rfqQuoterWs: 'wss://combos-rfq-gateway-quoter.polymarket.com/ws/rfq',
-  sportsWs: 'wss://sports-api.polymarket.com/ws',
+  contracts: {
+    collateralToken: expectEvmAddress(
+      '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB',
+    ),
+    conditionalTokens: expectEvmAddress(
+      '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045',
+    ),
+    negRiskAdapter: expectEvmAddress(
+      '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296',
+    ),
+    collateralAdapter: expectEvmAddress(
+      '0xAdA100Db00Ca00073811820692005400218FcE1f',
+    ),
+    negRiskCollateralAdapter: expectEvmAddress(
+      '0xadA2005600Dec949baf300f4C6120000bDB6eAab',
+    ),
+    standardExchange: expectEvmAddress(
+      '0xE111180000d2663C0091e4f400237545B87B996B',
+    ),
+    negRiskExchange: expectEvmAddress(
+      '0xe2222d279d744050d28e00520010520000310F59',
+    ),
+    exchangeV3: expectEvmAddress('0xe3333700cA9d93003F00f0F71f8515005F6c00Aa'),
+    protocolV2Router: expectEvmAddress(
+      '0x12121212006e4CD160D18e3f00711DA5c3372600',
+    ),
+    combinatorialModule: expectEvmAddress(
+      '0x30000034706c7d8e12009dab006be20000c031a8',
+    ),
+    positionManager: expectEvmAddress(
+      '0x006F54F7f9A22e0000CC2AB60031000000ae9fEF',
+    ),
+    autoRedeemOperator: expectEvmAddress(
+      '0xa1200000d0002264C9a1698e001292D00E1b00af',
+    ),
+    safeMultisend: expectEvmAddress(
+      '0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761',
+    ),
+    relayHub: expectEvmAddress('0xD216153c06E857cD7f72665E0aF1d7D82172F494'),
+    perpsDepositContract: expectEvmAddress(
+      '0xDCa4af75705dbB50f62437045afF9921947917d2',
+    ),
+  },
+  clob: {
+    rest: 'https://clob.polymarket.com',
+    market: { ws: 'wss://ws-subscriptions-clob.polymarket.com/ws/market' },
+    user: { ws: 'wss://ws-subscriptions-clob.polymarket.com/ws/user' },
+  },
+  relayer: { rest: 'https://relayer-v2.polymarket.com' },
+  gamma: { rest: 'https://gamma-api.polymarket.com' },
+  data: { rest: 'https://data-api.polymarket.com' },
+  rfq: {
+    rest: 'https://combos-rfq-api.polymarket.com',
+    ws: 'wss://combos-rfq-gateway-quoter.polymarket.com/ws/rfq',
+  },
+  perps: {
+    rest: 'https://api.perpetuals.polymarket.com',
+    ws: 'wss://ws.perpetuals.polymarket.com/v1/ws',
+  },
+  rtds: { ws: 'wss://ws-live-data.polymarket.com' },
+  sports: { ws: 'wss://sports-api.polymarket.com/ws' },
   relayerMaxPolls: 100,
   relayerPollFrequencyMs: 2000,
 };
 
+/**
+ * Forks an environment config from production unless a different base is passed.
+ *
+ * @example
+ * ```ts
+ * const staging = forkEnvironmentConfig({
+ *   name: 'staging',
+ *   perps: {
+ *     rest: 'https://api-perpetuals-preprod.polymarket.com',
+ *     headers: {
+ *       'CF-Access-Client-Id': 'example-client-id',
+ *       'CF-Access-Client-Secret': 'example-client-secret',
+ *     },
+ *   },
+ *   rfq: {
+ *     ws: 'wss://combos-rfq-gateway-quoter-preprod.polymarket.com/ws/rfq',
+ *   },
+ * });
+ * ```
+ */
+export function forkEnvironmentConfig(
+  fork: EnvironmentConfigFork,
+  base: EnvironmentConfig = production,
+): EnvironmentConfig {
+  return {
+    ...base,
+    ...fork,
+    walletDerivation: {
+      ...base.walletDerivation,
+      ...fork.walletDerivation,
+    },
+    contracts: {
+      ...base.contracts,
+      ...fork.contracts,
+    },
+    clob: {
+      ...forkRestEndpoint(base.clob, fork.clob),
+      market: forkWebSocketEndpoint(base.clob.market, fork.clob?.market),
+      user: forkWebSocketEndpoint(base.clob.user, fork.clob?.user),
+    },
+    relayer: forkRestEndpoint(base.relayer, fork.relayer),
+    gamma: forkRestEndpoint(base.gamma, fork.gamma),
+    data: forkRestEndpoint(base.data, fork.data),
+    rfq: forkRestWebSocketEndpoint(base.rfq, fork.rfq),
+    perps: forkRestWebSocketEndpoint(base.perps, fork.perps),
+    rtds: forkWebSocketEndpoint(base.rtds, fork.rtds),
+    sports: forkWebSocketEndpoint(base.sports, fork.sports),
+  };
+}
+
+function forkRestEndpoint(
+  base: RestEndpoint,
+  fork: Partial<RestEndpoint> | undefined,
+): RestEndpoint {
+  return {
+    ...base,
+    ...fork,
+    headers: forkHeaders(base.headers, fork?.headers),
+  };
+}
+
+function forkWebSocketEndpoint(
+  base: WebSocketEndpoint,
+  fork: Partial<WebSocketEndpoint> | undefined,
+): WebSocketEndpoint {
+  return {
+    ...base,
+    ...fork,
+    headers: forkHeaders(base.headers, fork?.headers),
+  };
+}
+
+function forkRestWebSocketEndpoint<
+  TEndpoint extends RestEndpoint & WebSocketEndpoint,
+>(base: TEndpoint, fork: EnvironmentConfigForkEndpoint | undefined): TEndpoint {
+  return {
+    ...base,
+    ...fork,
+    headers: forkHeaders(base.headers, fork?.headers),
+  };
+}
+
+function forkHeaders(
+  base: Record<string, string> | undefined,
+  fork: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  if (base === undefined && fork === undefined) return undefined;
+  return { ...base, ...fork };
+}
+
 /** @internal */
-export const preproduction = {
-  ...production,
-  name: 'preproduction',
-  clob: 'https://clob-preprod-int-v2.polymarket.com',
-  data: 'https://data-api-preprod-int.polymarket.com',
-  gamma: 'https://gamma-api-preprod-int.polymarket.com',
-  relayer: 'https://relayer-v2-preprod-int.polymarket.com',
-};
+export const staging = forkEnvironmentConfig({
+  name: 'staging',
+  clob: { rest: 'https://clob-preprod-int-v2.polymarket.com' },
+  data: { rest: 'https://data-api-preprod-int.polymarket.com' },
+  gamma: { rest: 'https://gamma-api-preprod-int.polymarket.com' },
+  relayer: { rest: 'https://relayer-v2-preprod-int.polymarket.com' },
+});

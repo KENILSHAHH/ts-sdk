@@ -25,6 +25,7 @@ type SportsSubscriptionEntry = SubscriptionRegistryEntry<
 >;
 
 export type SportsWebSocketManagerOptions = {
+  headers?: Record<string, string>;
   url: string;
 };
 
@@ -38,6 +39,7 @@ export type SportsWebSocketManagerOptions = {
 export class SportsWebSocketManager
   implements WebSocketSubscriptionManager<SportsSubscription, SportsEvent>
 {
+  readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection({
@@ -50,6 +52,7 @@ export class SportsWebSocketManager
   >();
 
   constructor(options: SportsWebSocketManagerOptions) {
+    this.#headers = options.headers;
     this.#url = options.url;
   }
 
@@ -107,6 +110,7 @@ export class SportsWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
+      headers: this.#headers,
       url: this.#url,
     });
   }

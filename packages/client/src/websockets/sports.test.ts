@@ -13,10 +13,10 @@ import { production } from '../environments';
 import { SportsWebSocketManager } from './sports';
 import { captureConnection, waitForNextEvent } from './testing';
 
-const sports = ws.link(production.sportsWs);
+const sports = ws.link(production.sports.ws);
 const server = setupServer();
 const manager = new SportsWebSocketManager({
-  url: production.sportsWs,
+  url: production.sports.ws,
 });
 
 describe('SportsWebSocketManager', () => {

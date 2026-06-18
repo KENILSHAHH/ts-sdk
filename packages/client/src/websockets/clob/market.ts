@@ -28,6 +28,7 @@ import {
 } from './protocol';
 
 export type ClobMarketWebSocketManagerOptions = {
+  headers?: Record<string, string>;
   url: string;
 };
 
@@ -40,6 +41,7 @@ export type ClobMarketWebSocketManagerOptions = {
 export class ClobMarketWebSocketManager
   implements WebSocketSubscriptionManager<MarketSubscription, MarketEvent>
 {
+  readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
   readonly #connection = new WebSocketConnection({
@@ -53,6 +55,7 @@ export class ClobMarketWebSocketManager
   >({ deriveServerState: deriveMarketServerSubscription });
 
   constructor(options: ClobMarketWebSocketManagerOptions) {
+    this.#headers = options.headers;
     this.#url = options.url;
   }
 
@@ -127,6 +130,7 @@ export class ClobMarketWebSocketManager
       onError: () => this.#onConnectionError(),
       onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
+      headers: this.#headers,
       url: this.#url,
     });
   }

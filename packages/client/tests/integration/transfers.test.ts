@@ -20,7 +20,7 @@ describe('Transfers', () => {
       const handle = await secureClient.transferErc20({
         amount: 1n,
         recipientAddress: secureClient.account.signer,
-        tokenAddress: secureClient.environment.collateralToken,
+        tokenAddress: secureClient.environment.contracts.collateralToken,
       });
 
       await expect(handle.wait()).resolves.toBeTruthy();

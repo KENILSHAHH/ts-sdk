@@ -28,6 +28,11 @@ type PerpsSubscriptionEntry = SubscriptionRegistryEntry<
 
 type PerpsSubscriptionServerState = Set<string>;
 
+export type PerpsSubscriptionManagerOptions = {
+  headers?: Record<string, string>;
+  url: string;
+};
+
 /**
  * Perps public subscription WebSocket manager.
  *
@@ -42,6 +47,7 @@ export class PerpsSubscriptionManager
       PerpsMarketDataEvent
     >
 {
+  readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
   #nextRequestId = 1;
@@ -55,8 +61,9 @@ export class PerpsSubscriptionManager
     PerpsSubscriptionServerState
   >({ deriveServerState: derivePerpsSubscriptionServerState });
 
-  constructor(url: string) {
-    this.#url = url;
+  constructor(options: PerpsSubscriptionManagerOptions) {
+    this.#headers = options.headers;
+    this.#url = options.url;
   }
 
   async subscribe(
@@ -120,6 +127,7 @@ export class PerpsSubscriptionManager
       onError: () => this.#onConnectionError(),
       onMessage: (message) => this.#onConnectionMessage(message),
       onOpen: () => this.#onConnectionOpen(),
+      headers: this.#headers,
       url: this.#url,
     });
   }

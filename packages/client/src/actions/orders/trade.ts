@@ -261,11 +261,11 @@ async function ensureOrderApproval(
       ? await approveErc20(client, {
           amount: 'max',
           spenderAddress: exchangeAddress,
-          tokenAddress: client.environment.collateralToken,
+          tokenAddress: client.environment.contracts.collateralToken,
         })
       : await approveErc1155ForAll(client, {
           operatorAddress: exchangeAddress,
-          tokenAddress: client.environment.conditionalTokens,
+          tokenAddress: client.environment.contracts.conditionalTokens,
         });
 
   await handle.wait();
