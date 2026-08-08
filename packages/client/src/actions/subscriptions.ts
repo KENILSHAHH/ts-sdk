@@ -267,7 +267,20 @@ export type EventForSubscriptionSpec<TSpec extends SecureSubscriptionSpec> =
 
 export type EventForSubscriptionSpecs<
   TSubscriptions extends readonly SecureSubscriptionSpec[],
-> = EventForSubscriptionSpec<TSubscriptions[number]>;
+> = EventForSubscriptionSpec<TSubscriptions[number]> | SubscriptionResyncEvent;
+
+/**
+ * SDK-synthesized event delivered on every active subscription handle after
+ * its underlying WebSocket connection was lost and then reconnected and
+ * resubscribed. Events published while the connection was down were not
+ * delivered, so refetch any state that assumes lossless delivery (order
+ * books, open orders, balances) before processing further events.
+ */
+export type SubscriptionResyncEvent = {
+  topic: 'subscription';
+  type: 'resync';
+  reason: 'reconnect';
+};
 
 export type SubscriptionHandle<TEvent> = {
   /**
@@ -293,6 +306,11 @@ const CryptoPricesChainlinkTwapSubscriptionSchema = z.object({
  * @remarks
  * This is a low-level function. Most SDK consumers should prefer the client instance API.
  *
+ * After an unexpected disconnect the SDK reconnects and resubscribes
+ * automatically, then yields a {@link SubscriptionResyncEvent} — events
+ * published during the outage were not delivered, so refetch any state that
+ * assumes lossless delivery before processing further events.
+ *
  * @throws {@link SubscribeError}
  * Thrown when subscription input is invalid or a realtime subscription fails.
  *
@@ -303,7 +321,11 @@ const CryptoPricesChainlinkTwapSubscriptionSchema = z.object({
  * ]);
  *
  * for await (const event of handle) {
- *   // event: StandardMarketEvent
+ *   // event: StandardMarketEvent | SubscriptionResyncEvent
+ *   if (event.topic === 'subscription') {
+ *     // Reconnected after a gap — refetch books before continuing.
+ *     continue;
+ *   }
  * }
  * ```
  */

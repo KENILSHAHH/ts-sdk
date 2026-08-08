@@ -261,4 +261,38 @@ describe('ClobMarketWebSocketManager', () => {
       ]);
     });
   });
+
+  it('yields a resync event after reconnecting from an unexpected close', {
+    timeout: 5_000,
+  }, async () => {
+    let connections = 0;
+    let firstClient: { close: () => void } | undefined;
+
+    server.use(
+      clobMarket.addEventListener('connection', ({ client }) => {
+        connections += 1;
+        if (connections === 1) firstClient = client;
+      }),
+    );
+
+    vi.useFakeTimers();
+
+    const handle = await manager.subscribe({
+      tokenIds: ['token-a'],
+      topic: 'market',
+    });
+    const next = waitForNextEvent(handle);
+
+    firstClient?.close();
+    await vi.advanceTimersToNextTimer();
+
+    await vi.waitFor(() => {
+      expect(connections).toBe(2);
+    });
+
+    await expect(next).resolves.toMatchObject({
+      done: false,
+      value: { topic: 'subscription', type: 'resync', reason: 'reconnect' },
+    });
+  });
 });

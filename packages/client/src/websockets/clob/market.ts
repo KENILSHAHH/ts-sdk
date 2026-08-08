@@ -5,6 +5,7 @@ import {
 import type {
   MarketSubscription,
   SubscriptionHandle,
+  SubscriptionResyncEvent,
 } from '../../actions/subscriptions';
 import { createSubscriptionHandle } from '../handle';
 import { ClobWebSocketHeartbeat } from '../heartbeat';
@@ -44,6 +45,10 @@ export class ClobMarketWebSocketManager
   readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
+  // Set when the socket is lost while subscriptions are active: events
+  // published during the outage were dropped, so the next successful open
+  // must deliver a resync event to every active handle.
+  #droppedEventsSinceOpen = false;
   readonly #connection = new WebSocketConnection({
     heartbeat: new ClobWebSocketHeartbeat(),
   });
@@ -61,7 +66,7 @@ export class ClobMarketWebSocketManager
 
   async subscribe(
     subscription: MarketSubscription,
-  ): Promise<SubscriptionHandle<MarketEvent>> {
+  ): Promise<SubscriptionHandle<MarketEvent | SubscriptionResyncEvent>> {
     const { change, entry } = this.#subscriptions.add(subscription, {
       matches: marketMatcherFor(subscription),
     });
@@ -138,6 +143,10 @@ export class ClobMarketWebSocketManager
   #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription();
+    if (this.#droppedEventsSinceOpen) {
+      this.#droppedEventsSinceOpen = false;
+      this.#subscriptions.resyncAll();
+    }
   }
 
   #onConnectionMessage(message: unknown): void {
@@ -151,6 +160,7 @@ export class ClobMarketWebSocketManager
 
   #onConnectionLost(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
+      this.#droppedEventsSinceOpen = true;
       this.#scheduleReconnect();
     }
   }

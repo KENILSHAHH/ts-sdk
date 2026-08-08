@@ -24,6 +24,11 @@ export type PublicSubscriptionsActions = {
   /**
    * Starts one or more realtime subscriptions on this client.
    *
+   * After an unexpected disconnect the SDK reconnects and resubscribes
+   * automatically, then yields a `SubscriptionResyncEvent` — events published
+   * during the outage were not delivered, so refetch any state that assumes
+   * lossless delivery before processing further events.
+   *
    * @throws {@link SubscribeError}
    * Thrown when subscription input is invalid or a realtime subscription fails.
    *
@@ -34,7 +39,11 @@ export type PublicSubscriptionsActions = {
    * ]);
    *
    * for await (const event of handle) {
-   *   // event: StandardMarketEvent
+   *   // event: StandardMarketEvent | SubscriptionResyncEvent
+   *   if (event.topic === 'subscription') {
+   *     // Reconnected after a gap — refetch books before continuing.
+   *     continue;
+   *   }
    * }
    * ```
    */
@@ -47,6 +56,11 @@ export type SecureSubscriptionsActions = {
   /**
    * Starts one or more realtime subscriptions on this client.
    *
+   * After an unexpected disconnect the SDK reconnects and resubscribes
+   * automatically, then yields a `SubscriptionResyncEvent` — events published
+   * during the outage were not delivered, so refetch any state that assumes
+   * lossless delivery before processing further events.
+   *
    * @throws {@link SubscribeError}
    * Thrown when subscription input is invalid or a realtime subscription fails.
    *
@@ -58,7 +72,11 @@ export type SecureSubscriptionsActions = {
    * ]);
    *
    * for await (const event of handle) {
-   *   // event: StandardMarketEvent | UserEvent
+   *   // event: StandardMarketEvent | UserEvent | SubscriptionResyncEvent
+   *   if (event.topic === 'subscription') {
+   *     // Reconnected after a gap — refetch open orders before continuing.
+   *     continue;
+   *   }
    * }
    * ```
    */

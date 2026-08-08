@@ -16,6 +16,7 @@ import type {
   PerpsMarketDataSubscription,
   SportsSubscription,
   SubscriptionHandle,
+  SubscriptionResyncEvent,
   UserSubscription,
 } from '../actions/subscriptions';
 import type { PerpsSessionManager } from './perps/manager';
@@ -52,12 +53,16 @@ export interface WebSocketSession<TEvent, TMessage>
  * several specs at once can compose per-spec handles through a higher-level
  * merge helper.
  *
- * `TEvent` is the union of events it emits for any spec it accepts.
+ * `TEvent` is the union of events it emits for any spec it accepts. Every
+ * handle can additionally yield a {@link SubscriptionResyncEvent} after the
+ * manager reconnects a lost connection.
  *
  * `close()` is best-effort and idempotent.
  */
 export interface WebSocketSubscriptionManager<TSpec, TEvent> {
-  subscribe(subscription: TSpec): Promise<SubscriptionHandle<TEvent>>;
+  subscribe(
+    subscription: TSpec,
+  ): Promise<SubscriptionHandle<TEvent | SubscriptionResyncEvent>>;
 
   close(): Promise<void>;
 }

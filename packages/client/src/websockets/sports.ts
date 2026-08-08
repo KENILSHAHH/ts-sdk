@@ -5,6 +5,7 @@ import {
 import type {
   SportsSubscription,
   SubscriptionHandle,
+  SubscriptionResyncEvent,
 } from '../actions/subscriptions';
 import { createSubscriptionHandle } from './handle';
 import { SportsWebSocketHeartbeat } from './heartbeat';
@@ -42,6 +43,10 @@ export class SportsWebSocketManager
   readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
+  // Set when the socket is lost while subscriptions are active: events
+  // published during the outage were dropped, so the next successful open
+  // must deliver a resync event to every active handle.
+  #droppedEventsSinceOpen = false;
   readonly #connection = new WebSocketConnection({
     heartbeat: new SportsWebSocketHeartbeat(),
   });
@@ -58,7 +63,7 @@ export class SportsWebSocketManager
 
   async subscribe(
     subscription: SportsSubscription,
-  ): Promise<SubscriptionHandle<SportsEvent>> {
+  ): Promise<SubscriptionHandle<SportsEvent | SubscriptionResyncEvent>> {
     const { entry } = this.#subscriptions.add(subscription);
 
     await this.#registerSubscriber(entry);
@@ -117,6 +122,10 @@ export class SportsWebSocketManager
 
   #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
+    if (this.#droppedEventsSinceOpen) {
+      this.#droppedEventsSinceOpen = false;
+      this.#subscriptions.resyncAll();
+    }
   }
 
   #onConnectionMessage(message: unknown): void {
@@ -127,6 +136,7 @@ export class SportsWebSocketManager
 
   #onConnectionLost(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
+      this.#droppedEventsSinceOpen = true;
       this.#scheduleReconnect();
     }
   }

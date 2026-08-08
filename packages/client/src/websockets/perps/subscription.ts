@@ -6,6 +6,7 @@ import { invariant } from '@polymarket/types';
 import type {
   PerpsMarketDataSubscription,
   SubscriptionHandle,
+  SubscriptionResyncEvent,
 } from '../../actions/subscriptions';
 import { createSubscriptionHandle } from '../handle';
 import { PerpsWebSocketHeartbeat } from '../heartbeat';
@@ -56,6 +57,10 @@ export class PerpsSubscriptionManager
   readonly #url: string;
   #closing: Promise<void> | undefined;
   #nextRequestId = 1;
+  // Set when the socket is lost while subscriptions are active: events
+  // published during the outage were dropped, so the next successful open
+  // must deliver a resync event to every active handle.
+  #droppedEventsSinceOpen = false;
   readonly #connection = new WebSocketConnection({
     heartbeat: new PerpsWebSocketHeartbeat(),
   });
@@ -79,7 +84,9 @@ export class PerpsSubscriptionManager
    */
   async subscribe(
     subscription: PerpsMarketDataSubscription,
-  ): Promise<SubscriptionHandle<PerpsMarketDataEvent>> {
+  ): Promise<
+    SubscriptionHandle<PerpsMarketDataEvent | SubscriptionResyncEvent>
+  > {
     const { change, entry } = this.#subscriptions.add(subscription, {
       matches: matcherFor(subscription),
     });
@@ -149,6 +156,10 @@ export class PerpsSubscriptionManager
   #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendSubscribeFrame(Array.from(this.#subscriptions.serverState()));
+    if (this.#droppedEventsSinceOpen) {
+      this.#droppedEventsSinceOpen = false;
+      this.#subscriptions.resyncAll();
+    }
   }
 
   #onConnectionMessage(message: unknown): void {
@@ -159,6 +170,7 @@ export class PerpsSubscriptionManager
 
   #onConnectionLost(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
+      this.#droppedEventsSinceOpen = true;
       this.#scheduleReconnect();
     }
   }

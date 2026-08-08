@@ -12,6 +12,7 @@ import type {
   CryptoPricesSubscription,
   EquityPricesSubscription,
   SubscriptionHandle,
+  SubscriptionResyncEvent,
 } from '../actions/subscriptions';
 import { createSubscriptionHandle } from './handle';
 import { RtdsWebSocketHeartbeat } from './heartbeat';
@@ -63,6 +64,10 @@ export class RtdsWebSocketManager
   readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
+  // Set when the socket is lost while subscriptions are active: events
+  // published during the outage were dropped, so the next successful open
+  // must deliver a resync event to every active handle.
+  #droppedEventsSinceOpen = false;
   readonly #connection = new WebSocketConnection({
     heartbeat: new RtdsWebSocketHeartbeat(),
   });
@@ -80,7 +85,7 @@ export class RtdsWebSocketManager
 
   async subscribe(
     subscription: RtdsSpec,
-  ): Promise<SubscriptionHandle<RtdsEvent>> {
+  ): Promise<SubscriptionHandle<RtdsEvent | SubscriptionResyncEvent>> {
     const { change, entry } = this.#subscriptions.add(subscription, {
       matches: matcherFor(subscription),
     });
@@ -150,6 +155,10 @@ export class RtdsWebSocketManager
   #onConnectionOpen(): void {
     this.#reconnectScheduler.resetBackoff();
     this.#resubscribeActiveServerEntries();
+    if (this.#droppedEventsSinceOpen) {
+      this.#droppedEventsSinceOpen = false;
+      this.#subscriptions.resyncAll();
+    }
   }
 
   #onConnectionMessage(message: unknown): void {
@@ -160,6 +169,7 @@ export class RtdsWebSocketManager
 
   #onConnectionLost(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
+      this.#droppedEventsSinceOpen = true;
       this.#scheduleReconnect();
     }
   }

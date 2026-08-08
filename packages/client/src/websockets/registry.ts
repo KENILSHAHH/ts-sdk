@@ -1,8 +1,15 @@
 import { type Pushable, pushable } from 'it-pushable';
+import type { SubscriptionResyncEvent } from '../actions/subscriptions';
+
+const SUBSCRIPTION_RESYNC_EVENT: SubscriptionResyncEvent = {
+  topic: 'subscription',
+  type: 'resync',
+  reason: 'reconnect',
+};
 
 export type SubscriptionRegistrySubscriber<TEvent> = {
   matches?: (event: TEvent) => boolean;
-  queue: Pushable<TEvent>;
+  queue: Pushable<TEvent | SubscriptionResyncEvent>;
 };
 
 export type SubscriptionRegistryEntry<TSubscription, TEvent> = {
@@ -92,6 +99,17 @@ export class SubscriptionRegistry<
       if (subscriber.matches === undefined || subscriber.matches(event)) {
         subscriber.queue.push(event);
       }
+    }
+  }
+
+  /**
+   * Delivers a resync event to every active subscriber, bypassing matchers:
+   * a delivery gap affects every subscription on the connection regardless
+   * of its event filters.
+   */
+  resyncAll(): void {
+    for (const { subscriber } of this.#entries) {
+      subscriber.queue.push(SUBSCRIPTION_RESYNC_EVENT);
     }
   }
 

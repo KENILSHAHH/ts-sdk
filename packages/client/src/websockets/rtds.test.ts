@@ -469,6 +469,13 @@ describe('RtdsWebSocketManager', () => {
       ]);
     });
 
+    // The reconnect is surfaced as a resync event before further data.
+    await expect(next).resolves.toMatchObject({
+      done: false,
+      value: { topic: 'subscription', type: 'resync', reason: 'reconnect' },
+    });
+
+    const nextData = waitForNextEvent(handle);
     secondClient?.send(
       JSON.stringify({
         payload: { symbol: 'btcusdt', timestamp: 1, value: 100 },
@@ -478,7 +485,7 @@ describe('RtdsWebSocketManager', () => {
       }),
     );
 
-    await expect(next).resolves.toMatchObject({
+    await expect(nextData).resolves.toMatchObject({
       done: false,
       value: {
         payload: { symbol: 'btcusdt', value: '100' },
@@ -557,6 +564,17 @@ describe('RtdsWebSocketManager', () => {
       ]);
     });
 
+    // The reconnect is surfaced as a resync event before further data.
+    const resync = {
+      value: { topic: 'subscription', type: 'resync', reason: 'reconnect' },
+    };
+    await expect(waitForNextEvent(thirtySecondHandle)).resolves.toMatchObject(
+      resync,
+    );
+    await expect(waitForNextEvent(sixtySecondHandle)).resolves.toMatchObject(
+      resync,
+    );
+
     const thirtySecondNext = waitForNextEvent(thirtySecondHandle);
     const sixtySecondNext = waitForNextEvent(sixtySecondHandle);
     secondClient?.send(
@@ -582,5 +600,48 @@ describe('RtdsWebSocketManager', () => {
     await expect(sixtySecondNext).resolves.toMatchObject({
       value: { payload: { symbol: 'btc/usd', windowSeconds: 60 } },
     });
+  });
+
+  it('yields a resync event to every active handle after reconnecting', {
+    timeout: 5_000,
+  }, async () => {
+    let connections = 0;
+    let firstClient: { close: () => void } | undefined;
+
+    server.use(
+      rtds.addEventListener('connection', ({ client }) => {
+        connections += 1;
+        if (connections === 1) firstClient = client;
+      }),
+    );
+
+    vi.useFakeTimers();
+
+    const btcHandle = await manager.subscribe({
+      topic: 'prices.crypto.binance',
+      symbols: ['btcusdt'],
+    });
+    const ethHandle = await manager.subscribe({
+      topic: 'prices.crypto.binance',
+      symbols: ['ethusdt'],
+    });
+    const btcNext = waitForNextEvent(btcHandle);
+    const ethNext = waitForNextEvent(ethHandle);
+
+    firstClient?.close();
+    await vi.advanceTimersToNextTimer();
+
+    await vi.waitFor(() => {
+      expect(connections).toBe(2);
+    });
+
+    // Both handles resync, even though their symbol filters never match the
+    // same event: the gap affects the shared connection, not one filter.
+    const resync = {
+      done: false,
+      value: { topic: 'subscription', type: 'resync', reason: 'reconnect' },
+    };
+    await expect(btcNext).resolves.toMatchObject(resync);
+    await expect(ethNext).resolves.toMatchObject(resync);
   });
 });

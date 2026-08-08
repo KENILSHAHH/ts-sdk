@@ -23,6 +23,7 @@ import type {
   EventForSubscriptionSpecs,
   SubscribeError,
   SubscriptionHandle,
+  SubscriptionResyncEvent,
 } from './subscriptions';
 
 describe('EventForSubscriptionSpecs', () => {
@@ -41,7 +42,9 @@ describe('EventForSubscriptionSpecs', () => {
     type MarketOnly = EventForSubscriptionSpecs<
       readonly [{ topic: 'market'; tokenIds: readonly string[] }]
     >;
-    expectTypeOf<MarketOnly>().toEqualTypeOf<StandardMarketEvent>();
+    expectTypeOf<MarketOnly>().toEqualTypeOf<
+      StandardMarketEvent | SubscriptionResyncEvent
+    >();
     expectTypeOf<
       Extract<MarketOnly, CustomMarketEvent>
     >().toEqualTypeOf<never>();
@@ -57,7 +60,9 @@ describe('EventForSubscriptionSpecs', () => {
         },
       ]
     >;
-    expectTypeOf<MarketOnly>().toEqualTypeOf<MarketEvent>();
+    expectTypeOf<MarketOnly>().toEqualTypeOf<
+      MarketEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('narrows a custom-disabled market spec to standard market events', () => {
@@ -70,7 +75,9 @@ describe('EventForSubscriptionSpecs', () => {
         },
       ]
     >;
-    expectTypeOf<MarketOnly>().toEqualTypeOf<StandardMarketEvent>();
+    expectTypeOf<MarketOnly>().toEqualTypeOf<
+      StandardMarketEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('keeps all market events when customFeatureEnabled is dynamic', () => {
@@ -83,21 +90,27 @@ describe('EventForSubscriptionSpecs', () => {
         },
       ]
     >;
-    expectTypeOf<MarketOnly>().toEqualTypeOf<MarketEvent>();
+    expectTypeOf<MarketOnly>().toEqualTypeOf<
+      MarketEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('narrows `prices.crypto.binance` to the Binance event type', () => {
     type BinanceOnly = EventForSubscriptionSpecs<
       readonly [{ topic: 'prices.crypto.binance' }]
     >;
-    expectTypeOf<BinanceOnly>().toEqualTypeOf<CryptoPricesBinanceEvent>();
+    expectTypeOf<BinanceOnly>().toEqualTypeOf<
+      CryptoPricesBinanceEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('narrows `prices.crypto.chainlink` to the Chainlink event type', () => {
     type ChainlinkOnly = EventForSubscriptionSpecs<
       readonly [{ topic: 'prices.crypto.chainlink' }]
     >;
-    expectTypeOf<ChainlinkOnly>().toEqualTypeOf<CryptoPricesChainlinkEvent>();
+    expectTypeOf<ChainlinkOnly>().toEqualTypeOf<
+      CryptoPricesChainlinkEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('narrows each Chainlink TWAP window to its exact event type', () => {
@@ -108,8 +121,12 @@ describe('EventForSubscriptionSpecs', () => {
       readonly [{ topic: 'prices.crypto.chainlink.twap'; windowSeconds: 60 }]
     >;
 
-    expectTypeOf<ThirtySecondTwap>().toEqualTypeOf<CryptoPricesChainlinkTwapThirtyEvent>();
-    expectTypeOf<SixtySecondTwap>().toEqualTypeOf<CryptoPricesChainlinkTwapSixtyEvent>();
+    expectTypeOf<ThirtySecondTwap>().toEqualTypeOf<
+      CryptoPricesChainlinkTwapThirtyEvent | SubscriptionResyncEvent
+    >();
+    expectTypeOf<SixtySecondTwap>().toEqualTypeOf<
+      CryptoPricesChainlinkTwapSixtyEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('keeps both TWAP event variants when the window is dynamic', () => {
@@ -122,7 +139,9 @@ describe('EventForSubscriptionSpecs', () => {
       ]
     >;
 
-    expectTypeOf<DynamicTwap>().toEqualTypeOf<CryptoPricesChainlinkTwapEvent>();
+    expectTypeOf<DynamicTwap>().toEqualTypeOf<
+      CryptoPricesChainlinkTwapEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('unions exact events when subscribing to both TWAP windows', () => {
@@ -134,7 +153,9 @@ describe('EventForSubscriptionSpecs', () => {
     >;
 
     expectTypeOf<BothWindows>().toEqualTypeOf<
-      CryptoPricesChainlinkTwapThirtyEvent | CryptoPricesChainlinkTwapSixtyEvent
+      | CryptoPricesChainlinkTwapThirtyEvent
+      | CryptoPricesChainlinkTwapSixtyEvent
+      | SubscriptionResyncEvent
     >();
   });
 
@@ -147,7 +168,9 @@ describe('EventForSubscriptionSpecs', () => {
     >;
 
     expectTypeOf<SpotAndTwap>().toEqualTypeOf<
-      CryptoPricesChainlinkEvent | CryptoPricesChainlinkTwapSixtyEvent
+      | CryptoPricesChainlinkEvent
+      | CryptoPricesChainlinkTwapSixtyEvent
+      | SubscriptionResyncEvent
     >();
   });
 
@@ -155,7 +178,9 @@ describe('EventForSubscriptionSpecs', () => {
     type EquityOnly = EventForSubscriptionSpecs<
       readonly [{ topic: 'prices.equity.pyth'; symbol: string }]
     >;
-    expectTypeOf<EquityOnly>().toEqualTypeOf<EquityPricesEvent>();
+    expectTypeOf<EquityOnly>().toEqualTypeOf<
+      EquityPricesEvent | SubscriptionResyncEvent
+    >();
   });
 
   it('unions the event types of a multi-topic spec', () => {
@@ -165,7 +190,9 @@ describe('EventForSubscriptionSpecs', () => {
         { topic: 'sports' },
       ]
     >;
-    expectTypeOf<Mixed>().toEqualTypeOf<StandardMarketEvent | SportsEvent>();
+    expectTypeOf<Mixed>().toEqualTypeOf<
+      StandardMarketEvent | SportsEvent | SubscriptionResyncEvent
+    >();
   });
 });
 
@@ -184,7 +211,7 @@ describe('PublicClient.subscribe', () => {
     // Intentionally not awaited; we only care about the static type.
     const pending = client.subscribe([{ topic: 'market', tokenIds: ['123'] }]);
     expectTypeOf(pending).resolves.toEqualTypeOf<
-      SubscriptionHandle<StandardMarketEvent>
+      SubscriptionHandle<StandardMarketEvent | SubscriptionResyncEvent>
     >();
   });
 
@@ -196,7 +223,7 @@ describe('PublicClient.subscribe', () => {
       { customFeatureEnabled: true, topic: 'market', tokenIds: ['123'] },
     ]);
     expectTypeOf(pending).resolves.toEqualTypeOf<
-      SubscriptionHandle<MarketEvent>
+      SubscriptionHandle<MarketEvent | SubscriptionResyncEvent>
     >();
   });
 
@@ -211,7 +238,9 @@ describe('PublicClient.subscribe', () => {
       },
     ]);
     expectTypeOf(pending).resolves.toEqualTypeOf<
-      SubscriptionHandle<CryptoPricesChainlinkTwapThirtyEvent>
+      SubscriptionHandle<
+        CryptoPricesChainlinkTwapThirtyEvent | SubscriptionResyncEvent
+      >
     >();
   });
 
@@ -235,7 +264,9 @@ describe('PublicClient.subscribe', () => {
     const handle = await pending;
 
     for await (const event of handle) {
-      expectTypeOf(event).toEqualTypeOf<StandardMarketEvent>();
+      expectTypeOf(event).toEqualTypeOf<
+        StandardMarketEvent | SubscriptionResyncEvent
+      >();
       expectTypeOf<Extract<typeof event, UserEvent>>().toEqualTypeOf<never>();
     }
   });

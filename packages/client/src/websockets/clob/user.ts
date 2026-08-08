@@ -5,6 +5,7 @@ import {
 } from '@polymarket/bindings/subscriptions';
 import type {
   SubscriptionHandle,
+  SubscriptionResyncEvent,
   UserSubscription,
 } from '../../actions/subscriptions';
 import { createSubscriptionHandle } from '../handle';
@@ -41,6 +42,10 @@ export class ClobUserWebSocketManager
   readonly #headers: Record<string, string> | undefined;
   readonly #url: string;
   #closing: Promise<void> | undefined;
+  // Set when the socket is lost while subscriptions are active: events
+  // published during the outage were dropped, so the next successful open
+  // must deliver a resync event to every active handle.
+  #droppedEventsSinceOpen = false;
   readonly #connection = new WebSocketConnection({
     heartbeat: new ClobWebSocketHeartbeat(),
   });
@@ -59,7 +64,7 @@ export class ClobUserWebSocketManager
 
   async subscribe(
     subscription: UserSubscription,
-  ): Promise<SubscriptionHandle<UserEvent>> {
+  ): Promise<SubscriptionHandle<UserEvent | SubscriptionResyncEvent>> {
     const { change, entry } = this.#subscriptions.add(subscription, {
       matches: userMatcherFor(subscription),
     });
@@ -137,6 +142,10 @@ export class ClobUserWebSocketManager
   #onConnectionOpen(credentials: ApiKeyCreds): void {
     this.#reconnectScheduler.resetBackoff();
     this.#sendInitialSubscription(credentials);
+    if (this.#droppedEventsSinceOpen) {
+      this.#droppedEventsSinceOpen = false;
+      this.#subscriptions.resyncAll();
+    }
   }
 
   #onConnectionMessage(message: unknown): void {
@@ -150,6 +159,7 @@ export class ClobUserWebSocketManager
 
   #onConnectionLost(): void {
     if (this.#subscriptions.hasActiveSubscriptions()) {
+      this.#droppedEventsSinceOpen = true;
       this.#scheduleReconnect();
     }
   }
