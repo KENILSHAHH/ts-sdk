@@ -218,6 +218,7 @@ export class ServiceClient {
   > {
     return this.#toResult(
       this.#send(method, path, options),
+      path,
       options.rateLimitBucket,
     );
   }
@@ -298,6 +299,7 @@ export class ServiceClient {
 
   #toResult(
     promise: Promise<Response>,
+    path: string,
     rateLimitBucket?: RateLimitBucket,
   ): ResultAsync<
     Response,
@@ -331,7 +333,7 @@ export class ServiceClient {
           message,
           heartbeatId,
           retryAfter: retryAfterSeconds,
-        } = await this.#extractResponseError(response);
+        } = await this.#extractResponseError(response, path);
         if (heartbeatId !== undefined) {
           throw new OrderHeartbeatMismatchError(heartbeatId);
         }
@@ -386,7 +388,10 @@ export class ServiceClient {
     return Math.max(0, Math.ceil((deadline - now) / 1000));
   }
 
-  async #extractResponseError(response: Response): Promise<{
+  async #extractResponseError(
+    response: Response,
+    path: string,
+  ): Promise<{
     message: string;
     code?: string;
     retryAfter?: number;
@@ -397,7 +402,7 @@ export class ServiceClient {
     if (contentType?.includes('application/json')) {
       if (
         response.status === 400 &&
-        new URL(response.url).pathname === '/v1/heartbeats'
+        this.#normalizePath(path) === 'v1/heartbeats'
       ) {
         const parsed = OrderHeartbeatMismatchResponseSchema.safeParse(
           await response

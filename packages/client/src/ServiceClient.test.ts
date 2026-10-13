@@ -82,12 +82,14 @@ describe('ServiceClient', () => {
   });
 
   it.each([
-    'expected-id',
-    '',
-  ])('preserves expected heartbeat ID %j and performs one attempt', async (heartbeatId) => {
+    [root, 'expected-id'],
+    [root, ''],
+    [`${root}/prefix`, 'expected-id'],
+    [`${root}/prefix`, ''],
+  ])('preserves expected heartbeat ID at %s (%j) in one attempt', async (serviceRoot, heartbeatId) => {
     let requests = 0;
     server.use(
-      http.post(`${root}/v1/heartbeats`, () => {
+      http.post(`${serviceRoot}/v1/heartbeats`, () => {
         requests++;
         return HttpResponse.json(
           { error_msg: 'Invalid Heartbeat ID', heartbeat_id: heartbeatId },
@@ -95,7 +97,7 @@ describe('ServiceClient', () => {
         );
       }),
     );
-    const client = new ServiceClient({ root });
+    const client = new ServiceClient({ root: serviceRoot });
     const result = await client.post('/v1/heartbeats', {
       json: { heartbeat_id: 'stale-id' },
       retry: false,
@@ -114,13 +116,16 @@ describe('ServiceClient', () => {
     expect(requests).toBe(1);
   });
 
-  it('keeps malformed heartbeat payload rejections as generic rejections', async () => {
+  it.each([
+    root,
+    `${root}/prefix`,
+  ])('keeps malformed heartbeat payload rejections as generic rejections at %s', async (serviceRoot) => {
     server.use(
-      http.post(`${root}/v1/heartbeats`, () =>
+      http.post(`${serviceRoot}/v1/heartbeats`, () =>
         HttpResponse.json({ error: 'Invalid payload' }, { status: 400 }),
       ),
     );
-    const client = new ServiceClient({ root });
+    const client = new ServiceClient({ root: serviceRoot });
     const result = await client.post('/v1/heartbeats', { retry: false });
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
@@ -130,16 +135,19 @@ describe('ServiceClient', () => {
     }
   });
 
-  it('does not reinterpret unrelated errors containing a heartbeat ID', async () => {
+  it.each([
+    root,
+    `${root}/prefix`,
+  ])('does not reinterpret unrelated errors containing a heartbeat ID at %s', async (serviceRoot) => {
     server.use(
-      http.post(`${root}/other-route`, () =>
+      http.post(`${serviceRoot}/other-route`, () =>
         HttpResponse.json(
           { error_msg: 'Invalid Heartbeat ID', heartbeat_id: 'expected-id' },
           { status: 400 },
         ),
       ),
     );
-    const client = new ServiceClient({ root });
+    const client = new ServiceClient({ root: serviceRoot });
     const result = await client.post('/other-route');
     if (result.isErr())
       expect(result.error).not.toBeInstanceOf(OrderHeartbeatMismatchError);
