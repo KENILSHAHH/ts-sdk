@@ -31,6 +31,11 @@ import { type EpochMilliseconds, EpochMillisecondsSchema } from '../shared';
 
 const SequenceSchema = z.number().int().nonnegative();
 
+// Wire ets is an unsigned epoch-ms value; zero attests no event horizon.
+const PerpsEventHorizonSchema = EpochMillisecondsSchema.refine(
+  (value) => value >= 0,
+).transform((value) => (value === 0 ? null : value));
+
 const TradesChannelSchema = z.string().regex(/^trades::\d+$/);
 const BboChannelSchema = z.string().regex(/^bbo::\d+$/);
 const BookChannelSchema = z.string().regex(/^book::\d+$/);
@@ -53,7 +58,7 @@ const PerpsSessionChannelSchema = z.enum([
 
 const PerpsUpdateEnvelopeSchema = z.object({
   ts: EpochMillisecondsSchema,
-  ets: EpochMillisecondsSchema,
+  ets: PerpsEventHorizonSchema,
   sq: SequenceSchema,
 });
 
@@ -68,7 +73,7 @@ export const PerpsTradeEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'trade' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: data,
@@ -90,7 +95,7 @@ export const PerpsBboEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'bbo' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: data,
@@ -112,7 +117,7 @@ export const PerpsBookEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'book' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: {
@@ -137,7 +142,7 @@ export const PerpsTickerEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'ticker' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: data,
@@ -159,7 +164,7 @@ export const PerpsStatisticEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'statistic' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: data,
@@ -181,7 +186,7 @@ export const PerpsCandleEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'candle' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: {
@@ -231,14 +236,14 @@ function perpsSessionEventSchema<
       data: z.output<TPayload>;
       sq: number;
       ts: number;
-      ets: EpochMilliseconds;
+      ets: EpochMilliseconds | null;
     };
 
     return {
       type,
       channel: event.ch,
       timestamp: event.ts,
-      /** Newest reflected event time; zero means the event horizon is unknown. */
+      /** Newest reflected event time; null means the event horizon is unknown. */
       eventTimestamp: event.ets,
       sequence: event.sq,
       payload: event.data,
@@ -314,7 +319,7 @@ export const PerpsBuilderFillUpdateEventSchema =
     type: 'builderFill' as const,
     channel: ch,
     timestamp: ts,
-    /** Newest reflected event time; zero means the event horizon is unknown. */
+    /** Newest reflected event time; null means the event horizon is unknown. */
     eventTimestamp: ets,
     sequence: sq,
     payload: data,
@@ -396,7 +401,7 @@ export const PerpsNotificationsResyncFrameSchema = z
   .object({
     ch: z.literal('notifications'),
     ts: EpochMillisecondsSchema,
-    ets: EpochMillisecondsSchema,
+    ets: PerpsEventHorizonSchema,
     sq: SequenceSchema,
     type: z.literal('resync'),
   })
@@ -405,7 +410,7 @@ export const PerpsNotificationsResyncFrameSchema = z
     reason: 'server' as const,
     channel: ch,
     timestamp: ts,
-    /** Newest reflected event time; zero means the event horizon is unknown. */
+    /** Newest reflected event time; null means the event horizon is unknown. */
     eventTimestamp: ets,
     sequence: sq,
   }));
@@ -430,7 +435,7 @@ export const PerpsTpSlUpdateEventSchema = PerpsUpdateEnvelopeSchema.extend({
   type: 'tpsl' as const,
   channel: ch,
   timestamp: ts,
-  /** Newest reflected event time; zero means the event horizon is unknown. */
+  /** Newest reflected event time; null means the event horizon is unknown. */
   eventTimestamp: ets,
   sequence: sq,
   payload: data,

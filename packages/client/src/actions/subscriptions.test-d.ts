@@ -477,7 +477,14 @@ describe('Perps event horizon public subscription types', () => {
         for await (const event of handle) {
           expectTypeOf(
             event.eventTimestamp,
-          ).toEqualTypeOf<ClientExports.EpochMilliseconds>();
+          ).toEqualTypeOf<ClientExports.EpochMilliseconds | null>();
+          if (event.eventTimestamp !== null) {
+            expectTypeOf(
+              event.eventTimestamp,
+            ).toEqualTypeOf<ClientExports.EpochMilliseconds>();
+          } else {
+            expectTypeOf(event.eventTimestamp).toEqualTypeOf<null>();
+          }
         }
       }
       const mixed = await client.subscribe([

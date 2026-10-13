@@ -230,7 +230,69 @@ describe('ListPerpsNotificationsResponseSchema', () => {
 
 describe('Perps account event horizons', () => {
   it.each([
+    { ch: 'balances', data: { asset: 'USDC', balance: '1', value: '1' } },
+    {
+      ch: 'portfolio',
+      data: {
+        positions: [],
+        margin: {
+          total_account_value: '1',
+          total_initial_margin: '0',
+          total_maintenance_margin: '0',
+          total_position_value: '0',
+        },
+        withdrawable: '1',
+        in_liquidation: false,
+        timestamp: 1_767_225_600_000,
+      },
+    },
+    {
+      ch: 'orders',
+      data: {
+        oid: 1,
+        iid: 1,
+        buy: true,
+        p: '1',
+        qty: '1',
+        tif: 'gtc',
+        po: false,
+        ro: false,
+        status: 'open',
+        rest: '1',
+        fill: '0',
+        cts: 1_767_225_600_000,
+        uts: 1_767_225_600_000,
+      },
+    },
     { ch: 'fills', data: [] },
+    {
+      ch: 'funding',
+      data: {
+        id: 1,
+        iid: 1,
+        sz: '1',
+        fr: '0',
+        fund: '0',
+        fua: 'USDC',
+        ts: 1_767_225_600_000,
+      },
+    },
+    {
+      ch: 'deposits',
+      data: { hash: '0x', asset: 'USDC', amount: '1', status: 'confirmed' },
+    },
+    {
+      ch: 'withdrawals',
+      data: {
+        withdraw_id: 1,
+        asset: 'USDC',
+        amount: '1',
+        fee: '0',
+        status: 'confirmed',
+        to: `0x${'1'.repeat(40)}`,
+        hash: '0x',
+      },
+    },
     { ch: 'builderFills', data: [] },
     { ch: 'notifications', data: DELEVERAGED_NOTIFICATION },
     { ch: 'tpsl::1', data: { oid: 1, st: 'armed' } },
@@ -248,11 +310,25 @@ describe('Perps account event horizons', () => {
     });
     expect(
       PerpsSessionUpdateEventSchema.parse({ ...wire, ets: 0 }).eventTimestamp,
-    ).toBe(0);
+    ).toBeNull();
     const { ets: _horizon, ...missing } = wire;
     expect(PerpsSessionUpdateEventSchema.safeParse(missing).success).toBe(
       false,
     );
+    for (const ets of [
+      null,
+      '0',
+      true,
+      -1,
+      0.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      expect(
+        PerpsSessionUpdateEventSchema.safeParse({ ...wire, ets }).success,
+      ).toBe(false);
+    }
   });
 
   it('preserves the horizon supplied with server notification recovery', () => {
@@ -270,10 +346,24 @@ describe('Perps account event horizons', () => {
     expect(
       PerpsNotificationsResyncFrameSchema.parse({ ...wire, ets: 0 })
         .eventTimestamp,
-    ).toBe(0);
+    ).toBeNull();
     const { ets: _horizon, ...missing } = wire;
     expect(PerpsNotificationsResyncFrameSchema.safeParse(missing).success).toBe(
       false,
     );
+    for (const ets of [
+      null,
+      '0',
+      true,
+      -1,
+      0.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      expect(
+        PerpsNotificationsResyncFrameSchema.safeParse({ ...wire, ets }).success,
+      ).toBe(false);
+    }
   });
 });

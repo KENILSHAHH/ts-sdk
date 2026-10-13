@@ -257,11 +257,22 @@ describe('Perps market event horizons', () => {
     });
     expect(
       PerpsMarketDataEventSchema.parse({ ...wire, ets: 0 }).eventTimestamp,
-    ).toBe(0);
+    ).toBeNull();
     const { ets: _horizon, ...missing } = wire;
     expect(PerpsMarketDataEventSchema.safeParse(missing).success).toBe(false);
-    expect(
-      PerpsMarketDataEventSchema.safeParse({ ...wire, ets: null }).success,
-    ).toBe(false);
+    for (const ets of [
+      null,
+      '0',
+      true,
+      -1,
+      0.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      expect(
+        PerpsMarketDataEventSchema.safeParse({ ...wire, ets }).success,
+      ).toBe(false);
+    }
   });
 });

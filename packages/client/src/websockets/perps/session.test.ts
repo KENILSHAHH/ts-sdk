@@ -2649,7 +2649,9 @@ describe('PerpsSession', () => {
       await session.close();
     });
 
-    it('emits server resyncs and continues notifications without synthetic gaps', async () => {
+    it.each([
+      0, 1_699_999_999_000,
+    ])('emits server resync horizon %s and continues notifications without synthetic gaps', async (horizon) => {
       mockSuccessfulSession();
       const connection = captureConnection(server, perps);
       const session = createSession();
@@ -2659,7 +2661,7 @@ describe('PerpsSession', () => {
       const nextEvent = waitForNextEvent(session);
       await connection.send({
         ch: 'notifications',
-        ets: 1_699_999_999_000,
+        ets: horizon,
         sq: 1050,
         ts: 1_700_000_000_000,
         type: 'resync',
@@ -2669,7 +2671,7 @@ describe('PerpsSession', () => {
         value: {
           channel: 'notifications',
           reason: 'server',
-          eventTimestamp: 1_699_999_999_000,
+          eventTimestamp: horizon === 0 ? null : horizon,
           sequence: 1050,
           timestamp: 1_700_000_000_000,
           type: 'resync',

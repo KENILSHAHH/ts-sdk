@@ -90,7 +90,9 @@ describe('PerpsSubscriptionManager', () => {
     ]);
   });
 
-  it('normalizes and fans out matching book updates', async () => {
+  it.each([
+    0, 1_699_999_999_000,
+  ])('normalizes and fans out matching book updates with horizon %s', async (horizon) => {
     const connection = captureConnection(server, perpsSubscriptions);
 
     const handle = await manager.subscribe({
@@ -105,7 +107,7 @@ describe('PerpsSubscriptionManager', () => {
         a: [['101', '2']],
         b: [['100', '1']],
       },
-      ets: 1_699_999_999_000,
+      ets: horizon,
       sq: 10,
       ts: 1_700_000_000_000,
     });
@@ -120,6 +122,7 @@ describe('PerpsSubscriptionManager', () => {
         },
         sequence: 10,
         timestamp: 1_700_000_000_000,
+        eventTimestamp: horizon === 0 ? null : horizon,
         topic: 'perps.book',
         type: 'book',
       },
