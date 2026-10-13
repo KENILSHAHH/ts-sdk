@@ -17,10 +17,7 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import {
-  ConvertInputSchema,
-  HorizontalOperationInputSchema,
-} from '../neg-risk-input';
+import { NegRiskOperationInputSchema } from '../neg-risk-input';
 import { expectTransactionHandle, type TransactionHandle } from '../types';
 import {
   completeWith,
@@ -53,17 +50,15 @@ export type ConvertWorkflow = AsyncGenerator<
 >;
 
 export type PrepareConvertRequest = {
-  /** Protocol V2 neg-risk event ID: bytes29 or zero-padded bytes32, not an API event ID. */
-  eventId: string;
+  /** Market's protocol V2 neg-risk condition ID: bytes31 or zero-padded bytes32. */
+  conditionId: string;
   /** Positive explicit amount in six-decimal base units (1_000_000n = one unit). */
   amount: bigint;
   /** Optional transaction metadata for gasless wallets. */
   metadata?: string;
-  /** Index of the NO condition, from zero through event arity (the synthetic Other). */
-  conditionIndex: number;
 };
 
-const PrepareConvertRequestSchema = ConvertInputSchema.safeExtend({
+const PrepareConvertRequestSchema = NegRiskOperationInputSchema.safeExtend({
   metadata: GaslessTransactionMetadataSchema.optional(),
 });
 
@@ -83,6 +78,7 @@ export const PrepareConvertError = makeErrorGuard(
 
 /**
  * Prepares a workflow: Converts NO into YES for all other conditions.
+ * Derives the event and NO condition index from the market's condition ID.
  * Includes Other unless converting NO(Other).
  * Requires PositionManager operator approval for the Router. No approvals are submitted automatically.
  * Preparing does not sign or submit; advance the returned workflow to execute it.
@@ -93,10 +89,11 @@ export async function prepareConvert(
   request: PrepareConvertRequest,
 ): Promise<ConvertWorkflow> {
   const params = parseUserInput(request, PrepareConvertRequestSchema);
+  const protocolEventId = params.conditionId.slice(0, 60);
   const call = routerConvertCall(
     client.environment.contracts.protocolV2Router,
-    params.eventId,
-    params.conditionIndex,
+    protocolEventId,
+    Number.parseInt(params.conditionId.slice(60, 64), 16),
     params.amount,
   );
   return async function* (): ConvertWorkflow {
@@ -112,7 +109,7 @@ export async function prepareConvert(
       calls: [call],
       metadata:
         params.metadata ??
-        `Convert ${params.amount} for event ${params.eventId}`,
+        `Convert ${params.amount} for condition ${params.conditionId}`,
     });
   }.call(null);
 }
@@ -137,6 +134,7 @@ export const ConvertError = makeErrorGuard(
 
 /**
  * Converts NO into YES for all other conditions.
+ * Derives the event and NO condition index from the market's condition ID.
  * Includes Other unless converting NO(Other).
  * Requires PositionManager operator approval for the Router. No approvals are submitted automatically.
  * Signs and submits using the authenticated wallet; call the returned handle's wait() to confirm.
@@ -157,8 +155,8 @@ export type HorizontalSplitWorkflow = AsyncGenerator<
 >;
 
 export type PrepareHorizontalSplitRequest = {
-  /** Protocol V2 neg-risk event ID: bytes29 or zero-padded bytes32, not an API event ID. */
-  eventId: string;
+  /** Any market condition in the protocol V2 neg-risk event: bytes31 or zero-padded bytes32. */
+  conditionId: string;
   /** Positive explicit amount in six-decimal base units (1_000_000n = one unit). */
   amount: bigint;
   /** Optional transaction metadata for gasless wallets. */
@@ -166,7 +164,7 @@ export type PrepareHorizontalSplitRequest = {
 };
 
 const PrepareHorizontalSplitRequestSchema =
-  HorizontalOperationInputSchema.safeExtend({
+  NegRiskOperationInputSchema.safeExtend({
     metadata: GaslessTransactionMetadataSchema.optional(),
   });
 
@@ -186,6 +184,7 @@ export const PrepareHorizontalSplitError = makeErrorGuard(
 
 /**
  * Prepares a workflow: Splits pUSD into YES for every condition, including Other.
+ * Uses the event containing the supplied market condition.
  * Requires pUSD spending approval for the Router. No approvals are submitted automatically.
  * Preparing does not sign or submit; advance the returned workflow to execute it.
  * @throws {@link PrepareHorizontalSplitError} Thrown on failure, including while advancing the workflow.
@@ -195,9 +194,10 @@ export async function prepareHorizontalSplit(
   request: PrepareHorizontalSplitRequest,
 ): Promise<HorizontalSplitWorkflow> {
   const params = parseUserInput(request, PrepareHorizontalSplitRequestSchema);
+  const protocolEventId = params.conditionId.slice(0, 60);
   const call = routerHorizontalSplitCall(
     client.environment.contracts.protocolV2Router,
-    params.eventId,
+    protocolEventId,
     params.amount,
   );
   return async function* (): HorizontalSplitWorkflow {
@@ -213,7 +213,7 @@ export async function prepareHorizontalSplit(
       calls: [call],
       metadata:
         params.metadata ??
-        `HorizontalSplit ${params.amount} for event ${params.eventId}`,
+        `HorizontalSplit ${params.amount} for event ${protocolEventId}`,
     });
   }.call(null);
 }
@@ -238,6 +238,7 @@ export const HorizontalSplitError = makeErrorGuard(
 
 /**
  * Splits pUSD into YES for every condition, including Other.
+ * Uses the event containing the supplied market condition.
  * Requires pUSD spending approval for the Router. No approvals are submitted automatically.
  * Signs and submits using the authenticated wallet; call the returned handle's wait() to confirm.
  * @throws {@link HorizontalSplitError} Thrown on failure.
@@ -259,8 +260,8 @@ export type HorizontalMergeWorkflow = AsyncGenerator<
 >;
 
 export type PrepareHorizontalMergeRequest = {
-  /** Protocol V2 neg-risk event ID: bytes29 or zero-padded bytes32, not an API event ID. */
-  eventId: string;
+  /** Any market condition in the protocol V2 neg-risk event: bytes31 or zero-padded bytes32. */
+  conditionId: string;
   /** Positive explicit amount in six-decimal base units (1_000_000n = one unit). */
   amount: bigint;
   /** Optional transaction metadata for gasless wallets. */
@@ -268,7 +269,7 @@ export type PrepareHorizontalMergeRequest = {
 };
 
 const PrepareHorizontalMergeRequestSchema =
-  HorizontalOperationInputSchema.safeExtend({
+  NegRiskOperationInputSchema.safeExtend({
     metadata: GaslessTransactionMetadataSchema.optional(),
   });
 
@@ -288,6 +289,7 @@ export const PrepareHorizontalMergeError = makeErrorGuard(
 
 /**
  * Prepares a workflow: Merges equal YES amounts from every condition, including Other, into pUSD.
+ * Uses the event containing the supplied market condition.
  * Requires PositionManager operator approval for the Router. No approvals are submitted automatically.
  * Preparing does not sign or submit; advance the returned workflow to execute it.
  * @throws {@link PrepareHorizontalMergeError} Thrown on failure, including while advancing the workflow.
@@ -297,9 +299,10 @@ export async function prepareHorizontalMerge(
   request: PrepareHorizontalMergeRequest,
 ): Promise<HorizontalMergeWorkflow> {
   const params = parseUserInput(request, PrepareHorizontalMergeRequestSchema);
+  const protocolEventId = params.conditionId.slice(0, 60);
   const call = routerHorizontalMergeCall(
     client.environment.contracts.protocolV2Router,
-    params.eventId,
+    protocolEventId,
     params.amount,
   );
   return async function* (): HorizontalMergeWorkflow {
@@ -315,7 +318,7 @@ export async function prepareHorizontalMerge(
       calls: [call],
       metadata:
         params.metadata ??
-        `HorizontalMerge ${params.amount} for event ${params.eventId}`,
+        `HorizontalMerge ${params.amount} for event ${protocolEventId}`,
     });
   }.call(null);
 }
@@ -340,6 +343,7 @@ export const HorizontalMergeError = makeErrorGuard(
 
 /**
  * Merges equal YES amounts from every condition, including Other, into pUSD.
+ * Uses the event containing the supplied market condition.
  * Requires PositionManager operator approval for the Router. No approvals are submitted automatically.
  * Signs and submits using the authenticated wallet; call the returned handle's wait() to confirm.
  * @throws {@link HorizontalMergeError} Thrown on failure.

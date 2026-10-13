@@ -65,6 +65,7 @@ export type PublicWalletActions = {
 export type SecureWalletActions = {
   /**
    * Converts NO into YES for all other conditions.
+   * Derives the event and NO condition index from the market's condition ID.
    * Includes Other unless converting NO(Other).
    * Requires PositionManager operator approval for the Router; approvals are not submitted automatically.
    * Signs and submits; call the returned handle's wait() to confirm.
@@ -73,6 +74,7 @@ export type SecureWalletActions = {
   convert(request: PrepareConvertRequest): Promise<TransactionHandle>;
   /**
    * Prepares a workflow: Converts NO into YES for all other conditions.
+   * Derives the event and NO condition index from the market's condition ID.
    * Includes Other unless converting NO(Other).
    * Requires PositionManager operator approval for the Router; approvals are not submitted automatically.
    * Preparing does not sign or submit; advance the workflow to execute it.
@@ -81,6 +83,7 @@ export type SecureWalletActions = {
   prepareConvert(request: PrepareConvertRequest): Promise<ConvertWorkflow>;
   /**
    * Splits pUSD into YES for every condition, including Other.
+   * Uses the event containing the supplied market condition.
    * Requires pUSD spending approval for the Router; approvals are not submitted automatically.
    * Signs and submits; call the returned handle's wait() to confirm.
    * @throws {@link HorizontalSplitError} Thrown on failure.
@@ -90,6 +93,7 @@ export type SecureWalletActions = {
   ): Promise<TransactionHandle>;
   /**
    * Prepares a workflow: Splits pUSD into YES for every condition, including Other.
+   * Uses the event containing the supplied market condition.
    * Requires pUSD spending approval for the Router; approvals are not submitted automatically.
    * Preparing does not sign or submit; advance the workflow to execute it.
    * @throws {@link PrepareHorizontalSplitError} Thrown on failure.
@@ -99,6 +103,7 @@ export type SecureWalletActions = {
   ): Promise<HorizontalSplitWorkflow>;
   /**
    * Merges equal YES amounts from every condition, including Other, into pUSD.
+   * Uses the event containing the supplied market condition.
    * Requires PositionManager operator approval for the Router; approvals are not submitted automatically.
    * Signs and submits; call the returned handle's wait() to confirm.
    * @throws {@link HorizontalMergeError} Thrown on failure.
@@ -108,6 +113,7 @@ export type SecureWalletActions = {
   ): Promise<TransactionHandle>;
   /**
    * Prepares a workflow: Merges equal YES amounts from every condition, including Other, into pUSD.
+   * Uses the event containing the supplied market condition.
    * Requires PositionManager operator approval for the Router; approvals are not submitted automatically.
    * Preparing does not sign or submit; advance the workflow to execute it.
    * @throws {@link PrepareHorizontalMergeError} Thrown on failure.

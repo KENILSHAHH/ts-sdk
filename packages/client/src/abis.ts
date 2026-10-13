@@ -385,24 +385,24 @@ export const RouterConvertCallError = makeErrorGuard(UserInputError);
 /**
  * Encodes a Router conversion of NO into every other condition's YES.
  * Includes Other unless converting NO(Other).
- * Accepts a bytes29 or zero-padded bytes32 event ID, an index from zero through
+ * Accepts a bytes29 or zero-padded bytes32 protocol event ID, an index from zero through
  * the event arity (Other), and a positive uint256 amount in six-decimal base units.
  * @throws {@link RouterConvertCallError} Thrown when input is invalid.
  */
 export function routerConvertCall(
   routerAddress: EvmAddress,
-  eventId: string,
+  protocolEventId: string,
   conditionIndex: number,
   amount: bigint,
 ): TransactionCall {
   const params = parseUserInput(
-    { eventId, conditionIndex, amount },
+    { protocolEventId, conditionIndex, amount },
     ConvertInputSchema,
   );
   return {
     to: routerAddress,
     data: AbiFunction.encodeData(ROUTER_CONVERT_FUNCTION, [
-      params.eventId,
+      params.protocolEventId,
       params.conditionIndex,
       params.amount,
     ]),
@@ -414,23 +414,23 @@ export const RouterHorizontalSplitCallError = makeErrorGuard(UserInputError);
 
 /**
  * Encodes a Router split of pUSD into YES for every condition, including Other.
- * Accepts a bytes29 or zero-padded bytes32 event ID and a positive uint256 amount
+ * Accepts a bytes29 or zero-padded bytes32 protocol event ID and a positive uint256 amount
  * in six-decimal base units.
  * @throws {@link RouterHorizontalSplitCallError} Thrown when input is invalid.
  */
 export function routerHorizontalSplitCall(
   routerAddress: EvmAddress,
-  eventId: string,
+  protocolEventId: string,
   amount: bigint,
 ): TransactionCall {
   const params = parseUserInput(
-    { eventId, amount },
+    { protocolEventId, amount },
     HorizontalOperationInputSchema,
   );
   return {
     to: routerAddress,
     data: AbiFunction.encodeData(ROUTER_HORIZONTAL_SPLIT_FUNCTION, [
-      params.eventId,
+      params.protocolEventId,
       params.amount,
     ]),
   };
@@ -441,23 +441,23 @@ export const RouterHorizontalMergeCallError = makeErrorGuard(UserInputError);
 
 /**
  * Encodes a Router merge of equal YES amounts from every condition, including Other, into pUSD.
- * Accepts a bytes29 or zero-padded bytes32 event ID and a positive uint256 amount
+ * Accepts a bytes29 or zero-padded bytes32 protocol event ID and a positive uint256 amount
  * per condition in six-decimal base units.
  * @throws {@link RouterHorizontalMergeCallError} Thrown when input is invalid.
  */
 export function routerHorizontalMergeCall(
   routerAddress: EvmAddress,
-  eventId: string,
+  protocolEventId: string,
   amount: bigint,
 ): TransactionCall {
   const params = parseUserInput(
-    { eventId, amount },
+    { protocolEventId, amount },
     HorizontalOperationInputSchema,
   );
   return {
     to: routerAddress,
     data: AbiFunction.encodeData(ROUTER_HORIZONTAL_MERGE_FUNCTION, [
-      params.eventId,
+      params.protocolEventId,
       params.amount,
     ]),
   };

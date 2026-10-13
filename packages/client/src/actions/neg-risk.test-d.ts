@@ -14,11 +14,8 @@ declare const client: SecureClient;
 
 describe('neg-risk client public API', () => {
   it('only requests signing steps for the prepared operation', async () => {
-    const request = { eventId: '0x02...', amount: 1_000_000n };
-    const conversion = await client.prepareConvert({
-      ...request,
-      conditionIndex: 0,
-    });
+    const request = { conditionId: '0x02...', amount: 1_000_000n };
+    const conversion = await client.prepareConvert(request);
     const conversionStep = await conversion.next();
     if (!conversionStep.done) {
       expectTypeOf(conversionStep.value.kind).toEqualTypeOf<
@@ -52,14 +49,13 @@ describe('neg-risk client public API', () => {
     }
   });
 
-  it('accepts plain event IDs and exposes prepare and complete methods at the root', () => {
+  it('accepts market condition IDs for all prepared and complete operations', () => {
     const convert: PrepareConvertRequest = {
-      eventId: '0x02...',
-      conditionIndex: 0,
+      conditionId: '0x02...',
       amount: 1_000_000n,
     };
     const split: PrepareHorizontalSplitRequest = {
-      eventId: '0x02...',
+      conditionId: '0x02...',
       amount: 1_000_000n,
     };
     const merge: PrepareHorizontalMergeRequest = split;
@@ -82,6 +78,18 @@ describe('neg-risk client public API', () => {
       Promise<HorizontalMergeWorkflow>
     >();
     // @ts-expect-error These operations require an explicit amount.
-    client.horizontalMerge({ eventId: '0x02...', amount: 'max' });
+    client.horizontalMerge({ conditionId: '0x02...', amount: 'max' });
+    // @ts-expect-error High-level conversion derives protocol inputs from a market condition.
+    client.convert({ eventId: '0x02...', conditionIndex: 0, amount: 1n });
+    // @ts-expect-error A separate index could contradict the selected condition.
+    client.prepareConvert({ ...convert, conditionIndex: 0 });
+    // @ts-expect-error High-level horizontal split accepts a condition ID.
+    client.horizontalSplit({ eventId: '0x02...', amount: 1n });
+    // @ts-expect-error High-level horizontal merge accepts a condition ID.
+    client.horizontalMerge({ eventId: '0x02...', amount: 1n });
+    // @ts-expect-error Prepared split accepts a condition ID.
+    client.prepareHorizontalSplit({ eventId: '0x02...', amount: 1n });
+    // @ts-expect-error Prepared merge accepts a condition ID.
+    client.prepareHorizontalMerge({ eventId: '0x02...', amount: 1n });
   });
 });

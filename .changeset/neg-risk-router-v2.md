@@ -3,4 +3,4 @@
 "@polymarket/client": minor
 ---
 
-Add Router v2 neg-risk conversion, horizontal split, and horizontal merge helpers, with native event ID validation and signing workflows.
+Add Router v2 neg-risk workflows using market condition IDs; low-level helpers retain explicit protocol event IDs.

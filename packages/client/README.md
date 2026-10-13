@@ -30,26 +30,30 @@ for await (const page of result) {
 An authenticated client can convert a NO position into YES positions for every
 other condition, split pUSD into a complete YES basket, or merge that basket back
 into pUSD. The basket includes the synthetic **Other** condition; conversion from
-NO(Other) produces YES only for the real conditions. Condition indexes
-run from zero through the event's encoded arity; Other uses the arity as its index.
+NO(Other) produces YES only for the real conditions.
 
-Use the on-chain neg-risk event ID (`bytes29`, or `bytes32` with its final three
-bytes zero), not the numeric API event ID, a condition ID, or a legacy neg-risk
-market ID. Amounts are positive explicit integers in six-decimal base units;
+Pass the market's protocol V2 neg-risk `conditionId` (`bytes31`, or `bytes32`
+with a zero final byte). The SDK derives the event and condition index locally;
+horizontal operations use the entire event containing that condition. Legacy,
+binary, combo and position IDs are rejected. Amounts are positive explicit integers in six-decimal base units;
 `1_000_000n` means one pUSD or one share per condition. These methods do not accept
 `'max'`.
 
 ```ts
-// secureClient is an authenticated client; eventId is the on-chain event ID.
+// secureClient is authenticated; conditionId comes from a V2 neg-risk market.
 // Set approvals once, then wait for them before using the Router.
 await secureClient.setupTradingApprovals();
 
-await (await secureClient.horizontalSplit({ eventId, amount: 1_000_000n })).wait();
-await (await secureClient.horizontalMerge({ eventId, amount: 1_000_000n })).wait();
+await (await secureClient.horizontalSplit({ conditionId, amount: 1_000_000n })).wait();
+await (await secureClient.horizontalMerge({ conditionId, amount: 1_000_000n })).wait();
 
-// Requires an existing NO position for condition 0.
-await (await secureClient.convert({ eventId, conditionIndex: 0, amount: 1_000_000n })).wait();
+// Requires an existing NO position for this condition.
+await (await secureClient.convert({ conditionId, amount: 1_000_000n })).wait();
 ```
+
+Low-level `routerConvertCall`, `routerHorizontalSplitCall` and
+`routerHorizontalMergeCall` retain explicit `protocolEventId` inputs;
+conversion also takes a `conditionIndex`.
 
 Horizontal split requires pUSD spending approval for the Router. Convert and
 horizontal merge require PositionManager operator approval for the Router.
