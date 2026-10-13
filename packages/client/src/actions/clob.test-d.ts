@@ -138,9 +138,18 @@ describe('order heartbeat public types', () => {
     expectTypeOf<
       ReturnType<typeof import('./index').sendOrderHeartbeat>
     >().toEqualTypeOf<Promise<import('../index').OrderHeartbeat>>();
+    expectTypeOf<import('../index').SecureClient>().not.toHaveProperty(
+      'sendLegacyOrderHeartbeat',
+    );
+    expectTypeOf<typeof import('./index')>().not.toHaveProperty(
+      'sendLegacyOrderHeartbeat',
+    );
+    expectTypeOf<typeof import('../index')>().not.toHaveProperty(
+      'SendLegacyOrderHeartbeatError',
+    );
     expectTypeOf<
-      ReturnType<typeof import('./index').sendLegacyOrderHeartbeat>
-    >().toEqualTypeOf<Promise<import('../index').LegacyOrderHeartbeat>>();
+      typeof import('@polymarket/bindings/clob')
+    >().not.toHaveProperty('LegacyOrderHeartbeatSchema');
     expectTypeOf<import('../index').PublicClient>().not.toHaveProperty(
       'sendOrderHeartbeat',
     );

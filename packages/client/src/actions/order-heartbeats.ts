@@ -1,6 +1,4 @@
 import {
-  type LegacyOrderHeartbeat,
-  LegacyOrderHeartbeatSchema,
   type OrderHeartbeat,
   OrderHeartbeatSchema,
 } from '@polymarket/bindings/clob';
@@ -77,39 +75,5 @@ export async function sendOrderHeartbeat(
         retry: false,
       })
       .andThen(validateWith(OrderHeartbeatSchema)),
-  );
-}
-
-export type SendLegacyOrderHeartbeatError =
-  | RateLimitError
-  | RequestRejectedError
-  | TransportError
-  | UnexpectedResponseError;
-export const SendLegacyOrderHeartbeatError = makeErrorGuard(
-  RateLimitError,
-  RequestRejectedError,
-  TransportError,
-  UnexpectedResponseError,
-);
-/**
- * Sends one authenticated legacy order heartbeat without ID tracking.
- * The first accepted send enables timeout cancellation for ALL open orders owned
- * by this API key. Keep sending every five seconds; after ten seconds without an
- * accepted send, the server attempts cancel-all with no success/timing guarantee.
- * Shares the key's registration with sendOrderHeartbeat and resets its expected
- * ID to empty. Coordinate one sender per key. No timer or automatic retry starts.
- * There is no disarm operation: stopping sends or closing the client leaves the
- * deadline active. A lost response may follow an accepted send. Stop placing
- * orders and explicitly cancel/verify orders you intend to remove on shutdown.
- * Expiry removes the registration; later accepted sends register again.
- * @throws {@link SendLegacyOrderHeartbeatError} Thrown on failure.
- */
-export async function sendLegacyOrderHeartbeat(
-  client: BaseSecureClient,
-): Promise<LegacyOrderHeartbeat> {
-  return unwrap(
-    client.secureClob
-      .post('/heartbeats', { retry: false })
-      .andThen(validateWith(LegacyOrderHeartbeatSchema)),
   );
 }

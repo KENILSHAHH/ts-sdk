@@ -1,7 +1,6 @@
 import type {
   AcceptedOrderResponse,
   CancelOrdersResponse,
-  LegacyOrderHeartbeat,
   OpenOrder,
   OrderHeartbeat,
   OrderResponse,
@@ -30,7 +29,6 @@ import {
   postOrder,
   postOrders,
   type SendOrderHeartbeatRequest,
-  sendLegacyOrderHeartbeat,
   sendOrderHeartbeat,
   type WaitForOrderFillSettlementRequest,
   waitForOrderFillSettlement,
@@ -66,20 +64,6 @@ export type SecureTradingActions = {
   sendOrderHeartbeat(
     request?: SendOrderHeartbeatRequest,
   ): Promise<OrderHeartbeat>;
-  /**
-   * Sends one authenticated legacy order heartbeat without ID tracking.
-   * The first accepted send enables timeout cancellation for ALL open orders owned
-   * by this API key. Keep sending every five seconds; after ten seconds without an
-   * accepted send, the server attempts cancel-all with no success/timing guarantee.
-   * Shares the key's registration with sendOrderHeartbeat and resets its expected
-   * ID to empty. Coordinate one sender per key. No timer or automatic retry starts.
-   * There is no disarm operation: stopping sends or closing the client leaves the
-   * deadline active. A lost response may follow an accepted send. Stop placing
-   * orders and explicitly cancel/verify orders you intend to remove on shutdown.
-   * Expiry removes the registration; later accepted sends register again.
-   * @throws {@link SendLegacyOrderHeartbeatError} Thrown on failure.
-   */
-  sendLegacyOrderHeartbeat(): Promise<LegacyOrderHeartbeat>;
 
   /**
    * Creates a signed market order for the authenticated account.
@@ -394,7 +378,6 @@ export function tradingActions(client: BaseSecureClient): SecureTradingActions;
 export function tradingActions(client: BaseSecureClient): SecureTradingActions {
   return {
     sendOrderHeartbeat: sendOrderHeartbeat.bind(null, client),
-    sendLegacyOrderHeartbeat: sendLegacyOrderHeartbeat.bind(null, client),
     createMarketOrder: createMarketOrder.bind(null, client),
     placeMarketOrder: placeMarketOrder.bind(null, client),
     createLimitOrder: createLimitOrder.bind(null, client),
@@ -427,7 +410,6 @@ export {
   PlaceMarketOrderError,
   PostOrderError,
   PostOrdersError,
-  SendLegacyOrderHeartbeatError,
   SendOrderHeartbeatError,
   type SendOrderHeartbeatRequest,
   WaitForOrderFillSettlementError,

@@ -33,7 +33,7 @@ describe('ServiceClient', () => {
     server.close();
   });
 
-  it('signs the exact heartbeat JSON and keeps the legacy request body empty', async () => {
+  it('signs the exact heartbeat JSON in a single request', async () => {
     const observed: Array<{
       path: string;
       body: string;
@@ -46,11 +46,7 @@ describe('ServiceClient', () => {
           body: await request.text(),
           signature: request.headers.get('POLY_SIGNATURE'),
         });
-        return HttpResponse.json(
-          new URL(request.url).pathname === '/v1/heartbeats'
-            ? { heartbeat_id: 'next-id' }
-            : { status: 'ok' },
-        );
+        return HttpResponse.json({ heartbeat_id: 'next-id' });
       }),
     );
     const client = new ServiceClient({
@@ -71,7 +67,6 @@ describe('ServiceClient', () => {
         retry: false,
       }),
     );
-    await unwrap(client.post('/heartbeats', { retry: false }));
     expect(observed[0]).toEqual({
       path: '/v1/heartbeats',
       body: '{"heartbeat_id":"current-id"}',
@@ -83,11 +78,7 @@ describe('ServiceClient', () => {
         '{"heartbeat_id":"current-id"}',
       ),
     });
-    expect(observed[1]).toEqual({
-      path: '/heartbeats',
-      body: '',
-      signature: await buildHmacSignature('dGVzdA==', 1, 'POST', '/heartbeats'),
-    });
+    expect(observed).toHaveLength(1);
   });
 
   it.each([
