@@ -11,7 +11,8 @@ import {
   it,
   vi,
 } from 'vitest';
-import { OrderHeartbeatMismatchError } from './errors';
+import { SendOrderHeartbeatError } from './actions/order-heartbeats';
+import { OrderHeartbeatMismatchError, RequestRejectedError } from './errors';
 import { buildHmacSignature } from './hmac';
 import { ServiceClient } from './ServiceClient';
 
@@ -89,13 +90,16 @@ describe('ServiceClient', () => {
     });
   });
 
-  it('preserves the expected order heartbeat ID and performs one attempt', async () => {
+  it.each([
+    'expected-id',
+    '',
+  ])('preserves expected heartbeat ID %j and performs one attempt', async (heartbeatId) => {
     let requests = 0;
     server.use(
       http.post(`${root}/v1/heartbeats`, () => {
         requests++;
         return HttpResponse.json(
-          { error_msg: 'Invalid Heartbeat ID', heartbeat_id: 'expected-id' },
+          { error_msg: 'Invalid Heartbeat ID', heartbeat_id: heartbeatId },
           { status: 400 },
         );
       }),
@@ -108,12 +112,31 @@ describe('ServiceClient', () => {
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
       expect(result.error).toBeInstanceOf(OrderHeartbeatMismatchError);
+      expect(result.error).toBeInstanceOf(RequestRejectedError);
+      expect(SendOrderHeartbeatError.isError(result.error)).toBe(true);
       expect(result.error).toMatchObject({
+        name: 'OrderHeartbeatMismatchError',
         status: 400,
-        heartbeatId: 'expected-id',
+        heartbeatId,
       });
     }
     expect(requests).toBe(1);
+  });
+
+  it('keeps malformed heartbeat payload rejections as generic rejections', async () => {
+    server.use(
+      http.post(`${root}/v1/heartbeats`, () =>
+        HttpResponse.json({ error: 'Invalid payload' }, { status: 400 }),
+      ),
+    );
+    const client = new ServiceClient({ root });
+    const result = await client.post('/v1/heartbeats', { retry: false });
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error).toBeInstanceOf(RequestRejectedError);
+      expect(result.error).not.toBeInstanceOf(OrderHeartbeatMismatchError);
+      expect(result.error.name).toBe('RequestRejectedError');
+    }
   });
 
   it('does not reinterpret unrelated errors containing a heartbeat ID', async () => {

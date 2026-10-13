@@ -42,11 +42,19 @@ export const SendOrderHeartbeatError = makeErrorGuard(
 );
 
 /**
- * Sends an authenticated order heartbeat and returns the next heartbeat ID.
- * Start with an empty ID, serialize sends, and retain each returned ID. Send every
- * five seconds; missing the ten-second deadline triggers cancellation of this API key's orders.
- * No timer or retry is started. Catch OrderHeartbeatMismatchError and explicitly
- * retry with its heartbeatId. This differs from a WebSocket connection keepalive.
+ * Sends one authenticated order heartbeat and returns the next heartbeat ID.
+ * The first accepted send enables timeout cancellation for ALL open orders owned
+ * by this API key, across markets and processes. Only start when you can keep
+ * sending every five seconds. After ten seconds without an accepted send, the
+ * server attempts cancel-all; cancellation timing and success are not guaranteed.
+ * Start with an empty ID, serialize sends per key, and retain every returned ID.
+ * No timer or automatic retry is started. A mismatch does not refresh the deadline;
+ * retry explicitly with OrderHeartbeatMismatchError.heartbeatId. A lost response
+ * may follow an accepted send, so failure does not prove registration is inactive.
+ * There is no disarm operation. Stopping sends or closing the client leaves the
+ * deadline active. On shutdown, stop placing orders and explicitly cancel/verify
+ * orders you intend to remove. Expiry removes the registration; a later accepted
+ * send registers again. This is separate from WebSocket connection keepalive.
  * @throws {@link SendOrderHeartbeatError} Thrown on failure.
  * @example
  * ```ts
@@ -84,9 +92,16 @@ export const SendLegacyOrderHeartbeatError = makeErrorGuard(
   UnexpectedResponseError,
 );
 /**
- * Sends an authenticated legacy order heartbeat without ID tracking.
- * Shares the API key's registration with sendOrderHeartbeat and resets its expected
- * ID to empty. Send every five seconds to avoid timeout cancellation. No timer or retry is started.
+ * Sends one authenticated legacy order heartbeat without ID tracking.
+ * The first accepted send enables timeout cancellation for ALL open orders owned
+ * by this API key. Keep sending every five seconds; after ten seconds without an
+ * accepted send, the server attempts cancel-all with no success/timing guarantee.
+ * Shares the key's registration with sendOrderHeartbeat and resets its expected
+ * ID to empty. Coordinate one sender per key. No timer or automatic retry starts.
+ * There is no disarm operation: stopping sends or closing the client leaves the
+ * deadline active. A lost response may follow an accepted send. Stop placing
+ * orders and explicitly cancel/verify orders you intend to remove on shutdown.
+ * Expiry removes the registration; later accepted sends register again.
  * @throws {@link SendLegacyOrderHeartbeatError} Thrown on failure.
  */
 export async function sendLegacyOrderHeartbeat(

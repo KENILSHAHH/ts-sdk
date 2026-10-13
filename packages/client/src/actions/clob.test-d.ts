@@ -147,5 +147,14 @@ describe('order heartbeat public types', () => {
     expectTypeOf<import('../index').SecureClient>().toHaveProperty(
       'sendOrderHeartbeat',
     );
+    expectTypeOf<import('../index').SecureClient>()
+      .toHaveProperty('sendOrderHeartbeat')
+      .returns.toEqualTypeOf<Promise<import('../index').OrderHeartbeat>>();
+    expectTypeOf<import('../index').OrderHeartbeatMismatchError>()
+      .toHaveProperty('name')
+      .toEqualTypeOf<'OrderHeartbeatMismatchError'>();
+    expectTypeOf<
+      import('../index').OrderHeartbeatMismatchError
+    >().toMatchTypeOf<import('../index').RequestRejectedError>();
   });
 });

@@ -183,7 +183,8 @@ export type RequestRejectedErrorOptions = {
  * rate limiting.
  */
 export class RequestRejectedError extends PolymarketError {
-  override name = 'RequestRejectedError' as const;
+  override name: 'RequestRejectedError' | 'OrderHeartbeatMismatchError' =
+    'RequestRejectedError';
 
   readonly status: number;
   /**
@@ -219,6 +220,8 @@ export class RequestRejectedError extends PolymarketError {
  * the new ID from the successful response. A rejected send does not refresh the deadline.
  */
 export class OrderHeartbeatMismatchError extends RequestRejectedError {
+  override name = 'OrderHeartbeatMismatchError' as const;
+
   /** Currently expected ID. It can be empty after a legacy heartbeat. */
   readonly heartbeatId: string;
 
