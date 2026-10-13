@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { PaginatedRewardMarketsSchema } from './rewards';
 
 describe('reward market discovery', () => {
-  it('retains complete market metadata even when reward configs and end date are empty', () => {
+  it.each([
+    ['', undefined],
+    ['2028-11-08 04:59:00+00', '2028-11-08T04:59:00.000Z'],
+    ['2028-11-08T04:59:00+00:00', '2028-11-08T04:59:00+00:00'],
+  ])('parses discovery metadata with end date %s', (endDate, expected) => {
     const page = PaginatedRewardMarketsSchema.parse({
       limit: 25,
       count: 1,
@@ -26,7 +30,7 @@ describe('reward market discovery', () => {
           volume_24hr: 100,
           created_at: '2026-10-07T00:00:00Z',
           one_day_price_change: -0.2,
-          end_date: '',
+          end_date: endDate,
         },
       ],
     });
@@ -34,7 +38,7 @@ describe('reward market discovery', () => {
       marketId: '12',
       eventId: '1',
       rewardsConfig: [],
-      endDate: undefined,
+      endDate: expected,
       volume24hr: '100',
       oneDayPriceChange: '-0.2',
     });

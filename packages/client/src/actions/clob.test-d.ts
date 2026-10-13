@@ -128,12 +128,23 @@ describe('public CLOB price read types', () => {
 });
 
 describe('reward market discovery public types', () => {
+  it('exposes supported discovery filters on the public client', () => {
+    expectTypeOf<import('../index').PublicClient>()
+      .toHaveProperty('listRewardMarkets')
+      .parameter(0)
+      .toEqualTypeOf<import('../index').ListRewardMarketsRequest | undefined>();
+    expectTypeOf<
+      import('../index').ListRewardMarketsRequest
+    >().not.toHaveProperty('excludeTagSlugs');
+  });
   it('exposes normalized pagination and the discovery request at the root', () => {
     const request: import('../index').ListRewardMarketsRequest = {
       query: 'sports',
       eventIds: [1, 2],
       marketId: 12,
       pageSize: 25,
+      minVolume24hr: 1,
+      maxVolume24hr: 10,
     };
     expectTypeOf(request).toMatchTypeOf<
       import('./index').ListRewardMarketsRequest

@@ -1209,21 +1209,6 @@ function toAssetSearchParams(
 const ListRewardMarketsRequestSchema = z.object({
   query: z.string().optional(),
   tagSlugs: z.array(z.string().min(1)).optional(),
-  excludeTagSlugs: z
-    .array(
-      z
-        .string()
-        .trim()
-        .toLowerCase()
-        .max(64)
-        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-    )
-    .transform((slugs) => [...new Set(slugs)])
-    .refine(
-      (slugs) => slugs.length <= 20,
-      'At most 20 unique excluded tags are supported',
-    )
-    .optional(),
   marketId: z.number().int().positive().optional(),
   eventIds: z.array(z.number().int().positive()).optional(),
   eventTitle: z.string().optional(),
@@ -1284,7 +1269,8 @@ export function listRewardMarkets(
             snakeCase({
               query: 'q',
               tagSlugs: 'tag_slug',
-              excludeTagSlugs: 'exclude_tag_slug',
+              minVolume24hr: 'min_volume_24hr',
+              maxVolume24hr: 'max_volume_24hr',
               eventIds: 'event_id',
               sortDirection: 'position',
             }),

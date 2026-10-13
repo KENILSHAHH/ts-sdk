@@ -5,6 +5,7 @@ import {
   UserInputError,
 } from '@polymarket/client';
 import { expectPresent } from '@polymarket/types';
+import { vi } from 'vitest';
 import { describe, expect, it } from './fixtures';
 import { expectPageWindow } from './helpers';
 
@@ -14,12 +15,12 @@ let liquidClobTokenIdPromise: Promise<TokenId> | undefined;
 
 describe('CLOB', () => {
   describe('listRewardMarkets', () => {
-    it('validates excluded tag limits and finite bounds before sending', ({
+    it('validates page sizes and finite bounds before sending', ({
       publicClient,
     }) => {
       expect(() =>
         publicClient.listRewardMarkets({
-          excludeTagSlugs: Array.from({ length: 21 }, (_, i) => `tag-${i}`),
+          pageSize: 501,
         }),
       ).toThrow(UserInputError);
       expect(() =>
@@ -29,7 +30,10 @@ describe('CLOB', () => {
     it('continues reward market discovery through SDK pages', async ({
       publicClient,
     }) => {
+      const requests = vi.spyOn(globalThis, 'fetch');
       const paginator = publicClient.listRewardMarkets({
+        minVolume24hr: 1,
+        maxVolume24hr: 1000000000,
         pageSize: 2,
         orderBy: RewardMarketSort.Volume24Hr,
       });
@@ -43,6 +47,21 @@ describe('CLOB', () => {
         if (++pages === 2) break;
       }
       expect(pages).toBe(2);
+      const urls = requests.mock.calls
+        .map(
+          ([input]) =>
+            new URL(input instanceof Request ? input.url : String(input)),
+        )
+        .filter((url) => url.pathname === '/rewards/markets/multi');
+      expect(urls).toHaveLength(2);
+      for (const url of urls) {
+        expect(url.searchParams.get('min_volume_24hr')).toBe('1');
+        expect(url.searchParams.get('max_volume_24hr')).toBe('1000000000');
+        expect(url.searchParams.has('min_volume24hr')).toBe(false);
+        expect(url.searchParams.has('max_volume24hr')).toBe(false);
+        expect(url.searchParams.has('exclude_tag_slug')).toBe(false);
+      }
+      requests.mockRestore();
     });
   });
 
