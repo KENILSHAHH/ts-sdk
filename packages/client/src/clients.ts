@@ -329,6 +329,7 @@ function createPredictionsService(config: PublicClientConfig): ServiceClient {
   return new ServiceClient({
     fetch: config.fetch,
     retry: config.retry,
+    retryMutations: false,
     headers: config.environment.predictions.headers,
     root: config.environment.predictions.rest,
   });

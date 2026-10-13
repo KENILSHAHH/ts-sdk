@@ -43,6 +43,8 @@ export type RequestHeadersResolver = (
 export type ServiceClientConfig = {
   fetch?: Fetch;
   retry?: boolean;
+  /** Disable automatic replay of mutation requests. @internal */
+  retryMutations?: false;
   /** Omit the endpoint root to create an empty client whose requests reject with UserInputError. */
   root?: string;
   headers?: HeadersInit;
@@ -268,20 +270,26 @@ export class ServiceClient {
   readonly #resolveHeaders?: RequestHeadersResolver;
   readonly #onRateLimitUpdate?: RateLimitUpdateListener;
 
-  constructor({
-    root,
-    headers,
-    resolveHeaders,
-    onRateLimitUpdate,
-    fetch,
-    retry,
-  }: ServiceClientConfig) {
+  constructor(config: ServiceClientConfig) {
+    const {
+      root,
+      headers,
+      resolveHeaders,
+      onRateLimitUpdate,
+      fetch,
+      retry,
+      retryMutations,
+    } = config;
     if (root !== undefined) {
       this.#client = ky.create({
         prefixUrl: root,
         throwHttpErrors: false,
         ...(fetch === undefined ? {} : { fetch }),
-        ...(retry === false ? { retry: 0 } : {}),
+        ...(retry === false
+          ? { retry: 0 }
+          : retryMutations === false
+            ? { retry: { methods: ['get'] } }
+            : {}),
       });
     }
     this.#headers = headers;
@@ -605,17 +613,24 @@ export class ServiceClient {
     const contentType = response.headers.get('content-type')?.toLowerCase();
 
     if (contentType?.includes('application/json')) {
-      const {
-        error,
-        code,
-        retry_after_seconds: retryAfterSeconds,
-      } = await response
+      const body: unknown = await response
         .clone()
         .json()
-        .catch(() => ({}));
-      if (error) {
+        .catch(() => undefined);
+      if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
+        const {
+          error,
+          code,
+          message,
+          retry_after_seconds: retryAfterSeconds,
+        } = body as Record<string, unknown>;
         const explicitCode =
           typeof code === 'string' && code !== '' ? code : undefined;
+        const errorMessage = error
+          ? String(error)
+          : typeof message === 'string' && message !== ''
+            ? message
+            : explicitCode;
         const inferredCode =
           explicitCode === undefined &&
           response.status !== 400 &&
@@ -624,15 +639,16 @@ export class ServiceClient {
             ? error
             : undefined;
         const responseCode = explicitCode ?? inferredCode;
-        return {
-          message: `${String(error)} (${response.url})`,
-          ...(responseCode !== undefined ? { code: responseCode } : {}),
-          ...(typeof retryAfterSeconds === 'number' &&
-          Number.isFinite(retryAfterSeconds) &&
-          retryAfterSeconds >= 0
-            ? { retryAfter: retryAfterSeconds }
-            : {}),
-        };
+        if (errorMessage !== undefined)
+          return {
+            message: `${errorMessage} (${response.url})`,
+            ...(responseCode !== undefined ? { code: responseCode } : {}),
+            ...(typeof retryAfterSeconds === 'number' &&
+            Number.isFinite(retryAfterSeconds) &&
+            retryAfterSeconds >= 0
+              ? { retryAfter: retryAfterSeconds }
+              : {}),
+          };
       }
     }
 

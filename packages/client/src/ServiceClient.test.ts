@@ -11,12 +11,141 @@ import {
   vi,
 } from 'vitest';
 import { z } from 'zod';
+import { createPublicClient } from './clients';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
 
 const root = 'http://localhost:4011';
 const server = setupServer();
 
 describe('ServiceClient', () => {
+  describe('gateway error and retry policy', () => {
+    it.each([
+      'json',
+      'blob',
+      'arrayBuffer',
+      'text',
+      'empty',
+    ] as const)('preserves gateway diagnostics in %s mode without replaying a 502 cancel', async (responseType) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(
+          {
+            code: 'cancel_outcome_unknown',
+            message:
+              'Cancellation may have taken effect. Check open orders before retrying.',
+          },
+          { status: 502 },
+        ),
+      );
+      const client = createPublicClient({ fetch });
+      await expect(
+        client.predictions.del('/cancel-all', { responseType }),
+      ).rejects.toMatchObject({
+        name: 'RequestRejectedError',
+        status: 502,
+        code: 'cancel_outcome_unknown',
+        message: expect.stringContaining('Check open orders before retrying.'),
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      'post',
+      'patch',
+      'del',
+    ] as const)('never replays a prediction %s after a dropped connection', async (method) => {
+      vi.useFakeTimers();
+      const failure = new TypeError('connection dropped after dispatch');
+      const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+        throw failure;
+      });
+      const client = createPublicClient({ fetch });
+      const result = client.predictions[method]('/mutation', {}).catch(
+        (error: unknown) => error,
+      );
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(await result).toMatchObject({
+        name: 'TransportError',
+        cause: failure,
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('retains safe GET transport retries and explicit retry opt-out', async () => {
+      vi.useFakeTimers();
+      const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+        throw new TypeError('connection dropped');
+      });
+      const client = createPublicClient({ fetch });
+      const result = client.predictions
+        .get('/ping')
+        .catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(await result).toMatchObject({ name: 'TransportError' });
+      expect(fetch).toHaveBeenCalledTimes(3);
+      fetch.mockClear();
+      await expect(
+        client.predictions.get('/ping', { retry: false }),
+      ).rejects.toMatchObject({ name: 'TransportError' });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      null,
+      [],
+      'invalid',
+      { message: 'invalid query', code: 'invalid_query_param' },
+      { code: 'invalid_query_param' },
+    ])('handles JSON rejection values without transport errors: %j', async (body) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(body, { status: 400 }),
+      );
+      const client = new ServiceClient({ root, fetch });
+      await expect(client.get('/invalid')).rejects.toMatchObject({
+        name: 'RequestRejectedError',
+        status: 400,
+      });
+    });
+
+    it('preserves legacy error/code/retry hints and legacy message precedence', async () => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(
+          {
+            error: 'legacy error',
+            message: 'other message',
+            code: 'legacy_code',
+            retry_after_seconds: 5,
+          },
+          { status: 422 },
+        ),
+      );
+      const client = new ServiceClient({ root, fetch });
+      await expect(client.get('/legacy')).rejects.toMatchObject({
+        name: 'RequestRejectedError',
+        code: 'legacy_code',
+        retryAfter: 5,
+        message: expect.stringContaining('legacy error'),
+      });
+    });
+
+    it('leaves ambiguous raw responses inspectable without mutation replay', async () => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(
+          { code: 'cancel_outcome_unknown', message: 'Check before retrying' },
+          { status: 502 },
+        ),
+      );
+      const client = createPublicClient({ fetch });
+      const response = await client.predictions.del('/cancel-all', {
+        responseType: 'raw',
+      });
+      expect(response.status).toBe(502);
+      expect(await response.json()).toEqual({
+        code: 'cancel_outcome_unknown',
+        message: 'Check before retrying',
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+  });
   beforeAll(() => {
     server.listen({ onUnhandledRequest: 'bypass' });
   });

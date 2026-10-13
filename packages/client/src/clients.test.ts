@@ -99,7 +99,7 @@ describe('predictions gateway service', () => {
     expect(client.relayer).toBeInstanceOf(ServiceClient);
     const controller = new AbortController();
     for (const operation of [
-      () => predictions.get('/next/ping', { signal: controller.signal }),
+      () => predictions.get('/ping', { signal: controller.signal }),
       () => predictions.post('/endpoint', { json: { value: 1 } }),
       () => predictions.patch('/endpoint', { json: { value: 2 } }),
       () => predictions.del('/endpoint'),
@@ -112,7 +112,7 @@ describe('predictions gateway service', () => {
     expect(fetch).toHaveBeenCalledTimes(4);
     const requests = observedRequests;
     expect(requests.map((request) => request.url)).toEqual([
-      'https://api.defi.polymarket.com/next/ping',
+      'https://api.defi.polymarket.com/ping',
       'https://api.defi.polymarket.com/endpoint',
       'https://api.defi.polymarket.com/endpoint',
       'https://api.defi.polymarket.com/endpoint',
@@ -156,14 +156,12 @@ describe('predictions gateway service', () => {
       retry: false,
     });
     await expect(
-      client.predictions.get('/next/ping', {
+      client.predictions.get('/ping', {
         headers: { 'x-request': 'request' },
       }),
     ).rejects.toMatchObject({ cause: failure });
     const request = fetch.mock.calls[0]?.[0] as Request;
-    expect(request.url).toBe(
-      'https://api-defi-staging.polymarket.dev/next/ping',
-    );
+    expect(request.url).toBe('https://api-defi-staging.polymarket.dev/ping');
     expect(request.headers.get('x-base')).toBe('base');
     expect(request.headers.get('x-override')).toBe('fork');
     expect(request.headers.get('x-request')).toBe('request');
@@ -171,7 +169,7 @@ describe('predictions gateway service', () => {
     const controller = new AbortController();
     controller.abort('superseded');
     await expect(
-      client.predictions.get('/next/ping', {
+      client.predictions.get('/ping', {
         signal: controller.signal,
       }),
     ).rejects.toMatchObject({
@@ -482,7 +480,7 @@ describe('secure client gasless wallet setup', () => {
     server.use(
       http.delete(`${clobRoot}/auth/api-key`, () => HttpResponse.json('OK')),
     );
-    const failure = new Error('gateway dispatch observed');
+    const failure = new TypeError('gateway dispatch observed');
     const gatewayRequests: Request[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       if (
@@ -499,7 +497,6 @@ describe('secure client gasless wallet setup', () => {
       credentials,
       environment,
       fetch,
-      retry: false,
       signer,
       wallet: signerAddress,
     });
@@ -509,18 +506,18 @@ describe('secure client gasless wallet setup', () => {
     client.webSockets.rfqQuoter.shutdown = rfqShutdown;
 
     expect(client.predictions).toBeInstanceOf(ServiceClient);
-    await expect(client.predictions.get('/next/ping')).rejects.toMatchObject({
+    await expect(client.predictions.del('/cancel-all')).rejects.toMatchObject({
       name: TransportError.name,
       cause: failure,
     });
     const publicClient = await client.endAuthentication();
     expect(publicClient.predictions).toBeInstanceOf(ServiceClient);
     await expect(
-      publicClient.predictions.get('/next/ping'),
+      publicClient.predictions.del('/cancel-all'),
     ).rejects.toMatchObject({ name: TransportError.name, cause: failure });
     expect(gatewayRequests).toHaveLength(2);
     for (const request of gatewayRequests) {
-      expect(request.url).toBe(`${environment.predictions.rest}/next/ping`);
+      expect(request.url).toBe(`${environment.predictions.rest}/cancel-all`);
       expect(request.headers.has('POLY_API_KEY')).toBe(false);
       expect(request.headers.has('POLY_SIGNATURE')).toBe(false);
       expect(request.headers.has('RELAYER_API_KEY')).toBe(false);

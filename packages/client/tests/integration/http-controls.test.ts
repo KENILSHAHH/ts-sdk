@@ -43,15 +43,14 @@ describe('HTTP request controls', () => {
       return globalThis.fetch(input, init);
     }
     const client = createPublicClient({ environment, fetch, retry: false });
-    const result = await client.predictions.get<{ status: string }>(
-      '/next/ping',
-      { timeout: 10_000 },
-    );
+    const result = await client.predictions.get<{ status: string }>('/ping', {
+      timeout: 10_000,
+    });
     expect(result).toEqual({ status: 'ok' });
     expect(inputs).toHaveLength(1);
     const input = inputs[0];
     const url = input instanceof Request ? input.url : String(input);
-    expect(url).toBe(`${environment.predictions.rest}/next/ping`);
+    expect(url).toBe(`${environment.predictions.rest}/ping`);
   });
   it('forwards live reads through custom fetch for client and extended action calls', async ({
     environment,

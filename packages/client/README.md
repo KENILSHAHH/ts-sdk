@@ -100,6 +100,13 @@ can override `predictions.rest` and `predictions.headers`. Trading credentials
 are not attached automatically, so callers supply any headers the endpoint
 requires.
 
+Prediction POST, PATCH, and DELETE requests are sent once, including when a
+connection drops after dispatch. GET retains the configured read retry policy.
+Gateway rejections preserve their `code` and message on `RequestRejectedError`.
+After `cancel_outcome_unknown`, check open orders before manually retrying;
+cancellation may already have taken effect. Aborting a mutation stops the local
+request but cannot prove it had no effect. Raw callers inspect the status/body.
+
 ```ts
 const markets = await client.predictions.get("/next/markets", {
   params: new URLSearchParams({ page_size: "1", closed: "false" }),
