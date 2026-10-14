@@ -19,7 +19,10 @@ import {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
-import type { RequestOptions } from '../../request-options';
+import {
+  parseRequestOptions,
+  type RequestOptions,
+} from '../../request-options';
 import type { TypedDataPayload } from '../../types';
 import { PerpsBuilderFeeRateInputSchema } from '../../websockets/perps/actions/builder-terms';
 import type { PerpsSession } from '../../websockets/perps/session';
@@ -77,10 +80,11 @@ export async function fetchPerpsBuilderStatus(
   request: FetchPerpsBuilderStatusRequest,
   options: RequestOptions = {},
 ): Promise<PerpsBuilderStatus> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPerpsBuilderStatusRequestSchema);
   return client.perps.get('/v1/info/builder', {
     schema: PerpsBuilderStatusSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(params, snakeCase()),
   });
 }

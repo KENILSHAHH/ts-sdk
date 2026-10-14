@@ -296,7 +296,6 @@ function createClient(options: CreateClientOptions = {}) {
 
   const collateralReturnService = new ServiceClient({
     root: 'https://collateral-return.test',
-    retry: false,
     fetch: async (input) => {
       if (
         new URL(new Request(input).url).pathname ===
@@ -312,7 +311,6 @@ function createClient(options: CreateClientOptions = {}) {
   const collateralReturnPost = vi.spyOn(collateralReturnService, 'post');
   const relayerService = new ServiceClient({
     root: 'https://relayer.test',
-    retry: false,
     fetch: async () => jsonResponse(executeParamsWire),
   });
   const ethEstimateGas = vi.fn(async () => 500_000n);

@@ -23,7 +23,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 const ListMarketClarificationsRequestSchema = z.object({
@@ -108,6 +108,7 @@ export function listMarketClarifications(
   request: ListMarketClarificationsRequest = {},
   options: RequestOptions = {},
 ): Paginated<MarketClarification[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListMarketClarificationsRequestSchema,
@@ -119,7 +120,7 @@ export function listMarketClarifications(
     return client.gamma
       .get('/market-clarifications', {
         schema: ListMarketClarificationsResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             ...params,

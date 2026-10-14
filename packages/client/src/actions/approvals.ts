@@ -27,8 +27,7 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import type { RequestOptions } from '../request-options';
-import { withRateLimitRetry } from '../retry';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import {
   expectTransactionHandle,
   type SignerTransactionRequest,
@@ -399,19 +398,16 @@ export async function fetchTradingApprovalsState(
   request: FetchTradingApprovalsStateRequest,
   options: RequestOptions = {},
 ): Promise<TradingApprovalsState> {
+  const requestOptions = parseRequestOptions(options);
   const { user } = parseUserInput(
     request,
     FetchTradingApprovalsStateRequestSchema,
   );
-  const snapshot = await withRateLimitRetry(
-    () =>
-      client.data.get('/v2/approvals', {
-        signal: options.signal,
-        params: toDataSearchParams({ user }),
-        schema: FetchApprovalsResponseSchema,
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  const snapshot = await client.data.get('/v2/approvals', {
+    ...requestOptions,
+    params: toDataSearchParams({ user }),
+    schema: FetchApprovalsResponseSchema,
+  });
   const missing = resolveIndexedTradingApprovals(
     snapshot,
     user,

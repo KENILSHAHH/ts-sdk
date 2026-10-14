@@ -12,7 +12,10 @@ import {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
-import type { RequestOptions } from '../../request-options';
+import {
+  parseRequestOptions,
+  type RequestOptions,
+} from '../../request-options';
 import { toSearchParams } from '../params';
 
 const FetchPerpsRegistrationRequestSchema = z.object({
@@ -56,10 +59,11 @@ export async function fetchPerpsRegistration(
   request: FetchPerpsRegistrationRequest,
   options: RequestOptions = {},
 ): Promise<boolean> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPerpsRegistrationRequestSchema);
   return client.perps.get('/v1/info/registered', {
     schema: PerpsRegistrationResponseSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(params, { address: 'address' }),
   });
 }

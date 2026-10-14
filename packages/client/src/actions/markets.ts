@@ -42,8 +42,7 @@ import {
 import { parseUserInput } from '../input';
 import { PageSizeSchema, type Paginated, paginate } from '../pagination';
 import { parsePolymarketSlugUrl } from '../polymarket-url';
-import type { RequestOptions } from '../request-options';
-import { withRateLimitRetry } from '../retry';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import {
   distinctIdList,
   EpochSecondsLikeSchema,
@@ -189,6 +188,7 @@ export function listMarkets(
   request: ListMarketsRequest = {},
   options: RequestOptions = {},
 ): Paginated<Market[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, ListMarketsRequestSchema);
 
   return paginate(
@@ -196,7 +196,7 @@ export function listMarkets(
       client.gamma
         .get('/markets/keyset', {
           schema: ListMarketsKeysetResponseSchema,
-          signal: options.signal,
+          ...requestOptions,
           params: toMarketsSearchParams({
             ...params,
             cursor: cursor ?? params.cursor,
@@ -275,6 +275,7 @@ export function listComboMarkets(
   request: ListComboMarketsRequest = {},
   options: RequestOptions = {},
 ): Paginated<ComboMarket[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, ListComboMarketsRequestSchema);
 
   return paginate(
@@ -282,7 +283,7 @@ export function listComboMarkets(
       client.rfq
         .get('/v1/rfq/combo-markets', {
           schema: ListComboMarketsResponseSchema,
-          signal: options.signal,
+          ...requestOptions,
           params: toComboMarketsSearchParams({
             ...params,
             cursor: cursor ?? params.cursor,
@@ -348,10 +349,11 @@ export async function fetchMarket(
   request: FetchMarketRequest,
   options: RequestOptions = {},
 ): Promise<Market> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchMarketRequestSchema);
 
   if ('id' in params) {
-    return fetchMarketById(client, params, options);
+    return fetchMarketById(client, params, requestOptions);
   }
 
   if ('url' in params) {
@@ -362,11 +364,11 @@ export async function fetchMarket(
         locale: params.locale,
         slug: parsePolymarketSlugUrl(params.url, 'market'),
       },
-      options,
+      requestOptions,
     );
   }
 
-  return fetchMarketBySlug(client, params, options);
+  return fetchMarketBySlug(client, params, requestOptions);
 }
 
 export type FetchMarketTagsError =
@@ -408,10 +410,11 @@ export async function fetchMarketTags(
   request: FetchMarketTagsRequest,
   options: RequestOptions = {},
 ): Promise<TagReference[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchMarketTagsRequestSchema);
 
   return client.gamma.get(`markets/${params.id}/tags`, {
-    ...options,
+    ...requestOptions,
     schema: FetchMarketTagsResponseSchema,
   });
 }
@@ -498,26 +501,23 @@ export function listMarketHolders(
   request: ListMarketHoldersRequest,
   options: RequestOptions = {},
 ): Paginated<MetaHolder[]> {
+  const requestOptions = parseRequestOptions(options);
   const { conditionIds, cursor, includePnl, minBalance, pageSize } =
     parseUserInput(request, ListMarketHoldersRequestSchema);
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/holders', {
-            schema: ListMarketHoldersResponseSchema,
-            signal: options.signal,
-            params: toDataSearchParams({
-              condition: conditionIds,
-              limit: pageSize,
-              cursor,
-              includePnl,
-              minBalance,
-            }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/holders', {
+        schema: ListMarketHoldersResponseSchema,
+        ...requestOptions,
+        params: toDataSearchParams({
+          condition: conditionIds,
+          limit: pageSize,
+          cursor,
+          includePnl,
+          minBalance,
+        }),
+      }),
     cursor,
   );
 }
@@ -697,6 +697,7 @@ export function listPriceHistory(
   request: ListPriceHistoryRequest,
   options: RequestOptions = {},
 ): Paginated<PriceHistoryPoint[]> {
+  const requestOptions = parseRequestOptions(options);
   const { assetId, cursor, pageSize, ...params } = parseUserInput(
     request,
     ListPriceHistoryRequestSchema,
@@ -704,20 +705,16 @@ export function listPriceHistory(
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/prices-history', {
-            schema: ListPriceHistoryResponseSchema,
-            signal: options.signal,
-            params: toDataSearchParams({
-              ...params,
-              tokenId: assetId,
-              limit: pageSize,
-              cursor,
-            }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/prices-history', {
+        schema: ListPriceHistoryResponseSchema,
+        ...requestOptions,
+        params: toDataSearchParams({
+          ...params,
+          tokenId: assetId,
+          limit: pageSize,
+          cursor,
+        }),
+      }),
     cursor,
   );
 }
@@ -775,20 +772,17 @@ export async function fetchOpenInterest(
   request: FetchOpenInterestRequest = {},
   options: RequestOptions = {},
 ): Promise<OpenInterest[]> {
+  const requestOptions = parseRequestOptions(options);
   const { conditionIds } = parseUserInput(
     request,
     FetchOpenInterestRequestSchema,
   );
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/oi', {
-        schema: FetchOpenInterestResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams({ condition: conditionIds }),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/oi', {
+    schema: FetchOpenInterestResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams({ condition: conditionIds }),
+  });
 }
 
 function toMarketsSearchParams(params: ListMarketsParams): URLSearchParams {
@@ -826,9 +820,10 @@ async function fetchMarketBySlug(
   params: z.output<typeof FetchMarketBySlugRequestSchema>,
   options: RequestOptions = {},
 ): Promise<Market> {
+  const requestOptions = parseRequestOptions(options);
   return client.gamma.get(`markets/slug/${params.slug}`, {
     schema: MarketSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(
       {
         includeTag: params.includeTag,
@@ -844,9 +839,10 @@ async function fetchMarketById(
   params: z.output<typeof FetchMarketByIdRequestSchema>,
   options: RequestOptions = {},
 ): Promise<Market> {
+  const requestOptions = parseRequestOptions(options);
   return client.gamma.get(`markets/${params.id}`, {
     schema: MarketSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(
       {
         includeTag: params.includeTag,

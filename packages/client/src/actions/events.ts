@@ -40,8 +40,7 @@ import {
   readCursorPayload,
 } from '../pagination';
 import { parsePolymarketSlugUrl } from '../polymarket-url';
-import type { RequestOptions } from '../request-options';
-import { withRateLimitRetry } from '../retry';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import {
   PositiveInt32EventIdSchema,
   snakeCase,
@@ -201,6 +200,7 @@ export function listEvents(
   request: ListEventsRequest = {},
   options: RequestOptions = {},
 ): Paginated<Event[]> {
+  const requestOptions = parseRequestOptions(options);
   const {
     cursor: initialCursor,
     pageSize,
@@ -212,7 +212,7 @@ export function listEvents(
       client.gamma
         .get('/events/keyset', {
           schema: ListEventsKeysetResponseSchema,
-          signal: options.signal,
+          ...requestOptions,
           params: toEventsSearchParams({
             ...query,
             pageSize,
@@ -290,12 +290,13 @@ export async function fetchEvent(
   request: FetchEventRequest,
   options: RequestOptions = {},
 ): Promise<Event> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchEventRequestSchema);
 
   if ('id' in params) {
     return client.gamma.get(`events/${params.id}`, {
       schema: EventSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toFetchEventByIdSearchParams(params),
     });
   }
@@ -305,7 +306,7 @@ export async function fetchEvent(
 
   return client.gamma.get(`events/slug/${slug}`, {
     schema: EventSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toFetchEventBySlugSearchParams(params),
   });
 }
@@ -349,10 +350,11 @@ export async function fetchEventTags(
   request: FetchEventTagsRequest,
   options: RequestOptions = {},
 ): Promise<TagReference[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchEventTagsRequestSchema);
 
   return client.gamma.get(`events/${params.id}/tags`, {
-    ...options,
+    ...requestOptions,
     schema: FetchEventTagsResponseSchema,
   });
 }
@@ -458,24 +460,21 @@ export async function fetchResolutions(
   request: FetchResolutionsRequest,
   options: RequestOptions = {},
 ): Promise<Resolution[]> {
+  const requestOptions = parseRequestOptions(options);
   const { conditionIds, eventIds, questionId } = parseUserInput(
     request,
     FetchResolutionsRequestSchema,
   );
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/resolutions', {
-        schema: FetchResolutionsResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams({
-          questionId,
-          condition: conditionIds,
-          eventId: eventIds,
-        }),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/resolutions', {
+    schema: FetchResolutionsResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams({
+      questionId,
+      condition: conditionIds,
+      eventId: eventIds,
+    }),
+  });
 }
 
 const FetchEventLiveVolumeRequestSchema = z.object({
@@ -533,20 +532,17 @@ export async function fetchEventLiveVolume(
   request: FetchEventLiveVolumeRequest,
   options: RequestOptions = {},
 ): Promise<LiveVolume> {
+  const requestOptions = parseRequestOptions(options);
   const { eventIds } = parseUserInput(
     request,
     FetchEventLiveVolumeRequestSchema,
   );
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/live-volume', {
-        schema: FetchEventLiveVolumeResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams({ eventId: eventIds }),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/live-volume', {
+    schema: FetchEventLiveVolumeResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams({ eventId: eventIds }),
+  });
 }
 
 function toEventsSearchParams(params: ListEventsParams): URLSearchParams {

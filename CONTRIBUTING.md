@@ -72,10 +72,11 @@ reads and their fetch errors at the call site.
 ### Compose actions and cancellation
 
 Use direct `await`, `then`, and `catch` for request composition. Pagination
-callbacks return `Promise<Page<T>>`; rate-limit retry callbacks return
-`Promise<T>`. Keep page normalization and read-retry policy in their existing
-owning layers, including `retry: false`. Do not add mutation retries as part of
-an async refactor.
+callbacks return `Promise<Page<T>>`. Pass the complete operation options to
+`ServiceClient`, which shares one `retries` budget across transport failures and
+rate limits for each eligible read request. Do not wrap requests in another
+optional retry loop. Use `retries: 0` when the caller owns retries. Do not add
+mutation retries as part of an async refactor.
 
 When an action translates an error, use `try`/`catch`, match the error that the
 action owns, and rethrow other failures unchanged. Preserve the action's public

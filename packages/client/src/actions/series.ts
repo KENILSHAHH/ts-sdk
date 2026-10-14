@@ -23,7 +23,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 const ListSeriesRequestSchema = z.object({
@@ -106,6 +106,7 @@ export function listSeries(
   request: ListSeriesRequest = {},
   options: RequestOptions = {},
 ): Paginated<Series[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListSeriesRequestSchema,
@@ -117,7 +118,7 @@ export function listSeries(
     return client.gamma
       .get('/series', {
         schema: ListSeriesResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             ...params,
@@ -184,11 +185,12 @@ export async function fetchSeries(
   request: FetchSeriesRequest,
   options: RequestOptions = {},
 ): Promise<Series> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchSeriesRequestSchema);
 
   return client.gamma.get(`series/${params.id}`, {
     schema: SeriesSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(
       {
         locale: params.locale,

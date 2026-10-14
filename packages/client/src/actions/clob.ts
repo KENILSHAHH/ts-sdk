@@ -55,7 +55,7 @@ import {
 } from '../errors';
 import { parseUserInput } from '../input';
 import { type Paginated, paginate } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { exchangeAssetRequestSchema } from './exchange-asset';
 import { snakeCase, toSearchParams } from './params';
 
@@ -113,9 +113,10 @@ export async function fetchMidpoint(
   request: FetchMidpointRequest,
   options: RequestOptions = {},
 ): Promise<DecimalString> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchMidpointRequestSchema);
   const response = await client.clob.get('/midpoint', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: MidpointSchema,
   });
@@ -182,10 +183,11 @@ export async function fetchMidpoints(
   request: FetchMidpointsRequest,
   options: RequestOptions = {},
 ): Promise<Midpoints> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchMidpointsRequestSchema);
 
-  return client.clob.post('midpoints', {
-    signal: options.signal,
+  return client.clob.postRead('midpoints', {
+    ...requestOptions,
     json: toTokenRequestPayload(params),
     schema: MidpointsSchema,
   });
@@ -244,9 +246,10 @@ export async function fetchTickSize(
   request: FetchTickSizeRequest,
   options: RequestOptions = {},
 ): Promise<TickSizeValue> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchTickSizeRequestSchema);
   const response = await client.clob.get('/tick-size', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: FetchTickSizeResponseSchema,
   });
@@ -307,9 +310,10 @@ export async function fetchNegRisk(
   request: FetchNegRiskRequest,
   options: RequestOptions = {},
 ): Promise<boolean> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchNegRiskRequestSchema);
   const response = await client.clob.get('/neg-risk', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: FetchNegRiskResponseSchema,
   });
@@ -361,11 +365,12 @@ export async function resolveConditionByToken(
   request: ResolveConditionByTokenRequest,
   options: RequestOptions = {},
 ): Promise<ConditionId> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, ResolveConditionByTokenRequestSchema);
 
   return client.clob.get(
     `/markets-by-token/${params.assetId ?? params.tokenId}`,
-    { ...options, schema: ResolveConditionByTokenResponseSchema },
+    { ...requestOptions, schema: ResolveConditionByTokenResponseSchema },
   );
 }
 
@@ -407,10 +412,11 @@ export async function fetchMarketInfo(
   request: FetchMarketInfoRequest,
   options: RequestOptions = {},
 ): Promise<MarketInfo> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchMarketInfoRequestSchema);
 
   return client.clob.get(`/clob-markets/${params.conditionId}`, {
-    ...options,
+    ...requestOptions,
     schema: FetchMarketInfoResponseSchema,
   });
 }
@@ -453,11 +459,12 @@ export async function fetchBuilderFeeRates(
   request: FetchBuilderFeeRatesRequest,
   options: RequestOptions = {},
 ): Promise<BuilderFeeRates> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchBuilderFeeRatesRequestSchema);
 
   return client.clob
     .get(`/fees/builder-fees/${params.builderCode}`, {
-      ...options,
+      ...requestOptions,
       schema: FetchBuilderFeeRatesResponseSchema,
     })
     .catch((error) => {
@@ -531,9 +538,10 @@ export async function fetchPrice(
   request: FetchPriceRequest,
   options: RequestOptions = {},
 ): Promise<DecimalString> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPriceRequestSchema);
   const response = await client.clob.get('/price', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: PriceSchema,
   });
@@ -603,10 +611,11 @@ export async function fetchPrices(
   request: FetchPricesRequest,
   options: RequestOptions = {},
 ): Promise<Prices> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPricesRequestSchema);
 
-  return client.clob.post('prices', {
-    signal: options.signal,
+  return client.clob.postRead('prices', {
+    ...requestOptions,
     json: toTokenWithSideRequestPayload(params),
     schema: PricesSchema,
   });
@@ -665,10 +674,11 @@ export async function fetchOrderBook(
   request: FetchOrderBookRequest,
   options: RequestOptions = {},
 ): Promise<OrderBook> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchOrderBookRequestSchema);
 
   return client.clob.get('/book', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: FetchOrderBookResponseSchema,
   });
@@ -732,10 +742,11 @@ export async function fetchOrderBooks(
   request: FetchOrderBooksRequest,
   options: RequestOptions = {},
 ): Promise<OrderBook[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchOrderBooksRequestSchema);
 
-  return client.clob.post('books', {
-    signal: options.signal,
+  return client.clob.postRead('books', {
+    ...requestOptions,
     json: toTokenRequestPayload(params),
     schema: OrderBooksSchema,
   });
@@ -795,9 +806,10 @@ export async function fetchSpread(
   request: FetchSpreadRequest,
   options: RequestOptions = {},
 ): Promise<DecimalString> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchSpreadRequestSchema);
   const response = await client.clob.get('/spread', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: SpreadSchema,
   });
@@ -864,10 +876,11 @@ export async function fetchSpreads(
   request: FetchSpreadsRequest,
   options: RequestOptions = {},
 ): Promise<Spreads> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchSpreadsRequestSchema);
 
-  return client.clob.post('spreads', {
-    signal: options.signal,
+  return client.clob.postRead('spreads', {
+    ...requestOptions,
     json: toTokenRequestPayload(params),
     schema: SpreadsSchema,
   });
@@ -929,10 +942,11 @@ export async function fetchLastTradePrice(
   request: FetchLastTradePriceRequest,
   options: RequestOptions = {},
 ): Promise<LastTradePrice | null> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchLastTradePriceRequestSchema);
 
   return client.clob.get('/last-trade-price', {
-    signal: options.signal,
+    ...requestOptions,
     params: toAssetSearchParams(params),
     schema: LastTradePriceSchema,
   });
@@ -996,10 +1010,11 @@ export async function fetchLastTradePrices(
   request: FetchLastTradePricesRequest,
   options: RequestOptions = {},
 ): Promise<LastTradePriceForAsset[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchLastTradePricesRequestSchema);
 
-  return client.clob.post('last-trades-prices', {
-    signal: options.signal,
+  return client.clob.postRead('last-trades-prices', {
+    ...requestOptions,
     json: toTokenRequestPayload(params),
     schema: LastTradePricesSchema,
   });
@@ -1069,6 +1084,7 @@ export function listCurrentRewards(
   request: ListCurrentRewardsRequest = {},
   options: RequestOptions = {},
 ): Paginated<CurrentReward[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, ...params } = parseUserInput(
     request,
     ListCurrentRewardsRequestSchema,
@@ -1078,7 +1094,7 @@ export function listCurrentRewards(
     (nextCursor) =>
       client.clob
         .get('/rewards/markets/current', {
-          signal: options.signal,
+          ...requestOptions,
           params: toSearchParams(
             {
               ...params,
@@ -1169,6 +1185,7 @@ export function listMarketRewards(
   request: ListMarketRewardsRequest,
   options: RequestOptions = {},
 ): Paginated<MarketReward[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, ...params } = parseUserInput(
     request,
     ListMarketRewardsRequestSchema,
@@ -1178,7 +1195,7 @@ export function listMarketRewards(
     (nextCursor) =>
       client.clob
         .get(`rewards/markets/${params.conditionId}`, {
-          signal: options.signal,
+          ...requestOptions,
           params: toSearchParams(
             {
               nextCursor,

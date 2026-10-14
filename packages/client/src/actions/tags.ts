@@ -26,7 +26,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTagsRequestSchema = z.object({
@@ -144,6 +144,7 @@ export function listTags(
   request: ListTagsRequest = {},
   options: RequestOptions = {},
 ): Paginated<Tag[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListTagsRequestSchema,
@@ -155,7 +156,7 @@ export function listTags(
     return client.gamma
       .get('/tags', {
         schema: ListTagsResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             ...params,
@@ -222,12 +223,13 @@ export async function fetchTag(
   request: FetchTagRequest,
   options: RequestOptions = {},
 ): Promise<Tag> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchTagRequestSchema);
 
   if ('id' in params) {
     return client.gamma.get(`tags/${params.id}`, {
       schema: TagSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(
         {
           includeTemplate: params.includeTemplate,
@@ -240,7 +242,7 @@ export async function fetchTag(
 
   return client.gamma.get(`tags/slug/${params.slug}`, {
     schema: TagSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(
       {
         locale: params.locale,
@@ -291,12 +293,13 @@ export async function fetchRelatedTags(
   request: FetchRelatedTagsRequest,
   options: RequestOptions = {},
 ): Promise<RelatedTag[]> {
+  const requestOptions = parseRequestOptions(options);
   if ('id' in request) {
     const params = parseUserInput(request, RelatedTagsByIdRequestSchema);
 
     return client.gamma.get(`tags/${params.id}/related-tags`, {
       schema: ListRelatedTagsResponseSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(
         {
           omitEmpty: params.omitEmpty,
@@ -310,7 +313,7 @@ export async function fetchRelatedTags(
   const params = parseUserInput(request, RelatedTagsBySlugRequestSchema);
 
   return client.gamma.get(`tags/slug/${params.slug}/related-tags`, {
-    ...options,
+    ...requestOptions,
     schema: ListRelatedTagsResponseSchema,
   });
 }
@@ -356,6 +359,7 @@ export async function fetchRelatedTagResources(
   request: FetchRelatedTagResourcesRequest,
   options: RequestOptions = {},
 ): Promise<Tag[]> {
+  const requestOptions = parseRequestOptions(options);
   if ('id' in request) {
     const params = parseUserInput(
       request,
@@ -364,7 +368,7 @@ export async function fetchRelatedTagResources(
 
     return client.gamma.get(`tags/${params.id}/related-tags/tags`, {
       schema: ListRelatedTagResourcesResponseSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(
         {
           locale: params.locale,
@@ -383,7 +387,7 @@ export async function fetchRelatedTagResources(
 
   return client.gamma.get(`tags/slug/${params.slug}/related-tags/tags`, {
     schema: ListRelatedTagResourcesResponseSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(
       {
         locale: params.locale,

@@ -69,7 +69,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import {
   expectTransactionHandle,
   type SignerTransactionRequest,
@@ -244,11 +244,12 @@ export async function fetchPerpsInstruments(
   request?: FetchPerpsInstrumentsRequest,
   options: RequestOptions = {},
 ): Promise<PerpsInstrument[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPerpsInstrumentsRequestSchema);
 
   return client.perps.get('/v1/info/instruments', {
     schema: FetchPerpsInstrumentsResponseSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(params, snakeCase()),
   });
 }
@@ -290,8 +291,9 @@ export async function fetchPerpsTicker(
   request: FetchPerpsTickerRequest,
   options: RequestOptions = {},
 ): Promise<PerpsTicker> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPerpsTickerRequestSchema);
-  const [ticker] = await fetchPerpsTickers(client, params, options);
+  const [ticker] = await fetchPerpsTickers(client, params, requestOptions);
 
   if (ticker === undefined) {
     throw new UnexpectedResponseError(
@@ -341,17 +343,18 @@ export async function fetchPerpsTickers(
   request?: FetchPerpsTickersRequest,
   options: RequestOptions = {},
 ): Promise<PerpsTicker[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPerpsTickersRequestSchema);
   const query = toSearchParams(params, snakeCase());
   const [tickers, statistics] = await Promise.all([
     client.perps.get('/v1/info/tickers', {
       schema: FetchPerpsTickersResponseSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: query,
     }),
     client.perps.get('/v1/info/statistics', {
       schema: FetchPerpsStatisticsResponseSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: query,
     }),
   ]);
@@ -422,11 +425,12 @@ export async function fetchPerpsBook(
   request: FetchPerpsBookRequest,
   options: RequestOptions = {},
 ): Promise<PerpsBook> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPerpsBookRequestSchema);
 
   return client.perps.get('/v1/info/book', {
     schema: PerpsBookSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(params, snakeCase()),
   });
 }
@@ -504,6 +508,7 @@ export function listPerpsCandles(
   request: ListPerpsCandlesRequest,
   options: RequestOptions = {},
 ): Paginated<PerpsCandle[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor: initialCursor, params } = parseUserInput(
     request,
     ListPerpsCandlesRequestSchema,
@@ -518,7 +523,7 @@ export function listPerpsCandles(
     return client.perps
       .get('/v1/info/klines', {
         schema: FetchPerpsCandlesResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             endTimestamp: state.endTimestamp,
@@ -638,6 +643,7 @@ export function listPerpsFundingHistory(
   request: ListPerpsFundingHistoryRequest,
   options: RequestOptions = {},
 ): Paginated<PerpsFundingRate[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor: initialCursor, params } = parseUserInput(
     request,
     ListPerpsFundingHistoryRequestSchema,
@@ -652,7 +658,7 @@ export function listPerpsFundingHistory(
     return client.perps
       .get('/v1/info/funding', {
         schema: FetchPerpsFundingHistoryResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             endTimestamp: state.endTimestamp,
@@ -738,6 +744,7 @@ export function listPerpsTrades(
   request: ListPerpsTradesRequest,
   options: RequestOptions = {},
 ): Paginated<PerpsPublicTrade[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor: initialCursor, params } = parseUserInput(
     request,
     ListPerpsTradesRequestSchema,
@@ -753,7 +760,7 @@ export function listPerpsTrades(
     return client.perps
       .get('/v1/info/trades', {
         schema: FetchPerpsTradesResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             endTimestamp: state.endTimestamp,
@@ -802,7 +809,8 @@ export type FetchPerpsFeesError =
   | RateLimitError
   | RequestRejectedError
   | TransportError
-  | UnexpectedResponseError;
+  | UnexpectedResponseError
+  | UserInputError;
 /**
  * @experimental This API may change in a breaking way in any release, including patch releases.
  */
@@ -812,6 +820,7 @@ export const FetchPerpsFeesError = makeErrorGuard(
   RequestRejectedError,
   TransportError,
   UnexpectedResponseError,
+  UserInputError,
 );
 
 /**
@@ -829,9 +838,10 @@ export async function fetchPerpsFees(
   client: BaseClient,
   options: RequestOptions = {},
 ): Promise<PerpsFeeScheduleEntry[]> {
+  const requestOptions = parseRequestOptions(options);
   const response = await client.perps.get('/v1/info/fees', {
     schema: FetchPerpsFeesResponseSchema,
-    signal: options.signal,
+    ...requestOptions,
   });
 
   return response.feeSchedule;

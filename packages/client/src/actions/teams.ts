@@ -19,7 +19,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 const ListTeamsRequestSchema = z.object({
@@ -95,6 +95,7 @@ export function listTeams(
   request: ListTeamsRequest = {},
   options: RequestOptions = {},
 ): Paginated<Team[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListTeamsRequestSchema,
@@ -106,7 +107,7 @@ export function listTeams(
     return client.gamma
       .get('/teams', {
         schema: ListTeamsResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             ...params,

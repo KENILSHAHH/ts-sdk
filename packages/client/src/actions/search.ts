@@ -26,7 +26,7 @@ import {
   type Paginated,
   paginate,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 export enum SearchSort {
@@ -131,6 +131,7 @@ export function search(
   request: SearchRequest,
   options: RequestOptions = {},
 ): Paginated<SearchResults> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     SearchRequestSchema,
@@ -146,7 +147,7 @@ export function search(
       return client.gamma
         .get('/public-search', {
           schema: PublicSearchResponseSchema,
-          signal: options.signal,
+          ...requestOptions,
           params: toSearchParams(
             {
               ...params,

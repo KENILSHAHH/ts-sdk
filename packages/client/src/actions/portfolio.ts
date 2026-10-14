@@ -42,8 +42,7 @@ import {
 } from '../errors';
 import { parseUserInput } from '../input';
 import { PageSizeSchema, type Paginated, paginate } from '../pagination';
-import type { RequestOptions } from '../request-options';
-import { withRateLimitRetry } from '../retry';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import {
   distinctIdList,
   EpochSecondsLikeSchema,
@@ -241,6 +240,7 @@ export function listPositions(
   request: ListPositionsRequest,
   options: RequestOptions = {},
 ): Paginated<Position[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, window, ...params } = parseUserInput(
     request,
     ListPositionsRequestSchema,
@@ -248,23 +248,19 @@ export function listPositions(
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/positions', {
-            schema: ListPositionsResponseSchema,
-            signal: options.signal,
-            // The full original filter set rides along with every cursor: the
-            // cursor binds only its paging anchor, and a filter dropped on a
-            // follow-up page would silently widen the result set.
-            params: toDataSearchParams({
-              ...params,
-              ...window,
-              limit: pageSize,
-              cursor,
-            }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/positions', {
+        schema: ListPositionsResponseSchema,
+        ...requestOptions,
+        // The full original filter set rides along with every cursor: the
+        // cursor binds only its paging anchor, and a filter dropped on a
+        // follow-up page would silently widen the result set.
+        params: toDataSearchParams({
+          ...params,
+          ...window,
+          limit: pageSize,
+          cursor,
+        }),
+      }),
     cursor,
   );
 }
@@ -426,6 +422,7 @@ export function listComboPositions(
   request: ListComboPositionsRequest,
   options: RequestOptions = {},
 ): Paginated<ComboPosition[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListComboPositionsRequestSchemaChecked,
@@ -433,15 +430,11 @@ export function listComboPositions(
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/positions/combos', {
-            schema: ListComboPositionsResponseSchema,
-            signal: options.signal,
-            params: toDataSearchParams({ ...params, limit: pageSize, cursor }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/positions/combos', {
+        schema: ListComboPositionsResponseSchema,
+        ...requestOptions,
+        params: toDataSearchParams({ ...params, limit: pageSize, cursor }),
+      }),
     cursor,
   );
 }
@@ -499,23 +492,20 @@ export async function fetchPortfolioValue(
   request: FetchPortfolioValueRequest,
   options: RequestOptions = {},
 ): Promise<PortfolioValue> {
+  const requestOptions = parseRequestOptions(options);
   const { conditionIds, ...params } = parseUserInput(
     request,
     FetchPortfolioValueRequestSchema,
   );
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/value', {
-        schema: FetchPortfolioValueResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams({
-          ...params,
-          condition: conditionIds,
-        }),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/value', {
+    schema: FetchPortfolioValueResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams({
+      ...params,
+      condition: conditionIds,
+    }),
+  });
 }
 
 const FetchUserStatsRequestSchema = z.object({
@@ -568,17 +558,14 @@ export async function fetchUserStats(
   request: FetchUserStatsRequest,
   options: RequestOptions = {},
 ): Promise<UserStats | null> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchUserStatsRequestSchema);
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/user-stats', {
-        schema: FetchUserStatsResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams(params),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/user-stats', {
+    schema: FetchUserStatsResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams(params),
+  });
 }
 
 const FetchUserPnlRequestSchema = z.object({
@@ -632,17 +619,14 @@ export async function fetchUserPnl(
   request: FetchUserPnlRequest,
   options: RequestOptions = {},
 ): Promise<UserPnlSeries> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchUserPnlRequestSchema);
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/user-pnl', {
-        schema: FetchUserPnlResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams(params),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/user-pnl', {
+    schema: FetchUserPnlResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams(params),
+  });
 }
 
 const FetchUserVolumeRequestSchema = z.object({
@@ -695,20 +679,17 @@ export async function fetchUserVolume(
   request: FetchUserVolumeRequest,
   options: RequestOptions = {},
 ): Promise<UserVolume> {
+  const requestOptions = parseRequestOptions(options);
   const { window, ...params } = parseUserInput(
     request,
     FetchUserVolumeRequestSchema,
   );
 
-  return withRateLimitRetry(
-    () =>
-      client.data.get('/v2/user-volume', {
-        schema: FetchUserVolumeResponseSchema,
-        signal: options.signal,
-        params: toDataSearchParams({ ...params, ...window }),
-      }),
-    { retry: client.retry, signal: options.signal },
-  );
+  return client.data.get('/v2/user-volume', {
+    schema: FetchUserVolumeResponseSchema,
+    ...requestOptions,
+    params: toDataSearchParams({ ...params, ...window }),
+  });
 }
 
 const DownloadAccountingSnapshotRequestSchema = z.object({
@@ -758,6 +739,7 @@ export async function downloadAccountingSnapshot(
   request: DownloadAccountingSnapshotRequest,
   options: RequestOptions = {},
 ): Promise<Blob> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(
     request,
     DownloadAccountingSnapshotRequestSchema,
@@ -765,7 +747,7 @@ export async function downloadAccountingSnapshot(
 
   return client.data.get('/v1/accounting/snapshot', {
     responseType: 'blob',
-    signal: options.signal,
+    ...requestOptions,
     params: toLegacyDataSearchParams(params),
   });
 }

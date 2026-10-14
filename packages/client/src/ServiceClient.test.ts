@@ -13,12 +13,220 @@ import {
 import { z } from 'zod';
 import { createPublicClient } from './clients';
 import { GatewayKnownErrorCode } from './index';
+import { paginate } from './pagination';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
 
 const root = 'http://localhost:4011';
 const server = setupServer();
 
 describe('ServiceClient', () => {
+  describe('per-request read retry budgets', () => {
+    it.each([
+      undefined,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+    ])('shares retries=%s across alternating transport failures and rate limits', async (retries) => {
+      vi.useFakeTimers();
+      let attempts = 0;
+      const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+        attempts++;
+        if (attempts % 2 === 1) throw new TypeError('connection reset');
+        return new Response(null, {
+          status: 429,
+          headers: { 'retry-after': '0' },
+        });
+      });
+      const client = new ServiceClient({ root, fetch });
+      const result = client
+        .get('/read', { retries, timeout: false })
+        .catch((error: unknown) => error);
+      await vi.runAllTimersAsync();
+      expect(attempts).toBe(1 + (retries ?? 2));
+      expect(await result).toMatchObject({
+        name: attempts % 2 === 1 ? 'TransportError' : 'RateLimitError',
+      });
+    });
+
+    it.each([
+      'get',
+      'postRead',
+    ] as const)('recovers through one shared budget for %s reads', async (method) => {
+      vi.useFakeTimers();
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(
+          new Response(null, { status: 429, headers: { 'retry-after': '0' } }),
+        )
+        .mockRejectedValueOnce(new TypeError('connection reset'))
+        .mockResolvedValueOnce(Response.json({ count: '42' }));
+      const client = new ServiceClient({ root, fetch });
+      const options = {
+        retries: 2,
+        schema: z.object({ count: z.string().transform(Number) }),
+      };
+      const result =
+        method === 'get'
+          ? client.get('/read', options)
+          : client.postRead('/read', options);
+      await vi.runAllTimersAsync();
+      expect(await result).toEqual({ count: 42 });
+      expect(fetch).toHaveBeenCalledTimes(3);
+    });
+
+    it.each([
+      -1,
+      6,
+      1.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      '2',
+      null,
+      false,
+    ])('rejects invalid retries=%s before signing or dispatch', async (retries) => {
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      const resolveHeaders = vi.fn(async () => ({}));
+      const client = new ServiceClient({ root, fetch, resolveHeaders });
+      await expect(
+        client.get('/read', { retries: retries as number }),
+      ).rejects.toMatchObject({ name: 'UserInputError' });
+      expect(fetch).not.toHaveBeenCalled();
+      expect(resolveHeaders).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      undefined,
+      '2',
+      '6',
+    ])('honors the server delay %s or surfaces long waits', async (retryAfter) => {
+      vi.useFakeTimers();
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(
+          new Response(null, {
+            status: 429,
+            headers:
+              retryAfter === undefined ? {} : { 'retry-after': retryAfter },
+          }),
+        )
+        .mockResolvedValueOnce(Response.json('served'));
+      const client = new ServiceClient({ root, fetch });
+      const result = client
+        .get('/read', { timeout: false })
+        .catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      if (retryAfter === '6') {
+        expect(await result).toMatchObject({
+          name: 'RateLimitError',
+          retryAfter: 6,
+        });
+        expect(vi.getTimerCount()).toBe(0);
+      } else {
+        const delay = Number(retryAfter ?? '1') * 1000;
+        await vi.advanceTimersByTimeAsync(delay - 1);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await result).toBe('served');
+        expect(fetch).toHaveBeenCalledTimes(2);
+      }
+    });
+
+    it('cancels a rate-limit wait without spending another attempt', async () => {
+      vi.useFakeTimers();
+      const controller = new AbortController();
+      const fetch = vi.fn<typeof globalThis.fetch>(
+        async () => new Response(null, { status: 429 }),
+      );
+      const client = new ServiceClient({ root, fetch });
+      const result = client
+        .get('/read', { signal: controller.signal, timeout: false })
+        .catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(vi.getTimerCount()).toBe(1);
+      controller.abort('query replaced');
+      expect(await result).toMatchObject({
+        name: 'RequestAbortedError',
+        cause: 'query replaced',
+      });
+      await vi.runAllTimersAsync();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('gives concurrent requests independent budgets', async () => {
+      vi.useFakeTimers();
+      const attempts = new Map<string, number>();
+      const client = new ServiceClient({
+        root,
+        fetch: async (input) => {
+          const path = new URL(new Request(input).url).pathname;
+          attempts.set(path, (attempts.get(path) ?? 0) + 1);
+          return new Response(null, {
+            status: 429,
+            headers: { 'retry-after': '0' },
+          });
+        },
+      });
+      const results = Promise.all([
+        client.get('/once', { retries: 0 }).catch((error: unknown) => error),
+        client.get('/retry', { retries: 2 }).catch((error: unknown) => error),
+      ]);
+      await vi.runAllTimersAsync();
+      expect(await results).toEqual([
+        expect.objectContaining({ name: 'RateLimitError' }),
+        expect.objectContaining({ name: 'RateLimitError' }),
+      ]);
+      expect(Object.fromEntries(attempts)).toEqual({ '/once': 1, '/retry': 3 });
+    });
+
+    it('starts a fresh budget for each pagination request and continuation', async () => {
+      vi.useFakeTimers();
+      let attempts = 0;
+      const client = new ServiceClient({
+        root,
+        fetch: async (input) => {
+          attempts++;
+          if (attempts % 2 === 1) throw new TypeError('connection reset');
+          const cursor = new URL(new Request(input).url).searchParams.get(
+            'cursor',
+          );
+          return Response.json(
+            cursor === null
+              ? { items: ['first'], hasMore: true, nextCursor: 'next-page' }
+              : { items: ['second'], hasMore: false },
+          );
+        },
+      });
+      const pages = paginate((cursor) =>
+        client.get('/page', {
+          params: new URLSearchParams(cursor === undefined ? {} : { cursor }),
+          schema: z.object({
+            items: z.array(z.string()),
+            hasMore: z.boolean(),
+            nextCursor: PaginationCursorSchema.optional(),
+          }),
+          retries: 1,
+        }),
+      );
+      const first = pages.firstPage();
+      await vi.runAllTimersAsync();
+      const firstPage = await first;
+      expect(firstPage.items).toEqual(['first']);
+      const continuation = (async () => {
+        const items: string[] = [];
+        for await (const page of pages.from(firstPage.nextCursor))
+          items.push(...page.items);
+        return items;
+      })();
+      await vi.runAllTimersAsync();
+      expect(await continuation).toEqual(['second']);
+      expect(attempts).toBe(4);
+    });
+  });
   describe('gateway error and retry policy', () => {
     it.each([
       'json',
@@ -60,7 +268,9 @@ describe('ServiceClient', () => {
         throw failure;
       });
       const client = createPublicClient({ fetch });
-      const result = client.predictions[method]('/mutation', {}).catch(
+      // A JavaScript caller's stray read control must not enable mutation replay.
+      const options = { json: {}, retries: 5 };
+      const result = client.predictions[method]('/mutation', options).catch(
         (error: unknown) => error,
       );
       await vi.advanceTimersByTimeAsync(1_000);
@@ -85,7 +295,7 @@ describe('ServiceClient', () => {
       expect(fetch).toHaveBeenCalledTimes(3);
       fetch.mockClear();
       await expect(
-        client.predictions.get('/ping', { retry: false }),
+        client.predictions.get('/ping', { retries: 0 }),
       ).rejects.toMatchObject({ name: 'TransportError' });
       expect(fetch).toHaveBeenCalledTimes(1);
     });
@@ -342,7 +552,11 @@ describe('ServiceClient', () => {
       const fetch = vi.fn(globalThis.fetch);
       const resolveHeaders = vi.fn(async () => ({}));
       const client = new ServiceClient({ fetch, resolveHeaders });
-      await expect(client[method]('/unused', {})).rejects.toMatchObject({
+      const result =
+        method === 'get'
+          ? client.get('/unused')
+          : client[method]('/unused', {});
+      await expect(result).rejects.toMatchObject({
         name: 'UserInputError',
         message: 'This service client has no configured endpoint',
       });
@@ -646,7 +860,11 @@ describe('ServiceClient', () => {
       );
       const client = new ServiceClient({ root });
       const schema = z.object({ count: z.string().transform(Number) });
-      await expect(client[method]('/transform', { schema })).resolves.toEqual({
+      const result =
+        method === 'get'
+          ? client.get('/transform', { schema })
+          : client[method]('/transform', { schema });
+      await expect(result).resolves.toEqual({
         count: 42,
       });
       await expect(client.get('/transform')).resolves.toEqual({ count: '42' });
@@ -693,7 +911,7 @@ describe('ServiceClient', () => {
             }),
         ),
       );
-      const client = new ServiceClient({ root, retry: false });
+      const client = new ServiceClient({ root });
       const rejected = await client.post('/rejected', {
         json: {},
         responseType: 'raw',
@@ -760,7 +978,6 @@ describe('ServiceClient', () => {
       let supplied = false;
       const client = new ServiceClient({
         root,
-        retry: false,
         fetch: async () =>
           new Response(
             new ReadableStream(
@@ -801,9 +1018,9 @@ describe('ServiceClient', () => {
   });
 
   it.each([
-    [false, 1],
+    [0, 1],
     [undefined, 3],
-  ])('uses retry=%s for transport failures (%i attempts)', async (retry, attempts) => {
+  ])('uses retries=%s for transport failures (%i attempts)', async (retries, attempts) => {
     let requests = 0;
     server.use(
       http.get(`${root}/connection-reset`, () => {
@@ -811,9 +1028,11 @@ describe('ServiceClient', () => {
         return HttpResponse.error();
       }),
     );
-    const client = new ServiceClient({ retry, root });
+    const client = new ServiceClient({ root });
 
-    await expect(client.get('/connection-reset')).rejects.toMatchObject({
+    await expect(
+      client.get('/connection-reset', { retries }),
+    ).rejects.toMatchObject({
       name: 'TransportError',
     });
     expect(requests).toBe(attempts);
@@ -1181,7 +1400,9 @@ describe('ServiceClient', () => {
     );
     const client = new ServiceClient({ root });
 
-    await expect(client.get('/retry-after-rate-limit')).rejects.toMatchObject({
+    await expect(
+      client.get('/retry-after-rate-limit', { retries: 0 }),
+    ).rejects.toMatchObject({
       name: 'RateLimitError',
       retryAfter: 3,
     });
@@ -1195,7 +1416,9 @@ describe('ServiceClient', () => {
     );
     const client = new ServiceClient({ root });
 
-    await expect(client.get('/no-retry-after')).rejects.toMatchObject({
+    await expect(
+      client.get('/no-retry-after', { retries: 0 }),
+    ).rejects.toMatchObject({
       name: 'RequestRejectedError',
       restriction: undefined,
       retryAfter: undefined,
@@ -1226,8 +1449,9 @@ describe('ServiceClient', () => {
               }),
         ),
       );
-      return expect(new ServiceClient({ root }).get('/retry-after-date'))
-        .rejects;
+      return expect(
+        new ServiceClient({ root }).get('/retry-after-date', { retries: 0 }),
+      ).rejects;
     }
 
     it.each([
@@ -1599,3 +1823,5 @@ describe('ServiceClient', () => {
     });
   });
 });
+
+import { PaginationCursorSchema } from '@polymarket/bindings';

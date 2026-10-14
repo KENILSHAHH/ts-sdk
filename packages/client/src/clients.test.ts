@@ -19,7 +19,7 @@ import {
 } from 'vitest';
 import { createPublicClient, createSecureClient } from './clients';
 import { forkEnvironmentConfig, production } from './environments';
-import { RequestAbortedError, TransportError } from './errors';
+import { RequestAbortedError, TransportError, UserInputError } from './errors';
 import { ServiceClient } from './ServiceClient';
 import type { ApiKeyAuthorization, Signer } from './types';
 import {
@@ -79,6 +79,32 @@ const signer: Signer = {
 };
 
 describe('predictions gateway service', () => {
+  it('validates read controls before dispatch and snapshots paginator controls', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      throw new TypeError('read dispatch observed');
+    });
+    const client = createPublicClient({ fetch });
+    await expect(
+      client.fetchSportsMarketTypes({ retries: 6 }),
+    ).rejects.toBeInstanceOf(UserInputError);
+    expect(() => client.listTrades({}, { retries: -1 })).toThrow(
+      UserInputError,
+    );
+    await expect(
+      client.fetchMidpoints([{ assetId: '1' }], { retries: 1.5 }),
+    ).rejects.toBeInstanceOf(UserInputError);
+    expect(fetch).not.toHaveBeenCalled();
+
+    const options = { retries: 0 };
+    const trades = client.listTrades({ pageSize: 1 }, options);
+    options.retries = 5;
+    await expect(trades.firstPage()).rejects.toBeInstanceOf(TransportError);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await expect(
+      client.fetchMidpoints([{ assetId: '1' }], { retries: 0 }),
+    ).rejects.toBeInstanceOf(TransportError);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it('dispatches every verb through custom fetch to the production gateway', async () => {
     const failure = new Error('custom fetch stopped at the transport boundary');
     const observedRequests: Request[] = [];
@@ -86,7 +112,7 @@ describe('predictions gateway service', () => {
       if (input instanceof Request) observedRequests.push(input.clone());
       throw failure;
     });
-    const client = createPublicClient({ fetch, retry: false });
+    const client = createPublicClient({ fetch });
     const predictions = client.predictions;
     const extended = client.extend(() => ({ predictionService: predictions }));
 
@@ -99,7 +125,7 @@ describe('predictions gateway service', () => {
     expect(client.relayer).toBeInstanceOf(ServiceClient);
     const controller = new AbortController();
     for (const operation of [
-      () => predictions.get('/ping', { signal: controller.signal }),
+      () => predictions.get('/ping', { signal: controller.signal, retries: 0 }),
       () => predictions.post('/endpoint', { json: { value: 1 } }),
       () => predictions.patch('/endpoint', { json: { value: 2 } }),
       () => predictions.del('/endpoint'),
@@ -153,10 +179,10 @@ describe('predictions gateway service', () => {
     const client = createPublicClient({
       environment: fork,
       fetch,
-      retry: false,
     });
     await expect(
       client.predictions.get('/ping', {
+        retries: 0,
         headers: { 'x-request': 'request' },
       }),
     ).rejects.toMatchObject({ cause: failure });

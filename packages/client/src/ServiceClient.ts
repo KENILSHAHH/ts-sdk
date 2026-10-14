@@ -20,6 +20,7 @@ import {
 import {
   assertNotAborted,
   type Fetch,
+  parseRequestOptions,
   type RequestOptions,
   withAbort,
 } from './request-options';
@@ -43,7 +44,6 @@ export type RequestHeadersResolver = (
 
 export type ServiceClientConfig = {
   fetch?: Fetch;
-  retry?: boolean;
   /** Disable automatic replay of mutation requests. @internal */
   retryMutations?: false;
   /** Omit the endpoint root to create an empty client whose requests reject with UserInputError. */
@@ -111,39 +111,45 @@ export type ServiceClientResponseOptions<T = unknown> =
   | ServiceClientNonJsonResponseOptions;
 
 /** @experimental See {@link ServiceClient}. */
-export type ServiceClientRequestOptions<T = unknown> = RequestOptions &
+export type ServiceClientRequestOptions<T = unknown> =
   ServiceClientResponseOptions<T> & {
+    signal?: AbortSignal;
     /** Rate-limit bucket supplied by the action that owns the request. @internal */
     rateLimitBucket?: RateLimitBucket;
     timeout?: ServiceClientTimeout;
+  };
+
+type ServiceClientMutationOptions<T = unknown> =
+  ServiceClientRequestOptions<T> & {
     /** Disable transport retries for commands whose outcome may be uncertain. */
     retry?: false;
   };
 
 /** @experimental See {@link ServiceClient}. */
 export type ServiceClientGetOptions<T = unknown> =
-  ServiceClientRequestOptions<T> & {
-    headers?: HeadersInit;
-    params?: URLSearchParams;
-  };
+  ServiceClientRequestOptions<T> &
+    RequestOptions & {
+      headers?: HeadersInit;
+      params?: URLSearchParams;
+    };
 
 /** @experimental See {@link ServiceClient}. */
 export type ServiceClientPostOptions<T = unknown> =
-  ServiceClientRequestOptions<T> & {
+  ServiceClientMutationOptions<T> & {
     headers?: HeadersInit;
     json?: unknown;
   };
 
 /** @experimental See {@link ServiceClient}. */
 export type ServiceClientPatchOptions<T = unknown> =
-  ServiceClientRequestOptions<T> & {
+  ServiceClientMutationOptions<T> & {
     headers?: HeadersInit;
     json?: unknown;
   };
 
 /** @experimental See {@link ServiceClient}. */
 export type ServiceClientDeleteOptions<T = unknown> =
-  ServiceClientRequestOptions<T> & {
+  ServiceClientMutationOptions<T> & {
     headers?: HeadersInit;
     json?: unknown;
     params?: URLSearchParams;
@@ -278,7 +284,6 @@ export class ServiceClient {
       resolveHeaders,
       onRateLimitUpdate,
       fetch,
-      retry,
       retryMutations,
     } = config;
     if (root !== undefined) {
@@ -286,11 +291,7 @@ export class ServiceClient {
         prefixUrl: root,
         throwHttpErrors: false,
         ...(fetch === undefined ? {} : { fetch }),
-        ...(retry === false
-          ? { retry: 0 }
-          : retryMutations === false
-            ? { retry: { methods: ['get'] } }
-            : {}),
+        ...(retryMutations === false && { retry: { methods: ['get'] } }),
       });
     }
     this.#headers = headers;
@@ -314,6 +315,24 @@ export class ServiceClient {
   get(path: string, options: ServiceClientGetOptions): Promise<unknown>;
   get(path: string, options: ServiceClientGetOptions = {}): Promise<unknown> {
     return this.#request('GET', path, options);
+  }
+
+  /**
+   * Sends an idempotent JSON read whose endpoint requires POST.
+   * Actions own the decision that replay is safe.
+   * @internal
+   */
+  postRead<T = unknown>(
+    path: string,
+    options: ServiceClientPostOptions<T> &
+      RequestOptions &
+      ServiceClientJsonResponseOptions<T>,
+  ): Promise<T>;
+  postRead(
+    path: string,
+    options: ServiceClientPostOptions & RequestOptions,
+  ): Promise<unknown> {
+    return this.#request('POST', path, options, true);
   }
 
   /**
@@ -385,11 +404,14 @@ export class ServiceClient {
   async #request(
     method: ServiceRequestMethod,
     path: string,
-    options:
+    options: (
       | ServiceClientDeleteOptions
       | ServiceClientGetOptions
       | ServiceClientPatchOptions
-      | ServiceClientPostOptions,
+      | ServiceClientPostOptions
+    ) &
+      RequestOptions,
+    readOnly = method === 'GET',
   ): Promise<unknown> {
     const signal = options.signal;
     try {
@@ -398,7 +420,10 @@ export class ServiceClient {
         { responseType: options.responseType, schema: options.schema },
         ServiceClientResponseControlsSchema,
       );
-      const response = await this.#send(method, path, options);
+      const retries = readOnly
+        ? parseRequestOptions(options).retries
+        : undefined;
+      const response = await this.#send(method, path, options, retries);
       assertNotAborted(signal);
       const rateLimit = parseRateLimitHeaders(
         response.headers,
@@ -494,6 +519,7 @@ export class ServiceClient {
       | ServiceClientGetOptions
       | ServiceClientPatchOptions
       | ServiceClientPostOptions,
+    retries?: number,
   ): Promise<Response> {
     assertNotAborted(options.signal);
     const client = this.#client;
@@ -526,7 +552,34 @@ export class ServiceClient {
         searchParams: request.params,
         signal: options.signal,
         ...(options.timeout !== undefined && { timeout: options.timeout }),
-        ...(options.retry === false && { retry: 0 }),
+        ...('retry' in options && options.retry === false && { retry: 0 }),
+        ...(retries !== undefined && {
+          // One transport-owned counter covers both network failures and 429s.
+          // A new call (including each page) starts with a fresh counter.
+          retry: { limit: retries, methods: [method.toLowerCase()] },
+          hooks: {
+            afterResponse: [
+              (_request, _options, response, { retryCount }) => {
+                if (
+                  options.responseType === 'raw' ||
+                  response.status !== 429 ||
+                  retryCount >= retries
+                )
+                  return;
+                const delaySeconds = this.#parseRetryAfterHeader(response) ?? 1;
+                // Never retry earlier than the server asks. Leave long waits to callers.
+                if (delaySeconds > 5) return;
+                const rateLimit = parseRateLimitHeaders(
+                  response.headers,
+                  options.rateLimitBucket,
+                );
+                if (rateLimit !== undefined)
+                  this.#notifyRateLimitUpdate(rateLimit);
+                return ky.retry({ delay: delaySeconds * 1000 });
+              },
+            ],
+          },
+        }),
       }),
       options.signal,
     );

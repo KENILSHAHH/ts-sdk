@@ -1,11 +1,43 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import type { PublicClient, SecureClient } from './clients';
+import {
+  createPublicClient,
+  createSecureClient,
+  type PublicClient,
+  type PublicClientOptions,
+  type SecureClient,
+  type SecureClientOptions,
+} from './clients';
 import { ServiceClient as RootServiceClient } from './index';
 import type { ServiceClient } from './ServiceClient';
 
 declare const publicClient: PublicClient;
 declare const secureClient: SecureClient;
+declare const secureOptions: SecureClientOptions;
+
+it('keeps retry budgets on reads rather than clients or mutations', () => {
+  publicClient.listTrades(
+    { pageSize: 100 },
+    { retries: 0, signal: new AbortController().signal },
+  );
+  secureClient.listPositions(undefined, { retries: 5 });
+  publicClient.fetchMidpoints([{ assetId: '1' }], { retries: 1 });
+  publicClient.predictions.get('/read', { retries: 2 });
+  expectTypeOf<PublicClientOptions>().not.toHaveProperty('retry');
+  expectTypeOf<SecureClientOptions>().not.toHaveProperty('retry');
+  // @ts-expect-error Client creation has no retry setting.
+  createPublicClient({ retry: false });
+  // @ts-expect-error Secure client creation has no retry setting.
+  createSecureClient({ ...secureOptions, retry: false });
+  // @ts-expect-error Clients have no retry state or getter.
+  publicClient.retry;
+  // @ts-expect-error Clients have no retry state or getter.
+  secureClient.retry;
+  // @ts-expect-error Mutation options cannot opt into optional read retries.
+  publicClient.predictions.post('/mutation', { retries: 5 });
+  // @ts-expect-error Mutation options cannot opt into optional read retries.
+  publicClient.predictions.del('/mutation', { retries: 5 });
+});
 
 describe('predictions service types', () => {
   it('exposes the same precise Promise service on public and secure clients', () => {

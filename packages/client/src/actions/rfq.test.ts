@@ -571,6 +571,8 @@ describe('acceptComboQuote', () => {
       takerOrderHash: TAKER_ORDER_HASH,
     });
     expect(gatewayGet).toHaveBeenCalledWith('/v1/builder/rfq/requests/rfq-1', {
+      retries: 2,
+      signal: undefined,
       schema: expect.anything(),
     });
   }, 10_000);
@@ -634,7 +636,6 @@ function createClient(options: CreateClientOptions = {}) {
 
   const gatewayService = new ServiceClient({
     root: 'https://builder-gateway.test',
-    retry: false,
     fetch: async (input) => {
       const method = new Request(input).method;
       const next = (method === 'POST' ? postQueue : getQueue).shift();

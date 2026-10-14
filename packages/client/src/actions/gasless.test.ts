@@ -58,7 +58,6 @@ function createClient(options: CreateClientOptions = {}) {
 
   const relayerService = new ServiceClient({
     root: 'https://relayer.test',
-    retry: false,
     fetch: async (input) => {
       if (new Request(input).method === 'GET')
         return jsonResponse(executeParamsWire);

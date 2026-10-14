@@ -19,8 +19,9 @@ import {
   SigningError,
   TransportError,
   UnexpectedResponseError,
+  UserInputError,
 } from '../errors';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 
 export type ApiKeyAuthRequest = {
   address: EvmAddress;
@@ -148,7 +149,8 @@ export type FetchApiKeysError =
   | RequestRejectedError
   | SigningError
   | TransportError
-  | UnexpectedResponseError;
+  | UnexpectedResponseError
+  | UserInputError;
 export const FetchApiKeysError = makeErrorGuard(
   RequestAbortedError,
   RateLimitError,
@@ -156,6 +158,7 @@ export const FetchApiKeysError = makeErrorGuard(
   SigningError,
   TransportError,
   UnexpectedResponseError,
+  UserInputError,
 );
 
 /**
@@ -176,8 +179,9 @@ export async function fetchApiKeys(
   client: BaseSecureClient,
   options: RequestOptions = {},
 ): Promise<ApiKey[]> {
+  const requestOptions = parseRequestOptions(options);
   const response = await client.secureClob.get('/auth/api-keys', {
-    ...options,
+    ...requestOptions,
     schema: ApiKeysResponseSchema,
   });
 
@@ -260,7 +264,8 @@ export type FetchBuilderApiKeysError =
   | RequestRejectedError
   | SigningError
   | TransportError
-  | UnexpectedResponseError;
+  | UnexpectedResponseError
+  | UserInputError;
 export const FetchBuilderApiKeysError = makeErrorGuard(
   RequestAbortedError,
   RateLimitError,
@@ -268,6 +273,7 @@ export const FetchBuilderApiKeysError = makeErrorGuard(
   SigningError,
   TransportError,
   UnexpectedResponseError,
+  UserInputError,
 );
 
 /**
@@ -289,8 +295,9 @@ export async function fetchBuilderApiKeys(
   client: BaseSecureClient,
   options: RequestOptions = {},
 ): Promise<BuilderApiKey[]> {
+  const requestOptions = parseRequestOptions(options);
   return client.secureClob.get('/auth/builder-api-key', {
-    ...options,
+    ...requestOptions,
     schema: BuilderApiKeysResponseSchema,
   });
 }

@@ -30,8 +30,7 @@ import {
 } from '../errors';
 import { parseUserInput } from '../input';
 import { PageSizeSchema, type Paginated, paginate } from '../pagination';
-import type { RequestOptions } from '../request-options';
-import { withRateLimitRetry } from '../retry';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { distinctIdList, TimeWindowSchema, toDataSearchParams } from './params';
 
 export {
@@ -144,6 +143,7 @@ export function listTrades(
   request: ListTradesRequest = {},
   options: RequestOptions = {},
 ): Paginated<Trade[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, window, ...params } = parseUserInput(
     request,
     ListTradesRequestSchema,
@@ -151,23 +151,19 @@ export function listTrades(
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/trades', {
-            schema: ListTradesResponseSchema,
-            signal: options.signal,
-            // The full original filter set rides along with every cursor: the
-            // cursor binds only its paging anchor, and a filter dropped on a
-            // follow-up page would silently widen the result set.
-            params: toDataSearchParams({
-              ...params,
-              ...window,
-              limit: pageSize,
-              cursor,
-            }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/trades', {
+        schema: ListTradesResponseSchema,
+        ...requestOptions,
+        // The full original filter set rides along with every cursor: the
+        // cursor binds only its paging anchor, and a filter dropped on a
+        // follow-up page would silently widen the result set.
+        params: toDataSearchParams({
+          ...params,
+          ...window,
+          limit: pageSize,
+          cursor,
+        }),
+      }),
     cursor,
   );
 }
@@ -265,6 +261,7 @@ export function listActivity(
   request: ListActivityRequest,
   options: RequestOptions = {},
 ): Paginated<Activity[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, window, ...params } = parseUserInput(
     request,
     ListActivityRequestSchema,
@@ -272,24 +269,20 @@ export function listActivity(
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/activity', {
-            schema: ListActivityResponseSchema,
-            signal: options.signal,
-            params: toDataSearchParams({
-              ...params,
-              ...window,
-              // The service defaults exclude_deposits_withdrawals=true; opt out
-              // unconditionally and let the type filter decide which rows come
-              // back.
-              excludeDepositsWithdrawals: false,
-              limit: pageSize,
-              cursor,
-            }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/activity', {
+        schema: ListActivityResponseSchema,
+        ...requestOptions,
+        params: toDataSearchParams({
+          ...params,
+          ...window,
+          // The service defaults exclude_deposits_withdrawals=true; opt out
+          // unconditionally and let the type filter decide which rows come
+          // back.
+          excludeDepositsWithdrawals: false,
+          limit: pageSize,
+          cursor,
+        }),
+      }),
     cursor,
   );
 }
@@ -361,6 +354,7 @@ export function listComboActivity(
   request: ListComboActivityRequest,
   options: RequestOptions = {},
 ): Paginated<ComboActivity[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListComboActivityRequestSchema,
@@ -368,15 +362,11 @@ export function listComboActivity(
 
   return paginate(
     (cursor) =>
-      withRateLimitRetry(
-        () =>
-          client.data.get('/v2/activity/combos', {
-            schema: ListComboActivityResponseSchema,
-            signal: options.signal,
-            params: toDataSearchParams({ ...params, limit: pageSize, cursor }),
-          }),
-        { retry: client.retry, signal: options.signal },
-      ),
+      client.data.get('/v2/activity/combos', {
+        schema: ListComboActivityResponseSchema,
+        ...requestOptions,
+        params: toDataSearchParams({ ...params, limit: pageSize, cursor }),
+      }),
     cursor,
   );
 }

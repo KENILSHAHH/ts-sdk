@@ -49,7 +49,7 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import type {
   TransactionCall,
   TransactionHandle,
@@ -143,10 +143,11 @@ export async function fetchExecuteParams(
   request: FetchExecuteParamsRequest,
   options: RequestOptions = {},
 ): Promise<RelayerExecuteParams> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchExecuteParamsRequestSchema);
 
   return client.relayer.get('/v1/account/transactions/params', {
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(params, { address: 'address', type: 'type' }),
     schema: RelayerExecuteParamsSchema,
   });
@@ -209,7 +210,12 @@ export async function isWalletDeployed(
   request?: IsWalletDeployedRequest,
   options: RequestOptions = {},
 ): Promise<boolean> {
-  const params = await resolveWalletDeploymentTarget(client, request, options);
+  const requestOptions = parseRequestOptions(options);
+  const params = await resolveWalletDeploymentTarget(
+    client,
+    request,
+    requestOptions,
+  );
 
   if (params.type === WalletType.EOA) {
     return false;
@@ -217,7 +223,7 @@ export async function isWalletDeployed(
 
   return client.relayer
     .get('/deployed', {
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(
         {
           address: params.wallet,
@@ -238,6 +244,7 @@ async function resolveWalletDeploymentTarget(
   request: IsWalletDeployedRequest | undefined,
   options: RequestOptions = {},
 ): Promise<z.output<typeof IsWalletDeployedRequestSchema>> {
+  const requestOptions = parseRequestOptions(options);
   if (request !== undefined) {
     return parseUserInput(request, IsWalletDeployedRequestSchema);
   }
@@ -260,7 +267,7 @@ async function resolveWalletDeploymentTarget(
       client.rpc,
       client.account.signer,
       client.environment.walletDerivation,
-      options,
+      requestOptions,
     ),
     type: WalletType.DEPOSIT_WALLET,
   };
@@ -339,11 +346,12 @@ export async function fetchTransaction(
   request: FetchGaslessTransactionRequest,
   options: RequestOptions = {},
 ): Promise<GaslessTransaction> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchGaslessTransactionRequestSchema);
 
   return client.relayer.get(
     `/v1/account/transactions/${params.transactionId}`,
-    { ...options, schema: GaslessTransactionSchema },
+    { ...requestOptions, schema: GaslessTransactionSchema },
   );
 }
 

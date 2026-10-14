@@ -39,7 +39,7 @@ import {
   paginate,
   readCursorPayload,
 } from '../pagination';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 // Matches the upstream per-request limit cap and offset cap on the comments
@@ -222,6 +222,7 @@ export function listComments(
   request: ListCommentsRequest,
   options: RequestOptions = {},
 ): Paginated<Comment[]> {
+  const requestOptions = parseRequestOptions(options);
   const { cursor, pageSize, ...params } = parseUserInput(
     request,
     ListCommentsRequestSchema,
@@ -235,14 +236,14 @@ export function listComments(
             client,
             params,
             { offset: 0, pageSize },
-            options,
+            requestOptions,
           )
         : fetchCommentsKeysetPage(
             client,
             keysetQuery,
             pageSize,
             undefined,
-            options,
+            requestOptions,
           );
     }
 
@@ -259,7 +260,7 @@ export function listComments(
         client,
         params,
         offsetCursorFromPayload(payload, COMMENT_CURSOR_LIMITS),
-        options,
+        requestOptions,
       );
     }
 
@@ -268,7 +269,7 @@ export function listComments(
       keysetQuery,
       pageSize,
       afterCursor,
-      options,
+      requestOptions,
     );
   }, cursor);
 }
@@ -279,10 +280,11 @@ function fetchCommentsOffsetPage(
   page: { offset: number; pageSize: number },
   options: RequestOptions = {},
 ): Promise<Page<Comment[]>> {
+  const requestOptions = parseRequestOptions(options);
   return client.gamma
     .get('/comments', {
       schema: ListCommentsResponseSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(
         {
           ascending: params.ascending,
@@ -328,10 +330,11 @@ function fetchCommentsKeysetPage(
   afterCursor?: PaginationCursor,
   options: RequestOptions = {},
 ): Promise<Page<Comment[]>> {
+  const requestOptions = parseRequestOptions(options);
   return client.gamma
     .get('/comments/keyset', {
       schema: ListCommentsKeysetResponseSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(
         {
           afterCursor,
@@ -394,11 +397,12 @@ export async function fetchCommentsById(
   request: FetchCommentsByIdRequest,
   options: RequestOptions = {},
 ): Promise<Comment[]> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchCommentsByIdRequestSchema);
 
   return client.gamma.get(`comments/${params.id}`, {
     schema: ListCommentsResponseSchema,
-    signal: options.signal,
+    ...requestOptions,
     params: toSearchParams(
       {
         getPositions: params.getPositions,
@@ -481,6 +485,7 @@ export function listCommentsByUserAddress(
   request: ListCommentsByUserAddressRequest,
   options: RequestOptions = {},
 ): Paginated<Comment[]> {
+  const requestOptions = parseRequestOptions(options);
   const { address, cursor, pageSize, ...params } = parseUserInput(
     request,
     ListCommentsByUserAddressRequestSchema,
@@ -492,7 +497,7 @@ export function listCommentsByUserAddress(
     return client.gamma
       .get(`comments/user_address/${address}`, {
         schema: ListCommentsResponseSchema,
-        signal: options.signal,
+        ...requestOptions,
         params: toSearchParams(
           {
             ascending: params.ascending,

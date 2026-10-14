@@ -73,7 +73,7 @@ import {
   encodeExchangeOrderSide,
 } from '../exchange';
 import { parseUserInput } from '../input';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { resolveOrderIdentity, SignerType } from '../wallet';
 
 export {
@@ -1417,13 +1417,14 @@ export function fetchRfqStatus(
   params: FetchRfqStatusParams,
   options: RequestOptions = {},
 ): Promise<RfqStatusResult> {
+  const requestOptions = parseRequestOptions(options);
   assertCombosSupportedForAccount(client);
 
   const input = parseUserInput(params, FetchRfqStatusParamsSchema);
 
   return client.builderGateway
     .get(`${BUILDER_RFQ_REQUESTS_PATH}/${encodeURIComponent(input.rfqId)}`, {
-      ...options,
+      ...requestOptions,
       schema: BuilderRfqStatusResponseSchema,
     })
     .catch((error) => {

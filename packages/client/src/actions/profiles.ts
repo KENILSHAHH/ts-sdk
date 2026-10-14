@@ -14,7 +14,7 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import { snakeCase, toSearchParams } from './params';
 
 const FetchPublicProfileRequestSchema = z.object({
@@ -64,12 +64,13 @@ export async function fetchPublicProfile(
   request: FetchPublicProfileRequest,
   options: RequestOptions = {},
 ): Promise<PublicProfile | null> {
+  const requestOptions = parseRequestOptions(options);
   const params = parseUserInput(request, FetchPublicProfileRequestSchema);
 
   return client.gamma
     .get('/public-profile', {
       schema: PublicProfileSchema,
-      signal: options.signal,
+      ...requestOptions,
       params: toSearchParams(params, snakeCase()),
     })
     .catch((error) => {

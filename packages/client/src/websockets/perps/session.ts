@@ -315,8 +315,6 @@ export type PerpsSessionOptions = {
   /** Fetch implementation for session HTTP requests. */
   fetch?: Fetch;
   headers?: Record<string, string>;
-  /** Set false to disable HTTP transport retries. */
-  retry?: boolean;
   /**
    * Include this authenticated account's builder receipts in the session iterator.
    * Subscription is best effort and retried on reconnect; failure does not block the session.
@@ -429,7 +427,6 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
     this.#api = new ServiceClient({
       fetch: options.fetch,
       headers: options.headers,
-      retry: options.retry,
       resolveHeaders: async () => this.#authenticatedHeaders(),
       root: options.restUrl,
     });

@@ -11,7 +11,7 @@ declare const client: ServiceClient;
 
 describe('service response types', () => {
   it('accepts an empty client configuration and retains every verb signature', () => {
-    const empty = new ServiceClient({ retry: false });
+    const empty = new ServiceClient({});
     expectTypeOf(empty.get('/state')).toEqualTypeOf<Promise<unknown>>();
     expectTypeOf(empty.post('/state')).toEqualTypeOf<Promise<unknown>>();
     expectTypeOf(empty.patch('/state')).toEqualTypeOf<Promise<unknown>>();

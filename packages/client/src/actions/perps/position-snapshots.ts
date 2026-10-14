@@ -16,7 +16,10 @@ import {
   UserInputError,
 } from '../../errors';
 import { parseUserInput } from '../../input';
-import type { RequestOptions } from '../../request-options';
+import {
+  parseRequestOptions,
+  type RequestOptions,
+} from '../../request-options';
 import type { ServiceClient } from '../../ServiceClient';
 
 /** A historical fill key. Trade IDs remain decimal strings, including above 2^53.
@@ -112,8 +115,9 @@ export async function fetchPerpsPositionSnapshots(
   request: FetchPerpsPositionSnapshotsRequest,
   options: RequestOptions = {},
 ): Promise<PerpsPositionSnapshots> {
+  const requestOptions = parseRequestOptions(options);
   const parsed = parseUserInput(request, RequestSchema);
-  return fetchSnapshots(client.perps, parsed, options);
+  return fetchSnapshots(client.perps, parsed, requestOptions);
 }
 
 /** @internal */
@@ -133,9 +137,10 @@ async function fetchSnapshots(
   request: FetchPerpsPositionSnapshotsRequest,
   options: RequestOptions = {},
 ): Promise<PerpsPositionSnapshots> {
-  return api.post('/v1/info/position-snapshots', {
+  const requestOptions = parseRequestOptions(options);
+  return api.postRead('/v1/info/position-snapshots', {
     schema: PerpsPositionSnapshotsSchema,
-    signal: options.signal,
+    ...requestOptions,
     json: {
       address: request.address,
       ...(request.activeInstrumentIds === undefined

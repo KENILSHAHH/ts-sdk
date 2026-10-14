@@ -34,7 +34,7 @@ import {
   UserInputError,
 } from '../errors';
 import { parseUserInput } from '../input';
-import type { RequestOptions } from '../request-options';
+import { parseRequestOptions, type RequestOptions } from '../request-options';
 import type { TransactionOutcome } from '../types';
 import { SignerType } from '../wallet';
 import { completeWith } from '../workflow';
@@ -95,10 +95,11 @@ export async function fetchSessionKeys(
   client: BaseSecureClient,
   options: RequestOptions = {},
 ): Promise<SessionKey[]> {
+  const requestOptions = parseRequestOptions(options);
   assertOwnerDepositWallet(client);
 
   const response = await client.secureClob.get('/v1/user/session-signers', {
-    ...options,
+    ...requestOptions,
     schema: ActiveSessionSignersResponseSchema,
   });
 

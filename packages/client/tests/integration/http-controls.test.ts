@@ -17,11 +17,12 @@ describe('HTTP request controls', () => {
       inputs.push(input);
       return globalThis.fetch(input, init);
     }
-    const client = createPublicClient({ environment, fetch, retry: false });
+    const client = createPublicClient({ environment, fetch });
     const params = new URLSearchParams({ page_size: '1', closed: 'false' });
     const result = await client.predictions.get('/next/markets', {
       params,
       timeout: 10_000,
+      retries: 0,
     });
     expect(result).toEqual(
       expect.objectContaining({ items: expect.any(Array) }),
@@ -42,9 +43,10 @@ describe('HTTP request controls', () => {
       inputs.push(input);
       return globalThis.fetch(input, init);
     }
-    const client = createPublicClient({ environment, fetch, retry: false });
+    const client = createPublicClient({ environment, fetch });
     const result = await client.predictions.get<{ status: string }>('/ping', {
       timeout: 10_000,
+      retries: 0,
     });
     expect(result).toEqual({ status: 'ok' });
     expect(inputs).toHaveLength(1);
@@ -60,14 +62,17 @@ describe('HTTP request controls', () => {
       requests += 1;
       return globalThis.fetch(input, init);
     }
-    const client = createPublicClient({ environment, fetch, retry: false });
+    const client = createPublicClient({ environment, fetch });
 
-    const tag = await client.fetchTag({ id: '144' });
+    const tag = await client.fetchTag({ id: '144' }, { retries: 0 });
     const extended = client.extend((base) => ({
-      fetchElectionTag: () => fetchTag(base, { slug: 'elections' }),
+      fetchElectionTag: () =>
+        fetchTag(base, { slug: 'elections' }, { retries: 0 }),
     }));
     const sameTag = await extended.fetchElectionTag();
-    const trades = await client.listTrades({ pageSize: 1 }).firstPage();
+    const trades = await client
+      .listTrades({ pageSize: 1 }, { retries: 0 })
+      .firstPage();
 
     expect(tag.id).toBe(sameTag.id);
     expect(trades.items).toHaveLength(1);
@@ -137,14 +142,13 @@ describe('HTTP request controls', () => {
       credentials: secureClientWithDepositWallet.credentials,
       environment,
       fetch,
-      retry: false,
       signer: depositWalletSigner,
       wallet: depositWalletAddress,
     });
     expect(requests).toBeGreaterThan(0);
     requests = 0;
 
-    await expect(client.fetchClosedOnlyMode()).resolves.toEqual(
+    await expect(client.fetchClosedOnlyMode({ retries: 0 })).resolves.toEqual(
       expect.any(Boolean),
     );
     expect(requests).toBe(1);
