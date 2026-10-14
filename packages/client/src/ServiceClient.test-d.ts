@@ -1,5 +1,10 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
+import {
+  type GatewayErrorCode,
+  GatewayKnownErrorCode,
+  type RequestRejectedError,
+} from './index';
 import { ServiceClient } from './ServiceClient';
 
 declare const client: ServiceClient;
@@ -58,5 +63,17 @@ describe('service response types', () => {
     client.patch('/state', { responseType: 'raw', schema: z.string() });
     // @ts-expect-error Empty responses do not contain JSON to validate.
     client.del('/state', { responseType: 'empty', schema: z.string() });
+  });
+});
+
+describe('rejection code public types', () => {
+  it('exposes known codes while retaining unknown server codes', () => {
+    expectTypeOf(
+      GatewayKnownErrorCode.InvalidQueryParam,
+    ).toExtend<GatewayErrorCode>();
+    expectTypeOf<'future_gateway_code'>().toExtend<GatewayErrorCode>();
+    expectTypeOf<RequestRejectedError>()
+      .toHaveProperty('code')
+      .toEqualTypeOf<GatewayErrorCode | undefined>();
   });
 });

@@ -1,3 +1,4 @@
+import { ErrorResponseSchema } from '@polymarket/bindings';
 import ky, { type KyInstance } from 'ky';
 import { z } from 'zod';
 import {
@@ -617,38 +618,21 @@ export class ServiceClient {
         .clone()
         .json()
         .catch(() => undefined);
-      if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
-        const {
-          error,
-          code,
-          message,
-          retry_after_seconds: retryAfterSeconds,
-        } = body as Record<string, unknown>;
-        const explicitCode =
-          typeof code === 'string' && code !== '' ? code : undefined;
-        const errorMessage = error
-          ? String(error)
-          : typeof message === 'string' && message !== ''
-            ? message
-            : explicitCode;
+      const parsed = ErrorResponseSchema.safeParse(body);
+      if (parsed.success) {
+        const { message, code } = parsed.data;
         const inferredCode =
-          explicitCode === undefined &&
+          code === undefined &&
           response.status !== 400 &&
-          typeof error === 'string' &&
-          /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/.test(error)
-            ? error
+          /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/.test(message)
+            ? message
             : undefined;
-        const responseCode = explicitCode ?? inferredCode;
-        if (errorMessage !== undefined)
-          return {
-            message: `${errorMessage} (${response.url})`,
-            ...(responseCode !== undefined ? { code: responseCode } : {}),
-            ...(typeof retryAfterSeconds === 'number' &&
-            Number.isFinite(retryAfterSeconds) &&
-            retryAfterSeconds >= 0
-              ? { retryAfter: retryAfterSeconds }
-              : {}),
-          };
+        return {
+          message: `${message} (${response.url})`,
+          code: code ?? inferredCode,
+          retryAfter:
+            'retryAfter' in parsed.data ? parsed.data.retryAfter : undefined,
+        };
       }
     }
 

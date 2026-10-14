@@ -12,6 +12,7 @@ import {
 } from 'vitest';
 import { z } from 'zod';
 import { createPublicClient } from './clients';
+import { GatewayKnownErrorCode } from './index';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
 
 const root = 'http://localhost:4011';
@@ -93,8 +94,12 @@ describe('ServiceClient', () => {
       null,
       [],
       'invalid',
-      { message: 'invalid query', code: 'invalid_query_param' },
       { code: 'invalid_query_param' },
+      { code: 123, message: 'invalid query' },
+      { code: 'invalid_query_param', message: { detail: 'invalid query' } },
+      { error: { detail: 'invalid query' } },
+      { error: 'invalid query', retry_after_seconds: -1 },
+      { error: 'invalid query', retry_after_seconds: '5' },
     ])('handles JSON rejection values without transport errors: %j', async (body) => {
       const fetch = vi.fn<typeof globalThis.fetch>(async () =>
         Response.json(body, { status: 400 }),
@@ -103,6 +108,24 @@ describe('ServiceClient', () => {
       await expect(client.get('/invalid')).rejects.toMatchObject({
         name: 'RequestRejectedError',
         status: 400,
+        code: undefined,
+        message: expect.stringContaining('unreadable response body'),
+      });
+    });
+
+    it.each([
+      GatewayKnownErrorCode.InvalidQueryParam,
+      'future_gateway_code',
+    ])('preserves native rejection code %s and its message', async (code) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ code, message: 'Invalid page size' }, { status: 400 }),
+      );
+      const client = new ServiceClient({ root, fetch });
+      await expect(client.get('/invalid')).rejects.toMatchObject({
+        name: 'RequestRejectedError',
+        status: 400,
+        code,
+        message: expect.stringContaining('Invalid page size'),
       });
     });
 
