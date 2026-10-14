@@ -620,7 +620,7 @@ export class ServiceClient {
         .catch(() => undefined);
       const parsed = ErrorResponseSchema.safeParse(body);
       if (parsed.success) {
-        const { message, code } = parsed.data;
+        const { message, code, retryAfter } = parsed.data;
         const inferredCode =
           code === undefined &&
           response.status !== 400 &&
@@ -630,8 +630,7 @@ export class ServiceClient {
         return {
           message: `${message} (${response.url})`,
           code: code ?? inferredCode,
-          retryAfter:
-            'retryAfter' in parsed.data ? parsed.data.retryAfter : undefined,
+          retryAfter,
         };
       }
     }

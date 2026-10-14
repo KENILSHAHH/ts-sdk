@@ -55,21 +55,36 @@ export enum GatewayKnownErrorCode {
 /** A known rejection code or an unrecognized code returned by the server. */
 export type GatewayErrorCode = GatewayKnownErrorCode | (string & {});
 
+// Nullable optional hints carry no value; keep the error envelope usable.
+const RetryAfterSecondsSchema = z
+  .number()
+  .finite()
+  .nonnegative()
+  .nullish()
+  .transform((value) => value ?? undefined);
+
 /** Native error envelope, retaining unrecognized codes for forward compatibility. */
-export const GatewayErrorResponseSchema = z.object({
-  code: z
-    .string()
-    .min(1)
-    .transform((code): GatewayErrorCode => code),
-  message: z.string().min(1),
-});
+export const GatewayErrorResponseSchema = z
+  .object({
+    code: z
+      .string()
+      .min(1)
+      .transform((code): GatewayErrorCode => code),
+    message: z.string().min(1),
+    retry_after_seconds: RetryAfterSecondsSchema,
+  })
+  .transform(({ code, message, retry_after_seconds }) => ({
+    code,
+    message,
+    retryAfter: retry_after_seconds,
+  }));
 
 /** Upstream error envelope normalized to the transport's error fields. */
 export const PassthroughErrorResponseSchema = z
   .object({
     error: z.string().min(1),
-    code: z.string().optional(),
-    retry_after_seconds: z.number().finite().nonnegative().optional(),
+    code: z.string().nullish(),
+    retry_after_seconds: RetryAfterSecondsSchema,
   })
   .transform(({ error, code, retry_after_seconds }) => ({
     message: error,

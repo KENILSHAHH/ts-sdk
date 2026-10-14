@@ -150,6 +150,104 @@ describe('ServiceClient', () => {
       });
     });
 
+    it.each([
+      {
+        body: { error: 'upstream rejection', code: null },
+        code: undefined,
+        retryAfter: undefined,
+      },
+      {
+        body: {
+          error: 'upstream rejection',
+          code: 'upstream_code',
+          retry_after_seconds: null,
+        },
+        code: 'upstream_code',
+        retryAfter: undefined,
+      },
+      {
+        body: {
+          error: 'upstream rejection',
+          code: null,
+          retry_after_seconds: 5,
+        },
+        code: undefined,
+        retryAfter: 5,
+      },
+      {
+        body: {
+          error: 'upstream rejection',
+          message: 'other message',
+          code: 'upstream_code',
+          retry_after_seconds: null,
+        },
+        code: 'upstream_code',
+        retryAfter: undefined,
+      },
+      {
+        body: {
+          error: 'upstream rejection',
+          message: 'other message',
+          code: null,
+          retry_after_seconds: 0,
+        },
+        code: undefined,
+        retryAfter: 0,
+      },
+      {
+        body: {
+          error: 'upstream rejection',
+          message: 'other message',
+          code: null,
+          retry_after_seconds: null,
+        },
+        code: undefined,
+        retryAfter: undefined,
+      },
+    ])('retains upstream diagnostics with nullable hints: $body', async ({
+      body,
+      code,
+      retryAfter,
+    }) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(body, { status: 422 }),
+      );
+      const client = new ServiceClient({ root, fetch });
+      await expect(client.get('/nullable')).rejects.toMatchObject({
+        name: 'RequestRejectedError',
+        status: 422,
+        message: expect.stringContaining('upstream rejection'),
+        code,
+        retryAfter,
+      });
+    });
+
+    it.each([
+      { hint: 5, retryAfter: 5 },
+      { hint: 0, retryAfter: 0 },
+      { hint: null, retryAfter: undefined },
+      { hint: undefined, retryAfter: undefined },
+    ])('retains native retry hint $hint', async ({ hint, retryAfter }) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json(
+          {
+            code: GatewayKnownErrorCode.InvalidQueryParam,
+            message: 'Invalid page size',
+            retry_after_seconds: hint,
+          },
+          { status: 400 },
+        ),
+      );
+      const client = new ServiceClient({ root, fetch });
+      await expect(client.get('/native-hint')).rejects.toMatchObject({
+        name: 'RequestRejectedError',
+        status: 400,
+        message: expect.stringContaining('Invalid page size'),
+        code: GatewayKnownErrorCode.InvalidQueryParam,
+        retryAfter,
+      });
+    });
+
     it('leaves ambiguous raw responses inspectable without mutation replay', async () => {
       const fetch = vi.fn<typeof globalThis.fetch>(async () =>
         Response.json(
