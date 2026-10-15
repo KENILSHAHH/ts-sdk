@@ -2,6 +2,7 @@ import type {
   CurrentReward,
   MarketReward,
   OrdersScoringResponse,
+  RewardMarket,
   RewardsPercentages,
   TotalUserEarning,
   UserEarning,
@@ -18,10 +19,12 @@ import {
   fetchTotalEarningsForUserForDay,
   type ListCurrentRewardsRequest,
   type ListMarketRewardsRequest,
+  type ListRewardMarketsRequest,
   type ListUserEarningsAndMarketsConfigRequest,
   type ListUserEarningsForDayRequest,
   listCurrentRewards,
   listMarketRewards,
+  listRewardMarkets,
   listUserEarningsAndMarketsConfig,
   listUserEarningsForDay,
 } from '../actions';
@@ -34,6 +37,23 @@ import type { Paginated } from '../pagination';
 import type { RequestOptions } from '../request-options';
 
 export type PublicRewardsActions = {
+  /**
+   * Lists active markets with reward configurations and discovery metadata.
+   * Configurations may be empty. Positive ranges are min-exclusive and max-inclusive; zero disables a bound.
+   * Pages default to 100 items (maximum 500). With orderBy, sortDirection defaults to ASC; otherwise order is unspecified.
+   * @throws {@link ListRewardMarketsError} Thrown on failure.
+   * @example
+   * ```ts
+   * for await (const page of client.listRewardMarkets({ query: 'sports' })) {
+   *   console.log(page.items);
+   * }
+   * ```
+   */
+  listRewardMarkets(
+    request?: ListRewardMarketsRequest,
+    options?: RequestOptions,
+  ): Paginated<RewardMarket[]>;
+
   /**
    * Lists current active market rewards.
    *
@@ -183,6 +203,9 @@ export type SecureRewardsActions = Prettify<
     ): Paginated<UserEarning[]>;
     /**
      * Fetches total earnings for the authenticated account on a given day.
+     * Set `sponsored: true` to include sponsored rewards and the native/sponsored
+     * breakdown. Omitted or false returns native rewards only; absent breakdown
+     * fields remain undefined.
      *
      * @throws {@link FetchTotalEarningsForUserForDayError}
      * Thrown on failure.
@@ -254,6 +277,7 @@ export type SecureRewardsActions = Prettify<
 
 function publicRewardsActions(client: BaseClient): PublicRewardsActions {
   return {
+    listRewardMarkets: listRewardMarkets.bind(null, client),
     listCurrentRewards: listCurrentRewards.bind(null, client),
     listMarketRewards: listMarketRewards.bind(null, client),
   };
@@ -297,6 +321,8 @@ export {
   FetchTotalEarningsForUserForDayError,
   ListCurrentRewardsError,
   ListMarketRewardsError,
+  ListRewardMarketsError,
+  type ListRewardMarketsRequest,
   ListUserEarningsAndMarketsConfigError,
   ListUserEarningsForDayError,
 } from '../actions';

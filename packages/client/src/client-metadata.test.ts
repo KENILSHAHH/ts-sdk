@@ -61,6 +61,7 @@ describe('client metadata', () => {
       'edge@140.0.3485.54',
     ],
     ['Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36', 'chrome@140.0.0.0'],
+    ['Mozilla/5.0 Chromium/140.0.0.0 Safari/537.36', 'chrome@140.0.0.0'],
     ['Mozilla/5.0 HeadlessChrome/140.0.0.0 Safari/537.36', 'chrome@140.0.0.0'],
     [
       'Mozilla/5.0 CriOS/140.0.7339.39 Mobile/15E148 Safari/604.1',

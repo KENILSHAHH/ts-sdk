@@ -1,8 +1,10 @@
 import { ErrorResponseSchema } from '@polymarket/bindings';
+import { OrderHeartbeatMismatchResponseSchema } from '@polymarket/bindings/clob';
 import ky, { type KyInstance } from 'ky';
 import { z } from 'zod';
 import {
   makeErrorGuard,
+  OrderHeartbeatMismatchError,
   RateLimitError,
   RequestAbortedError,
   RequestRejectedError,
@@ -475,8 +477,12 @@ export class ServiceClient {
         const {
           code,
           message,
+          heartbeatId,
           retryAfter: retryAfterSeconds,
-        } = await withAbort(this.#extractResponseError(response), signal);
+        } = await withAbort(this.#extractResponseError(response, path), signal);
+        if (heartbeatId !== undefined) {
+          throw new OrderHeartbeatMismatchError(heartbeatId);
+        }
         throw new RequestRejectedError(message, {
           code,
           retryAfter: retryAfter ?? retryAfterSeconds,
@@ -695,7 +701,13 @@ export class ServiceClient {
 
   async #extractResponseError(
     response: Response,
-  ): Promise<{ message: string; code?: string; retryAfter?: number }> {
+    path: string,
+  ): Promise<{
+    message: string;
+    code?: string;
+    retryAfter?: number;
+    heartbeatId?: string;
+  }> {
     const contentType = response.headers.get('content-type')?.toLowerCase();
 
     if (contentType?.includes('application/json')) {
@@ -703,6 +715,18 @@ export class ServiceClient {
         .clone()
         .json()
         .catch(() => undefined);
+      if (
+        response.status === 400 &&
+        this.#normalizePath(path) === 'v1/heartbeats'
+      ) {
+        const parsed = OrderHeartbeatMismatchResponseSchema.safeParse(body);
+        if (parsed.success) {
+          return {
+            message: parsed.data.error_msg,
+            heartbeatId: parsed.data.heartbeat_id,
+          };
+        }
+      }
       const parsed = ErrorResponseSchema.safeParse(body);
       if (parsed.success) {
         const { message, code, retryAfter } = parsed.data;
