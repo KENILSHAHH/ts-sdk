@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   PaginationLimitError,
   RequestAbortedError,
+  RequestRejectedError,
+  UnexpectedResponseError,
   UserInputError,
 } from './errors';
 import {
@@ -75,6 +77,46 @@ describe('paginate', () => {
     expect(fetchPage).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves a rejected saved cursor without restarting the listing', async () => {
+    const savedCursor = toPaginationCursor('obsolete-closed-order');
+    const rejection = new RequestRejectedError('Restart this listing', {
+      status: 400,
+    });
+    const requested: (string | undefined)[] = [];
+    const paginator = paginate<number[]>((cursor) => {
+      requested.push(cursor);
+      return Promise.reject(rejection);
+    });
+
+    await expect(paginator.from(savedCursor).firstPage()).rejects.toBe(
+      rejection,
+    );
+    expect(requested).toEqual([savedCursor]);
+  });
+
+  it('keeps yielded pages and propagates a rejected continuation without replay', async () => {
+    const nextCursor = toPaginationCursor('obsolete-closed-order');
+    const rejection = new RequestRejectedError('Restart this listing', {
+      status: 400,
+    });
+    const requested: (string | undefined)[] = [];
+    const paginator = paginate<number[]>((cursor) => {
+      requested.push(cursor);
+      return cursor === undefined
+        ? Promise.resolve({ items: [1], hasMore: true, nextCursor })
+        : Promise.reject(rejection);
+    });
+    const pages: Page<number[]>[] = [];
+
+    await expect(async () => {
+      for await (const page of paginator) {
+        pages.push(page);
+      }
+    }).rejects.toBe(rejection);
+    expect(pages.map((page) => page.items)).toEqual([[1]]);
+    expect(requested).toEqual([undefined, nextCursor]);
+  });
+
   it('yields a depth-limited page and stops without following its cursor', async () => {
     const boundaryCursor = encodeOffsetCursor({ offset: 200, pageSize: 100 });
     const nextCursor = encodeOffsetCursor({ offset: 300, pageSize: 100 });
@@ -122,6 +164,102 @@ describe('paginate', () => {
       }
     }).rejects.toThrow(PaginationLimitError);
     expect(pages).toHaveLength(1);
+  });
+
+  it('refuses a continuing page without a cursor instead of restarting', async () => {
+    const requested: (string | undefined)[] = [];
+    const paginator = paginate((cursor) => {
+      requested.push(cursor);
+      return Promise.resolve({ items: [1], hasMore: true });
+    });
+    const pages: Page<number[]>[] = [];
+
+    await expect(async () => {
+      for await (const page of paginator) {
+        pages.push(page);
+      }
+    }).rejects.toThrow(UnexpectedResponseError);
+    expect(pages).toHaveLength(1);
+    expect(requested).toEqual([undefined]);
+  });
+
+  it.each([
+    ['an immediate repeat', undefined, ['a', 'a']],
+    ['a two-cursor cycle', undefined, ['a', 'b', 'a']],
+    ['a resume at a repeated cursor', 'a', ['a']],
+  ])('refuses %s before requesting the cursor again', async (_name, initialCursor, nextCursors) => {
+    const requested: (string | undefined)[] = [];
+    const paginator = paginate(
+      (cursor) => {
+        requested.push(cursor);
+        return Promise.resolve({
+          items: [requested.length],
+          hasMore: true,
+          nextCursor: toPaginationCursor(
+            nextCursors[requested.length - 1] ?? '',
+          ),
+        });
+      },
+      initialCursor === undefined
+        ? undefined
+        : toPaginationCursor(initialCursor),
+    );
+    const pages: Page<number[]>[] = [];
+
+    await expect(async () => {
+      for await (const page of paginator) {
+        pages.push(page);
+      }
+    }).rejects.toThrow(
+      'Paginated response repeated a cursor that was already requested.',
+    );
+    expect(pages).toHaveLength(nextCursors.length);
+    expect(requested).toEqual([initialCursor, ...nextCursors.slice(0, -1)]);
+  });
+
+  it.each([
+    ['hasMore is false', { hasMore: false }],
+    ['the page is depth-limited', { hasMore: true, limitReached: true }],
+  ])('stops normally on a terminal page with a repeated cursor when %s', async (_name, terminal) => {
+    const cursorA = toPaginationCursor('a');
+    const paginator = paginate((cursor) =>
+      Promise.resolve(
+        cursor === undefined
+          ? { items: [1], hasMore: true, nextCursor: cursorA }
+          : { items: [2], nextCursor: cursorA, ...terminal },
+      ),
+    );
+    const pages: Page<number[]>[] = [];
+
+    for await (const page of paginator) {
+      pages.push(page);
+    }
+
+    expect(pages.map((page) => page.items)).toEqual([[1], [2]]);
+  });
+
+  it('does not share requested cursors between walks of one paginator', async () => {
+    const cursorA = toPaginationCursor('a');
+    const requested: (string | undefined)[] = [];
+    const paginator = paginate((cursor) => {
+      requested.push(cursor);
+      return Promise.resolve(
+        cursor === undefined
+          ? { items: [1], hasMore: true, nextCursor: cursorA }
+          : { items: [2], hasMore: false },
+      );
+    });
+
+    const walk = async () => {
+      const items: number[][] = [];
+      for await (const page of paginator) {
+        items.push(page.items);
+      }
+      return items;
+    };
+
+    expect(await walk()).toEqual(await walk());
+    expect(requested).toEqual([undefined, cursorA, undefined, cursorA]);
   });
 
   it('rejects firstPage through its promise when cursor validation throws', async () => {
