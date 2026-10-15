@@ -466,7 +466,7 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
       this.#builderAddress !== undefined &&
       this.#builderAttribution === undefined
     ) {
-      const status = await this.#api.get('/v1/info/builder', {
+      const status = await this.#api.getWorkflow('/v1/info/builder', {
         schema: PerpsBuilderStatusSchema,
         params: new URLSearchParams({ address: this.#builderAddress }),
       });
@@ -611,7 +611,7 @@ export class PerpsSession implements AsyncIterable<PerpsSessionEvent> {
             this.#builderAddress = undefined;
           }
         } else {
-          const status = await this.#api.get('/v1/info/builder', {
+          const status = await this.#api.getWorkflow('/v1/info/builder', {
             schema: PerpsBuilderStatusSchema,
             params: new URLSearchParams({ address: approval.builder }),
           });

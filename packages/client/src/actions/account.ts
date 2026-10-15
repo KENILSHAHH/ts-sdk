@@ -639,7 +639,7 @@ export async function updateBalanceAllowance(
     snakeCase(),
   );
 
-  await client.secureClob.get('/balance-allowance/update', {
+  await client.secureClob.getWorkflow('/balance-allowance/update', {
     responseType: 'empty',
     params: searchParams,
   });

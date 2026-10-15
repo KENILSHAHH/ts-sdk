@@ -133,6 +133,12 @@ export type ServiceClientGetOptions<T = unknown> =
       params?: URLSearchParams;
     };
 
+type ServiceClientWorkflowGetOptions<T = unknown> =
+  ServiceClientRequestOptions<T> & {
+    headers?: HeadersInit;
+    params?: URLSearchParams;
+  };
+
 /** @experimental See {@link ServiceClient}. */
 export type ServiceClientPostOptions<T = unknown> =
   ServiceClientMutationOptions<T> & {
@@ -314,6 +320,30 @@ export class ServiceClient {
   ): Promise<ServiceClientResponse<TResponse>>;
   get(path: string, options: ServiceClientGetOptions): Promise<unknown>;
   get(path: string, options: ServiceClientGetOptions = {}): Promise<unknown> {
+    return this.#request('GET', path, options, true);
+  }
+
+  /**
+   * Sends a workflow GET with its existing transport policy and no optional
+   * data-read retries. Some command and authentication endpoints require GET.
+   * @internal
+   */
+  getWorkflow<T = unknown>(
+    path: string,
+    options: ServiceClientWorkflowGetOptions<T> &
+      ServiceClientJsonResponseOptions<T>,
+  ): Promise<T>;
+  /** @internal */
+  getWorkflow<TResponse extends ServiceClientNonJsonResponseType>(
+    path: string,
+    options: ServiceClientWorkflowGetOptions &
+      ServiceClientNonJsonResponseOptions<TResponse>,
+  ): Promise<ServiceClientResponse<TResponse>>;
+  /** @internal */
+  getWorkflow(
+    path: string,
+    options: ServiceClientWorkflowGetOptions,
+  ): Promise<unknown> {
     return this.#request('GET', path, options);
   }
 
@@ -411,7 +441,7 @@ export class ServiceClient {
       | ServiceClientPostOptions
     ) &
       RequestOptions,
-    readOnly = method === 'GET',
+    readOnly = false,
   ): Promise<unknown> {
     const signal = options.signal;
     try {

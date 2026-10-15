@@ -1616,7 +1616,7 @@ async function validatePerpsCredentials(
   client: BaseSecureClient,
   credentials: PerpsCredentials,
 ): Promise<PerpsCredentials> {
-  const response = await client.perps.get('/v1/account/credentials', {
+  const response = await client.perps.getWorkflow('/v1/account/credentials', {
     schema: PerpsCredentialsResponseSchema,
     headers: perpsCredentialHeaders(credentials),
   });

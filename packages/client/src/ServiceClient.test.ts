@@ -227,6 +227,37 @@ describe('ServiceClient', () => {
       expect(attempts).toBe(4);
     });
   });
+  describe('workflow GET retry policy', () => {
+    it('surfaces rate limits without replaying a GET command', async () => {
+      const fetch = vi.fn<typeof globalThis.fetch>(
+        async () =>
+          new Response(null, { status: 429, headers: { 'retry-after': '0' } }),
+      );
+      const client = new ServiceClient({ root, fetch });
+      await expect(
+        client.getWorkflow('/balance-allowance/update', {
+          responseType: 'empty',
+        }),
+      ).rejects.toMatchObject({ name: 'RateLimitError', retryAfter: 0 });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('retains existing transport recovery for workflow GETs', async () => {
+      vi.useFakeTimers();
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockRejectedValueOnce(new TypeError('connection reset'))
+        .mockRejectedValueOnce(new TypeError('connection reset'))
+        .mockResolvedValueOnce(Response.json({ ok: true }));
+      const client = new ServiceClient({ root, fetch });
+      const result = client.getWorkflow('/workflow', {
+        schema: z.object({ ok: z.boolean() }),
+      });
+      await vi.runAllTimersAsync();
+      expect(await result).toEqual({ ok: true });
+      expect(fetch).toHaveBeenCalledTimes(3);
+    });
+  });
   describe('gateway error and retry policy', () => {
     it.each([
       'json',
