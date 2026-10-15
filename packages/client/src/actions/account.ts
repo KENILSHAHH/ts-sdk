@@ -861,8 +861,14 @@ export function listUserEarningsForDay(
   );
 }
 
+const FetchTotalEarningsForUserForDayRequestSchema = z.object({
+  cursor: PaginationCursorSchema.optional(),
+  date: z.string(),
+  sponsored: z.boolean().optional(),
+});
+
 export type FetchTotalEarningsForUserForDayRequest = z.input<
-  typeof ListUserEarningsForDayRequestSchema
+  typeof FetchTotalEarningsForUserForDayRequestSchema
 >;
 export type FetchTotalEarningsForUserForDayError =
   | RequestAbortedError
@@ -884,6 +890,9 @@ export const FetchTotalEarningsForUserForDayError = makeErrorGuard(
 
 /**
  * Fetches total earnings for the authenticated account on a given day.
+ * Set `sponsored: true` to include sponsored rewards and the native/sponsored
+ * breakdown. Omitted or false returns native rewards only; absent breakdown
+ * fields remain undefined.
  *
  * @remarks
  * This is a low-level function. Most SDK consumers should prefer the client instance API.
@@ -902,7 +911,10 @@ export async function fetchTotalEarningsForUserForDay(
   request: FetchTotalEarningsForUserForDayRequest,
   options: RequestOptions = {},
 ): Promise<TotalUserEarning[]> {
-  const params = parseUserInput(request, ListUserEarningsForDayRequestSchema);
+  const params = parseUserInput(
+    request,
+    FetchTotalEarningsForUserForDayRequestSchema,
+  );
   const signatureType = toSignatureType(client.account.walletType);
 
   return unwrap(

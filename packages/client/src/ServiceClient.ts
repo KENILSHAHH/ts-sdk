@@ -1,6 +1,8 @@
+import { OrderHeartbeatMismatchResponseSchema } from '@polymarket/bindings/clob';
 import { ResultAsync } from '@polymarket/types';
 import ky, { type KyInstance } from 'ky';
 import {
+  OrderHeartbeatMismatchError,
   RateLimitError,
   RequestAbortedError,
   RequestRejectedError,
@@ -233,6 +235,7 @@ export class ServiceClient {
   > {
     return this.#toResult(
       this.#send(method, path, options),
+      path,
       options.rateLimitBucket,
       options.signal,
     );
@@ -324,6 +327,7 @@ export class ServiceClient {
 
   #toResult(
     promise: Promise<Response>,
+    path: string,
     rateLimitBucket?: RateLimitBucket,
     signal?: AbortSignal,
   ): ResultAsync<
@@ -358,8 +362,15 @@ export class ServiceClient {
           const {
             code,
             message,
+            heartbeatId,
             retryAfter: retryAfterSeconds,
-          } = await withAbort(this.#extractResponseError(response), signal);
+          } = await withAbort(
+            this.#extractResponseError(response, path),
+            signal,
+          );
+          if (heartbeatId !== undefined) {
+            throw new OrderHeartbeatMismatchError(heartbeatId);
+          }
           throw new RequestRejectedError(message, {
             code,
             retryAfter: retryAfter ?? retryAfterSeconds,
@@ -420,10 +431,34 @@ export class ServiceClient {
 
   async #extractResponseError(
     response: Response,
-  ): Promise<{ message: string; code?: string; retryAfter?: number }> {
+    path: string,
+  ): Promise<{
+    message: string;
+    code?: string;
+    retryAfter?: number;
+    heartbeatId?: string;
+  }> {
     const contentType = response.headers.get('content-type')?.toLowerCase();
 
     if (contentType?.includes('application/json')) {
+      if (
+        response.status === 400 &&
+        this.#normalizePath(path) === 'v1/heartbeats'
+      ) {
+        const parsed = OrderHeartbeatMismatchResponseSchema.safeParse(
+          await response
+            .clone()
+            .json()
+            .catch(() => undefined),
+        );
+        if (parsed.success) {
+          return {
+            message: parsed.data.error_msg,
+            heartbeatId: parsed.data.heartbeat_id,
+          };
+        }
+      }
+
       const {
         error,
         code,
