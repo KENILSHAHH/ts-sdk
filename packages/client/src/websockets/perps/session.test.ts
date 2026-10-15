@@ -3038,7 +3038,11 @@ describe('PerpsSession', () => {
       });
     });
 
-    it('pages fills with the native cursor while keeping the requested filters', async () => {
+    it.each([
+      undefined,
+      0,
+      4_294_967_295,
+    ])('pages fills with instrument %s while keeping the requested filters', async (instrumentId) => {
       const requests: URLSearchParams[] = [];
       server.use(
         http.get(`${production.perps.rest}/v1/account/fills`, ({ request }) => {
@@ -3061,16 +3065,36 @@ describe('PerpsSession', () => {
       const session = createSession();
 
       const pages: number[][] = [];
-      for await (const page of session.listFills({ end: 3000, start: 0 })) {
+      for await (const page of session.listFills({
+        instrumentId,
+        end: 3000,
+        start: 0,
+      })) {
         pages.push(page.items.map((fill) => fill.tradeId));
         if (pages.length > MAX_EXPECTED_PAGES) break;
       }
 
       expect(pages).toEqual([[3, 2], [1]]);
+      const filter =
+        instrumentId === undefined ? '' : `&instrument_id=${instrumentId}`;
       expect(requests.map((params) => params.toString())).toEqual([
-        'start_timestamp=0&end_timestamp=3000',
-        'start_timestamp=0&end_timestamp=3000&cursor=2',
+        `start_timestamp=0&end_timestamp=3000${filter}`,
+        `start_timestamp=0&end_timestamp=3000${filter}&cursor=2`,
       ]);
+    });
+
+    it.each([
+      -1,
+      4_294_967_296,
+      1.5,
+      Number.NaN,
+      true,
+      '1',
+    ])('rejects invalid fill instrument %s before requests', (instrumentId) => {
+      const session = createSession();
+      expect(() =>
+        session.listFills({ instrumentId: instrumentId as number }),
+      ).toThrow(UserInputError);
     });
 
     it('forwards a sort direction and a caller-provided fills cursor as-is', async () => {
@@ -3091,6 +3115,7 @@ describe('PerpsSession', () => {
         .listFills({
           cursor: toPaginationCursor('42'),
           sort: PerpsSortDirection.Ascending,
+          instrumentId: 4_294_967_295,
         })
         .firstPage();
 
@@ -3098,7 +3123,7 @@ describe('PerpsSession', () => {
       expect(first.hasMore).toBe(false);
       expect(first.nextCursor).toBeUndefined();
       expect(requests.map((params) => params.toString())).toEqual([
-        'sort=asc&cursor=42',
+        'instrument_id=4294967295&sort=asc&cursor=42',
       ]);
     });
 
@@ -3609,6 +3634,7 @@ function fillsUpdate(request: { sequence: number; tradeIds: number[] }) {
       fee: '1.25',
       iid: 1,
       liq: false,
+      adl: false,
       oid: 123,
       p: '100.00',
       pep: '100.00',
@@ -3713,6 +3739,7 @@ function accountFill(tradeId: number, timestamp: number) {
     hash: `0x${'1'.repeat(64)}`,
     instrument_id: 1,
     liquidation: false,
+    adl: false,
     order_id: 100 + tradeId,
     pnl: '0',
     previous_entry_price: '0',
@@ -3762,6 +3789,7 @@ function mockPortfolioPosition(request: { size: string }) {
         {
           cross: false,
           cumulative_funding: '0',
+          adl_index: 0,
           entry_price: '100',
           initial_margin: '30',
           instrument_id: 1,
@@ -3777,12 +3805,14 @@ function mockPortfolioPosition(request: { size: string }) {
       ],
       margin: {
         total_account_value: '1000',
+        available_order_margin: '970',
         total_initial_margin: '30',
         total_maintenance_margin: '10',
         total_position_value: '150',
       },
       withdrawable: '970',
       in_liquidation: false,
+      fee_tier: 0,
       timestamp: 1_700_000_000_000,
     }),
   );
