@@ -43,4 +43,5 @@ export * from './sports';
 export * from './subscriptions';
 export * from './tags';
 export * from './teams';
+export * from './tokens';
 export * from './transfers';
