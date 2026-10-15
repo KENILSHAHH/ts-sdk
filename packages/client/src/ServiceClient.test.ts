@@ -11,7 +11,10 @@ import {
   vi,
 } from 'vitest';
 import { z } from 'zod';
+import { SendOrderHeartbeatError } from './actions/order-heartbeats';
 import { createPublicClient } from './clients';
+import { OrderHeartbeatMismatchError, RequestRejectedError } from './errors';
+import { buildHmacSignature } from './hmac';
 import { GatewayKnownErrorCode } from './index';
 import { paginate } from './pagination';
 import { ServiceClient, type ServiceRequest } from './ServiceClient';
@@ -20,6 +23,122 @@ const root = 'http://localhost:4011';
 const server = setupServer();
 
 describe('ServiceClient', () => {
+  it('signs the exact heartbeat JSON in a single request', async () => {
+    const observed: Array<{
+      path: string;
+      body: string;
+      signature: string | null;
+    }> = [];
+    server.use(
+      http.post(`${root}/*`, async ({ request }) => {
+        observed.push({
+          path: new URL(request.url).pathname,
+          body: await request.text(),
+          signature: request.headers.get('POLY_SIGNATURE'),
+        });
+        return HttpResponse.json({ heartbeat_id: 'next-id' });
+      }),
+    );
+    const client = new ServiceClient({
+      root,
+      resolveHeaders: async ({ method, path, body }) => ({
+        POLY_SIGNATURE: await buildHmacSignature(
+          'dGVzdA==',
+          1,
+          method,
+          path,
+          body,
+        ),
+      }),
+    });
+    await client.post('/v1/heartbeats', {
+      json: { heartbeat_id: 'current-id' },
+      retry: false,
+    });
+    expect(observed[0]).toEqual({
+      path: '/v1/heartbeats',
+      body: '{"heartbeat_id":"current-id"}',
+      signature: await buildHmacSignature(
+        'dGVzdA==',
+        1,
+        'POST',
+        '/v1/heartbeats',
+        '{"heartbeat_id":"current-id"}',
+      ),
+    });
+    expect(observed).toHaveLength(1);
+  });
+
+  it.each([
+    [root, 'expected-id'],
+    [root, ''],
+    [`${root}/prefix`, 'expected-id'],
+    [`${root}/prefix`, ''],
+  ])('preserves expected heartbeat ID at %s (%j) in one attempt', async (serviceRoot, heartbeatId) => {
+    let requests = 0;
+    server.use(
+      http.post(`${serviceRoot}/v1/heartbeats`, () => {
+        requests++;
+        return HttpResponse.json(
+          { error_msg: 'Invalid Heartbeat ID', heartbeat_id: heartbeatId },
+          { status: 400 },
+        );
+      }),
+    );
+    const client = new ServiceClient({ root: serviceRoot });
+    const result = await client
+      .post('/v1/heartbeats', {
+        json: { heartbeat_id: 'stale-id' },
+        retry: false,
+      })
+      .catch((error: unknown) => error);
+    expect(result).toBeInstanceOf(OrderHeartbeatMismatchError);
+    expect(result).toBeInstanceOf(RequestRejectedError);
+    expect(SendOrderHeartbeatError.isError(result)).toBe(true);
+    expect(result).toMatchObject({
+      name: 'OrderHeartbeatMismatchError',
+      status: 400,
+      heartbeatId,
+    });
+    expect(requests).toBe(1);
+  });
+
+  it.each([
+    root,
+    `${root}/prefix`,
+  ])('keeps malformed heartbeat payload rejections as generic rejections at %s', async (serviceRoot) => {
+    server.use(
+      http.post(`${serviceRoot}/v1/heartbeats`, () =>
+        HttpResponse.json({ error: 'Invalid payload' }, { status: 400 }),
+      ),
+    );
+    const client = new ServiceClient({ root: serviceRoot });
+    const result = await client
+      .post('/v1/heartbeats', { retry: false })
+      .catch((error: unknown) => error);
+    expect(result).toBeInstanceOf(RequestRejectedError);
+    expect(result).not.toBeInstanceOf(OrderHeartbeatMismatchError);
+    expect(result).toHaveProperty('name', 'RequestRejectedError');
+  });
+
+  it.each([
+    root,
+    `${root}/prefix`,
+  ])('does not reinterpret unrelated errors containing a heartbeat ID at %s', async (serviceRoot) => {
+    server.use(
+      http.post(`${serviceRoot}/other-route`, () =>
+        HttpResponse.json(
+          { error_msg: 'Invalid Heartbeat ID', heartbeat_id: 'expected-id' },
+          { status: 400 },
+        ),
+      ),
+    );
+    const client = new ServiceClient({ root: serviceRoot });
+    await expect(client.post('/other-route')).rejects.not.toBeInstanceOf(
+      OrderHeartbeatMismatchError,
+    );
+  });
+
   describe('per-request read retry budgets', () => {
     it.each([
       undefined,

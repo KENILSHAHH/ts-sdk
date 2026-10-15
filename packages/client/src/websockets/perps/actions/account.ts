@@ -282,6 +282,7 @@ export async function fetchPerpsOrders(
 }
 
 const ListPerpsFillsRequestSchema = z.object({
+  instrumentId: z.number().int().min(0).max(4_294_967_295).optional(),
   start: TimestampInputSchema.optional(),
   end: TimestampInputSchema.optional(),
   sort: PerpsSortDirectionSchema.optional(),
@@ -292,6 +293,8 @@ const ListPerpsFillsRequestSchema = z.object({
  * @experimental This API may change in a breaking way in any release, including patch releases.
  */
 export type ListPerpsFillsRequest = {
+  /** Only fills for this instrument; an unsigned 32-bit identifier. */
+  instrumentId?: number;
   /** Inclusive start timestamp in milliseconds. */
   start?: number;
   /** Inclusive end timestamp in milliseconds. */
@@ -303,6 +306,8 @@ export type ListPerpsFillsRequest = {
 };
 
 /**
+ * Lists authenticated account fills, retaining any instrument filter on each page.
+ * @throws {@link PerpsSessionAccountError} Thrown on invalid input or request failure.
  * @experimental This API may change in a breaking way in any release, including patch releases.
  */
 export function listPerpsFills(
@@ -318,6 +323,7 @@ export function listPerpsFills(
           params: toPerpsSearchParams({
             startTimestamp: params.start,
             endTimestamp: params.end,
+            instrumentId: params.instrumentId,
             sort: params.sort,
             cursor: cursor ?? params.cursor,
           }),
@@ -721,7 +727,18 @@ export function listPerpsInternalTransfers(
         params: toPerpsSearchParams(searchParams),
       })
       .then((response) =>
-        toPerpsInternalTransfersPage(response.data, response.more, state),
+        toPerpsInternalTransfersPage(
+          response.data,
+          response.more,
+          state,
+          async (bounds) => {
+            const boundary = await api.get('/v1/account/internal-transfers', {
+              schema: ListPerpsInternalTransfersResponseSchema,
+              params: toPerpsSearchParams(bounds),
+            });
+            return { transfers: boundary.data, hasMore: boundary.more };
+          },
+        ),
       );
   }, cursor);
 }
