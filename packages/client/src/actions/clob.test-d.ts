@@ -1,5 +1,6 @@
 import {
   type DecimalString,
+  type IsoCalendarDateString,
   type OrderSide,
   type PositionId,
   type TokenId,
@@ -9,11 +10,15 @@ import {
 import type {
   LastTradePrice,
   Midpoints,
+  NotificationsResponse,
   Prices,
   Spreads,
+  TotalUserEarning,
 } from '@polymarket/bindings/clob';
 import { describe, expectTypeOf, it } from 'vitest';
+import type { SecureClient } from '../clients';
 import type { DataActions } from '../decorators';
+import { NotificationType } from '../index';
 import type {
   FetchOrderBookRequest,
   fetchLastTradePrice,
@@ -165,5 +170,42 @@ describe('order heartbeat public types', () => {
     expectTypeOf<
       import('../index').OrderHeartbeatMismatchError
     >().toMatchTypeOf<import('../index').RequestRejectedError>();
+  });
+});
+
+declare const notificationsClient: SecureClient;
+describe('notifications public client types', () => {
+  it('narrows tier upgrade payloads through the bound method', async () => {
+    const notifications = notificationsClient.fetchNotifications();
+    expectTypeOf(notifications).toEqualTypeOf<Promise<NotificationsResponse>>();
+    for (const notification of await notifications) {
+      if (notification.type === NotificationType.TAKER_TIER_UPGRADED) {
+        expectTypeOf(notification.payload.previousTier).toEqualTypeOf<number>();
+        expectTypeOf(notification.payload.tier).toEqualTypeOf<number>();
+        expectTypeOf(notification.payload.rebateBps).toEqualTypeOf<number>();
+        expectTypeOf(
+          notification.payload.snapshotDate,
+        ).toEqualTypeOf<IsoCalendarDateString>();
+      }
+    }
+  });
+});
+
+declare const earningsClient: SecureClient;
+describe('total earnings public client types', () => {
+  it('accepts the sponsored option and returns decimal breakdowns', async () => {
+    const earnings = earningsClient.fetchTotalEarningsForUserForDay({
+      date: '2026-10-06',
+      sponsored: true,
+    });
+    expectTypeOf(earnings).toEqualTypeOf<Promise<TotalUserEarning[]>>();
+    for (const earning of await earnings) {
+      expectTypeOf(earning.nativeEarnings).toEqualTypeOf<
+        DecimalString | undefined
+      >();
+      expectTypeOf(earning.sponsoredEarnings).toEqualTypeOf<
+        DecimalString | undefined
+      >();
+    }
   });
 });

@@ -29,6 +29,7 @@ import type {
   ListPerpsTradesRequest,
   ListPerpsWithdrawalsRequest,
   OpenPerpsSessionRequest,
+  PerpsAccountFill,
   PerpsCancelOptions,
   PerpsCancelOrderErrorCode,
   PerpsCancelOrderResult,
@@ -36,6 +37,8 @@ import type {
   PerpsInstrumentSettlement,
   PerpsInternalTransfer,
   PerpsInternalTransferId,
+  PerpsLiquidationDetails,
+  PerpsLiquidationMethod,
   PerpsPositionDeleveragedNotification,
   PerpsSession,
   PerpsSessionAccountError,
@@ -137,6 +140,66 @@ describe('session notification recovery', () => {
       }
     }
     void consume;
+  });
+});
+
+describe('session portfolio risk data', () => {
+  it('exposes exact collateral and ADL tiers through reads and the iterator', () => {
+    async function read(session: PerpsSession) {
+      const portfolio = await session.fetchPortfolio();
+      expectTypeOf(
+        portfolio.margin.availableOrderMargin,
+      ).toEqualTypeOf<DecimalString>();
+      expectTypeOf(portfolio.feeTier).toEqualTypeOf<number>();
+      for (const position of portfolio.positions) {
+        expectTypeOf(position.adlIndex).toEqualTypeOf<0 | 1 | 2 | 3>();
+      }
+      for await (const event of session) {
+        if (event.type === 'portfolio') {
+          expectTypeOf(event.payload).toEqualTypeOf<typeof portfolio>();
+        }
+      }
+    }
+    void read;
+  });
+});
+
+describe('session fill risk data', () => {
+  it('filters public session reads and exposes fill details through reads and updates', () => {
+    async function read(session: PerpsSession) {
+      const page = await session.listFills({ instrumentId: 0 }).firstPage();
+      expectTypeOf(page.items).toEqualTypeOf<PerpsAccountFill[]>();
+      for (const fill of page.items) {
+        expectTypeOf(fill.adl).toEqualTypeOf<boolean>();
+        expectTypeOf(fill.liquidationDetails).toEqualTypeOf<
+          PerpsLiquidationDetails | undefined
+        >();
+        if (fill.liquidationDetails) {
+          expectTypeOf(
+            fill.liquidationDetails.mark,
+          ).toEqualTypeOf<DecimalString>();
+          expectTypeOf(
+            fill.liquidationDetails.method,
+          ).toEqualTypeOf<PerpsLiquidationMethod>();
+          expectTypeOf(fill.liquidationDetails.liquidatedUser).toEqualTypeOf<
+            string | undefined
+          >();
+        }
+      }
+      for await (const event of session) {
+        if (event.type === 'fill') {
+          for (const fill of event.payload) {
+            expectTypeOf(fill.adl).toEqualTypeOf<boolean>();
+            expectTypeOf(fill.liquidationDetails).toEqualTypeOf<
+              PerpsLiquidationDetails | undefined
+            >();
+          }
+        }
+      }
+      // @ts-expect-error Instrument filters accept integer identifiers, not strings.
+      session.listFills({ instrumentId: '1' });
+    }
+    void read;
   });
 });
 
@@ -349,6 +412,12 @@ describe('instrument retirement metadata', () => {
     async function read(client: PublicPerpsActions) {
       const instruments = await client.fetchPerpsInstruments();
       for (const instrument of instruments) {
+        expectTypeOf(
+          instrument.uiLiveTime,
+        ).toEqualTypeOf<EpochMilliseconds | null>();
+        expectTypeOf(instrument.logo).toEqualTypeOf<
+          { light: string; dark: string } | undefined
+        >();
         expectTypeOf(instrument.closeOnly).toEqualTypeOf<boolean>();
         expectTypeOf(instrument.displaySymbol).toEqualTypeOf<
           string | undefined
