@@ -53,6 +53,7 @@ import type {
   PublicPerpsActions,
   RevokePerpsCredentialsRequest,
   FetchPerpsInstrumentsRequest as RootFetchPerpsInstrumentsRequest,
+  SecureClient,
   SecureClientOptions,
   SecurePerpsActions,
   TransferPerpsCollateralRequest,
@@ -116,20 +117,46 @@ describe('batch leverage session contract', () => {
 
 describe('session notification recovery', () => {
   it('narrows server recovery metadata from the public session iterator', () => {
-    async function consume(session: PerpsSession) {
+    async function consume(client: SecureClient) {
+      const session = await client.openPerpsSession({
+        includeBuilderFills: true,
+      });
       for await (const event of session) {
         expectTypeOf(event).toEqualTypeOf<PerpsSessionEvent>();
-        if (event.type !== 'resync') continue;
+        if (event.type !== 'resync') {
+          expectTypeOf(
+            event.eventTimestamp,
+          ).toEqualTypeOf<EpochMilliseconds | null>();
+          if (event.eventTimestamp !== null) {
+            expectTypeOf(
+              event.eventTimestamp,
+            ).toEqualTypeOf<EpochMilliseconds>();
+          } else {
+            expectTypeOf(event.eventTimestamp).toEqualTypeOf<null>();
+          }
+          continue;
+        }
         expectTypeOf(event.previousSequence).toEqualTypeOf<
           number | undefined
         >();
         if (event.reason === 'server') {
+          expectTypeOf(
+            event.eventTimestamp,
+          ).toEqualTypeOf<EpochMilliseconds | null>();
+          if (event.eventTimestamp !== null) {
+            expectTypeOf(
+              event.eventTimestamp,
+            ).toEqualTypeOf<EpochMilliseconds>();
+          } else {
+            expectTypeOf(event.eventTimestamp).toEqualTypeOf<null>();
+          }
           expectTypeOf(event.channel).toEqualTypeOf<'notifications'>();
           expectTypeOf(event.sequence).toEqualTypeOf<number>();
           expectTypeOf(event.timestamp).toEqualTypeOf<EpochMilliseconds>();
           expectTypeOf(event.previousSequence).toEqualTypeOf<undefined>();
           expectTypeOf(event).not.toHaveProperty('payload');
         } else {
+          expectTypeOf(event.eventTimestamp).toEqualTypeOf<undefined>();
           expectTypeOf(event.reason).toEqualTypeOf<
             'reconnect' | 'sequence_gap'
           >();
