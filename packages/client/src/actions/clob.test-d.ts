@@ -132,6 +132,47 @@ describe('public CLOB price read types', () => {
   });
 });
 
+describe('order heartbeat public types', () => {
+  it('exposes authenticated heartbeat actions and recovery data', () => {
+    const request: import('../index').SendOrderHeartbeatRequest = {
+      heartbeatId: '',
+    };
+    expectTypeOf(request).toMatchTypeOf<
+      import('./index').SendOrderHeartbeatRequest
+    >();
+    expectTypeOf<
+      ReturnType<typeof import('./index').sendOrderHeartbeat>
+    >().toEqualTypeOf<Promise<import('../index').OrderHeartbeat>>();
+    expectTypeOf<import('../index').SecureClient>().not.toHaveProperty(
+      'sendLegacyOrderHeartbeat',
+    );
+    expectTypeOf<typeof import('./index')>().not.toHaveProperty(
+      'sendLegacyOrderHeartbeat',
+    );
+    expectTypeOf<typeof import('../index')>().not.toHaveProperty(
+      'SendLegacyOrderHeartbeatError',
+    );
+    expectTypeOf<
+      typeof import('@polymarket/bindings/clob')
+    >().not.toHaveProperty('LegacyOrderHeartbeatSchema');
+    expectTypeOf<import('../index').PublicClient>().not.toHaveProperty(
+      'sendOrderHeartbeat',
+    );
+    expectTypeOf<import('../index').SecureClient>().toHaveProperty(
+      'sendOrderHeartbeat',
+    );
+    expectTypeOf<import('../index').SecureClient>()
+      .toHaveProperty('sendOrderHeartbeat')
+      .returns.toEqualTypeOf<Promise<import('../index').OrderHeartbeat>>();
+    expectTypeOf<import('../index').OrderHeartbeatMismatchError>()
+      .toHaveProperty('name')
+      .toEqualTypeOf<'OrderHeartbeatMismatchError'>();
+    expectTypeOf<
+      import('../index').OrderHeartbeatMismatchError
+    >().toMatchTypeOf<import('../index').RequestRejectedError>();
+  });
+});
+
 describe('reward market discovery public types', () => {
   it('exposes supported discovery filters on the public client', () => {
     expectTypeOf<import('../index').PublicClient>()
