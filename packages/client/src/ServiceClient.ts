@@ -57,8 +57,12 @@ export type ServiceClientConfig = {
 };
 
 /**
- * Request timeout in milliseconds, or `false` to disable the timeout.
- * Defaults to 30 seconds.
+ * Timeout in milliseconds for each individual HTTP request attempt until response
+ * headers arrive, or `false` to disable it. Defaults to 30 seconds.
+ * This is not a total SDK method deadline: each permitted retry receives a fresh
+ * timeout, so multiple requests, retries, and backoff can take longer in total.
+ * Timeout errors are not retried. Excludes header resolution, hooks, retry waits,
+ * and response body download/parsing.
  */
 type ServiceClientTimeout = number | false;
 

@@ -28,12 +28,15 @@ export type RequestOptions = {
    */
   signal?: AbortSignal;
   /**
-   * Timeout in milliseconds until each HTTP attempt receives response headers,
-   * or `false` to disable it.
-   * Omit to use the SDK default (30 seconds). Each page and retry gets
-   * its own timeout; this does not limit the entire operation, header
-   * resolution, hooks, retry waits, or response body download/parsing.
-   * Timeout failures are not retried.
+   * Timeout in milliseconds for each individual HTTP request attempt until
+   * response headers arrive, or `false` to disable it. Defaults to 30 seconds.
+   * This is not a total deadline for an SDK method. Each underlying request
+   * (including each page) and each permitted retry receives a fresh timeout.
+   * Multiple requests, retries, and retry backoff can make the SDK operation
+   * take longer than this value.
+   * The SDK does not retry timeout errors, even when `retries` is greater than 0.
+   * The timeout excludes header resolution, hooks, retry waits, and response
+   * body download/parsing.
    *
    * @experimental This API may change in a breaking way in any release, including patch releases.
    */
