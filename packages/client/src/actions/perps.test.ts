@@ -72,10 +72,23 @@ describe('Perps actions', () => {
     server.close();
   });
 
+  it('allows a public read to take more than ten seconds when timeout is omitted', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20_000));
+      return Response.json({ fee_schedule: [] });
+    });
+    const client = createPublicClient({ fetch });
+    const result = client.fetchPerpsFees();
+    await vi.advanceTimersByTimeAsync(20_000);
+    await expect(result).resolves.toEqual([]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('snapshots numeric and disabled timeouts at the public read boundary', async () => {
     vi.useFakeTimers();
     const fetch = vi.fn<typeof globalThis.fetch>(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10_100));
+      await new Promise((resolve) => setTimeout(resolve, 30_100));
       return Response.json({ fee_schedule: [] });
     });
     const client = createPublicClient({ fetch });
@@ -88,7 +101,7 @@ describe('Perps actions', () => {
     });
     options.timeout = false;
     const disabled = client.fetchPerpsFees(options);
-    await vi.advanceTimersByTimeAsync(10_100);
+    await vi.advanceTimersByTimeAsync(30_100);
     await timedOut;
     await expect(disabled).resolves.toEqual([]);
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -96,7 +109,8 @@ describe('Perps actions', () => {
 
   it.each([
     [20, 15],
-    [false, 10_100],
+    [false, 30_100],
+    [undefined, 20_000],
   ] as const)('retains the snapshotted timeout=%s for every public pagination request', async (timeout, delay) => {
     vi.useFakeTimers();
     const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {

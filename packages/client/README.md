@@ -57,14 +57,15 @@ propagate to the caller. Wallet workflow recovery, such as refreshing a nonce,
 approving and resubmitting a transaction, or relay recovery, is unchanged. Retries inside your custom fetch are controlled by your application.
 
 HTTP reads accept an optional final `{ signal, retries, timeout }` argument.
-`timeout` is milliseconds per HTTP request, or `false` to disable the timeout.
-Omitting it preserves the 10-second transport default. Each retry and pagination
+`timeout` is milliseconds until each HTTP attempt receives response headers,
+or `false` to disable the timeout.
+Omitting it uses the 30-second SDK default. Each retry and pagination
 request has its own timeout; this does not bound the whole operation, header
-resolution, retry waits, or response body parsing. Timeout failures reject with
-`TransportError`. For example:
+resolution, hooks, retry waits, or response body download/parsing. Timeout failures
+reject with `TransportError` and are not retried. For example:
 
 ```ts
-await client.fetchOrderBook({ assetId }, { signal, retries: 0, timeout: 30_000 });
+await client.fetchOrderBook({ assetId }, { signal, retries: 0, timeout: 60_000 });
 const pages = client.listTrades({ pageSize: 100 }, { timeout: false });
 ```
 

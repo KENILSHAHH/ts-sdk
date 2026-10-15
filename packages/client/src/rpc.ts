@@ -8,6 +8,7 @@ import {
 } from './errors';
 import {
   assertNotAborted,
+  DEFAULT_REQUEST_TIMEOUT_MS,
   type Fetch,
   type RequestOptions,
   withAbort,
@@ -237,7 +238,7 @@ export class JsonRpcClient {
         ky.post(this.#url, {
           fetch: this.#fetch,
           signal: options?.signal,
-          ...(options?.timeout !== undefined && { timeout: options.timeout }),
+          timeout: options?.timeout ?? DEFAULT_REQUEST_TIMEOUT_MS,
           json,
           throwHttpErrors: false,
         }),
@@ -286,7 +287,7 @@ export class JsonRpcClient {
         ky.post(this.#url, {
           fetch: this.#fetch,
           signal: options?.signal,
-          ...(options?.timeout !== undefined && { timeout: options.timeout }),
+          timeout: options?.timeout ?? DEFAULT_REQUEST_TIMEOUT_MS,
           json,
           throwHttpErrors: false,
         }),

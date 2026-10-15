@@ -19,6 +19,7 @@ import {
 } from './rate-limit';
 import {
   assertNotAborted,
+  DEFAULT_REQUEST_TIMEOUT_MS,
   type Fetch,
   parseRequestOptions,
   type RequestOptions,
@@ -55,7 +56,7 @@ export type ServiceClientConfig = {
 
 /**
  * Request timeout in milliseconds, or `false` to disable the timeout.
- * Defaults to the transport's standard timeout.
+ * Defaults to 30 seconds.
  */
 type ServiceClientTimeout = number | false;
 
@@ -295,6 +296,7 @@ export class ServiceClient {
     if (root !== undefined) {
       this.#client = ky.create({
         prefixUrl: root,
+        timeout: DEFAULT_REQUEST_TIMEOUT_MS,
         throwHttpErrors: false,
         ...(fetch === undefined ? {} : { fetch }),
         ...(retryMutations === false && { retry: { methods: ['get'] } }),
