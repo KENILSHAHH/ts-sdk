@@ -20,6 +20,64 @@ const root = 'http://localhost:4011';
 const server = setupServer();
 
 describe('ServiceClient', () => {
+  it.each([
+    'get',
+    'postRead',
+    'getWorkflow',
+    'post',
+    'patch',
+    'del',
+  ] as const)('applies a per-request timeout to %s without changing other calls', async (method) => {
+    vi.useFakeTimers();
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10_100));
+      return Response.json({ ok: true });
+    });
+    const client = new ServiceClient({ root, fetch });
+    function request(timeout?: number | false) {
+      if (method === 'get' || method === 'postRead') {
+        return client[method]('/slow', { timeout, retries: 0 });
+      }
+      return client[method]('/slow', { timeout });
+    }
+    const timedOut = expect(request(20)).rejects.toMatchObject({
+      name: 'TransportError',
+      cause: { name: 'TimeoutError' },
+    });
+    const disabled = request(false);
+    const defaultTimeout = expect(request()).rejects.toMatchObject({
+      name: 'TransportError',
+      cause: { name: 'TimeoutError' },
+    });
+    await vi.advanceTimersByTimeAsync(10_100);
+    await timedOut;
+    await expect(disabled).resolves.toEqual({ ok: true });
+    await defaultTimeout;
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps cancellation available when the timeout is disabled', async () => {
+    const controller = new AbortController();
+    const started = Promise.withResolvers<void>();
+    const client = new ServiceClient({
+      root,
+      fetch: async () => {
+        started.resolve();
+        return new Promise<Response>(() => {});
+      },
+    });
+    const pending = client.get('/slow', {
+      timeout: false,
+      signal: controller.signal,
+    });
+    await started.promise;
+    controller.abort('disposed');
+    await expect(pending).rejects.toMatchObject({
+      name: 'RequestAbortedError',
+      cause: 'disposed',
+    });
+  });
+
   describe('per-request read retry budgets', () => {
     it.each([
       undefined,

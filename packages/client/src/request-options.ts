@@ -25,6 +25,15 @@ export type RequestOptions = {
    */
   signal?: AbortSignal;
   /**
+   * Timeout in milliseconds for each HTTP request, or `false` to disable it.
+   * Omit to use the transport default (10 seconds). Each page and retry gets
+   * its own timeout; this does not limit the entire operation, header
+   * resolution, retry waits, or response body parsing.
+   *
+   * @experimental This API may change in a breaking way in any release, including patch releases.
+   */
+  timeout?: number | false;
+  /**
    * Optional retries after the first attempt. Must be an integer from 0 to 5.
    * Transport failures and rate limits share this budget for each request;
    * every pagination request gets a fresh budget. Set 0 when the caller owns retries.
@@ -47,7 +56,7 @@ export function parseRequestOptions(options: RequestOptions): RequestOptions {
     { retries: options.retries },
     ReadRetryOptionsSchema,
   );
-  return { signal: options.signal, retries };
+  return { signal: options.signal, timeout: options.timeout, retries };
 }
 
 /** @internal */

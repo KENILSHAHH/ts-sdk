@@ -29,7 +29,7 @@ for await (const page of result) {
 
 HTTP request controls are experimental and may change in a breaking way in any
 release, including patch releases. This includes the `fetch` client
-option, per-operation `signal` and `retries`, and `RequestAbortedError`.
+option, per-operation `signal`, `retries`, and `timeout`, and `RequestAbortedError`.
 
 Provide a custom `fetch` for instrumentation or your application's transport.
 Set `retries: 0` on reads when a query library owns retries:
@@ -56,7 +56,19 @@ default to one second when no delay is provided; delays longer than five seconds
 propagate to the caller. Wallet workflow recovery, such as refreshing a nonce,
 approving and resubmitting a transaction, or relay recovery, is unchanged. Retries inside your custom fetch are controlled by your application.
 
-HTTP reads accept an optional final `{ signal, retries }` argument. Aborting rejects with
+HTTP reads accept an optional final `{ signal, retries, timeout }` argument.
+`timeout` is milliseconds per HTTP request, or `false` to disable the timeout.
+Omitting it preserves the 10-second transport default. Each retry and pagination
+request has its own timeout; this does not bound the whole operation, header
+resolution, retry waits, or response body parsing. Timeout failures reject with
+`TransportError`. For example:
+
+```ts
+await client.fetchOrderBook({ assetId }, { signal, retries: 0, timeout: 30_000 });
+const pages = client.listTrades({ pageSize: 100 }, { timeout: false });
+```
+
+Aborting rejects with
 `RequestAbortedError`, whose `cause` is the signal's reason, and stops pending
 requests, response reads, and retry waits. A custom fetch must honor the request's
 signal. Concurrent operations on the same client have independent cancellation.
