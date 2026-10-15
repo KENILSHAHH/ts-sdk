@@ -143,6 +143,27 @@ describe('session notification recovery', () => {
   });
 });
 
+describe('session portfolio risk data', () => {
+  it('exposes exact collateral and ADL tiers through reads and the iterator', () => {
+    async function read(session: PerpsSession) {
+      const portfolio = await session.fetchPortfolio();
+      expectTypeOf(
+        portfolio.margin.availableOrderMargin,
+      ).toEqualTypeOf<DecimalString>();
+      expectTypeOf(portfolio.feeTier).toEqualTypeOf<number>();
+      for (const position of portfolio.positions) {
+        expectTypeOf(position.adlIndex).toEqualTypeOf<0 | 1 | 2 | 3>();
+      }
+      for await (const event of session) {
+        if (event.type === 'portfolio') {
+          expectTypeOf(event.payload).toEqualTypeOf<typeof portfolio>();
+        }
+      }
+    }
+    void read;
+  });
+});
+
 describe('session fill risk data', () => {
   it('filters public session reads and exposes fill details through reads and updates', () => {
     async function read(session: PerpsSession) {
