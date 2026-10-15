@@ -34,11 +34,21 @@ describe('ServiceClient', () => {
       return Response.json({ ok: true });
     });
     const client = new ServiceClient({ root, fetch });
-    function request(timeout?: number | false) {
-      if (method === 'get' || method === 'postRead') {
-        return client[method]('/slow', { timeout, retries: 0 });
+    function request(timeout?: number | false): Promise<unknown> {
+      switch (method) {
+        case 'get':
+          return client.get('/slow', { timeout, retries: 0 });
+        case 'postRead':
+          return client.postRead('/slow', { timeout, retries: 0 });
+        case 'getWorkflow':
+          return client.getWorkflow('/slow', { timeout });
+        case 'post':
+          return client.post('/slow', { timeout });
+        case 'patch':
+          return client.patch('/slow', { timeout });
+        case 'del':
+          return client.del('/slow', { timeout });
       }
-      return client[method]('/slow', { timeout });
     }
     const timedOut = expect(request(20)).rejects.toMatchObject({
       name: 'TransportError',
