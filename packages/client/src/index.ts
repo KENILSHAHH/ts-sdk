@@ -14,7 +14,7 @@ export {
   SignatureType,
 } from '@polymarket/bindings/clob';
 export type * from '@polymarket/bindings/data';
-export { ActivityType } from '@polymarket/bindings/data';
+export { ActivityType, TokenModule } from '@polymarket/bindings/data';
 export type * from '@polymarket/bindings/gamma';
 export {
   ComboKnownStatus,
@@ -34,6 +34,7 @@ export {
   PerpsKnownCancelOrderErrorCode,
   PerpsKnownInternalTransferType,
   PerpsKnownWithdrawalStatus,
+  PerpsLiquidationMethod,
   PerpsLiquidityRole,
   PerpsMarginType,
   PerpsNotificationOrderType,
